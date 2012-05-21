@@ -1,0 +1,67 @@
+function [trl] = trialfun_visual_word(cfg)
+
+% [trl] = trialfun_visual_word(cfg) creates the trl-matrix for the 
+% single words
+% 
+% the cfg needs to contain the following option:
+%   cfg.dataset = string, name of the dataset
+%
+% the trl-matrix has 6 columns:
+%   column 1: begin sample, word onset trigger - 200 ms.
+%   column 2: end sample, onset of word + 800 ms, or next word onset
+%             trigger, whichever occurs first.
+%   column 3: offset of first sample with respect to time point 0
+%   column 4: trial number (i.e. sentence)
+%   column 5: trigger corresponding to the word
+%   column 6: sample number relative to the onset of the first word
+%
+% $Id: trialfun_visual_word.m 39 2012-05-08 11:12:46Z jansch $
+
+% read in event information
+hdr   = ft_read_header(cfg.dataset);
+event = ft_read_event(cfg.dataset);
+
+% select the UPPT001 events
+type = {event.type};
+fp   = strcmp('UPPT001', type);
+
+% create a vector with the event values and sample numbers
+val  = [event(fp).value];
+smp  = [event(fp).sample];
+
+% parse it into the constituent trials
+selfix = find(val==20);
+
+% add a dummy to the end for the for-loop to work
+if selfix(end)<numel(val)
+  selfix(end+1) = numel(val);
+end
+
+trl    = zeros(0,6);
+for k = 1:numel(selfix)-1
+  
+  sel = selfix(k):selfix(k+1);
+    
+  % create a sequence of triggers within the trial
+  tmpval = val(sel);
+  tmpsmp = smp(sel);
+  
+  % get the first word on/off sequence
+  firstword = [];
+  for kk = 1:numel(tmpval)-2
+    trg1 = tmpval(kk);
+    trg2 = tmpval(kk+1);
+    if trg1<=8 && trg2==15
+      if isempty(firstword)
+        firstword = tmpsmp(kk);
+      end;
+      offset    = round(hdr.Fs*0.2);
+      begsample = tmpsmp(kk) - offset;
+      endsample = min(tmpsmp(kk) + round(hdr.Fs*0.8), tmpsmp(kk+2));
+  
+      tmp = [begsample endsample -offset k tmpval(kk) begsample-firstword];
+      trl = cat(1,trl,tmp);
+    end
+  end
+  
+end

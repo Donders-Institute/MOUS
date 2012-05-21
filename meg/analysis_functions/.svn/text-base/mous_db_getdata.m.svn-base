@@ -1,0 +1,24 @@
+function [data] = mous_db_getdata(subject, type)
+
+% MOUS_DB_GETDATA extracts data of a particular type from the
+% from a specified subject
+%
+% $Id$
+
+[filename, st] = mous_db_getfilename(subject, type);
+if ~st(1)
+  error('the file %s does not exist', filename{1});
+else
+  fprintf('getting data from file %s\n', filename{1});
+end
+
+[p,n,ext] = fileparts(filename{1});
+switch lower(ext)
+  case {'.ima' '.mgz' '.nii' '.img'}
+    data = ft_read_mri(filename{1});
+  case {'.pos'}
+    data = ft_read_headshape(filename{1});
+  case 'mat'
+    
+  otherwise
+end 
