@@ -3,7 +3,7 @@ function [data] = mous_db_getdata(subject, type)
 % MOUS_DB_GETDATA extracts data of a particular type from the
 % from a specified subject
 %
-% $Id: mous_db_getdata.m 39 2012-05-08 11:12:46Z jansch $
+% $Id: mous_db_getdata.m 45 2012-05-25 18:12:03Z jansch $
 
 [filename, st] = mous_db_getfilename(subject, type);
 if ~st(1)
@@ -18,7 +18,13 @@ switch lower(ext)
     data = ft_read_mri(filename{1});
   case {'.pos'}
     data = ft_read_headshape(filename{1});
-  case 'mat'
-    
+  case {'.fif'}
+    if ~isempty(strfind(type, 'sourcemodelfif'))
+      data = ft_read_headshape(filename{1}, 'format', 'mne_source');
+    end
+  case {'.mat'}
+    s = whos('-file', filename{1});
+    tmp  = load(filename{1});
+    data = tmp.(s.name);
   otherwise
 end 

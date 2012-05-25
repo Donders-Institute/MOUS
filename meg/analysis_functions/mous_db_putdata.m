@@ -3,7 +3,7 @@ function mous_db_putdata(subject, type, varargin)
 % MOUS_DB_PUTDATA saves data from specified subject and type to 
 % the database
 %
-% $Id: mous_db_putdata.m 39 2012-05-08 11:12:46Z jansch $
+% $Id: mous_db_putdata.m 45 2012-05-25 18:12:03Z jansch $
 
 [filename, st] = mous_db_getfilename(subject, type);
 if st(1)
@@ -35,4 +35,7 @@ elseif ~isempty(strfind(type, 'headmodel'))
   % save headmodel data as mat-file and name variable 'vol'
   vol = data;
   save(filename{1}, 'vol');
+elseif ~isempty(strfind(type, 'sourcemodel'))
+  sourcemodel = data;
+  save(filename{1}, 'sourcemodel');
 end
