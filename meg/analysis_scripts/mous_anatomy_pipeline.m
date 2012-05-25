@@ -57,6 +57,7 @@ system(['./freesurferscript.sh ',subjdirfs,' ',subjectname]);
 system(['./mnescript.sh ',subjdirfs,' ',subjectname]);
 cd(pwdir);
 
+% create the 2D sourcemodel based on the freesurfer mesh
 % extract the dipole grid from the *.fif-file and coregister it to CTF
 % coordinate system
 mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
@@ -65,3 +66,9 @@ vol  = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
 [bnd, h] = mous_anatomy_sourcemodel2D(bnd, mri1, mri2, vol);
 mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg', h);
+
+% create a 3D sourcemodel based on the MNI brain
+mri1.coordsys = 'ctf';
+grid = mous_anatomy_sourcemodel3D(mri1, 8);
+mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', grid);

@@ -7,7 +7,7 @@ function [filename, st] = mous_db_getfilename(subject, type)
 %
 % filename = cell-array of strings returing the filename(s)
 %
-% $Id: mous_db_getfilename.m 45 2012-05-25 18:12:03Z jansch $
+% $Id: mous_db_getfilename.m 46 2012-05-25 19:03:09Z jansch $
 
 if iscell(subject)
   % call recursively
@@ -137,6 +137,17 @@ switch type{2}
         if isempty(d)
           d(1).name = [subject 'sourcemodel2D'];
         end
+      case 'sourcemodel3D'
+        if numel(type)==3, type{4} = ''; end
+        d = dir([D subject 'sourcemodel3D' type{4} '.*']);
+        if isempty(d)
+          d(1).name = [subject 'sourcemodel3D' type{4}];
+        end
+      case 'figure'
+        d = dir([D subject 'figure*.png']);
+        if isempty(d)
+          d(1).name = [subject 'figure_' type{4}];
+        end
       otherwise
         error('unrecognized type requested');
     end
@@ -153,5 +164,3 @@ if ~isempty(filename)
     st(k) = exist(filename{k}, 'file');
   end
 end
-
-  
