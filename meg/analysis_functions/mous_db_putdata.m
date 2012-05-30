@@ -31,6 +31,8 @@ if ft_datatype(data, 'volume')
   cfg.parameter = 'anatomy';
   cfg.filename  = filename{1};
   ft_volumewrite(cfg, data);
+elseif ishandle(data)
+ print(data, '-dpng', filename{1});
 elseif ~isempty(strfind(type, 'headmodel'))
   % save headmodel data as mat-file and name variable 'vol'
   vol = data;
@@ -38,4 +40,11 @@ elseif ~isempty(strfind(type, 'headmodel'))
 elseif ~isempty(strfind(type, 'sourcemodel'))
   sourcemodel = data;
   save(filename{1}, 'sourcemodel');
+elseif ~isempty(strfind(type, 'processed'))
+  % save as a mat-file
+  str = ['save(''',filename{1},''','''];
+  str = [str inputname(3), ''','''];
+  eval([inputname(3),'=varargin{1};']);
+  str = [str(1:end-2),');'];
+  eval(str);
 end

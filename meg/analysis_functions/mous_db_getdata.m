@@ -25,6 +25,11 @@ switch lower(ext)
   case {'.mat'}
     s = whos('-file', filename{1});
     tmp  = load(filename{1});
-    data = tmp.(s.name);
+    for k = 1:numel(s)
+      data{k} = tmp.(s(k).name);
+    end
+    if numel(data)==1
+      data = data{1};
+    end
   otherwise
 end 
