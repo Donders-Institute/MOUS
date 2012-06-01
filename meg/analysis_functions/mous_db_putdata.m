@@ -3,7 +3,7 @@ function mous_db_putdata(subject, type, varargin)
 % MOUS_DB_PUTDATA saves data from specified subject and type to 
 % the database
 %
-% $Id: mous_db_putdata.m 45 2012-05-25 18:12:03Z jansch $
+% $Id: mous_db_putdata.m 48 2012-05-30 14:21:15Z jansch $
 
 [filename, st] = mous_db_getfilename(subject, type);
 if st(1)

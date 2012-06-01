@@ -7,7 +7,7 @@ function [filename, st] = mous_db_getfilename(subject, type)
 %
 % filename = cell-array of strings returing the filename(s)
 %
-% $Id: mous_db_getfilename.m 46 2012-05-25 19:03:09Z jansch $
+% $Id: mous_db_getfilename.m 48 2012-05-30 14:21:15Z jansch $
 
 if iscell(subject)
   % call recursively
@@ -162,7 +162,13 @@ switch type{2}
           suff = [suff type{k} , '_'];
         end
         suff = suff(2:end-2);
-        D    = [D 'other/'];
+        if ~isempty(strfind(suff, 'tfr'))
+          D = [D 'TFR/'];
+        elseif ~isempty(strfind(stuff, 'erf'))
+          D = [D 'ERF/'];
+        else
+          D = [D 'other/'];
+        end
         d    = dir([D subject suff '.mat']);
         if isempty(d)
           d(1).name = [subject suff];

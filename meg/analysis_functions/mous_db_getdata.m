@@ -3,7 +3,7 @@ function [data] = mous_db_getdata(subject, type)
 % MOUS_DB_GETDATA extracts data of a particular type from the
 % from a specified subject
 %
-% $Id: mous_db_getdata.m 45 2012-05-25 18:12:03Z jansch $
+% $Id: mous_db_getdata.m 48 2012-05-30 14:21:15Z jansch $
 
 [filename, st] = mous_db_getfilename(subject, type);
 if ~st(1)
