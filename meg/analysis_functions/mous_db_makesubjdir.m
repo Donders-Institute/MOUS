@@ -10,17 +10,40 @@ existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject]));
 subjdir  = ['/home/language/annhul/MOUS/Processed/',subject];
 if ~existdir
   fprintf(['creating subject specific directory: ', subjdir,'\n']);
-  mkdir(subjdir); 
+  mkdir(subjdir);
+  cmd = ['chmod g+w ' subjdir];
+  system(cmd);
 end
 
 existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/meg_anatomy']));
 if ~existdir
   fprintf(['creating subject specific subdirectory: ', subjdir, '/meg_anatomy\n']);
   mkdir([subjdir, '/meg_anatomy']);
+    cmd = ['chmod g+w ' subjdir];
+  system(cmd);
+
 end
 
 existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/other']));
 if ~existdir
   fprintf(['creating subject specific subdirectory: ', subjdir, '/other\n']);
   mkdir([subjdir, '/other']);
+  cmd = ['chmod g+w ' subjdir '/other'];
+  system(cmd);
+end
+
+existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/TFR']));
+if ~existdir
+  fprintf(['creating subject specific subdirectory: ', subjdir, '/TFR\n']);
+  mkdir([subjdir, '/TFR']);
+  cmd = ['chmod g+w ' subjdir '/TFR'];
+  system(cmd);
+end
+
+existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/ERF']));
+if ~existdir
+  fprintf(['creating subject specific subdirectory: ', subjdir, '/ERF\n']);
+  mkdir([subjdir, '/ERF']);
+  cmd = ['chmod g+w ' subjdir '/ERF'];
+  system(cmd);
 end
