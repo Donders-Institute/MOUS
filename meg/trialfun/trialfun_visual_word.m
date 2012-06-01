@@ -14,8 +14,11 @@ function [trl] = trialfun_visual_word(cfg)
 %   column 4: trial number (i.e. sentence)
 %   column 5: trigger corresponding to the word
 %   column 6: sample number relative to the onset of the first word
-%
+%   column 7: number of samples between word on and offset
 % $Id: trialfun_visual_word.m 39 2012-05-08 11:12:46Z jansch $
+
+prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.3);
+poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
 
 % read in event information
 hdr   = ft_read_header(cfg.dataset);
@@ -37,7 +40,7 @@ if selfix(end)<numel(val)
   selfix(end+1) = numel(val);
 end
 
-trl    = zeros(0,6);
+trl    = zeros(0,7);
 for k = 1:numel(selfix)-1
   
   sel = selfix(k):selfix(k+1);
@@ -55,11 +58,11 @@ for k = 1:numel(selfix)-1
       if isempty(firstword)
         firstword = tmpsmp(kk);
       end;
-      offset    = round(hdr.Fs*0.2);
+      offset    = round(hdr.Fs*prestim);
       begsample = tmpsmp(kk) - offset;
-      endsample = min(tmpsmp(kk) + round(hdr.Fs*0.8), tmpsmp(kk+2));
+      endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), tmpsmp(kk+2));
   
-      tmp = [begsample endsample -offset k tmpval(kk) begsample-firstword];
+      tmp = [begsample endsample-1 -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk)];
       trl = cat(1,trl,tmp);
     end
   end
