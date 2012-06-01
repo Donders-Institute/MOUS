@@ -79,10 +79,10 @@ switch type{2}
     D = [basedir 'rawdata' filesep subject filesep 'Structural' filesep];
     d = dir([D '*.IMA']);
   case 'nifti'
-    D = [basedir 'preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [basedir 'SPM5preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'str-' subject '-001.nii']);
   case 'coregMNI'
-    D = [basedir 'preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [basedir 'SPM5preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'cstr-' subject '-001.nii']);
     if isempty(d)
       %d(1).name = [subject 'coregMNI'];

@@ -19,9 +19,8 @@ existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/meg_a
 if ~existdir
   fprintf(['creating subject specific subdirectory: ', subjdir, '/meg_anatomy\n']);
   mkdir([subjdir, '/meg_anatomy']);
-    cmd = ['chmod g+w ' subjdir];
+  cmd = ['chmod g+w ' subjdir];
   system(cmd);
-
 end
 
 existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/other']));
@@ -46,4 +45,11 @@ if ~existdir
   mkdir([subjdir, '/ERF']);
   cmd = ['chmod g+w ' subjdir '/ERF'];
   system(cmd);
+end
+
+existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/TFR']));
+if ~existdir
+  fprintf(['creating subject specific subdirectory: ', subjdir, '/TFR\n']);
+  mkdir([subjdir, '/TFR']);
+  system(['chmod g+w ',subjdir, '/TFR']);
 end
