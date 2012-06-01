@@ -60,9 +60,10 @@ for k = 1:numel(selfix)-1
       end;
       offset    = round(hdr.Fs*prestim);
       begsample = tmpsmp(kk) - offset;
-      endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), tmpsmp(kk+2));
-  
-      tmp = [begsample endsample-1 -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk)];
+      %endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), tmpsmp(kk+2));
+      endsample = tmpsmp(kk) + round(hdr.Fs*poststim);
+      
+      tmp = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk)];
       trl = cat(1,trl,tmp);
     end
   end
