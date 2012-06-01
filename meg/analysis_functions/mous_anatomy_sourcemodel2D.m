@@ -8,6 +8,7 @@ bnd = ft_transform_geometry(T, bnd);
 bnd = ft_convert_units(bnd, 'cm');
 
 % plot some figures to check the coregistration
-h(1) = figure;hold on;ft_plot_vol(vol, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(bnd); view([0 0]);
-h(2) = figure;hold on;ft_plot_vol(vol, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(bnd); view([0 90]);
-h(3) = figure;hold on;ft_plot_vol(vol, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(bnd); view([90 0]);
+h = figure;
+subplot(2,2,1);hold on;ft_plot_vol(vol, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(bnd); view([0 0]);
+subplot(2,2,2);hold on;ft_plot_vol(vol, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(bnd); view([0 90]);
+subplot(2,2,3);hold on;ft_plot_vol(vol, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(bnd); view([90 0]);
