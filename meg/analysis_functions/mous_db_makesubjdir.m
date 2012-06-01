@@ -47,9 +47,3 @@ if ~existdir
   system(cmd);
 end
 
-existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/TFR']));
-if ~existdir
-  fprintf(['creating subject specific subdirectory: ', subjdir, '/TFR\n']);
-  mkdir([subjdir, '/TFR']);
-  system(['chmod g+w ',subjdir, '/TFR']);
-end
