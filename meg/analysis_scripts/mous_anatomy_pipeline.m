@@ -4,6 +4,8 @@
 % $Id: mous_anatomy_pipeline.m 31 2012-03-30 18:12:08Z jansch $
 
 % create directory that will contain the results
+subjectname = 'V1024';
+
 mous_db_makesubjdir(subjectname);
 
 subjdirfs   = ['/home/language/annhul/MOUS/Processed/',subjectname,'/meg_anatomy']; %directory that will hold freeurfer results
@@ -52,7 +54,7 @@ mous_db_putdata(subjectname, 'meg_anatomy_headmodel', vol);
 
 % cd into directory that holds freesurferscript.sh
 pwdir = pwd;
-cd('/home/language/jansch/projects/mous/matlab/analysis_functions');
+cd('/home/language/annhul/matlab/MOUS/meg/analysis_functions');
 system(['./freesurferscript.sh ',subjdirfs,' ',subjectname]);
 system(['./mnescript.sh ',subjdirfs,' ',subjectname]);
 cd(pwdir);
