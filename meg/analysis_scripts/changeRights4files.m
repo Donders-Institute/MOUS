@@ -5,7 +5,7 @@ subjlist = {'V1010' 'V1011' 'V1012' 'V1013' 'V1014' ...
 'V1036' 'V1037' 'V1039' 'V1040' 'V1042' 'V1044' 'V1045' 'V1046' };
 
 for n= 1:length(subjlist)
-  str = sprintf('cd /home/language/annhul/MOUS/Processed/%s/ERF/', subjlist{n});
+  str = sprintf('cd /home/language/annhul/MOUS/Processed/%s/other/', subjlist{n});
   eval(str);
   cmd = ['chmod g+w *'];
   system(cmd);

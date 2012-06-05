@@ -1,16 +1,21 @@
 % Pipeline to run all preprocessing stages for the TFR and ERFs
 % Annika 1.6 2012
 
-subjlist = { 'V1001' 'V1002' 'V1003' 'V1010' 'V1011' 'V1012' 'V1013' 'V1014' ...
-'V1015' 'V1016' 'V1017' 'V1019' 'V1020' 'V1021' 'V1022' 'V1024' 'V1025' ...
-'V1026' 'V1027' 
-% This list of subjects were preprocessed in weekend 2-3.6 2012
+% addpath('/home/common/matlab/fieldtrip/qsub');
+% 
+% clear all
+% 
+% subjects {'V1011' 'V1013' 'V1028' 'V1029' 'V1031' 'V1036' 'V1037''V1042''V1043' 'V1047' 'V1010' 'V1012' 'V1015' 'V1016' 'V1019' 'V1020' 'V1021''V1022' 'V1024' 'V1025'};
+% qsubcellfun(@mous_TFR, subjects, 'timreq', 7200, 'memreq', 4*1024^3);
+%   
+function mous_preprocessing_pipeline(subjectname)
 
+%subjlist = {'V1010' 'V1011' 'V1012' 'V1013' 'V1014'};
 
-for n = 1:length(subjlist)
+%for n = 1:length(subjlist)         %  comment out when running qsub
   
   
-    subjectname = subjlist{n};
+    % subjectname = subjlist{n};    %  comment out when running qsub
     fprintf('Preprocessing subject %s  \n', subjectname);
     mous_db_makesubjdir(subjectname)
 
@@ -73,4 +78,4 @@ for n = 1:length(subjlist)
     % save preprocessed data
     mous_db_putdata(subjectname, 'meg_processed_{rawERF02-1ds}', data);
 
-end
+% end % comment out when running qsub
