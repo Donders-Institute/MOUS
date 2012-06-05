@@ -49,6 +49,6 @@ elseif ~isempty(strfind(type, 'processed'))
   eval([inputname(3),'=varargin{1};']);
   str = [str(1:end-2),');'];
   eval(str);
-  cmd = ['chmod g+w ' filename{1}];
+  cmd = ['chmod g+w ' filename{1}, '.mat'];
   system(cmd);
 end
