@@ -8,8 +8,8 @@ cfg            = [];
 cfg.dataset    = filename;
 cfg.trl        = trl;
 cfg.continuous = 'yes';
-cfg.demean     = 'yes';
-cfg.channel    = 'MEG';
+cfg.detrend    = 'yes';
+cfg.channel = {'MEG' 'EEG057' 'EEG058'}; 
 
 % TFR-specific parameters 
 if (strcmp(analysisType, 'TFR') > 0)
@@ -26,7 +26,8 @@ cfg.hpfilttype = 'fir';  %not in Tinekes script
 cfg.hpfiltord  = 100;   %not in Tinekes script
 cfg.hpfreq = 0.5; %wired number  % tineke has 0.5
 cfg.padding = 10; %big padding for hp to work 
-      
+cfg.demean   = 'yes';
+
 else
     error('unrecognized type requested');
 end
@@ -37,7 +38,7 @@ data = ft_preprocessing(cfg);
 
 cfg            = [];
 cfg.resamplefs = resamplefs;
-cfg.demean     = 'yes';
-cfg.detrend    = 'no';
+%cfg.demean     = 'yes';
+%cfg.detrend    = 'yes';
 data = ft_resampledata(cfg, data);
       
