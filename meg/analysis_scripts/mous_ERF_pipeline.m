@@ -6,14 +6,11 @@
 % data = mous_db_getdata(subjectname, 'meg_processed{rawERF05-3ds}');
 % %THESE HAVE NOT YET BEEN CALCULATED. NL 1-6-2012
 
-subjectname = 'V1010';
-data = mous_db_getdata(subjectname, 'meg_processed{raw05-3ds}');  % CURRENTLY USING THIS NL 1-6-2012
+subjectname = 'V1025';
+data = mous_db_getdata(subjectname, 'meg_processed_{rawERF02-1ds}');
 
-% COMMENT OUT LINES: 9 to 14 (everything before %% Calculate the ERF) IF USING SUBQ TO COMPUTE FOR MANY SUBJECTS
-% subjects = {'V1040' 'V1016' 'V1031' 'V1061' 'V1019' 'V1037' 'V1044' 'V1012' 'V1042' 'V1015' 'V1036' 'V1025' 'V1029' 'V1046' 'V1010' 'V1020' 'V1024' 'V1022' 'V1039' 'V1027'};
-
-for n = 1:length(subjects)   
-subjectname = subjects{n};
+% for n = 1:length(subjects)   
+% subjectname = subjects{n};
 
 %% Calculate the ERF
 fprintf('Calculating ERF for subject %s for conditions SenTar and SeqTar\n', subjectname);
@@ -44,6 +41,14 @@ cfg2.vartrllength   = 2;
 senTar_AG           = ft_timelockanalysis(cfg1, data);
 seqTar_AG           = ft_timelockanalysis(cfg2, data);
 
+cfg                 = [];  
+cfg.baseline        = [-0.2 0];
+cfg.channel          = 'MEG';
+senTar_AG           = ft_timelockbaseline(cfg, senTar_AG);
+seqTar_AG           = ft_timelockanalysis(cfg, seqTar_AG);
+
+
+
 % PG calculations ----------------------------------------------------
 % convert data to planar gradient
 data                = ft_megplanar(cfgplanar,data);
@@ -52,6 +57,12 @@ data                = ft_megplanar(cfgplanar,data);
 senTar_PG           = ft_timelockanalysis(cfg1, data);
 seqTar_PG           = ft_timelockanalysis(cfg2, data);
 
+cfg                 = [];  
+cfg.baseline        = [-0.2 0];
+cfg.channel          = 'MEG';
+senTar_PG           = ft_timelockbaseline(cfg, senTar_PG);
+seqTar_PG           = ft_timelockanalysis(cfg, seqTar_PG);
+
 % combine planar gradient (CPG)
 senTar_CPG          = ft_combineplanar([], senTar_PG);
 seqTar_CPG          = ft_combineplanar([], seqTar_PG);
@@ -59,26 +70,26 @@ seqTar_CPG          = ft_combineplanar([], seqTar_PG);
 
 %% SAVE the data 
 
-mous_db_putdata(subjectname, 'meg_processed_{erf05-3ds}', senTar_AG, seqTar_AG);
-mous_db_putdata(subjectname, 'meg_processed_{erf05-3ds-pg}', senTar_PG, seqTar_PG);
+mous_db_putdata(subjectname, 'meg_processed_{ERF02-1ds-ag}', senTar_AG, seqTar_AG);
+mous_db_putdata(subjectname, 'meg_processed_{ERF02-1ds-pg}', senTar_PG, seqTar_PG);
 
 %% Write number of accepted trials into text file
-txtfile = '/home/language/annhul/MOUS/Processed/NumAcceptedAvg4ERF_Window05-3_partial_June1.txt';
+txtfile = '/home/language/annhul/MOUS/Processed/NumAcceptedAvg4ERF_Window02_1_partial_June5.txt';
 fid = fopen(txtfile, 'a');
-fprintf(fid, '%s %s SentTar %d  SeqTar %d \n', datestr(now), subjectname, SentTar.dof(1),SeqTar.dof(1));
+fprintf(fid, '%s %s SenTar %d  SeqTar %d \n', datestr(now), subjectname, senTar_AG.dof(1),seqTar_AG.dof(1));
 fclose(fid);
 fprintf('Updated number of averages file %s ', txtfile);
 
-end
+
   
-%
+% 
 cfg = [];
 cfg.showlabels = 'no'; 
 cfg.fontsize = 6; 
 cfg.interactive = 'yes';
-cfg.layout = 'CTF275.lay';
+cfg.layout = 'CTF273.lay';
 figure; ft_multiplotER(cfg,senTar_AG, seqTar_AG);
-figure; ft_multiplotER(cfg,senTar_CPG, seqTar_CPG);
+% figure; ft_multiplotER(cfg,senTar_CPG, seqTar_CPG);
 
 % %ft_multiplotER(cfg,RCsent, MCsent, RCseq, MCseq);
 % cfg.ylim = [-2e-13 2e-13];
