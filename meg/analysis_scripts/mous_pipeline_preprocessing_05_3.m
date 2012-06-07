@@ -21,6 +21,7 @@ cfg.artfctdef.zvalue1.artifact = tmp{1}.artfctdef.zvalue.artifact;
 cfg.artfctdef.zvalue2.artifact = tmp{2}.artfctdef.zvalue.artifact;
 cfg.artfctdef.zvalue3.artifact = tmp{3}.artfctdef.zvalue.artifact;
 cfg.artfctdef.zvalue4.artifact = tmp{4}.artfctdef.zvalue.artifact;
+% cfg.artfctdef.visual.artifact  = cfg2.artfctdef.visual.artifact;  % %additional eyeblinks to be removed after first round of preprocessing
 cfg.artfctdef.reject           = 'partial';
 cfg.artfctdef.minlength        = 0.1;
 cfg         = ft_rejectartifact(cfg);
@@ -30,6 +31,6 @@ trl         = cfg.trl;
 sel = mod(trl(:,5),2)==0;
 trl = trl(sel,:);
 
-data = mous_preprocessing(filename{1}, trl, 300);
+data = mous_preprocessing(filename{1}, trl, 300, 'TFR');
 
 mous_db_putdata(subjectname, 'meg_processed_{raw05-3ds}', data);
