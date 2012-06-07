@@ -162,7 +162,7 @@ switch type{2}
           suff = [suff type{k} , '_'];
         end
         suff = suff(2:end-2);
-        if ~isempty(strfind(suff, 'TFR'))
+        if ~isempty(strfind(suff, 'tfr'))
           D = [D 'TFR/'];
         elseif ~isempty(strfind(suff, 'ERF'))
           D = [D 'ERF/'];
