@@ -98,6 +98,8 @@ cfg.channel         = {'MLC11','MLC12','MLC13','MLC14','MLC21','MLC22','MLC51','
 % Plotting for multiple statistical tests - loop
 
 % define clusters
+% to loop through them only changing the name of the structure which involves assigning different values to each array, but not the
+% field because a field can't begin with brackets or a number
 roi(1).label    = 'Lfront';
 roi(1).channel  = {'MLC11','MLC12','MLC13','MLC14','MLC21','MLC22','MLC51','MLF11','MLF12','MLF13','MLF14','MLF21','MLF22','MLF23','MLF24','MLF25','MLF31','MLF32','MLF33','MLF34','MLF35','MLF41','MLF42','MLF43','MLF44','MLF45','MLF46','MLF51','MLF52','MLF53','MLF54','MLF55','MLF61','MLF62','MLF63','MLF64','MLT11','MLT21','MLT31','MZC01','MZF02'};
 
@@ -124,7 +126,7 @@ roi(8).channel  = {'MRO11','MRO12','MRO13','MRO14','MRO21','MRO22','MRO23','MRO2
 
 % create cfg for freqstatistics 
 for k = 1:numel(roi)
-    cfg.channel = roi(k).channel;
+    cfg.channel = roi(k).channel;  % to loop through structure assign it to the same variable for each loop
     statroi1(k) = ft_freqstatistics(cfg, freq1{:});
     statroi2(k) = ft_freqstatistics(cfg, freq2{:});
     statroi1(k).label = roi(k).label;
@@ -155,11 +157,19 @@ figure;imagesc(statroi1(1).time,statroi1(1).freq,shiftdim(statroi1(1).prob));axi
 title ('Lfront <30 prob')
 figure;imagesc(statroi1(2).time,statroi1(2).freq,shiftdim(statroi1(2).prob));axis xy   % Ltemp
 title ('Ltemp <30 prob')
+figure;imagesc(statroi1(3).time,statroi1(3).freq,shiftdim(statroi1(3).prob));axis xy   % Lfront
+title ('Lpar <30 prob')
+figure;imagesc(statroi1(4).time,statroi1(4).freq,shiftdim(statroi1(4).prob));axis xy   % Ltemp
+title ('Locc <30 prob')
 % statistics
 figure;imagesc(statroi1(1).time,statroi1(1).freq,shiftdim(statroi1(1).stat));axis xy 
 title ('Lfront <30 stat')
 figure;imagesc(statroi1(2).time,statroi1(2).freq,shiftdim(statroi1(2).stat));axis xy
 title ('Ltemp <30 stat')
+figure;imagesc(statroi1(3).time,statroi1(3).freq,shiftdim(statroi1(3).stat));axis xy   % Lfront
+title ('Lpar <30 stat')
+figure;imagesc(statroi1(4).time,statroi1(4).freq,shiftdim(statroi1(4).stat));axis xy   % Ltemp
+title ('Locc <30 stat')
 
 % Multitaper
 % probabilities
@@ -167,12 +177,20 @@ figure;imagesc(statroi2(1).time,statroi2(1).freq,shiftdim(statroi2(1).prob));axi
 title ('Lfront >30 prob')
 figure;imagesc(statroi2(2).time,statroi2(2).freq,shiftdim(statroi2(2).prob));axis xy   % Ltemp
 title ('Ltemp >30  prob')
+figure;imagesc(statroi2(3).time,statroi2(3).freq,shiftdim(statroi2(3).prob));axis xy   % Lfront
+title ('Lpar >30 prob')
+figure;imagesc(statroi2(4).time,statroi2(4).freq,shiftdim(statroi2(4).prob));axis xy   % Ltemp
+title ('Locc >30 prob')
 
 % statistics
 figure;imagesc(statroi2(1).time,statroi2(1).freq,shiftdim(statroi2(1).stat));axis xy 
 title ('Lfront >30 stat')
 figure;imagesc(statroi2(2).time,statroi2(2).freq,shiftdim(statroi2(2).stat));axis xy
 title ('Ltemp >30 stat')
+figure;imagesc(statroi2(3).time,statroi1(3).freq,shiftdim(statroi2(3).stat));axis xy   % Lfront
+title ('Lpar >30 stat')
+figure;imagesc(statroi2(4).time,statroi1(4).freq,shiftdim(statroi2(4).stat));axis xy   % Ltemp
+title ('Locc >30 stat')
 
 %% plots not for now
 
