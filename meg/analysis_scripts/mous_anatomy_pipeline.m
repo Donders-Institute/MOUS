@@ -3,19 +3,18 @@
 %
 % $Id: mous_anatomy_pipeline.m 31 2012-03-30 18:12:08Z jansch $
 
-% create directory that will contain the results
-subjectname = 'V1024';
-
+%% Set subject, input & output dirs
+subjectname = 'V1024'; % if running from the middle you need this
 mous_db_makesubjdir(subjectname);
 
-% directory that will hold freeurfer results
+% create directory that will contain the results
+% if running from the middle you need this
 subjdirfs   = ['/home/language/annhul/MOUS/Processed/',subjectname,'/meg_anatomy'];
 
-% coregister to MNI coordinate system
+%% Coregister to MNI coordinate system
 mri      = mous_db_getdata(subjectname, 'mri_nifti');
 [mri, T] = mous_anatomy_coregMNI(mri);
-% mous_db_putdata(subjectname, 'mri_coregMNI', mri); % this one points to Julia's homedir but does not work due to privileges
-mous_db_putdata(subjectname, 'meg_anatomy_coregMNI', mri); % this one points to Annika's homedir
+mous_db_putdata(subjectname, 'meg_anatomy_coregMNI', mri); % creates a V1024coregMNI.nii file
 
 % next step is not necessary anymore when using the converted nifties
 %
@@ -25,14 +24,14 @@ mous_db_putdata(subjectname, 'meg_anatomy_coregMNI', mri); % this one points to 
 % mri = mous_anatomy_reslice(mri);
 % mous_db_putdata(subjectname, 'meg_anatomy_coregMNIresliced', mri);
 
-% skull strip
+%% Skull strip
 mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
 mri.coordsys = 'mni';
 seg = mous_anatomy_skullstrip(mri);
-mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip', seg);
+mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip', seg); % creates a V1025coregMNIskullstrip.nii file
 
-% coregister to CTF coordinate system
-% display the pictures
+%% Coregister to CTF coordinate system
+% display the pictures of the ears
 filename3 = mous_db_getfilename(subjectname, 'meg_fidpic');
 % read in the picture(s)
 if numel(filename3)>0
@@ -45,18 +44,21 @@ end
 mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
 pos = mous_db_getdata(subjectname, 'meg_pos');
 mri = mous_anatomy_coregCTF(mri, pos);
-mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);
+mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);% creates a V1025coregCTF.nii file
 
-% create singleshell volume conductor model of the head
+%% Create singleshell volume conductor model of the head
 mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
 mri.coordsys = 'ctf';
 vol = mous_anatomy_headmodel(mri);
 mous_db_putdata(subjectname, 'meg_anatomy_headmodel', vol);
 
-% freesurfer pipeline
+%% Freesurfer pipeline
 str     = which('freesurferscript1.sh');
 [p,f,e] = fileparts(str);
 system([p,'/freesurferscript1.sh ',subjdirfs,' ',subjectname]);
+% output is diveded in the subfolders of
+% home/language/annhul/MOUS/Processed/V1025/meg_anatomy/
+
 
 % create proper brainmask that works within freesurfer
 p2   = [subjdirfs, '/',subjectname,'/mri/'];
@@ -75,9 +77,10 @@ cfg = [];
 cfg.interactive = 'yes';
 figure; ft_sourceplot(cfg, mri1);
 
-% at this point it is wise to check the brainmask in tkmedit, and edit if
-% necessary. first you can have a look at the brainmasked anatomy in matlab
-% to see whether it is a problematic one
+% At this stage have a look at the brainmasked anatomy in matlab to see whether 
+% it is a problematic one. If this is the caes, check the brainmask in 
+% tkmedit, and edit if necessary. Instructions for tkmedit in 
+% 
 
 system([p,'/freesurferscript2.sh ',subjdirfs,' ',subjectname]);
 
@@ -93,10 +96,10 @@ mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
 vol  = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
 [bnd, h] = mous_anatomy_sourcemodel2D(bnd, mri1, mri2, vol);
-mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg', h);
+mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd); % creates V1025sourcemodel2D.mat
+mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg', h); %creates a figure of the volume, check this
 
 % create a 3D sourcemodel based on the MNI brain
 mri1.coordsys = 'ctf';
 grid = mous_anatomy_sourcemodel3D(mri1, 8);
-mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', grid);
+mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', grid); %creates V1025sourcemodel3Dnonlin8mm.mat
