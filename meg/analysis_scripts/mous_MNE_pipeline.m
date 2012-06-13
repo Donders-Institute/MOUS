@@ -30,7 +30,7 @@ fname = mous_db_getfilename(subjectname,  'meg_anatomy_headmodel');
 vol = ft_read_vol(fname{1});
   
 %% Compute the leadfields
-data = mous_db_getdata(subjectname, 'meg_processed_{ERF02-1ds-ag}');
+
 cfg         = [];
 cfg.grad    = tlck.grad;
 cfg.vol     = vol;
@@ -47,28 +47,42 @@ cfg.mne.prewhiten  = 'yes';
 cfg.mne.lambda     = 2;
 cfg.mne.scalesourcecov  = 'yes';
 cfg.mne.keepfilter = 'yes';
-source             = ft_sourceanalysis(cfg, data{1});
+source             = ft_sourceanalysis(cfg, tlck);
 
-cfg            = [];
-cfg.demean     = 'yes';
-cfg.projectmom = 'yes';
-cfg.zscore     = 'no';
-sd             = ft_sourcedescriptives(cfg, source);
-    
- 
- % Visualization
+
+%% Compute the MNE solution per condition
+data = mous_db_getdata(subjectname, 'meg_processed_{ERF02-1ds-ag}');
+cfg                 = [];
+cfg.method          = 'mne';
+cfg.vol             = vol;
+cfg.grid.filter     = source.avg.filter;
+cfg.mne.lambda      = 2;
+cfg.mne.scalesourcecov  = 'yes';
+cfg.mne.keepfilter  = 'yes';
+mne_senTar          = ft_sourceanalysis(cfg, data{1});
+mne_seqTar          = ft_sourceanalysis(cfg, data{2});
+
+   
+
+%% Visualization
+% still frame
 bnd= mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D');
- 
+
+m=mne_senTar.avg.pow(:,150); % plotting the result at the 150th sample
+ft_plot_mesh(bnd, 'vertexcolor', m);
+
+
+% movie
 cfg = [];
 cfg.projectmom = 'yes';
-
-sd.tri = bnd.tri;
-sd.pnt = bnd.pnt;
+sd_sentTar = ft_sourcedescriptives(cfg,mne_senTar);
+sd_sentTar.tri = bnd.tri;
 cfg = [];
 cfg.mask = 'avg.pow';
-ft_sourcemovie(cfg,sd);
+ft_sourcemovie(cfg,sd_sentTar);
 
 % edit getfilename and implment saving the solution 
 %mous_db_putdata(subjectname, 'mne_solution', sd, source, grid, tlck);
+
 
   
