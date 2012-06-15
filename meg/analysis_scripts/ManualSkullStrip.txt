@@ -1,0 +1,37 @@
+% Manual skull stripping the brainmask with tkmedit 
+% check the brain mask with tkmedit
+
+% in a shell do the following 
+% check environment variables with 'set'
+% export FREESURFER_HOME=/opt/freesurfer
+% export FSFAST_HOME=/opt/freesurfer/fsfast
+
+export SUBJECT=V1009
+export SUBJECTS_DIR=/home/language/juludd/MOUS
+
+
+source $FREESURFER_HOME/SetUpFreeSurfer.sh
+
+cp brainmask.mgz brainmask_org.mgz
+vglrun tkmedit V1009 brainmask.mgz
+
+% In tkmedit set
+
+Tools -  volume brush info - set low at zero & high at 255, new value at zero, close
+
+Tools -  brush info - radius 2-3 voxels 
+
+Set the tkmedit in edit mode (3rd icon square), change view and slice and start erasing
+
+then save, File- save Main Volume
+
+
+% Continue with the anatomy pipeline with freesurfer2.sh (line 82)
+% Check the volume:
+
+export subj subj_dir
+vglrun tkmedit V1009 T1.mgz
+load main surface , select lh.org - check
+load main surface, select rh.org - check
+
+if bad, report iin the Big-U 
