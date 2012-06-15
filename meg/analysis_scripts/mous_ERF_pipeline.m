@@ -85,7 +85,6 @@ fprintf(fid, '%s %s SenTar mean:%d \tSD:%1.1f  \tSeqTar mean:%d \tSD:%1.1f \n', 
               datestr(now), subjlist{k}, round(mean(senTar_AG.dof(1:end))), std(senTar_AG.dof(1:end)),round(mean(seqTar_AG.dof(1:end))), std(seqTar_AG.dof(1:end)));
 fclose(fid);
 fprintf('Updated number of averages file %s ', txtfile);
-
 cmd = ['chmod g+w ' txtfile];
 system(cmd);
 
