@@ -15,6 +15,6 @@ cfg.artfctdef.minlength        = 0.1;
 cfg         = ft_rejectartifact(cfg);
 trl         = cfg.trl;
 
-% just focus on the target words
-sel = mod(trl(:,5),2)==0;
-trl = trl(sel,:);
+% uncomment to focus on the target words
+% sel = mod(trl(:,5),2)==0;
+% trl = trl(sel,:);
