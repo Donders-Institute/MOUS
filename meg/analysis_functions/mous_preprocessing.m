@@ -41,6 +41,5 @@ cfg            = [];
 cfg.resamplefs = resamplefs;
 cfg.demean     = 'yes';
 cfg.detrend    = 'no';
-% should detrending/demeaning be repeated here???
 data = ft_resampledata(cfg, data);
       
