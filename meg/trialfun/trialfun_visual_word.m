@@ -32,7 +32,7 @@ fp   = strcmp('UPPT001', type);
 val  = [event(fp).value];
 smp  = [event(fp).sample];
 
-val = [val 20]; % add a 20 to the val to avoid problems with the last sentence
+val = [val 20]; % add a 20 to the val to avoid problems with the last sentence (able to identify boundaries for last sentence)
 smp = [smp smp(end)];
 
 % parse it into the constituent trials.  indices in val vector representing start of a sentence/sequence
@@ -40,8 +40,8 @@ selfix = find(val==20);
 
 % add a dummy to the end for the for-loop to work
 if selfix(end)<numel(val)
-  selfix(end+1) = numel(val);  % LOCATION OF 20 TAKES LOCATION OF THE LAST TRIGGER FROM THE ENTIRE SET OF TRIGGERS 
-end
+  selfix(end+1) = numel(val);  %  
+end                            
 
 trl    = zeros(0,7);
 for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequence; duration of k = duration of a sent/seql; # of k's = # of words in the current trial
