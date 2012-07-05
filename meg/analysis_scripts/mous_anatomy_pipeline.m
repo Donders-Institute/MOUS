@@ -27,7 +27,7 @@ mous_db_putdata(subjectname, 'meg_anatomy_coregMNI', mri); % creates a V1024core
 %% Skull strip
 mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
 mri.coordsys = 'mni';
-seg = mous_anatomy_skullstrip(mri);
+seg = mous_anatomy_skullstrip(mri, 0.5); % 0.5 is a configurable parameter that determines the skullstrip behavior
 mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip', seg); % creates a V1025coregMNIskullstrip.nii file
 
 %% Coregister to CTF coordinate system
@@ -60,22 +60,22 @@ system([p,'/freesurferscript1.sh ',subjdirfs,' ',subjectname]);
 % home/language/annhul/MOUS/Processed/V1025/meg_anatomy/
 
 
-% create proper brainmask that works within freesurfer
-p2   = [subjdirfs, '/',subjectname,'/mri/'];
-mri1 = ft_read_mri([p2 'T1.mgz']);
-mri2 = ft_read_mri([p2 'brainmask.mgz']);
-mri1.anatomy(mri2.anatomy==0) = 0;
-
-cfg = [];
-cfg.filename  = [p2 'brainmask.mgz'];
-cfg.filetype  = 'mgz';
-cfg.parameter = 'anatomy';
-cfg.datatype  = 'uint8';
-ft_volumewrite(cfg, mri1);
-
-cfg = [];
-cfg.interactive = 'yes';
-figure; ft_sourceplot(cfg, mri1);
+% % create proper brainmask that works within freesurfer
+% p2   = [subjdirfs, '/',subjectname,'/mri/'];
+% mri1 = ft_read_mri([p2 'T1.mgz']);
+% mri2 = ft_read_mri([p2 'brainmask.mgz']);
+% mri1.anatomy(mri2.anatomy==0) = 0;
+% 
+% cfg = [];
+% cfg.filename  = [p2 'brainmask.mgz'];
+% cfg.filetype  = 'mgz';
+% cfg.parameter = 'anatomy';
+% cfg.datatype  = 'uint8';
+% ft_volumewrite(cfg, mri1);
+% 
+% cfg = [];
+% cfg.interactive = 'yes';
+% figure; ft_sourceplot(cfg, mri1);
 
 % At this stage have a look at the brainmasked anatomy in matlab to see whether 
 % it is a problematic one. If this is the caes, check the brainmask in 

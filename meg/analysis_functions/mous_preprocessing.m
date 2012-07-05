@@ -36,5 +36,4 @@ cfg            = [];
 cfg.resamplefs = resamplefs;
 cfg.demean     = 'yes';
 cfg.detrend    = 'no';
-data           = ft_resampledata(cfg, data);
-      
+data = ft_resampledata(cfg, data);

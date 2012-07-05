@@ -25,13 +25,13 @@ for k = 1:numel(subjlist)
   erfSeqTar{k} = seqTar_CPG;   
 end
 
-%% plot average for each ROI (without  stat)s
+%% plot average for each ROI (without stats)
 
 tmp1 = ft_selectdata(erfSenTar{:},'param','avg');  % 3D data
 tmp2 = ft_selectdata(erfSeqTar{:},'param','avg');
 %tmp1 = ft_selectdata(tmp1,'avgoverrpt','yes');
 
-tlck_SenTar = tmp1;                                 % 2D data
+tlck_SenTar = tmp1;                                % 2D data
 tlck_SenTar.dimord = 'chan_time';
 tlck_SenTar.avg = squeeze(mean(tmp1.avg));
 
@@ -73,9 +73,14 @@ for k = 1:numel(roi)
     cfg = [];   
     cfg.channel = roi(k).channel;  % to loop through structure assign it to the same variable for each loop
     cfg.parameter = 'avg';
-    figure; ft_singleplotER(cfg,tlck_SenTar,tlck_SeqTar);
+    %cfg.interactive = 'yes';
+    figure; 
+    ft_singleplotER(cfg,tlck_SenTar,tlck_SeqTar);
     axis ([-0.5 3.0 -1*1.0000e-14 9*1.0000e-14]);
+    %axis ([1.1 1.4 -1*1.0000e-14 9*1.0000e-14]);
     title(roi(k).label);
+    hold on; 
+    line([300 300],[0 max(erfSenTar_Clust{3}.avg)])
 end
 
 %% perform cluster permutation statistics for different head areas, all frequencies
