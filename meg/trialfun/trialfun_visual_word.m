@@ -37,14 +37,14 @@ selfix = find(val==20);
 
 % add a dummy to the end for the for-loop to work
 if selfix(end)<numel(val)
-  selfix(end+1) = numel(val);
+  selfix(end+1) = numel(val);  % LOCATION OF 20 TAKES LOCATION OF THE LAST TRIGGER FROM THE ENTIRE SET OF TRIGGERS 
 end
 
 trl    = zeros(0,7);
 for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequence; duration of k = duration of a sent/seql; # of k's = # of words in the current trial
-                               % -1 cuz last trigger is a dummy
+                               % -1 because last trigger is a dummy
   
-  sel = selfix(k):selfix(k+1); % (2) create a sequence of triggers within the trial to mark each word in the trial
+  sel = selfix(k):selfix(k+1); % (2) create a sequence of triggers marking words within a trial. Trial boundary: one 20 (fixationcross) to another 20.
                             
   tmpval = val(sel);
   tmpsmp = smp(sel);           % last sample of tmpsmp is sample of the last word (which is an empty word) in the trial
@@ -71,7 +71,8 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
     end
   end
   
-  % truncate the epochs' length so that it does not go beyond the end of a
+  % for each sentence/sequence truncate the epochs' length of words 
+  % so that they do not go beyond the end of a
   % sentence/sequence, taking into account that the last word on/off
   % trigger pair did not actually contain a visually presented word.
   % i.e. the end of the last actual word is here marked by the onset of the

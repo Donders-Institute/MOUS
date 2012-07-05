@@ -1,21 +1,24 @@
-% Manual skull stripping the brainmask with tkmedit 
-% check the brain mask with tkmedit
+# Manual skull stripping the brainmask with tkmedit 
+# check the brain mask with tkmedit
 
-% in a shell do the following 
-% check environment variables with 'set'
-% export FREESURFER_HOME=/opt/freesurfer
-% export FSFAST_HOME=/opt/freesurfer/fsfast
+# in a shell do the following 
+# check environment variables with 'set'
 
-export SUBJECT=V1009
-export SUBJECTS_DIR=/home/language/juludd/MOUS
-
-
+# set up Freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
-cp brainmask.mgz brainmask_org.mgz
-vglrun tkmedit V1009 brainmask.mgz
+#define the subject and path
+export SUBJECT=V1014
+export SUBJECTS_DIR=/home/language/annhul/MOUS/Processed/V1014/meg_anatomy
 
-% In tkmedit set
+cd /home/language/annhul/MOUS/Processed/V1009/meg_anatomy/V1009/mri
+cp brainmask.mgz brainmask_org.mgz
+chmod g+w brainmask.mgz
+chmod g+w brainmask_org.mgz
+
+vglrun tkmedit $SUBJECT brainmask.mgz
+
+# In tkmedit set
 
 Tools -  volume brush info - set low at zero & high at 255, new value at zero, close
 
@@ -26,12 +29,15 @@ Set the tkmedit in edit mode (3rd icon square), change view and slice and start 
 then save, File- save Main Volume
 
 
-% Continue with the anatomy pipeline with freesurfer2.sh (line 82)
-% Check the volume:
+# Continue with the anatomy pipeline with freesurfer2.sh (line 82)
+# Check the volume by runing the tkmedit again
 
-export subj subj_dir
+source $FREESURFER_HOME/SetUpFreeSurfer.sh
+export SUBJECT=V1009
+export SUBJECTS_DIR=/home/language/annhul/MOUS/Processed/V1009/meg_anatomy
+
 vglrun tkmedit V1009 T1.mgz
 load main surface , select lh.org - check
 load main surface, select rh.org - check
 
-if bad, report iin the Big-U 
+# if bad, report in the Big-U 

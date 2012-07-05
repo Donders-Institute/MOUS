@@ -1,8 +1,6 @@
-
 function [trl] = mous_defineTrial(filename, prestim, poststim, wordType)
 
-
-cfg = [];
+cfg                   = [];
 cfg.dataset           = filename;
 cfg.trialdef.prestim  = prestim;              % baseline
 cfg.trialdef.poststim = poststim-1./1200;     % pad
@@ -10,17 +8,14 @@ cfg.trialfun          = 'visual_word';        % 1s duration from onset of target
 [cfg]                 = ft_definetrial(cfg);  % ft_definetrial defines trials which are created in cfg.trl which is a parameter for ft_preprocessing
 trl                   = cfg.trl;
 
-
 if (strcmp(wordType,'target') > 0)           % focus on the target words
     sel = mod(trl(:,5),2)==0; 
     trl = trl(sel,:);
-    
 elseif (strcmp(wordType,'tarplusOne') > 0)   % focus on the 1st word after the target
     sel_tar = mod(trl(:,5),2)==0;            % all triggers, 1 = target
     tarOne_tmp = [false;sel_tar(1:end-1)];   % all triggers, 1 = tar+1 
-    sel_tarOne = find(tarOne_tmp);           % indices of all tar+1
+    sel_tarOne = find(tarOne_tmp);           % index position of all tar+1
     sel_tarOne = sel_tarOne(trl(sel_tar,4)==trl(tarOne_tmp,4));  % trial of tar+1 = trial of target % ORIG4;.js
-    % sel_tarOne = sel_tarOne(trl(sel_tar,4)==sel_tar(trl(sel_tar,4))); % wrong doesn't even give output...
     trl        = trl(sel_tarOne,:);
     
 elseif (strcmp(wordType,'tarplusTwo') > 0)   % focus on the 2nd word after the target
