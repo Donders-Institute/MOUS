@@ -32,6 +32,9 @@ fp   = strcmp('UPPT001', type);
 val  = [event(fp).value];
 smp  = [event(fp).sample];
 
+val = [val 20]; % add a 20 to the val to avoid problems with the last sentence
+smp = [smp smp(end)];
+
 % parse it into the constituent trials.  indices in val vector representing start of a sentence/sequence
 selfix = find(val==20);   
 
