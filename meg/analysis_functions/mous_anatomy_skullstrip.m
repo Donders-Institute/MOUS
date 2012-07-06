@@ -16,4 +16,4 @@ str = ['/opt/fsl/bin/bet ',d,subjectname,'/meg_anatomy/',subjectname,'coregMNI '
 str = [str,'-R -f ',num2str(threshold),' -g 0 -m'];
 
 system(str);
-
+seg = ft_read_mri([d,subjectname,'/meg_anatomy/',subjectname,'coregMNIskullstrip_mask.nii.gz']);
