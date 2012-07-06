@@ -1,7 +1,7 @@
 function [trl] = mous_defineTrial(filename, prestim, poststim, wordType)
 
 cfg                   = [];
-cfg.dataset           = filename{1};
+cfg.dataset           = filename;
 cfg.trialdef.prestim  = prestim;              % baseline
 cfg.trialdef.poststim = poststim-1./1200;     % pad
 cfg.trialfun          = 'visual_word';        % 1s duration from onset of target word
@@ -24,8 +24,8 @@ elseif (strcmp(wordType,'tarplusOne') > 0)   % focus on the 1st word after the t
     
 elseif (strcmp(wordType,'tarplusTwo') > 0)   % focus on the 2nd word after the target
     sel_tar = mod(trl(:,5),2)==0;
-    if sel_tar(end) == 1                     % if penultimate is a target, then remove the last target's index. 
-        sel_tar = sel_tar(1:end-2);          % Otherwise trl(sel_tar,4) will not be the same size as trl(tarOne_tmp,4)
+    if sel_tar(end) == 1 || sel_tar(end-1) == 1; % if penultimate is a target, then remove the last target's index. 
+        sel_tar = sel_tar(1:end-2);            % Otherwise trl(sel_tar,4) will not be the same size as trl(tarOne_tmp,4)
     end    
     tarTwo_tmp = [false; false; sel_tar(1:end-2)];  
     sel_tarTwo = find(tarTwo_tmp);    
