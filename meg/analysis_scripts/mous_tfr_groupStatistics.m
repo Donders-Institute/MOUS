@@ -16,39 +16,117 @@ subjlist = {'V1010' 'V1012' 'V1013' 'V1015' 'V1024'...
 subjlist = {'V1013' 'V1024' 'V1028' 'V1029' 'V1030'...
             'V1031' 'V1033' 'V1034' 'V1044'};
 
-%%  get the individual data
+%% (A) get the individual data
 basedir = '/home/language/annhul/MOUS/Processed/';
+nsubj   = numel(subjlist);
 for k = 1:numel(subjlist)
-  %tmp = mous_db_getdata(subjlist{k}, 'meg_processed_...');
   load([basedir subjlist{k} '/TFR/' subjlist{k} 'tfr_targetword_05-3ds-pg']);
-  % load([basedir subjlist{k} '/TFR/' subjlist{k} 'tfr_tarplusOne_05-3ds-pg']);
-  % load([basedir subjlist{k} '/TFR/' subjlist{k} 'tfr_tarplusTwo_05-3ds-pg']);
-  freq1{k} = TFRHann_Diff_PG;   % load data from the same condition from each subject; one condition per array.           
-  freq2{k} = TFRMult_Diff_PG;   
+
+  %freq1{k} = TFRHann_Diff_PG;   % load data from the same condition from each subject; one condition per array.           
+  %freq2{k} = TFRMult_Diff_PG;   
+ 
+  freq1{k} = TFRHann_SenTar_PG;  % load sentences and sequences into 2 columns:      SenTar         SeqTar              % permuting between these 2 conditions
+  freq2{k} = TFRMult_SenTar_PG;                                 %                 1 1 1 1 1 1       2 2 2 2 2 2         % cfg.ivar (independent variables)
+  freq1{k+nsubj} = TFRHann_SeqTar_PG;                           %                 1 2 3 4 5 6       1 2 3 4 5 6         % cfg.uvar (units of observ.)
+  freq2{k+nsubj} = TFRMult_SeqTar_PG;
+
 end
 
-%% create empty powerspectra for swapping to perform permutation
+%% (B) create empty powerspectra for permutation in next step - only if reading in data that has relative difference calculated between conditions
 %  calculated relative difference between sen and seq: (A/B), so to do
 %  for permutation make a second column that is empty, i.e. A/B has no difference
-nsubj = numel(freq1);           
-freq1(nsubj+(1:nsubj)) = freq1;  % add another nsubj number of columns
-freq2(nsubj+(1:nsubj)) = freq2;
-for k = nsubj+(1:nsubj)          % from column 19+1, 19+2 ... i.e. 20 to 38 assign 0 (no difference powspctra)
-  freq1{k}.powspctrm(:) = 0;
-  freq2{k}.powspctrm(:) = 0;
-end
 
-%% perform cluster permutation statistics for different head areas, all frequencies
+% freq1(nsubj+(1:nsubj)) = freq1;  % add another nsubj number of columns
+% freq2(nsubj+(1:nsubj)) = freq2;
+% for k = nsubj+(1:nsubj)          % from column 19+1, 19+2 ... i.e. 20 to 38 assign 0 (no difference powspctra)
+%   freq1{k}.powspctrm(:) = 0;
+%   freq2{k}.powspctrm(:) = 0;
+% end
+
+%% (C) Plot the data for both conditions    %note: run part (A) first
+
+% different plots for low and high frequencies 
+freqAll_Low     = ft_selectdata(freq1{:},'param','powspctrm','avgoverrpt','yes');  % Below 30Hz
+freqAll_High    = ft_selectdata(freq2{:},'param','powspctrm','avgoverrpt','yes');  % Above 30Hz
+
+% perform baseline correction 
+cfgb                = [];
+cfgb.baseline       = [-0.25 -0.15];  % don't read until zero because at zero time point is start of stimulus, and baseline will thus have have leakage from brain activity where stimulus is present
+freqAll_Low_b     = ft_freqbaseline(cfgb, freqAll_Low);
+freqAll_High_b    = ft_freqbaseline(cfgb, freqAll_High);
+
+% plot
+cfgp                = [];
+cfgp.layout         = 'CTF275.lay';
+cfgp.interactive    = 'yes';
+cfgp.zlim           = 'maxabs';
+figure; ft_multiplotTFR(cfgp,freqAll_Low_b);
+figure; ft_multiplotTFR(cfgp,freqAll_High_b);
+
+
+%% (D) plot data for one condition 
+
+% for ivar: the first 17 cells are one condition (sent), and the next 17 cells are the other condition (seq)
+
+selPtp = [1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17];  % select participants % used to select data of participants from one condition
+
+
+% select data
+    % sentences only
+    freqSen_Low     = ft_selectdata(freq1{:},'param','powspctrm');                      % <30Hz
+    freqSen_Low     = ft_selectdata(freqSen_Low,'avgoverrpt','yes','rpt',selPtp);  
+    freqSen_High    = ft_selectdata(freq2{:},'param','powspctrm');                      % >30Hz
+    freqSen_High    = ft_selectdata(freqSen_High,'avgoverrpt','yes','rpt',selPtp); 
+
+    % sequences only
+    freqSeq_Low     = ft_selectdata(freq1{:},'param','powspctrm','avgoverrpt','yes');
+    freqSen_Low     = ft_selectdata(freqSeq_Low,'avgoverrpt','yes','rpt',selPtp+17);
+    freqSeq_High    = ft_selectdata(freq2{:},'param','powspctrm','avgoverrpt','yes');
+    freqSen_High    = ft_selectdata(freqSeq_High,'avgoverrpt','yes','rpt',selPtp+17);
+
+% perform baseline correction
+cfgb                = [];
+cfgb.baseline       = [-0.25 -0.15];
+freqSen_Low_b = ft_freqbaseline(cfgb, freqSen_Low); % default = absolute baseline normalization of data
+freqSen_High_b = ft_freqbaseline(cfgb, freqSen_High);
+freqSeq_Low_b = ft_freqbaseline(cfgb, freqSeq_Low); % default = absolute baseline normalization of data
+freqSeq_High_b = ft_freqbaseline(cfgb, freqSeq_High);
+
+% plot (p) dimord: chan_freq_time
+cfgp.layout = 'CTF275.lay';
+cfgp.interactive = 'yes';
+cfgp.zlim = 'maxabs';
+figure; ft_multiplotTFR(cfgp,freqSen_Low_b) 
+figure; ft_multiplotTFR(cfgp,freqSen_High_b) 
+figure; ft_multiplotTFR(cfgp,freqSeq_Low_b) 
+figure; ft_multiplotTFR(cfgp,freqSeq_High_b) 
+
+
+%% (E) choose subset of the participants if necessary. Ideally choose the appropriate subjlist so thatthis part does not need to be implemented
+% this code can be used whether plotting for one or more conditions.
+% Implemented after the first ft_selectdata is called e.g., ft_selectdata(freq1{:},'param','powspctrm');
+    % search for matching strings in 2 lists
+    % returns indices of matches present in each list
+    [a,b] = match_str(subjlist(:),{'V1013' 'V1024' 'V1028' 'V1029' 'V1030' 'V1031' 'V1033' 'V1034' 'V1044'});
+    % redefine freqDesc
+    freqDesc=ft_selectdata(freq1{:},'param','powspctrm');
+    % rpt = indices of replicates (subjects) to be retained for subsequent analysis
+    freqDesc=ft_selectdata(freqDesc,'avgoverrpt','yes','rpt',a); %define over which rpt to average, here it is 9 of the 17
+
+% combining baselined data from both conditions if necessary 
+    freqb_allcdtn = freqb_Sen;
+    freqb_allCdtn.powspctrm = freqb_Sen.powpsctrm+freqb_Seq.powspctrm; % this is the quick and dirty way
+    freqb_allCdtn.powspctrm = mean([freqDescSen.powspctrm freqDescSeq.powspctrm]); % this is not it
+    freqb_allCdtn.powspctrm = ft_selectdata();     % what about using ft_selectdata with 'avgoverrpt' 'avgoverfreq' 'avgovertime' all set to 'yes' ?
+
+%% (F) perform cluster permutation statistics for different head areas, all frequencies
 
 % main configuration
-
 cfg = [];
-%cfg.latency          = [0 1.8];   % duration of interests 
-%cfg.frequency        = [20 20];   % frequency band of interest
 cfg.avgoverchan      = 'yes';
 cfg.method           = 'montecarlo';
 cfg.statistic        = 'depsamplesT';  %  OR 'diff'
-cfg.correctm         = 'cluster';  % do bonferroni at next stage, for doing ft_freqstatistics x16.
+cfg.correctm         = 'cluster';      %  cfg.correctm = 'no' - do not apply multiple-comparison correction.  % Choose this for determining non-condition specified ROIs
 cfg.clusteralpha     = 0.05;
 cfg.clusterstatistic = 'maxsum';   % how single samples belonging to a cluster are combined.
 %cfg.minnbchan        = 2;
@@ -56,6 +134,7 @@ cfg.tail             = 0;
 %cfg.clustertail      = 0;
 cfg.alpha            = 0.025;
 cfg.numrandomization = 1000;       % number of swaps 
+% cfg.numrandomization = 1;        % no swaps, don't do stats.  % FOR DETEMRINING NON-CONDITION SPECIFIC ROIs?
 cfg.parameter        = 'powspctrm';
 cfg_neighb.method    = 'distance'; % specifies with which sensors other sensors can form clusters
 cfg.neighbours       = {};  
@@ -63,8 +142,11 @@ cfg.design   = [ones(1,nsubj) 2*ones(1,nsubj); 1:nsubj 1:nsubj];
 cfg.uvar     = 2;
 cfg.ivar     = 1;
 
+% note for MOUS: if reading in TFR_Hann/MultDiff: do cfg.correctm = a local
+% correction, but also need to do a bonferroni afterwards accounting that
+% ft_freqstatistics is performed several times, once for each sensor-group.
 
-%% PERMUTE AND PLOT FOR Layout #2 on 8.6.2012
+%% (G) PERMUTE FOR Layout #2 on 8.6.2012
 % Plotting for multiple statistical tests - loop
 
 % define clusters
@@ -92,7 +174,9 @@ roi(7).channel  = {'MRC23','MRC24','MRC25','MRC31','MRC32','MRC41','MRC42','MRC5
 roi(8).label    = 'Rocc';
 roi(8).channel  = {'MRO11','MRO12','MRO13','MRO14','MRO21','MRO22','MRO23','MRO24','MRO31','MRO32','MRO33','MRO34','MRO41','MRO42','MRO43','MRO44','MRO51','MRO52','MRO53','MRP21','MRP31','MRP32','MRP41','MRP42','MRP51','MRP52','MRP53','MRP54','MZO01','MZO03'};
 
-% loop through structure to do statistics for each cluster
+%%%%% choose cdtn for which to calculate stats
+
+%loop through structure to do statistics for each cluster
 for k = 1:numel(roi)
     cfg.channel = roi(k).channel;  % to loop through structure assign it to the same variable for each loop
     statroi1(k) = ft_freqstatistics(cfg, freq1{:});
@@ -101,7 +185,7 @@ for k = 1:numel(roi)
     statroi2(k).label = roi(k).label;
 end
 
-% PLOT
+%%%%% PLOT
   
 % LEFT HEMISPHERE --------------------------------------------------------
 % under 30Hz
@@ -192,7 +276,7 @@ title ('Rpar >30 stat')
 figure;imagesc(statroi2(4).time,statroi2(8).freq,shiftdim(statroi2(8).stat));axis xy; colorbar; caxis([-9 9]);  % Rocc 
 title ('Rocc >30 stat')
 
-%% PERMUTE AND PLOT FOR LAYOUT #3 on 6.7.2012
+%% (H) PERMUTE FOR LAYOUT #3 on 6.7.2012
 % No left right division for Occipital and central sensor-groups
 
 roi(1).label    = 'Lfront';
@@ -222,7 +306,7 @@ roi(8).channel  = {'MLO11','MLO12','MLO21','MLO22','MLO23','MLO31','MLO32','MLO3
 % loop through structure to do statistics for each cluster
 for k = 1:numel(roi)
     cfg.channel = roi(k).channel;  % to loop through structure assign it to the same variable for each loop
-    statroi1(k) = ft_freqstatistics(cfg, freq1{:});
+    statroi1(k) = ft_freqstatistics(cfg, freq1{:});  %change structure name if necessary
     statroi2(k) = ft_freqstatistics(cfg, freq2{:});
     statroi1(k).label = roi(k).label;
     statroi2(k).label = roi(k).label;
@@ -326,8 +410,6 @@ title ('Occ(LR) >30 stat')
 %  1 1 1 1 1 2 2 2 2 2
 %  1 2 3 4 5 1 2 3 4 5
 
-% TFR of single channel / average over many channels
-
 cfg = [];
 %cfg.avgoverchan         = 'yes';
 cfg.method              = 'montecarlo';
@@ -348,23 +430,5 @@ cfg3.parameter  = 'stat';
 cfg3.interactive  = 'yes';
 cfg3.channel      = 'all'; 
 cfg3.layout       = 'CTF275.lay';
-%figure; ft_singleplotTFR(cfg3, stat1);
-%figure; ft_singleplotTFR(cfg3, stat2);
 figure; ft_singleplotTFR(cfg3, stat1Lfront);   % not interactive because collapsed across channels
 figure; ft_singleplotTFR(cfg3, stat2Lfront);
-
-% plot the probabilities
-  % each cluster has a different probability
-  % given the bonferroni control for mcp, the p-value needs to be about 0.003 (0.05 / 16)
-  
-  %statroiX:     1 = Hann, 2 = Mult
-  %statroi1(X):  L: 1 = front, 2 = temp, 3 = par, 4 = occ
-
-
-
-%% plot
-cfg3.parameter      = 'stat';
-cfg3.interactive    = 'yes';
-cfg3.layout         = 'CTF275.lay';
-figure; ft_multiplotTFR(cfg3, stat1); % multiplot: TFR topography of each sensor
-figure; ft_multiplotTFR(cfg3, stat2);
