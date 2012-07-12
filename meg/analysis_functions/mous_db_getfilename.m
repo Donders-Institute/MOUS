@@ -15,7 +15,7 @@ if iscell(subject)
   filename = cell(0,1);
   st       = false(0,1);
   for k = 1:numel(subject)
-    [tmpf, tmps] = mous_getfilename(subject{k}, type);
+    [tmpf, tmps] = mous_db_getfilename(subject{k}, type);
     filename = cat(1,filename,tmpf);
     st       = cat(1,st,      tmps);
   end
@@ -144,7 +144,7 @@ switch type{2}
           d(1).name = [subject 'sourcemodel3D' type{4}];
         end
       case 'figure'
-        d = dir([D subject 'figure*.png']);
+        d = dir([D subject 'figure_' type{4} '.png']);
         if isempty(d)
           d(1).name = [subject 'figure_' type{4}];
         end
