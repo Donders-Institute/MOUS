@@ -68,8 +68,8 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       %endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), tmpsmp(kk+2));
       endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), inf);%smplast);   % offset of word: sample value of Xth word within the current trial + poststim (3s);  
         
-      %      1         2         3       4 5          6                   7
-      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk)];
+      %         1         2         3       4 5          6                   7
+      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) kk];
       tmptrl = cat(1,tmptrl,tmp);
     end
   end
