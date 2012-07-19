@@ -62,14 +62,17 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
     if trg1<=8 && trg2==15
       if isempty(firstword)    % firstword defined by sample of first trigger
         firstword = tmpsmp(kk);
-      end;
+        wordcount = 0;
+      end
       offset    = round(hdr.Fs*prestim);
       begsample = tmpsmp(kk) - offset;                   % onset of word: sample value of Xth word within the current trial 
       %endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), tmpsmp(kk+2));
       endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), inf);%smplast);   % offset of word: sample value of Xth word within the current trial + poststim (3s);  
-        
+      
+      wordcount = wordcount + 1;
+
       %         1         2         3       4 5          6                   7
-      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) kk];
+      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
       tmptrl = cat(1,tmptrl,tmp);
     end
   end
