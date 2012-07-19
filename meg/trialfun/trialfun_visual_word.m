@@ -43,7 +43,7 @@ if selfix(end)<numel(val)
   selfix(end+1) = numel(val);  %  
 end                            
 
-trl    = zeros(0,7);
+trl    = zeros(0,8);
 for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequence; duration of k = duration of a sent/seql; # of k's = # of words in the current trial
                                % -1 because last trigger is a dummy
   
@@ -54,7 +54,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   
   % get the first word on/off sequence
   firstword = [];
-  tmptrl    = zeros(0,7);
+  tmptrl    = zeros(0,8);
   for kk = 1:numel(tmpval)-2   % (3) gets triggers representing on/off of each word in the trial except last 2 triggers which are an 'empty word'
     
     trg1 = tmpval(kk);         % loop through the triggers
