@@ -27,7 +27,9 @@ switch lower(ext)
     tmp  = load(filename{1});
     for k = 1:numel(s)
       data{k} = tmp.(s(k).name);
-      data{k}.varname = s(k).name;
+      if isstruct(data{k})
+        data{k}.varname = s(k).name;
+      end
     end
     if numel(data)==1
       data = data{1};
