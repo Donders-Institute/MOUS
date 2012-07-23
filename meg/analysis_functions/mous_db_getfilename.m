@@ -1,4 +1,4 @@
-function [filename, st] = mous_db_getfilename(subject, type)
+function [filename, st, info] = mous_db_getfilename(subject, type, infoflag)
 
 % [filename] = mous_db_getfilename(subject, type)
 %
@@ -9,15 +9,36 @@ function [filename, st] = mous_db_getfilename(subject, type)
 %
 % $Id: mous_db_getfilename.m 48 2012-05-30 14:21:15Z jansch $
 
+if nargin>2
+  if ischar(infoflag) && strcmp(infoflag, 'info')
+    infoflag = true;
+  elseif infoflag~=1
+    infoflag = false;
+  end
+else
+  infoflag = false;
+end
+
+if ischar(subject) && strcmp(subject, 'all')
+  % request all subjects -> convert into cell-array and call function
+  % recursively
+  d       = dir('/home/language/annhul/MOUS/Processed/V*');
+  subject = {d.name};
+  [filename, st, info] = mous_db_getfilename(subject, type, infoflag);
+  return;
+end
+
 if iscell(subject)
   % call recursively
   
   filename = cell(0,1);
   st       = false(0,1);
+  info     = struct([]);
   for k = 1:numel(subject)
-    [tmpf, tmps] = mous_db_getfilename(subject{k}, type);
+    [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag);
     filename = cat(1,filename,tmpf);
     st       = cat(1,st,      tmps);
+    info     = cat(1,info,    tmpi);
   end
   return;
 end
@@ -25,6 +46,10 @@ end
 % determine the base directory, i.e. either Annika's or Julia's home-dir
 type = tokenize(type, '_');
 switch type{1}
+  case 'subjectname'
+    filename = subject;
+    st       = nan;
+    return;
   case 'meg'
     basedir = '/home/language/annhul/MOUS/';
   case 'mri'
@@ -68,11 +93,11 @@ switch type{2}
     % Photograph of fiducials
     D = [basedir 'RAW' filesep subject filesep];
     d = dir([D, '*.JPG']);
-  case 'artifactcfg'
+  case {'artifactcfg' 'artifactdssblinks' 'artifactdsssaccades'}
     D = [basedir 'Processed' filesep subject filesep 'other' filesep];
-    d = dir([D subject 'artifactcfg.mat']);
+    d = dir([D subject type{2} '.mat']);
     if isempty(d)
-      d(1).name = [subject 'artifactcfg.mat'];
+      d(1).name = [subject type{2} '.mat'];
     end
   case 'dicom'
     % T1 dicom
@@ -151,6 +176,18 @@ switch type{2}
       otherwise
         error('unrecognized type requested');
     end
+  case 'artifact'
+    D = [basedir 'Processed' filesep subject filesep 'other' filesep];
+    switch type{3}
+      case 'figure'
+        d = dir([D subject 'figure_' type{4} '.png']);
+        if isempty(d)
+          d(1).name = [subject 'figure_' type{4}];
+        end
+      otherwise
+        error('unrecognized type requested');
+    end
+    
   case 'processed'
     D = [basedir 'Processed' filesep subject filesep];
     switch [type{3}(1) type{end}(end)]
@@ -187,5 +224,15 @@ end
 if ~isempty(filename)
   for k = 1:numel(filename)
     st(k) = exist(filename{k}, 'file');
+  end
+end
+
+if infoflag && ~isempty(filename)
+  for k = 1:numel(filename)
+    if st(k)
+      info(k) = dir(filename{k});
+    else
+      info(k) = struct('name',[],'date',[],'bytes',[],'isdir',[],'datenum',[]);
+    end
   end
 end
