@@ -49,6 +49,7 @@ switch type{1}
   case 'subjectname'
     filename = subject;
     st       = nan;
+    info     = struct([]);
     return;
   case 'meg'
     basedir = '/home/language/annhul/MOUS/';
@@ -148,6 +149,12 @@ switch type{2}
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstrip'];
         end
+        case 'coregMNIskullstripmask'
+        %D = '/home/coherence/jansch/public/';
+        d = dir([D subject 'coregMNIskullstripmask.*']);
+        if isempty(d)
+          d(1).name = [subject 'coregMNIskullstripmask'];
+        end
       case 'headmodel'
         %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'vol.*']);
@@ -235,4 +242,6 @@ if infoflag && ~isempty(filename)
       info(k) = struct('name',[],'date',[],'bytes',[],'isdir',[],'datenum',[]);
     end
   end
+else
+  info = [];
 end

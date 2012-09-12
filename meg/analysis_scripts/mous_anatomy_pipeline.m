@@ -37,7 +37,7 @@ if doskullstrip
   center       = round(T(1:3,4))';
   [seg, mask]  = mous_anatomy_skullstrip(subjectname, threshold, center); % threshold is a configurable parameter that determines the skullstrip behavior
   mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip',      seg); % creates a V1025coregMNIskullstrip.nii file
-  mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip_mask', mask);
+  mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstripmask', mask);
 end
 
 %% Coregister to CTF coordinate system
