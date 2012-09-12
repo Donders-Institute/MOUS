@@ -45,7 +45,6 @@ headmodel     = mous_ensure_units(headmodel, 'mm');
 sourcemodel2d = mous_ensure_units(sourcemodel2d, 'mm');
 sourcemodel3d = mous_ensure_units(sourcemodel3d, 'mm');
 
-
 % define some helper functions
 viewtop    = @() view(  0,  90);
 viewbottom = @() view(180, -90);
@@ -60,6 +59,7 @@ subplot(2,2,3); hold on; ft_plot_vol(headmodel), viewleft();
 subplot(2,2,4); hold on; ft_plot_vol(headmodel), viewright();
 axis on
 grid on
+title(subjectname);
 
 h2 = figure;
 subplot(2,2,1); hold on; ft_plot_mesh(sourcemodel3d.pos(sourcemodel3d.inside,:)); viewbottom();
@@ -68,28 +68,34 @@ subplot(2,2,3); hold on; ft_plot_mesh(sourcemodel3d.pos(sourcemodel3d.inside,:))
 subplot(2,2,4); hold on; ft_plot_mesh(sourcemodel3d.pos(sourcemodel3d.inside,:)); viewright();
 axis on
 grid on
+title(subjectname);
 
 h3 = figure;
+clear ft_plot_slice
 subplot(2,2,1); hold on; ft_plot_slice(mri.anatomy, 'location', [0  0 60], 'orientation', [0 0 1], 'transform', mri.transform, 'intersectmesh', {sourcemodel2d headmodel.bnd}); viewtop();
 subplot(2,2,2); hold on; ft_plot_slice(mri.anatomy, 'location', [0  0 20], 'orientation', [0 0 1], 'transform', mri.transform, 'intersectmesh', {sourcemodel2d headmodel.bnd}); viewtop();
 subplot(2,2,3); hold on; ft_plot_slice(mri.anatomy, 'location', [0 20  0], 'orientation', [1 0 0], 'transform', mri.transform, 'intersectmesh', {sourcemodel2d headmodel.bnd}); viewfront();
 subplot(2,2,4); hold on; ft_plot_slice(mri.anatomy, 'location', [0 20  0], 'orientation', [0 1 0], 'transform', mri.transform, 'intersectmesh', {sourcemodel2d headmodel.bnd}); viewright();
 set(gcf, 'Renderer', 'zbuffer');
+title(subjectname);
 
 h4 = figure;
 ft_plot_montage(mri.anatomy, 'location', [0 0 0], 'orientation', [0 0 1], 'transform', mri.transform, ...
-  'slicerange', [-20 120], 'nslice', 25, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
+  'slicerange', [-20 120], 'nslice', 16, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
 set(gcf, 'Renderer', 'zbuffer');
+title(subjectname,'color','r');
 
 h5 = figure;
 ft_plot_montage(mri.anatomy, 'location', [0 0 0], 'orientation', [0 1 0], 'transform', mri.transform, ...
-  'slicerange', [-60 60], 'nslice', 25, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
+  'slicerange', [-60 60], 'nslice', 16, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
 set(gcf, 'Renderer', 'zbuffer');
+title(subjectname,'color','r');
 
 h6 = figure;
 ft_plot_montage(mri.anatomy, 'location', [0 0 0], 'orientation', [1 0 0], 'transform', mri.transform, ...
-  'slicerange', [-60 120], 'nslice', 25, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
+  'slicerange', [-60 120], 'nslice', 16, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
 set(gcf, 'Renderer', 'zbuffer');
+title(subjectname,'color','r');
 
 mous_db_putdata(subjectname, 'meg_anatomy_figure_headmodel', h1);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel3d', h2);
