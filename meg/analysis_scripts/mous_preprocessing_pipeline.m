@@ -6,10 +6,6 @@
 
 function mous_preprocessing_pipeline(subjectname)
 
-%subjlist = {'V1010' 'V1011' 'V1012' 'V1013' 'V1014'};
-
-%for n = 1:length(subjlist)         %  comment out when running qsub
-  
   
     % subjectname = subjlist{n};    %  comment out when running qsub
     fprintf('Preprocessing subject %s  \n', subjectname);
@@ -21,16 +17,7 @@ function mous_preprocessing_pipeline(subjectname)
     % get the description of the artifacts
     tmp = mous_db_getdata(subjectname, 'meg_artifactcfg');
     
-    % define the word being analysed: 
-    % 4th argument in mous_defineTrial determines whether:
-    % the target word,
-    % 1st word after target (tarplusOne) 
-    % 2nd word after target
-    % (tarplusTwo) is being defined.
-    
-    % wordType = 'target'; 
-    wordType = 'tarplusOne';
-    % wordType = 'tarplusTwo';
+    wordType = 'target'; % 'tarplusOne'; 'tarplusTwo';
     
     %% TFR %%%%%%%%%%%%%%%%%%%%%
      
@@ -43,24 +30,25 @@ function mous_preprocessing_pipeline(subjectname)
        
     % PREPROCESS data 
     % (filename = subject, trl = data, 300 = downsample target frequency,
-    % filters specific to analysis type)
-%     data = mous_preprocessing(filename{1}, trl, 300, 'TFR');
-%     
-%     % save preprocessed data
-%     % mous_db_putdata(subjectname, 'meg_processed_{rawTFR05-3ds}', data);
-%     if (strcmp(wordType,'target') > 0) 
-%         mous_db_putdata(subjectname, 'meg_processed_{rawTFR_targetword_05-3ds}', data);
-%     elseif (strcmp(wordType,'tarplusOne') > 0) 
-%         mous_db_putdata(subjectname, 'meg_processed_{rawTFR_tarplusOne_05-3ds}', data);  
-%     elseif (strcmp(wordType,'tarplusTwo') > 0) 
-%         mous_db_putdata(subjectname, 'meg_processed_{rawTFR_tarplusTwo_05-3ds}', data);
-%     end
+
+    data = mous_preprocessing(filename{1}, trl, 300, 'TFR');
+  
+    %save preprocessed data
+    mous_db_putdata(subjectname, 'meg_processed_{rawTFR05-3ds}', data);
+    if (strcmp(wordType,'target') > 0) 
+        mous_db_putdata(subjectname, 'meg_processed_{rawTFR_targetword_05-3ds}', data);
+    elseif (strcmp(wordType,'tarplusOne') > 0) 
+        mous_db_putdata(subjectname, 'meg_processed_{rawTFR_tarplusOne_05-3ds}', data);  
+    elseif (strcmp(wordType,'tarplusTwo') > 0) 
+        mous_db_putdata(subjectname, 'meg_processed_{rawTFR_tarplusTwo_05-3ds}', data);
+    end
        
     % go to TFR pipeline: "mous_tfr_pipline" 
 
     %% ERF %%%%%%%%%%%%%%%%%%%%
 
     %% long time window
+    % for qsub: max 15 minutes, 2.5GB 
 
     % preprocess data 
     % (filename = subject, trl = data, 300 = downsample target frequency,

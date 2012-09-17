@@ -19,9 +19,7 @@ nsubj   = numel(subjlist);
 % cfg.baselinetype = 'relchange';
 
 for k = 1:numel(subjlist)
-  %load([basedir subjlist{k} '/TFR/' subjlist{k} 'tfr_targetword_05-3ds-pg']);
   load([basedir subjlist{k} '/TFR/' subjlist{k} 'tfr_targetword_Hann4under30_05-3ds-pg']);
-  % load sentences and sequences into 2 columns
   freq1{k} = TFRHann_SenTar_PG;                                 %      SenTar         SeqTar              % permuting between these 2 conditions
   freq2{k} = TFRMult_SenTar_PG;                                 %   1 1 1 1 1 1       2 2 2 2 2 2         % cfg.ivar (independent variables)
   freq1{k+nsubj} = TFRHann_SeqTar_PG;                           %   1 2 3 4 5 6       1 2 3 4 5 6         % cfg.uvar (units of observ.)
@@ -89,7 +87,6 @@ for k = 1:numel(roi)
   allLabel2(k) = freq2_avgChan{k}.label(1);
 end
 
-%% ***WHY DON'T WE need to calculate sent-seq?***
 % put into structure suitable for ft_freqstatistics  
 % freq1 contains both sent and sequences: 32 rows (1:16 = sent, 17:32 = seq)
 freq1 = freq1_avgChan{1};    % assign all the necessary fields
@@ -100,18 +97,22 @@ freq2 = freq1_avgChan{1};    % freq2 contains both sent and sequences: 32 rows (
 freq2.powspctrm = allPow2;   
 freq2.label = allLabel2;
 
-freqDummy1 = freq1;          % As freq1 has both conditions, freq2 is the dummy created for permutation to be possible
-freqDummy1.powspctrm(:) = 0;
+% Make configuration to cluster over freq-time points but not channels (nor average over channels)
+for k = 1:numel(freq1.label)
+  neighbours(k).label = freq1.label{k};
+  neighbours(k).neighblabel = {};
+end
 
-freqDummy2 = freq1;
-freqDummy2.powspctrm(:) = 0;
-
+for k = 1:numel(freq2.label)
+  neighbours(k).label = freq2.label{k};
+  neighbours(k).neighblabel = {};
+end
 
 %% (C) perform cluster permutation statistics for each pre-defined sensor-group
 
 % main configuration
 cfg = [];
-%cfg.avgoverchan      = 'yes';
+cfg.avgoverchan      = 'no';
 cfg.method           = 'montecarlo';
 cfg.statistic        = 'depsamplesT';  %  OR 'diff'
 cfg.correctm         = 'cluster';      %  cfg.correctm = 'no' - do not apply multiple-comparison correction.  % Choose this for determining non-condition specified ROIs
@@ -125,126 +126,109 @@ cfg.alpha            = 0.025;
 cfg.numrandomization = 2000;       % number of swaps 
 cfg.parameter        = 'powspctrm';
 cfg_neighb.method    = 'distance'; % specifies with which sensors other sensors can form clusters
-cfg.neighbours       = {};  
+cfg.neighbours       = neighbours;
 cfg.design           = [ones(1,nsubj) ones(1,nsubj)*2; 1:nsubj 1:nsubj];
 cfg.uvar             = 2;
 cfg.ivar             = 1;
+cfg.clusterthreshold = 'nonparametric_individual';
 
-statroi1 = ft_freqstatistics(cfg, freq1, freqDummy1);  % freq1_all_avg{:} - no need {:} because all subjects appended into one data structure
-statroi2 = ft_freqstatistics(cfg, freq2, freqDummy2);
-% statroi1.label = freq1.label;
-% statroi2.label = freq2.label;
+statroi1 = ft_freqstatistics(cfg, freq1);  % freq1_all_avg{:} - no need {:} because all subjects appended into one data structure; each datastructure contributes N 'rpt's, one for each subject
+statroi2 = ft_freqstatistics(cfg, freq2);
 
-%loop through structure to do statistics for each cluster
-%data given to ft_freqstatistics must be in a cell array.
-% for k = 1:numel(roi)
-%     cfg.channel = roi(k).channel;  % to loop through structure assign it to the same variable for each loop
-%     statroi1(k) = ft_freqstatistics(cfg, freq1, freqDummy);  % freq1_all_avg{:} - no need {:} because all subjects appended into one data structure
-%     statroi2(k) = ft_freqstatistics(cfg, freq2, freqDummy);
-%     statroi1(k).label = freq1.label;
-%     statroi2(k).label = freq2.label;
-% end
 cd /home/language/annhul/MOUS/Processed/groupTFR;
-save('Group_16ptp_SentvsSeqPerm_Lay2_noTest_Hann4Under30Hz_23July2012','statroi1','statroi2','nsubj','freq1','freq2','roi'); %freq1_b,freq2_b
+save('Group_16ptp_SentvsSeqPerm_Lay2_noTest_Hann4Under30Hz_25July2012','statroi1','statroi2','nsubj','freq1','freq2','roi'); %freq1_b,freq2_b
 
 
 %% (D) PLOT
   
 % LEFT HEMISPHERE --------------------------------------------------------
 % under 30Hz
-        % probabilities
-figure;imagesc(statroi1(1).time,statroi1(1).freq,shiftdim(statroi1(1).prob));axis xy; colorbar; caxis ([0 0.01]); % Lfront
-title (strcat(statroi1(1).label,' <30 Prob'));
-figure;imagesc(statroi1(2).time,statroi1(2).freq,shiftdim(statroi1(2).prob));axis xy; colorbar; caxis ([0 0.01]); % Ltemp
-title (strcat(statroi1(2).label,' <30 Prob'));
-figure;imagesc(statroi1(3).time,statroi1(3).freq,shiftdim(statroi1(3).prob));axis xy; colorbar; caxis ([0 0.01]); % Lfront
-title (strcat(statroi1(3).label,' <30 Prob'));
-figure;imagesc(statroi1(4).time,statroi1(4).freq,shiftdim(statroi1(4).prob));axis xy; colorbar; caxis ([0 0.01]); % Ltemp
-title (strcat(statroi1(4).label,' <30 Prob'));
-        
+        % probabilities   
+figure; imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.prob(1,:,:))); axis xy; colorbar; caxis ([0 0.1]); 
+title (strcat(statroi1.label(1),' <30 Prob'));
+figure; imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.prob(2,:,:)));axis xy; colorbar; caxis ([0 0.1]); 
+title (strcat(statroi1.label(2),' <30 Prob'))
+figure; imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.prob(3,:,:)));axis xy; colorbar; caxis ([0 0.1]); 
+title (strcat(statroi1.label(3),' <30 Prob'))
+figure; imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.prob(4,:,:)));axis xy; colorbar; caxis ([0 0.1]); 
+title (strcat(statroi1.label(4),' <30 Prob'))
+
+% figure;imagesc(squeeze(statroi1.prob(1,:,:)<0.025))
+
         % statistics   
-figure;imagesc(statroi1(1).time,statroi1(1).freq,shiftdim(statroi1(1).stat));axis xy; colorbar; caxis([-9 9]);   % Lfront
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.stat(1,:,:)));axis xy; colorbar; caxis([-8 8]);   % Lfront
 title ('Lfront <30 stat')
-figure;imagesc(statroi1(2).time,statroi1(2).freq,shiftdim(statroi1(2).stat));axis xy; colorbar; caxis([-9 9]);   % Ltemp
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.stat(2,:,:)));axis xy; colorbar; caxis([-8 8]);   % Ltemp
 title ('Ltemp <30 stat')
-figure;imagesc(statroi1(3).time,statroi1(3).freq,shiftdim(statroi1(3).stat));axis xy; colorbar; caxis([-9 9]);   % Lpar
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.stat(3,:,:)));axis xy; colorbar; caxis([-8 8]);   % Lpar
 title ('Lpar <30 stat')
-figure;imagesc(statroi1(4).time,statroi1(4).freq,shiftdim(statroi1(4).stat));axis xy; colorbar; caxis([-9 9]);  % Locc
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.stat(4,:,:)));axis xy; colorbar; caxis([-8 8]);  % Locc
 title ('Locc <30 stat')
 
 % over 30Hz
 % Multitaper
         % probabilities
-figure;imagesc(statroi2(1).time,statroi2(1).freq,shiftdim(statroi2(1).prob));axis xy; colorbar; caxis ([0 0.1]); % Lfont
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.prob(1,:,:)));axis xy; colorbar; caxis ([0 0.1]); % Lfont
 title ('Lfront >30 prob')
-figure;imagesc(statroi2(2).time,statroi2(2).freq,shiftdim(statroi2(2).prob));axis xy; colorbar; caxis ([0 0.1]);  % Ltemp
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.prob(2,:,:)));axis xy; colorbar; caxis ([0 0.1]);  % Ltemp
 title ('Ltemp >30 prob')
-figure;imagesc(statroi2(3).time,statroi2(3).freq,shiftdim(statroi2(3).prob));axis xy; colorbar; caxis ([0 0.1]);  % Lfront
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.prob(3,:,:)));axis xy; colorbar; caxis ([0 0.1]);  % Lfront
 title ('Lpar >30 prob')
-figure;imagesc(statroi2(4).time,statroi2(4).freq,shiftdim(statroi2(4).prob));axis xy; colorbar; caxis ([0 0.1]);  % Ltemp
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.prob(4,:,:)));axis xy; colorbar; caxis ([0 0.1]);  % Ltemp
 title ('Locc >30 prob')
 
         % statistics
-figure;imagesc(statroi2(1).time,statroi2(1).freq,shiftdim(statroi2(1).stat));axis xy; colorbar; caxis([-9 9]); % Lfront
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.stat(1,:,:)));axis xy; colorbar; caxis([-8 8]); % Lfront
 title ('Lfront >30 stat')
-figure;imagesc(statroi2(2).time,statroi2(2).freq,shiftdim(statroi2(2).stat));axis xy; colorbar; caxis([-9 9]); % Ltemp
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.stat(2,:,:)));axis xy; colorbar; caxis([-8 8]); % Ltemp
 title ('Ltemp >30 stat')
-figure;imagesc(statroi2(3).time,statroi2(3).freq,shiftdim(statroi2(3).stat));axis xy; colorbar; caxis([-9 9]); % Lpar
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.stat(3,:,:)));axis xy; colorbar; caxis([-8 8]); % Lpar
 title ('Lpar >30 stat')
-figure;imagesc(statroi2(4).time,statroi2(4).freq,shiftdim(statroi2(4).stat));axis xy; colorbar; caxis([-9 9]); % Locc
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.stat(4,:,:)));axis xy; colorbar; caxis([-8 8]); % Locc
 title ('Locc >30 stat')
 
 % RIGHT HEMISPHERE  -------------------------------------------------------------------------
 
 % under 30Hz = statroi1
         % probabilities
-figure;imagesc(statroi1(1).time,statroi1(5).freq,shiftdim(statroi1(5).prob));axis xy; colorbar; caxis ([0 0.1]); % Rfront
-title ('Rfront <30 prob')
-figure;imagesc(statroi1(2).time,statroi1(6).freq,shiftdim(statroi1(6).prob));axis xy; colorbar; caxis ([0 0.1]); % Rtemp
-title ('Rtemp <30 prob')
-figure;imagesc(statroi1(3).time,statroi1(7).freq,shiftdim(statroi1(7).prob));axis xy; colorbar; caxis ([0 0.1]); % Rfront
-title ('Rpar <30 prob')
-figure;imagesc(statroi1(4).time,statroi1(8).freq,shiftdim(statroi1(8).prob));axis xy; colorbar; caxis ([0 0.1]); % Rtemp
-title ('Rocc <30 prob')
-
-% figure;imagesc(statroi1(1).time,statroi1(5).freq,shiftdim(statroi1(5).prob));axis xy; colorbar; caxis ([0 0.0031]); % Rfront
-% title ('Rfront <30 prob')
-% figure;imagesc(statroi1(2).time,statroi1(6).freq,shiftdim(statroi1(6).prob));axis xy; colorbar; caxis ([0 0.0031]); % Rtemp
-% title ('Rtemp <30 prob')
-% figure;imagesc(statroi1(3).time,statroi1(7).freq,shiftdim(statroi1(7).prob));axis xy; colorbar; caxis ([0 0.0031]); % Rfront
-% title ('Rpar <30 prob')
-% figure;imagesc(statroi1(4).time,statroi1(8).freq,shiftdim(statroi1(8).prob));axis xy; colorbar; caxis ([0 0.0031]); % Rtemp
-% title ('Rocc <30 prob')
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.prob(5,:,:))); axis xy; colorbar; caxis ([0 0.01]); 
+title (strcat(statroi1.label(5),' <30 Prob'));
+figure; imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.prob(6,:,:)));axis xy; colorbar; caxis ([0 0.01]); 
+title (strcat(statroi1.label(6),' <30 Prob'))
+figure; imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.prob(7,:,:)));axis xy; colorbar; caxis ([0 0.01]); 
+title (strcat(statroi1.label(7),' <30 Prob'))
+figure; imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.prob(8,:,:)));axis xy; colorbar; caxis ([0 0.01]); 
+title (strcat(statroi1.label(8),' <30 Prob'))
 
         % statistics   
-figure;imagesc(statroi1(1).time,statroi1(5).freq,shiftdim(statroi1(5).stat));axis xy; colorbar; caxis([-9 9]);   % Rfront
-title ('Rfront <30 stat')
-figure;imagesc(statroi1(2).time,statroi1(6).freq,shiftdim(statroi1(6).stat));axis xy; colorbar; caxis([-9 9]);   % Rtemp
-title ('Rtemp <30 stat')
-figure;imagesc(statroi1(3).time,statroi1(7).freq,shiftdim(statroi1(7).stat));axis xy; colorbar; caxis([-9 9]);   % Rpar
-title ('Rpar <30 stat')
-figure;imagesc(statroi1(4).time,statroi1(8).freq,shiftdim(statroi1(8).stat));axis xy; colorbar; caxis([-9 9]);   % Rocc
-title ('Rocc <30 stat')
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.stat(5,:,:)));axis xy; colorbar; caxis([-8 8]);   % Lfront
+title ('Lfront <30 stat')
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.stat(6,:,:)));axis xy; colorbar; caxis([-8 8]);   % Ltemp
+title ('Ltemp <30 stat')
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.stat(7,:,:)));axis xy; colorbar; caxis([-8 8]);   % Lpar
+title ('Lpar <30 stat')
+figure;imagesc(statroi1.time,statroi1.freq,shiftdim(statroi1.stat(8,:,:)));axis xy; colorbar; caxis([-8 8]);  % Locc
+title ('Locc <30 stat')
 
 % over 30Hz  = statroi2
 % Multitaper
         % probabilities
-figure;imagesc(statroi2(1).time,statroi2(5).freq,shiftdim(statroi2(5).prob));axis xy; colorbar; caxis ([0 0.1]); % Rfront
-title ('Rfront >30 prob')
-figure;imagesc(statroi2(2).time,statroi2(6).freq,shiftdim(statroi2(6).prob));axis xy; colorbar; caxis ([0 0.1]);  % Rtemp
-title ('Rtemp >30 prob')
-figure;imagesc(statroi2(3).time,statroi2(7).freq,shiftdim(statroi2(7).prob));axis xy; colorbar; caxis ([0 0.1]);  % Rpar
-title ('Rpar >30 prob')
-figure;imagesc(statroi2(4).time,statroi2(8).freq,shiftdim(statroi2(8).prob));axis xy; colorbar; caxis ([0 0.1]);  % Rocc
-title ('Rocc >30 prob')
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.prob(5,:,:)));axis xy; colorbar; caxis ([0 0.1]); % Lfont
+title ('Lfront >30 prob')
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.prob(6,:,:)));axis xy; colorbar; caxis ([0 0.1]);  % Ltemp
+title ('Ltemp >30 prob')
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.prob(7,:,:)));axis xy; colorbar; caxis ([0 0.1]);  % Lfront
+title ('Lpar >30 prob')
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.prob(8,:,:)));axis xy; colorbar; caxis ([0 0.1]);  % Ltemp
+title ('Locc >30 prob')
 
         % statistics
-figure;imagesc(statroi2(1).time,statroi2(5).freq,shiftdim(statroi2(5).stat));axis xy; colorbar; caxis([-9 9]);  % Rfront
-title ('Rfront >30 stat')
-figure;imagesc(statroi2(2).time,statroi2(6).freq,shiftdim(statroi2(6).stat));axis xy; colorbar; caxis([-9 9]);  % Rtemp
-title ('Rtemp >30 stat')
-figure;imagesc(statroi2(3).time,statroi2(7).freq,shiftdim(statroi2(7).stat));axis xy; colorbar; caxis([-9 9]);  % Rpar
-title ('Rpar >30 stat')
-figure;imagesc(statroi2(4).time,statroi2(8).freq,shiftdim(statroi2(8).stat));axis xy; colorbar; caxis([-9 9]);  % Rocc 
-title ('Rocc >30 stat')
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.stat(5,:,:)));axis xy; colorbar; caxis([-8 8]); % Lfront
+title ('Lfront >30 stat')
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.stat(6,:,:)));axis xy; colorbar; caxis([-8 8]); % Ltemp
+title ('Ltemp >30 stat')
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.stat(7,:,:)));axis xy; colorbar; caxis([-8 8]); % Lpar
+title ('Lpar >30 stat')
+figure;imagesc(statroi2.time,statroi2.freq,shiftdim(statroi2.stat(8,:,:)));axis xy; colorbar; caxis([-8 8]); % Locc
+title ('Locc >30 stat')
 

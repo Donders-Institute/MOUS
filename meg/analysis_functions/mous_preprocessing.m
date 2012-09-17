@@ -22,9 +22,9 @@ elseif (strcmp(analysisType, 'ERF') > 0)
   cfg.lpfreq          = 40;
   cfg.hpfilter        = 'yes';
   cfg.hpfilttype      = 'fir';  %not in Tinekes script
-  cfg.hpfiltord       = 100;   %not in Tinekes script
-  cfg.hpfreq          = 0.5; %wired number  % tineke has 0.5
-  cfg.padding         = 10; %big padding for hp to work 
+  cfg.hpfiltord       = 100;    %not in Tinekes script
+  cfg.hpfreq          = 0.5;    %wired number  % tineke has 0.5
+  cfg.padding         = 10;     %big padding for hp to work 
 else
   error('unrecognized type requested');
 end
