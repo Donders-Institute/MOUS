@@ -34,6 +34,7 @@ if ft_datatype(data, 'volume')
   cfg.filename  = filename{1};
   ft_volumewrite(cfg, data);
 elseif ishandle(data)
+ if exist(filename{1},'file'), system(['rm -rf ',filename{1}]); end
  print(data, '-dpng', filename{1});
 elseif ~isempty(strfind(type, 'headmodel'))
   % save headmodel data as mat-file and name variable 'vol'
@@ -49,6 +50,11 @@ elseif ~isempty(strfind(type, 'processed'))
   eval([inputname(3),'=varargin{1};']);
   str = [str(1:end-2),');'];
   eval(str);
-  cmd = ['chmod g+w ' filename{1}, '.mat'];
+  [p,n,e] = fileparts(filename{1});
+  if ~isempty(e)
+    cmd = ['chmod g+w ' filename{1}];
+  else
+    cmd = ['chmod g+w ' filename{1}, '.mat'];
+  end
   system(cmd);
 end
