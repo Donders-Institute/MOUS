@@ -1,12 +1,43 @@
 function [filename, st, info] = mous_db_getfilename(subject, type, infoflag)
 
-% [filename] = mous_db_getfilename(subject, type)
+% [filename, status, info] = mous_db_getfilename(subject, type)
 %
-% subject = string that identifies subject, e.g. 'V1001'
-% type    = string that identifies the type of data, e.g. 'meg_ds'
+% Input arguments:
+%   subject = string that identifies subject, e.g. 'V1001', can be 'all'
+%   type    = string that identifies the type of data, e.g. 'meg_ds'
 %
-% filename = cell-array of strings returing the filename(s)
+% The following types are implemented:
 %
+%   'subjectname' (to be used in combination with subject = 'all'
+%   'meg_ds'
+%   'meg_ds_task'
+%   'meg_ds_rest'
+%   'meg_pos'
+%   'meg_fidpic'
+%   'meg_artifactcfg'
+%   'meg_artifactdssblinks' 
+%   'meg_artifactdsssaccades'
+%   'mri_dicom'
+%   'mri_nifti'
+%   'mri_coregMNI'
+%   'meg_anatomy_coregCTF'
+%   'meg_anatomy_coregCTFresliced'
+%   'meg_anatomy_coregMNI'
+%   'meg_anatomy_coregMNIresliced'
+%   'meg_anatomy_coregMNIskullstrip'
+%   'meg_anatomy_coregMNIskullstripmask'
+%   'meg_anatomy_headmodel'
+%   'meg_anatomy_sourcemodelfif'
+%   'meg_anatomy_sourcemodel2D'
+%   'meg_anatomy_sourcemodel3D_xxx'
+%   'meg_anatomy_figure_xxx'
+%   'meg_processed_{xxx}'
+%
+% Output arguments:
+%   filename = cell-array of strings returing the filename(s)
+%   status   = vector of booleans indicating whether the file(s) exist
+%   info     = struct-array giving additional info about the files
+
 % $Id: mous_db_getfilename.m 48 2012-05-30 14:21:15Z jansch $
 
 if nargin>2
@@ -105,10 +136,10 @@ switch type{2}
     D = [basedir 'rawdata' filesep subject filesep 'Structural' filesep];
     d = dir([D '*.IMA']);
   case 'nifti'
-    D = [basedir 'SPM5preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [basedir 'preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'str-' subject '-001.nii']);
   case 'coregMNI'
-    D = [basedir 'SPM5preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [basedir 'preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'cstr-' subject '-001.nii']);
     if isempty(d)
       %d(1).name = [subject 'coregMNI'];
