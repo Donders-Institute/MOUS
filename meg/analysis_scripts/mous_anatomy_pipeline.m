@@ -7,17 +7,36 @@
 %subjectname = 'V1047'; % if running from the middle you need this
 %mous_db_makesubjdir(subjectname);
 
-docoregistration = 0;
-doskullstrip     = 0;
-doheadmodel      = 0;
-dosourcemodel2d  = 0;
-dosourcemodel3d  = 1;
+if ~exist('docoregistration', 'var'), docoregistration = false; end
+if ~exist('doskullstrip',     'var'), doskullstrip     = true;  end
+if ~exist('doheadmodel',      'var'), doheadmodel      = true;  end
+if ~exist('dosourcemodel2d',  'var'), dosourcemodel2d  = true;  end
+if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = true;  end
+if ~exist('doqualitycheck',   'var'), doskullstrip     = true;  end
 
 %% Coregister to MNI coordinate system
 if docoregistration
   mri      = mous_db_getdata(subjectname, 'mri_nifti');
   [mri, T] = mous_anatomy_coregMNI(mri);
   mous_db_putdata(subjectname, 'meg_anatomy_coregMNI', mri); % creates a V1024coregMNI.nii file
+end
+
+%% Coregister to CTF coordinate system
+if docoregistration
+  % display the pictures of the ears
+  filename3 = mous_db_getfilename(subjectname, 'meg_fidpic');
+  % read in the picture(s)
+  if numel(filename3)>0
+    for k = 1:numel(filename3)
+      picture = imread(filename3{k});
+      figure;image(picture);
+      title(filename3{k});
+    end
+  end
+  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
+  pos = mous_db_getdata(subjectname, 'meg_pos');
+  mri = mous_anatomy_coregCTF(mri, pos);
+  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);% creates a V1025coregCTF.nii file
 end
 
 % next step is not necessary anymore when using the converted nifties
@@ -40,24 +59,6 @@ if doskullstrip
   mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstripmask', mask);
 end
 
-%% Coregister to CTF coordinate system
-if docoregistration
-  % display the pictures of the ears
-  filename3 = mous_db_getfilename(subjectname, 'meg_fidpic');
-  % read in the picture(s)
-  if numel(filename3)>0
-    for k = 1:numel(filename3)
-      picture = imread(filename3{k});
-      figure;image(picture);
-      title(filename3{k});
-    end
-  end
-  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
-  pos = mous_db_getdata(subjectname, 'meg_pos');
-  mri = mous_anatomy_coregCTF(mri, pos);
-  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);% creates a V1025coregCTF.nii file
-end
-
 %% Create singleshell volume conductor model of the head
 if doheadmodel
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
@@ -69,33 +70,14 @@ end
 %% Freesurfer pipeline
 if dosourcemodel2d
   % create directory that will contain the results
-  % if running from the middle you need this
   subjdirfs   = ['/home/language/annhul/MOUS/Processed/',subjectname,'/meg_anatomy'];
 
   str     = which('freesurferscript1.sh');
   [p,f,e] = fileparts(str);
+  
+  % run the first part of the freesurfer pipeline
   system([p,'/freesurferscript1.sh ',subjdirfs,' ',subjectname]);
-  % output is diveded in the subfolders of
-  % home/language/annhul/MOUS/Processed/V1025/meg_anatomy/
-  
-  
-  % % create proper brainmask that works within freesurfer
-  % p2   = [subjdirfs, '/',subjectname,'/mri/'];
-  % mri1 = ft_read_mri([p2 'T1.mgz']);
-  % mri2 = ft_read_mri([p2 'brainmask.mgz']);
-  % mri1.anatomy(mri2.anatomy==0) = 0;
-  %
-  % cfg = [];
-  % cfg.filename  = [p2 'brainmask.mgz'];
-  % cfg.filetype  = 'mgz';
-  % cfg.parameter = 'anatomy';
-  % cfg.datatype  = 'uint8';
-  % ft_volumewrite(cfg, mri1);
-  %
-  % cfg = [];
-  % cfg.interactive = 'yes';
-  % figure; ft_sourceplot(cfg, mri1);
-  
+   
   % At this stage have a look at the brainmasked anatomy in matlab to see whether
   % it is a problematic one. If this is the caes, check the brainmask in
   % tkmedit, and edit if necessary. Instructions for tkmedit in
@@ -103,6 +85,7 @@ if dosourcemodel2d
   % FIXME: once edited, the information needs to be transported to the
   % _mask image!!!
   
+  % run the second part of the freesurfer pipeline
   system([p,'/freesurferscript2.sh ',subjdirfs,' ',subjectname]);
   
   % mne call to create dipole grid
@@ -113,19 +96,22 @@ if dosourcemodel2d
   % coordinate system
   mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
-  vol  = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
   bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
-  [bnd, h] = mous_anatomy_sourcemodel2D(bnd, mri1, mri2, vol);
+  bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
   mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd); % creates V1025sourcemodel2D.mat
-  mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg', h); %creates a figure of the volume, check this
 end
 
 %% create a 3D sourcemodel based on the MNI brain
 if dosourcemodel3d
   mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri1.coordsys = 'ctf';
-  %grid = mous_anatomy_sourcemodel3D(mri1, 8);
-  %mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', grid); %creates V1025sourcemodel3Dnonlin8mm.mat
+  grid = mous_anatomy_sourcemodel3D(mri1, 8);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', grid); %creates V1025sourcemodel3Dnonlin8mm.mat
   grid = mous_anatomy_sourcemodel3D(mri1, 10);
   mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', grid); %creates V1025sourcemodel3Dnonlin8mm.mat
+end
+
+%% do quality check
+if doqualitycheck
+  mous_anatomy_qualitycheck(subjectname);
 end

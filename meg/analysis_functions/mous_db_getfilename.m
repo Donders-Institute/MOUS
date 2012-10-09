@@ -176,13 +176,13 @@ switch type{2}
         end
       case 'coregMNIskullstrip'
         %D = '/home/coherence/jansch/public/';
-        d = dir([D subject 'coregMNIskullstrip.*']);
+        d = dir([D subject 'coregMNIskullstrip.nii']);
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstrip'];
         end
         case 'coregMNIskullstripmask'
         %D = '/home/coherence/jansch/public/';
-        d = dir([D subject 'coregMNIskullstripmask.*']);
+        d = dir([D subject 'coregMNIskullstripmask.nii']);
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstripmask'];
         end
