@@ -1,4 +1,4 @@
-function [h1,h2,h3,h4,h5,h6] = mous_anatomy_qualitycheck(subjectname)
+function [h1,h2,h3,h4,h5,h6,h7] = mous_anatomy_qualitycheck(subjectname, varargin)
 
 % MOUS_ANATOMY_QUALITYCHECK does a number of quality control checks on the
 % ouput of the anatomy pipeline, mainly relying on visual inspection of a
@@ -12,12 +12,15 @@ function [h1,h2,h3,h4,h5,h6] = mous_anatomy_qualitycheck(subjectname)
 %
 % See also MOUS_ANATOMY_PIPELINE, MOUS_ENSURE_UNITS
 
+visible = ft_getopt(varargin, 'visible', 'on');
+
 close all
 
 headmodel     = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 sourcemodel2d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D');
 sourcemodel3d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
 mri           = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  
 
 % [p, f, x] = fileparts(filename);
 % 
@@ -52,7 +55,7 @@ viewleft   = @() view(180,   0);
 viewright  = @() view(  0,   0);
 viewfront  = @() view( 90,   0); % FIXME this might also be back
 
-h1 = figure;
+h1 = figure('visible',visible);
 subplot(2,2,1); hold on; ft_plot_vol(headmodel), viewbottom();
 subplot(2,2,2); hold on; ft_plot_vol(headmodel), viewtop();
 subplot(2,2,3); hold on; ft_plot_vol(headmodel), viewleft();
@@ -61,7 +64,7 @@ axis on
 grid on
 title(subjectname);
 
-h2 = figure;
+h2 = figure('visible',visible);
 subplot(2,2,1); hold on; ft_plot_mesh(sourcemodel3d.pos(sourcemodel3d.inside,:)); viewbottom();
 subplot(2,2,2); hold on; ft_plot_mesh(sourcemodel3d.pos(sourcemodel3d.inside,:)); viewtop();
 subplot(2,2,3); hold on; ft_plot_mesh(sourcemodel3d.pos(sourcemodel3d.inside,:)); viewleft();
@@ -70,7 +73,7 @@ axis on
 grid on
 title(subjectname);
 
-h3 = figure;
+h3 = figure('visible',visible);
 clear ft_plot_slice
 subplot(2,2,1); hold on; ft_plot_slice(mri.anatomy, 'location', [0  0 60], 'orientation', [0 0 1], 'transform', mri.transform, 'intersectmesh', {sourcemodel2d headmodel.bnd}); viewtop();
 subplot(2,2,2); hold on; ft_plot_slice(mri.anatomy, 'location', [0  0 20], 'orientation', [0 0 1], 'transform', mri.transform, 'intersectmesh', {sourcemodel2d headmodel.bnd}); viewtop();
@@ -79,34 +82,38 @@ subplot(2,2,4); hold on; ft_plot_slice(mri.anatomy, 'location', [0 20  0], 'orie
 set(gcf, 'Renderer', 'zbuffer');
 title(subjectname);
 
-h4 = figure;
+h4 = figure('visible',visible);
 ft_plot_montage(mri.anatomy, 'location', [0 0 0], 'orientation', [0 0 1], 'transform', mri.transform, ...
   'slicerange', [-20 120], 'nslice', 16, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
 set(gcf, 'Renderer', 'zbuffer');
 title(subjectname,'color','r');
 
-h5 = figure;
+h5 = figure('visible',visible);
 ft_plot_montage(mri.anatomy, 'location', [0 0 0], 'orientation', [0 1 0], 'transform', mri.transform, ...
   'slicerange', [-60 60], 'nslice', 16, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
 set(gcf, 'Renderer', 'zbuffer');
 title(subjectname,'color','r');
 
-h6 = figure;
+h6 = figure('visible',visible);
 ft_plot_montage(mri.anatomy, 'location', [0 0 0], 'orientation', [1 0 0], 'transform', mri.transform, ...
   'slicerange', [-60 120], 'nslice', 16, 'intersectmesh', {sourcemodel2d headmodel.bnd}, 'intersectlinewidth', 1);
 set(gcf, 'Renderer', 'zbuffer');
 title(subjectname,'color','r');
 
-mous_db_putdata(subjectname, 'meg_anatomy_figure_headmodel', h1);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel3d', h2);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2d', h3);
+% plot some figures to check the coregistration between volume conductor
+% and cortical sheet
+h7 = figure('visible',visible);
+subplot(2,2,1);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(sourcemodel2d); view([0 0]);
+subplot(2,2,2);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(sourcemodel2d); view([0 90]);
+subplot(2,2,3);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(sourcemodel2d); view([90 0]);
+
+mous_db_putdata(subjectname, 'meg_anatomy_figure_headmodel',           h1);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel3d',       h2);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2d',       h3);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice1', h4);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice2', h5);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice3', h6);
-
-
-% str = printstruct(transform);
-% writetextfile(sprintf(fullfile(p, [f, '_transform.txt'])), str);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg',               h7);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
