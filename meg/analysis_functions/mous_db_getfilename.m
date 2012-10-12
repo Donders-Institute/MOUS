@@ -31,7 +31,8 @@ function [filename, st, info] = mous_db_getfilename(subject, type, infoflag)
 %   'meg_anatomy_sourcemodel2D'
 %   'meg_anatomy_sourcemodel3D_xxx'
 %   'meg_anatomy_figure_xxx'
-%   'meg_processed_{xxx}'
+%   'meg_processed_{xxx}' (fixed forms are erf, tfr and mne)
+
 %
 % Output arguments:
 %   filename = cell-array of strings returing the filename(s)
@@ -241,6 +242,8 @@ switch type{2}
           D = [D 'TFR/'];
         elseif (~isempty(strfind(suff, 'erf'))) || (~isempty(strfind(suff, 'ERF')))
           D = [D 'ERF/'];
+        elseif (~isempty(strfind(suff, 'mne'))) || (~isempty(strfind(suff, 'MNE')))
+          D = [D 'MNE/'];
         else
           D = [D 'other/'];
         end
