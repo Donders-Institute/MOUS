@@ -13,7 +13,7 @@ cp $2coregMNIskullstrip.nii $SUBJECTS_DIR/$2/mri/
 
 cd $SUBJECTS_DIR/$2/mri
 mri_convert -c -oc 0 0 0 $2coregMNI.nii orig.mgz
-mri_convert -c -oc 0 0 0 $2coregMNIskullstripmask.nii brainmask.mgz
+mri_convert -c -oc 0 0 0 $2coregMNIskullstrip.nii brainmask.mgz
 
 recon-all -talairach -subjid $2
 recon-all -nuintensitycor -subjid $2
