@@ -12,7 +12,7 @@ if ~exist('doskullstrip',     'var'), doskullstrip     = true;  end
 if ~exist('doheadmodel',      'var'), doheadmodel      = true;  end
 if ~exist('dosourcemodel2d',  'var'), dosourcemodel2d  = true;  end
 if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = true;  end
-if ~exist('doqualitycheck',   'var'), doskullstrip     = true;  end
+if ~exist('doqualitycheck',   'var'), doqualitycheck   = true;  end
 
 %% Coregister to MNI coordinate system
 if docoregistration
