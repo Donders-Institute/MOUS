@@ -1,14 +1,17 @@
-function [trl] = mous_defineTrial(filename, prestim, poststim, wordType)
+function [trl] = mous_defineTrial(filename, prestim, poststim, wordType, trialfun)
 
 cfg                   = [];
-cfg.dataset           = filename;
+cfg.dataset           = filename{1};
 cfg.trialdef.prestim  = prestim;              % baseline
 cfg.trialdef.poststim = poststim-1./1200;     % pad
-cfg.trialfun          = 'visual_word';        % 1s duration from onset of target word
+cfg.trialfun          = trialfun;             % 'visual_word' or 'visual_sentence'
 [cfg]                 = ft_definetrial(cfg);  % ft_definetrial defines trials which are created in cfg.trl which is a parameter for ft_preprocessing
 trl                   = cfg.trl;
 
-if (strcmp(wordType,'target') > 0)           % focus on the target words
+if (strcmp(wordType,'all') > 0)              % focus on all words
+    trl = trl;
+
+elseif (strcmp(wordType,'target') > 0)           % focus on the target words
     sel = mod(trl(:,5),2)==0; 
     trl = trl(sel,:);
     
