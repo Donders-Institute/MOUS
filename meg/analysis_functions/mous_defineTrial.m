@@ -1,7 +1,7 @@
 function [trl] = mous_defineTrial(filename, prestim, poststim, wordType, trialfun)
 
 cfg                   = [];
-cfg.dataset           = filename{1};
+cfg.dataset           = filename;
 cfg.trialdef.prestim  = prestim;              % baseline
 cfg.trialdef.poststim = poststim-1./1200;     % pad
 cfg.trialfun          = trialfun;             % 'visual_word' or 'visual_sentence'
