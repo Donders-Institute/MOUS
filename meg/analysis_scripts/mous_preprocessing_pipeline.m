@@ -42,7 +42,7 @@ function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preproces
     data = mous_preprocessing(filename{1}, trl, 300, 'TFR');
   
     %save preprocessed data 
-    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcTFR' trialfun wordType '05-3ds}'], data);
+    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcTFR' trialfun '_' wordType '05-3ds}'], data);
     
     % go to TFR pipeline: "mous_tfr_pipline" 
 
