@@ -2,7 +2,8 @@
 dodss    = false;
 dofreq   = false;
 dosource = false;
-dovox    = true;
+dovox    = false;
+doica    = true;
 
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
@@ -29,7 +30,7 @@ if dosource,
   freq   = mous_db_getdata(subjectname, 'meg_processed_{bfICA_freq}');
   source = mous_bfica_source(subjectname, freq);
   %mous_db_putdata(subjectname, ['meg_processed_{bfICA_source',num2str(round(toi*1000)),'}'], source);
-  mous_db_putdata(subjectname, ['meg_processed_{bfICA_source}'], source);
+  mous_db_putdata(subjectname, 'meg_processed_{bfICA_source}', source);
 end
 if dovox,
   % theta frequency
@@ -41,7 +42,13 @@ if dovox,
   freq   = mous_db_getdata(subjectname, 'meg_processed_{bfICA_freq}');
   source = mous_db_getdata(subjectname, 'meg_processed_{bfICA_source}');
   sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
-  mous_db_putdata(subjectname, ['meg_processed_{bfICA_sourcedata}'], sourcedata);
+  mous_db_putdata(subjectname, 'meg_processed_{bfICA_sourcedata}', sourcedata);
+end
+
+if doica,
+  
+  comp = mous_bfica_ica(subjectname);
+  mous_db_putdata(subjectname, 'meg_processed_{bfICA_ica}', comp);
 end
 
 
