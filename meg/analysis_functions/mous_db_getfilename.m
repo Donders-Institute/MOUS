@@ -261,7 +261,7 @@ switch type{2}
         error('unrecognized type requested');    
     end
   case {'bfica'} %FIXME add the other ones also, so that the 'processed' can be removed
-    D = [rootdir filesep subject filesep type{2} filesep]
+    D = [rootdir filesep subject filesep type{2} filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'
         %use everything between the {} as a suffix for the filename and
