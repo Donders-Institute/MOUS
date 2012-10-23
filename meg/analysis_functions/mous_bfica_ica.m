@@ -1,21 +1,42 @@
-function [comp] = mous_beamformerICA_ica(subjectnames)
+function [comp] = mous_bfica_ica(subjectnames, n, rootdir)
+
+if nargin<2
+  n = [];
+end
+
+if nargin<3
+  rootdir = '';
+end
+
+if ~iscell(subjectnames), subjectnames = {subjectnames}; end
 
 for k = 1:numel(subjectnames)
-  tmp = mous_db_getdata(subjectnames{k}, 'meg_processed_{bfICA_sourcedata5_500}');
+  tmp = mous_db_getdata(subjectnames{k}, 'meg_bfica_{_bfica_sourcedata}', rootdir);
+  if ~isempty(n)
+    if size(tmp.trial{1},2)<n
+      % don't select
+    else
+      fprintf('selecting %d samples from dataset %s\n', n, subjectnames{k});
+      sel = randperm(size(tmp.trial{1},2));
+      sel = sel(1:n);
+      tmp.trial{1} = tmp.trial{1}(:,sort(sel));
+    end
+  end
+  
   if k==1
     data = tmp;
   end
   sel = isfinite(tmp.trial{1}(1,:));
   data.trial{k} = tmp.trial{1}(:,sel)-nanmean(tmp.trial{1},2)*ones(1,sum(sel));
   data.time{k}  = tmp.time{1}(sel);
-%   tmp = mous_db_getdata(subjectnames{k}, 'meg_processed_{bfICA_sourcedata475}');
+%   tmp = mous_db_getdata(subjectnames{k}, 'meg_processed_{_bfica_sourcedata475}');
 %   data.trial{k} = cat(1, data.trial{k}, tmp.trial{1}-nanmean(tmp.trial{1},2)*ones(1,numel(tmp.time{1})));
 end
 
-source = mous_db_getdata(subjectnames{end}, 'meg_processed_{bfICA_source}');
+source = mous_db_getdata(subjectnames{end}, 'meg_bfica_{_bfica_source}', rootdir);
 
 Ncomp = 15;
-Niter = 15;
+Niter = 25;
 
 cfg               = [];
 cfg.method        = 'icasso';
