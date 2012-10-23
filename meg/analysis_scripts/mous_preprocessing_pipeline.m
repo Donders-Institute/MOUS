@@ -14,21 +14,20 @@ function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preproces
     % get the description of the artifacts
     tmp = mous_db_getdata(subjectname, 'meg_artifactcfg');
     
-    wordType = 'all';   % all words in a  sentence / sequence
+    wordType = 'First2Last2';   % all words in a  sentence / sequence
         % other options:
-        % 'target'; 'tarplusOne'; 'tarplusTwo';
+        % ;'all' 'target'; 'tarplusOne'; 'tarplusTwo';
         % to be implemented: 'nouns'; 'verbs' ; firstWord etc
-               
-    % the trial funs need to be renamed
-    trialfun =  'visual_word';       % does not include fixation
-    %           'visual_sentence';  %includes onset of fixation cross
+
+    trialfun =  'visual_word';       % onset of each word (but not fixation cross)
+    %           'visual_sentence';   % onset of fixation cross until offset of last word (marks target word type; can also retrieve first word info but not in default trl)
          
-   % FIXME
-   % defining the pre and post stimulus windows here (instead of at multple
-   % places below
-    
-    % define trial window (includes pre -500ms and post 3s)
-    [trl] = mous_defineTrial(filename{1}, 0.5, 3.0, wordType, trialfun); 
+    % define time window
+    prestim = 0.5;  % X seconds prior to chosen event of interest
+    poststim = 3.0;
+       
+    % define trial window 
+    [trl] = mous_defineTrial(filename{1}, prestim, poststim, wordType, trialfun); 
 
     % remove the artifacts that have been defined/detected
     [trl] = mous_artifact_remove(trl, filename{1}, tmp);
@@ -57,19 +56,22 @@ function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preproces
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.5);
     
     % save preprocessed data
-        mous_db_putdata(subjectname, ['meg_processed_{preProcERF' trialfun wordType '05-3ds}'], data);
+    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '05-3ds}'], data);
 
     %% short time window
-
-    % redefine the trial window and remove the artefacts for the short
-    % window
+    % redefine the trial window and remove the artefacts for the short window
+    % no point running this analyses for 'First3sLast3s'
+    
+    prestim = 0.2;
+    poststim = 1.0;
+    
     % define trial window (includes pre -500ms and post 3s)
-    [trl] = mous_defineTrial(filename{1}, 0.2, 1.0, wordType, trialfun); 
+    [trl] = mous_defineTrial(filename{1}, prestim, poststim, wordType, trialfun); 
     % remove the artifacts that have been defined/detected
     [trl] = mous_artifact_remove(trl, filename{1}, tmp);
 
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.2);
     
     % save preprocessed data  
-    mous_db_putdata(subjectname, ['meg_processed_{preProcERF' trialfun wordType '02-1ds}'], data);
+    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '02-1ds}'], data);
 
