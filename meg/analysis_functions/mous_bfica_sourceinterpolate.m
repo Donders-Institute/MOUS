@@ -1,6 +1,10 @@
 function [source] = mous_bfica_sourceinterpolate(subjectname)
 
-comp       = mous_db_getdata(subjectname, 'meg_processed_{bfICA_ica}');
+if ischar(subjectname)
+  comp = mous_db_getdata(subjectname, 'meg_processed_{bfICA_ica}');
+else
+  comp = subjectname;
+end
 
 load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
 
@@ -30,7 +34,9 @@ grid.avg.pow = zeros(prod(grid.dim),1);
 mri          = ft_read_mri('/home/language/jansch/matlab/mri/templateMRI.nii');
 for k = 1:size(comp.topo,2)
   grid.avg.pow(grid.inside) = comp.topo(:,k);
+  %grid.avg.pow(grid.inside) = comp.corrmap(:,k);
   source(k) = ft_sourceinterpolate(cfgi, grid, mri);
 end
+
 
 

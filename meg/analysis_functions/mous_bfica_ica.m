@@ -1,7 +1,24 @@
-function [comp] = mous_beamformerICA_ica(subjectnames)
+function [comp] = mous_bfica_ica(subjectnames, n)
+
+if nargin==1
+  n = [];
+end
+
+if ~iscell(subjectnames), subjectnames = {subjectnames}; end
 
 for k = 1:numel(subjectnames)
-  tmp = mous_db_getdata(subjectnames{k}, 'meg_processed_{bfICA_sourcedata5_500}');
+  tmp = mous_db_getdata(subjectnames{k}, 'meg_processed_{bfICA_sourcedata}');
+  if ~isempty(n)
+    if size(tmp.trial{1},2)<n
+      % don't select
+    else
+      fprintf('selecting %d samples from dataset %s\n', n, subjectnames{k});
+      sel = randperm(size(tmp.trial{1},2));
+      sel = sel(1:n);
+      tmp.trial{1} = tmp.trial{1}(:,sort(sel));
+    end
+  end
+  
   if k==1
     data = tmp;
   end
@@ -15,7 +32,7 @@ end
 source = mous_db_getdata(subjectnames{end}, 'meg_processed_{bfICA_source}');
 
 Ncomp = 15;
-Niter = 15;
+Niter = 25;
 
 cfg               = [];
 cfg.method        = 'icasso';
