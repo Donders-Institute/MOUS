@@ -5,7 +5,19 @@ function mous_db_putdata(subject, type, varargin)
 %
 % $Id: mous_db_putdata.m 48 2012-05-30 14:21:15Z jansch $
 
-[filename, st] = mous_db_getfilename(subject, type);
+if numel(varargin)>1
+  % it could be that the root directory is specified as last input argument
+  if isdir(varargin{end})
+    rootdir = varargin{end};
+    varargin = varargin(1:end-1);
+  else
+    rootdir = '';
+  end
+else
+  rootdir = '';
+end
+  
+[filename, st] = mous_db_getfilename(subject, type, 0, rootdir);
 if st(1)
   warning('file %s exists, overwriting existing file', filename{1});
 end

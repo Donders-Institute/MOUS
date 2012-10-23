@@ -1,11 +1,15 @@
-function [data] = mous_db_getdata(subject, type)
+function [data] = mous_db_getdata(subject, type, rootdir)
 
 % MOUS_DB_GETDATA extracts data of a particular type from the
 % from a specified subject
 %
 % $Id: mous_db_getdata.m 48 2012-05-30 14:21:15Z jansch $
 
-[filename, st] = mous_db_getfilename(subject, type);
+if nargin<3
+  rootdir = '';
+end
+
+[filename, st] = mous_db_getfilename(subject, type, 0, rootdir);
 if ~st(1)
   error('the file %s does not exist', filename{1});
 else
@@ -34,5 +38,7 @@ switch lower(ext)
     if numel(data)==1
       data = data{1};
     end
+  case {'.png'}
+    system(['eog ' filename{1} ' &']); %open figure in the background
   otherwise
 end 
