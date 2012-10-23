@@ -1,4 +1,4 @@
-function [filename, st, info] = mous_db_getfilename(subject, type, infoflag)
+function [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir)
 
 % [filename, status, info] = mous_db_getfilename(subject, type)
 %
@@ -9,11 +9,11 @@ function [filename, st, info] = mous_db_getfilename(subject, type, infoflag)
 % The following types are implemented:
 %
 %   'subjectname' (to be used in combination with subject = 'all'
-%   'meg_ds'
-%   'meg_ds_task'
-%   'meg_ds_rest'
-%   'meg_pos'
-%   'meg_fidpic'
+%   'meg_raw'
+%   'meg_raw_task'
+%   'meg_raw_rest'
+%   'meg_raw_pos'
+%   'meg_raw_fidpic'
 %   'meg_artifactcfg'
 %   'meg_artifactdssblinks' 
 %   'meg_artifactdsssaccades'
@@ -51,12 +51,16 @@ else
   infoflag = false;
 end
 
+if nargin<4
+  rootdir = [];
+end
+
 if ischar(subject) && strcmp(subject, 'all')
   % request all subjects -> convert into cell-array and call function
   % recursively
   d       = dir('/home/language/annhul/MOUS/Processed/V*');
   subject = {d.name};
-  [filename, st, info] = mous_db_getfilename(subject, type, infoflag);
+  [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir);
   return;
 end
 
@@ -75,34 +79,36 @@ if iscell(subject)
   return;
 end
   
-% determine the base directory, i.e. either Annika's or Julia's home-dir
+% determine the root directory, i.e. either Annika's or Julia's home-dir
 type = tokenize(type, '_');
-switch type{1}
-  case 'subjectname'
-    filename = subject;
-    st       = nan;
-    info     = struct([]);
-    return;
-  case 'meg'
-    basedir = '/home/language/annhul/MOUS/';
-  case 'mri'
-    basedir = '/home/language/juludd/MOUS/';
-  otherwise
-    error('unrecognized type requested');
+if isempty(rootdir)
+  switch type{1}
+    case 'subjectname'
+      filename = subject;
+      st       = nan;
+      info     = struct([]);
+      return;
+    case 'meg'
+      rootdir = '/home/language/annhul/MOUS/meg/';
+    case 'mri'
+      rootdir = '/home/language/juludd/MOUS/';
+    otherwise
+      error('unrecognized type requested');
+  end
 end
 
 filename = {};
 st       = false;
 
 switch type{2}
-  case 'ds'
+  case {'raw' 'ds'}
     % MEG .ds directory
-    D = [basedir 'RAW' filesep subject filesep];
+    D = [rootdir filesep subject filesep 'RAW' filesep];
     d = dir([D, '*.ds']);
     if numel(type)>2
       % some additional specification has been made
       for k = 1:numel(d)
-        D2 = [basedir 'RAW' filesep subject filesep d(k).name];
+        D2 = [rootdir filesep subject filesep 'RAW' filesep d(k).name];
         d2 = dir(D2);
         
         totalbytes(k) = sum([d2.bytes]);
@@ -115,39 +121,39 @@ switch type{2}
           [m,ix] = max(totalbytes);
           d = d(ix);
         case 'rest'
+        case 'pos'
+          % Polhemus .pos file
+          D = [rootdir filesep subject filesep 'RAW' filesep];
+          d = dir([D, '*.pos']);
+        case 'fidpic'
+          % Photograph of fiducials
+          D = [rootdir filesep subject filesep 'RAW' filesep];
+          d = dir([D, '*.JPG']);
         otherwise
       end
     end
-  case 'pos'
-    % Polhemus .pos file
-    D = [basedir 'RAW' filesep subject filesep];
-    d = dir([D, '*.pos']);
-  case 'fidpic'
-    % Photograph of fiducials
-    D = [basedir 'RAW' filesep subject filesep];
-    d = dir([D, '*.JPG']);
   case {'artifactcfg' 'artifactdssblinks' 'artifactdsssaccades'}
-    D = [basedir 'Processed' filesep subject filesep 'other' filesep];
+    D = [rootdir  filesep subject filesep 'other' filesep];
     d = dir([D subject type{2} '.mat']);
     if isempty(d)
       d(1).name = [subject type{2} '.mat'];
     end
   case 'dicom'
     % T1 dicom
-    D = [basedir 'rawdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir 'rawdata' filesep subject filesep 'Structural' filesep];
     d = dir([D '*.IMA']);
   case 'nifti'
-    D = [basedir 'preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir 'preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'str-' subject '-001.nii']);
   case 'coregMNI'
-    D = [basedir 'preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir 'preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'cstr-' subject '-001.nii']);
     if isempty(d)
       %d(1).name = [subject 'coregMNI'];
       d(1).name = ['cstr-' subject '-001.nii'];
     end
   case 'anatomy'
-    D = [basedir 'Processed' filesep subject filesep 'meg_anatomy' filesep];
+    D = [rootdir subject filesep 'anatomy' filesep];
     switch type{3}
       case 'coregCTF'
         %D = '/home/coherence/jansch/public/';
@@ -216,7 +222,7 @@ switch type{2}
         error('unrecognized type requested');
     end
   case 'artifact'
-    D = [basedir 'Processed' filesep subject filesep 'other' filesep];
+    D = [rootdir filesep subject filesep 'other' filesep];
     switch type{3}
       case 'figure'
         d = dir([D subject 'figure_' type{4} '.png']);
@@ -228,7 +234,7 @@ switch type{2}
     end
     
   case 'processed'
-    D = [basedir 'Processed' filesep subject filesep];
+    D = [rootdir filesep subject filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'
         %use everything between the {} as a suffix for the filename and
@@ -239,11 +245,11 @@ switch type{2}
         end
         suff = suff(2:end-2);
         if (~isempty(strfind(suff, 'tfr'))) || (~isempty(strfind(suff, 'TFR')))
-          D = [D 'TFR/'];
+          D = [D 'tfr/'];
         elseif (~isempty(strfind(suff, 'erf'))) || (~isempty(strfind(suff, 'ERF')))
-          D = [D 'ERF/'];
+          D = [D 'erf/'];
         elseif (~isempty(strfind(suff, 'mne'))) || (~isempty(strfind(suff, 'MNE')))
-          D = [D 'MNE/'];
+          D = [D 'mne/'];
         else
           D = [D 'other/'];
         end
@@ -279,3 +285,4 @@ if infoflag && ~isempty(filename)
 else
   info = [];
 end
+
