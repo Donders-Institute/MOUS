@@ -58,7 +58,7 @@ end
 if ischar(subject) && strcmp(subject, 'all')
   % request all subjects -> convert into cell-array and call function
   % recursively
-  d       = dir('/home/language/annhul/MOUS/Processed/V*');
+  d       = dir('/home/language/annhul/MOUS/meg/V*');
   subject = {d.name};
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir);
   return;
@@ -89,7 +89,7 @@ if isempty(rootdir)
       info     = struct([]);
       return;
     case 'meg'
-      rootdir = '/home/language/annhul/MOUS/meg/';
+      rootdir = '/home/language/annhul/MOUS/meg';
     case 'mri'
       rootdir = '/home/language/juludd/MOUS/';
     otherwise
@@ -133,7 +133,7 @@ switch type{2}
       end
     end
   case {'artifactcfg' 'artifactdssblinks' 'artifactdsssaccades'}
-    D = [rootdir  filesep subject filesep 'other' filesep];
+    D = [rootdir  filesep subject filesep 'artifact' filesep];
     d = dir([D subject type{2} '.mat']);
     if isempty(d)
       d(1).name = [subject type{2} '.mat'];
