@@ -58,7 +58,7 @@ end
 if ischar(subject) && strcmp(subject, 'all')
   % request all subjects -> convert into cell-array and call function
   % recursively
-  d       = dir('/home/language/annhul/MOUS/Processed/V*');
+  d       = dir('/home/language/annhul/MOUS/meg/V*');
   subject = {d.name};
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir);
   return;
@@ -71,7 +71,7 @@ if iscell(subject)
   st       = false(0,1);
   info     = struct([]);
   for k = 1:numel(subject)
-    [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag);
+    [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag, rootdir);
     filename = cat(1,filename,tmpf);
     st       = cat(1,st,      tmps);
     info     = cat(1,info,    tmpi);
@@ -293,7 +293,7 @@ if ~isempty(filename)
   end
 end
 
-if infoflag && ~isempty(filename)
+if infoflag & ~isempty(filename)
   for k = 1:numel(filename)
     if st(k)
       info(k) = dir(filename{k});
