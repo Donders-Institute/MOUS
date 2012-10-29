@@ -71,7 +71,7 @@ if iscell(subject)
   st       = false(0,1);
   info     = struct([]);
   for k = 1:numel(subject)
-    [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag);
+    [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag, rootdir);
     filename = cat(1,filename,tmpf);
     st       = cat(1,st,      tmps);
     info     = cat(1,info,    tmpi);
@@ -293,7 +293,7 @@ if ~isempty(filename)
   end
 end
 
-if infoflag && ~isempty(filename)
+if infoflag & ~isempty(filename)
   for k = 1:numel(filename)
     if st(k)
       info(k) = dir(filename{k});
