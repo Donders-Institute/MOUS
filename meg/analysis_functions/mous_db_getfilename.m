@@ -133,7 +133,7 @@ switch type{2}
       end
     end
   case {'artifactcfg' 'artifactdssblinks' 'artifactdsssaccades'}
-    D = [rootdir  filesep subject filesep 'other' filesep];
+    D = [rootdir  filesep subject filesep 'artifact' filesep];
     d = dir([D subject type{2} '.mat']);
     if isempty(d)
       d(1).name = [subject type{2} '.mat'];
@@ -221,18 +221,24 @@ switch type{2}
       otherwise
         error('unrecognized type requested');
     end
-  case 'artifact'
-    D = [rootdir filesep subject filesep 'other' filesep];
-    switch type{3}
-      case 'figure'
-        d = dir([D subject 'figure_' type{4} '.png']);
-        if isempty(d)
-          d(1).name = [subject 'figure_' type{4}];
-        end
-      otherwise
-        error('unrecognized type requested');
-    end
-    
+%   case 'artifact'
+%     D = [rootdir filesep subject filesep 'artifact' filesep];
+%     switch type{3}
+%       case 'figure'
+%         d = dir([D subject 'figure_' type{4} '.png']);
+%         if isempty(d)
+%           d(1).name = [subject 'figure_' type{4}];
+%         end
+%       case {'artifactcfg' 'artifactdssblinks' 'artifactdsssaccades'}
+%         D = [rootdir  filesep subject filesep 'artifact' filesep];
+%         d = dir([D subject type{3} '.mat']);
+%         if isempty(d)
+%           d(1).name = [subject type{3} '.mat'];
+%         end
+%       otherwise
+%         error('unrecognized type requested');
+%     end
+%     
   case 'processed'
     D = [rootdir filesep subject filesep];
     switch [type{3}(1) type{end}(end)]
@@ -260,7 +266,7 @@ switch type{2}
       otherwise
         error('unrecognized type requested');    
     end
-  case {'bfica'} %FIXME add the other ones also, so that the 'processed' can be removed
+  case {'bfica' 'artifact'} %FIXME add the other ones also, so that the 'processed' can be removed
     D = [rootdir filesep subject filesep type{2} filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'
