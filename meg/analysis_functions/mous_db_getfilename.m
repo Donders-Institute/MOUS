@@ -89,7 +89,7 @@ if isempty(rootdir)
       info     = struct([]);
       return;
     case 'meg'
-      rootdir = '/home/language/annhul/MOUS/meg/';
+      rootdir = '/home/language/annhul/MOUS/meg';
     case 'mri'
       rootdir = '/home/language/juludd/MOUS/';
     otherwise
