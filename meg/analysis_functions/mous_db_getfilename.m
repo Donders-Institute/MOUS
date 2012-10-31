@@ -89,9 +89,9 @@ if isempty(rootdir)
       info     = struct([]);
       return;
     case 'meg'
-      rootdir = '/home/language/annhul/MOUS/meg/';
+      rootdir = '/home/language/annhul/MOUS/meg';
     case 'mri'
-      rootdir = '/home/language/juludd/MOUS/';
+      rootdir = '/home/language/juludd/MOUS';
     otherwise
       error('unrecognized type requested');
   end
@@ -133,21 +133,20 @@ switch type{2}
       end
     end
   case {'artifactcfg' 'artifactdssblinks' 'artifactdsssaccades'}
-    %D = [rootdir  filesep subject filesep 'artifact' filesep];
-    D = [rootdir subject filesep 'artifact' filesep];
+    D = [rootdir filesep subject filesep 'artifact' filesep];
     d = dir([D subject type{2} '.mat']);
     if isempty(d)
       d(1).name = [subject type{2} '.mat'];
     end
   case 'dicom'
     % T1 dicom
-    D = [rootdir 'rawdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir filesep 'rawdata' filesep subject filesep 'Structural' filesep];
     d = dir([D '*.IMA']);
   case 'nifti'
-    D = [rootdir 'preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir filesep 'preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'str-' subject '-001.nii']);
   case 'coregMNI'
-    D = [rootdir 'preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir filesep 'preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'cstr-' subject '-001.nii']);
     if isempty(d)
       %d(1).name = [subject 'coregMNI'];
@@ -157,19 +156,16 @@ switch type{2}
     D = [rootdir filesep subject filesep 'anatomy' filesep];
     switch type{3}
       case 'coregCTF'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregCTF.*']);
         if isempty(d)
           d(1).name = [subject 'coregCTF'];
         end
       case 'coregCTFresliced'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregCTFresliced.*']);
         if isempty(d)
           d(1).name = [subject 'coregCTFresliced'];
         end
       case 'coregMNI'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregMNI.*']);
         %d = dir([D 'cstr-' subject '-001.nii']);
         if isempty(d)
@@ -177,25 +173,21 @@ switch type{2}
           %d(1).name = ['cstr-' subject '-001.nii'];
         end
       case 'coregMNIresliced'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregMNIresliced.*']);
         if isempty(d)
           d(1).name = [subject 'coregMNIresliced'];
         end
       case 'coregMNIskullstrip'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregMNIskullstrip.nii']);
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstrip'];
         end
         case 'coregMNIskullstripmask'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregMNIskullstripmask.nii']);
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstripmask'];
         end
       case 'headmodel'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'vol.*']);
         if isempty(d)
           d(1).name = [subject 'vol'];
@@ -223,8 +215,7 @@ switch type{2}
         error('unrecognized type requested');
     end
   case 'artifact'
-    %D = [rootdir filesep subject filesep 'other' filesep];
-    D = [rootdir subject filesep 'other' filesep];
+    D = [rootdir filesep subject filesep 'other' filesep];
     switch type{3}
       case 'figure'
         d = dir([D subject 'figure_' type{4} '.png']);
@@ -236,8 +227,7 @@ switch type{2}
     end
     
   case 'processed'
-    %D = [rootdir filesep subject filesep];
-    D = [rootdir subject filesep];
+    D = [rootdir filesep subject filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'
         %use everything between the {} as a suffix for the filename and
@@ -248,15 +238,15 @@ switch type{2}
         end
         suff = suff(2:end-2);
         if (~isempty(strfind(suff, 'tfr'))) || (~isempty(strfind(suff, 'TFR')))
-          D = [D 'tfr/'];
+          D = [D 'tfr' filesep];
         elseif (~isempty(strfind(suff, 'erf'))) || (~isempty(strfind(suff, 'ERF')))
-          D = [D 'erf/'];
+          D = [D 'erf' filesep];
         elseif (~isempty(strfind(suff, 'mne'))) || (~isempty(strfind(suff, 'MNE')))
-          D = [D 'mne/'];
+          D = [D 'mne' filesep];
         else
-          D = [D 'other/'];
+          D = [D 'other' filesep];
         end
-        d    = dir([D subject suff '.mat']);
+        d    = dir([D filesep subject suff '.mat']);
         if isempty(d)
           d(1).name = [subject suff];
         end
@@ -264,8 +254,7 @@ switch type{2}
         error('unrecognized type requested');    
     end
   case {'bfica'} %FIXME add the other ones also, so that the 'processed' can be removed
-    %D = [rootdir filesep subject filesep type{2} filesep];
-    D = [rootdir subject filesep type{2} filesep];
+    D = [rootdir filesep subject filesep type{2} filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'
         %use everything between the {} as a suffix for the filename and
@@ -275,7 +264,7 @@ switch type{2}
           suff = [suff type{k} , '_'];
         end
         suff = suff(2:end-2);
-        d    = dir([D subject suff '.mat']);
+        d    = dir([D filesep subject suff '.mat']);
         if isempty(d)
           d(1).name = [subject suff];
         end
