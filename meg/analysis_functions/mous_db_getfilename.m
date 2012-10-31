@@ -89,7 +89,7 @@ if isempty(rootdir)
       info     = struct([]);
       return;
     case 'meg'
-      rootdir = '/home/language/annhul/MOUS/meg';
+      rootdir = '/home/language/annhul/MOUS/meg/';
     case 'mri'
       rootdir = '/home/language/juludd/MOUS/';
     otherwise
@@ -153,7 +153,7 @@ switch type{2}
       d(1).name = ['cstr-' subject '-001.nii'];
     end
   case 'anatomy'
-    D = [rootdir subject filesep 'anatomy' filesep];
+    D = [rootdir filesep subject filesep 'anatomy' filesep];
     switch type{3}
       case 'coregCTF'
         %D = '/home/coherence/jansch/public/';
