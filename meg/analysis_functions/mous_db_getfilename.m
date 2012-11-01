@@ -58,7 +58,7 @@ end
 if ischar(subject) && strcmp(subject, 'all')
   % request all subjects -> convert into cell-array and call function
   % recursively
-  d       = dir('/home/language/annhul/MOUS/Processed/V*');
+  d       = dir('/home/language/annhul/MOUS/meg/V*');
   subject = {d.name};
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir);
   return;
@@ -71,7 +71,7 @@ if iscell(subject)
   st       = false(0,1);
   info     = struct([]);
   for k = 1:numel(subject)
-    [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag);
+    [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag, rootdir);
     filename = cat(1,filename,tmpf);
     st       = cat(1,st,      tmps);
     info     = cat(1,info,    tmpi);
@@ -89,9 +89,9 @@ if isempty(rootdir)
       info     = struct([]);
       return;
     case 'meg'
-      rootdir = '/home/language/annhul/MOUS/meg/';
+      rootdir = '/home/language/annhul/MOUS/meg';
     case 'mri'
-      rootdir = '/home/language/juludd/MOUS/';
+      rootdir = '/home/language/juludd/MOUS';
     otherwise
       error('unrecognized type requested');
   end
@@ -133,42 +133,39 @@ switch type{2}
       end
     end
   case {'artifactcfg' 'artifactdssblinks' 'artifactdsssaccades'}
-    D = [rootdir  filesep subject filesep 'other' filesep];
+    D = [rootdir filesep subject filesep 'artifact' filesep];
     d = dir([D subject type{2} '.mat']);
     if isempty(d)
       d(1).name = [subject type{2} '.mat'];
     end
   case 'dicom'
     % T1 dicom
-    D = [rootdir 'rawdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir filesep 'rawdata' filesep subject filesep 'Structural' filesep];
     d = dir([D '*.IMA']);
   case 'nifti'
-    D = [rootdir 'preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir filesep 'preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'str-' subject '-001.nii']);
   case 'coregMNI'
-    D = [rootdir 'preprocdata' filesep subject filesep 'Structural' filesep];
+    D = [rootdir filesep 'preprocdata' filesep subject filesep 'Structural' filesep];
     d = dir([D 'cstr-' subject '-001.nii']);
     if isempty(d)
       %d(1).name = [subject 'coregMNI'];
       d(1).name = ['cstr-' subject '-001.nii'];
     end
   case 'anatomy'
-    D = [rootdir subject filesep 'anatomy' filesep];
+    D = [rootdir filesep subject filesep 'anatomy' filesep];
     switch type{3}
       case 'coregCTF'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregCTF.*']);
         if isempty(d)
           d(1).name = [subject 'coregCTF'];
         end
       case 'coregCTFresliced'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregCTFresliced.*']);
         if isempty(d)
           d(1).name = [subject 'coregCTFresliced'];
         end
       case 'coregMNI'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregMNI.*']);
         %d = dir([D 'cstr-' subject '-001.nii']);
         if isempty(d)
@@ -176,25 +173,21 @@ switch type{2}
           %d(1).name = ['cstr-' subject '-001.nii'];
         end
       case 'coregMNIresliced'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregMNIresliced.*']);
         if isempty(d)
           d(1).name = [subject 'coregMNIresliced'];
         end
       case 'coregMNIskullstrip'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregMNIskullstrip.nii']);
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstrip'];
         end
         case 'coregMNIskullstripmask'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'coregMNIskullstripmask.nii']);
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstripmask'];
         end
       case 'headmodel'
-        %D = '/home/coherence/jansch/public/';
         d = dir([D subject 'vol.*']);
         if isempty(d)
           d(1).name = [subject 'vol'];
@@ -245,15 +238,15 @@ switch type{2}
         end
         suff = suff(2:end-2);
         if (~isempty(strfind(suff, 'tfr'))) || (~isempty(strfind(suff, 'TFR')))
-          D = [D 'tfr/'];
+          D = [D 'tfr' filesep];
         elseif (~isempty(strfind(suff, 'erf'))) || (~isempty(strfind(suff, 'ERF')))
-          D = [D 'erf/'];
+          D = [D 'erf' filesep];
         elseif (~isempty(strfind(suff, 'mne'))) || (~isempty(strfind(suff, 'MNE')))
-          D = [D 'mne/'];
+          D = [D 'mne' filesep];
         else
-          D = [D 'other/'];
+          D = [D 'other' filesep];
         end
-        d    = dir([D subject suff '.mat']);
+        d    = dir([D filesep subject suff '.mat']);
         if isempty(d)
           d(1).name = [subject suff];
         end
@@ -271,7 +264,7 @@ switch type{2}
           suff = [suff type{k} , '_'];
         end
         suff = suff(2:end-2);
-        d    = dir([D subject suff '.mat']);
+        d    = dir([D filesep subject suff '.mat']);
         if isempty(d)
           d(1).name = [subject suff];
         end
@@ -293,7 +286,7 @@ if ~isempty(filename)
   end
 end
 
-if infoflag && ~isempty(filename)
+if infoflag & ~isempty(filename)
   for k = 1:numel(filename)
     if st(k)
       info(k) = dir(filename{k});

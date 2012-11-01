@@ -7,7 +7,7 @@ function mous_db_putdata(subject, type, varargin)
 
 if numel(varargin)>1
   % it could be that the root directory is specified as last input argument
-  if isdir(varargin{end})
+  if ischar(varargin{end}) && isdir(varargin{end})
     rootdir = varargin{end};
     varargin = varargin(1:end-1);
   else
@@ -25,7 +25,7 @@ end
 if numel(varargin)>1
   % save as a mat file
   str = ['save(''',filename{1},''','''];
-  for k = 3:nargin
+  for k = 2+(1:numel(varargin))
     str = [str inputname(k), ''','''];
     eval([inputname(k),'=varargin{k-2};']);
   end
@@ -55,7 +55,8 @@ elseif ~isempty(strfind(type, 'headmodel'))
 elseif ~isempty(strfind(type, 'sourcemodel'))
   sourcemodel = data;
   save(filename{1}, 'sourcemodel');
-elseif ~isempty(strfind(type, 'processed'))
+else
+%elseif ~isempty(strfind(type, 'processed'))
   % save as a mat-file
   str = ['save(''',filename{1},''','''];
   str = [str inputname(3), ''','''];

@@ -4,7 +4,7 @@
 % $Id: mous_anatomy_pipeline.m 31 2012-03-30 18:12:08Z jansch $
 
 %% Set subject, input & output dirs
-%subjectname = 'V1047'; % if running from the middle you need this
+subjectname = 'V1048'; % if running from the middle you need this
 %mous_db_makesubjdir(subjectname);
 
 if ~exist('docoregistration', 'var'), docoregistration = false; end
@@ -24,7 +24,7 @@ end
 %% Coregister to CTF coordinate system
 if docoregistration
   % display the pictures of the ears
-  filename3 = mous_db_getfilename(subjectname, 'meg_fidpic');
+  filename3 = mous_db_getfilename(subjectname, 'meg_raw_fidpic');
   % read in the picture(s)
   if numel(filename3)>0
     for k = 1:numel(filename3)
