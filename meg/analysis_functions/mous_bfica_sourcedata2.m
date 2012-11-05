@@ -1,8 +1,4 @@
-function [sdata] = mous_bfica_sourcedata(source, freq, toi)
-
-warning off;
-freq = ft_struct2double(freq);
-warning on;
+function [sdata] = mous_bfica_sourcedata2(source, freq, toi)
 
 if nargin==3
   freq = ft_selectdata(freq, 'toilim', toi+[-eps eps]);
@@ -10,24 +6,18 @@ else
   freq = mtmconvol2mtmfft(freq, 200);
 end
 
-% compute single 'trial' power
-ix  = 1:numel(freq.cumtapcnt);
-ix  = repmat(ix, freq.cumtapcnt(1),1);
-ix  = ix(:);
-iy  = 1:sum(freq.cumtapcnt);
-val = ones(numel(iy),1)./freq.cumtapcnt(1);
-P   = sparse(ix,iy,val);
+% compute single taper fourier coefficients
 trial = zeros(numel(freq.cumtapcnt), numel(source.inside));
 for k = 1:numel(source.inside)
   filt = source.avg.filter{source.inside(k)};
-  trial(:,k) = P*(abs(freq.fourierspctrm*filt').^2);
+  trial(:,k) = freq.fourierspctrm(1:3:end,:)*filt';
 end
-%trial  = trial';
-trial  = log10(trial)';
-mtrial = nanmean(trial,2);
-for k = 1:size(trial,2)
-  trial(:,k) = trial(:,k)-mtrial;
-end
+trial = transpose(trial);
+% trial  = log10(trial)';
+% mtrial = nanmean(trial,2);
+% for k = 1:size(trial,2)
+%   trial(:,k) = trial(:,k)-mtrial;
+% end
 
 % convert to a raw array
 sdata = [];
