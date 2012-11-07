@@ -1,22 +1,27 @@
-function [freq] = mous_bfica_freq(subjectname, frequency)
+function [freq] = mous_bfica_freq(subjectname, frequency, rootdir)
 
 if nargin==1
   frequency = 20;
 end
 
+if nargin<3
+  rootdir = '/home/language/jansch/public/mous/';
+end
+
 % get data and apply artifact rejection
-dataset   = mous_db_getfilename(subjectname, 'meg_ds_task');
-artfctcfg = mous_db_getdata(subjectname, 'meg_processed_{artifactcfg}');
-comp      = mous_db_getdata(subjectname, 'meg_processed_{bfICA_comp}');
+dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
+artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_{artifactcfg}');
+comp      = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_comp}', rootdir);
 avgcomp   = comp{1};
 avgpre    = comp{2};
 comp      = comp{3};
 
 cfg          = [];
 cfg.dataset  = dataset{1};
+%cfg.trialfun = 'trialfun_visual_sentence';
 cfg.trialfun = 'trialfun_visual_word';
-cfg.trialdef.prestim  = 0;
-cfg.trialdef.poststim = 0.8;
+cfg.trialdef.prestim  = 0.3;
+cfg.trialdef.poststim = 'nextword';
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
@@ -52,11 +57,13 @@ if frequency>=20
   cfg = [];
   cfg.method = 'mtmconvol';
   cfg.output = 'fourier';
-  cfg.toi    = 0.125:0.025:0.625;
+  %cfg.toi    = 0.125:0.025:0.625;
+  cfg.toi    = -0.2:0.05:0.8;
   cfg.foi    = frequency;
   cfg.t_ftimwin = 0.250;
-  cfg.tapsmofrq = 8;
-  cfg.pad    = 1;
+  %cfg.tapsmofrq = 8;
+  cfg.taper = 'hanning';
+  cfg.pad    = 10;
   freq       = ft_freqanalysis(cfg, data);
 else
   % spectral analysis
@@ -71,3 +78,6 @@ else
   cfg.pad    = 1;
   freq       = ft_freqanalysis(cfg, data);
 end
+warning off;
+freq = ft_struct2single(freq);
+

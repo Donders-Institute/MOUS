@@ -1,5 +1,10 @@
 function [bndinflated] = mous_inflatedmesh(subjectname)
 
+% MOUS_INFLATEDMESH returns the inflated mesh of a named subject.
+%
+% Use as
+%   bndinflated = mous_inflatedmesh(subjectname)
+
 fiffile = mous_db_getfilename(subjectname, 'meg_anatomy_sourcemodelfif');
 fiffile = fiffile{1};
 

@@ -65,7 +65,7 @@ for k = 1:numel(selfix)-1
     trg1 = tmpval(kk);
     trg2 = tmpval(kk+1);
     if trg1<=8 && trg2==15
-      offset = tmpsmp(kk);
+      offset = min(1200,tmpsmp(kk)-fixsmp);
       break;    
     end    
   end
@@ -91,7 +91,7 @@ for k = 1:numel(selfix)-1
     end
   end
   
-  tmp = [fixsmp endsmp fixsmp-offset k condition critsmp-offset];
+  tmp = [fixsmp endsmp -offset k condition critsmp-offset-fixsmp];
   trl = cat(1,trl,tmp);
 
 end

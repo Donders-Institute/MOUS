@@ -1,5 +1,9 @@
 function [source, trialinfo] = mous_bfica_source(subjectname, freq, toi)
-  
+
+warning off;
+freq = ft_struct2double(freq);
+warning on;
+
 % get necessary geometrical information
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm');

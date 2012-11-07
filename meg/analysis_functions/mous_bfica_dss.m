@@ -6,9 +6,10 @@ artfctcfg = mous_db_getdata(subjectname, 'meg_processed_{artifactcfg}');
 
 cfg          = [];
 cfg.dataset  = dataset{1};
-cfg.trialfun = 'trialfun_visual_word';
-cfg.trialdef.prestim  = 0;
-cfg.trialdef.poststim = 0.8;
+cfg.trialfun = 'trialfun_visual_sentence';
+%cfg.trialfun = 'trialfun_visual_word';
+%cfg.trialdef.prestim  = 0;
+%cfg.trialdef.poststim = 0.8;
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
@@ -45,13 +46,16 @@ end
 paramscell.tr = p;
 paramscell.pre = 0.25*ecg.fsample;
 paramscell.pst = 0.50*ecg.fsample;
+paramscell.demean = true;
 
 cfg                   = [];
-cfg.method            = 'dss2';
+cfg.method            = 'dss';
 cfg.dss.denf.function = 'denoise_avg2';
 cfg.dss.denf.params   = paramscell;
+cfg.dss.wdim          = 75;
 cfg.numcomponent      = 10;
 cfg.channel           = 'MEG';
+cfg.cellmode          = 'yes';
 comp                  = ft_componentanalysis(cfg, data);
 
 s.state = 1;

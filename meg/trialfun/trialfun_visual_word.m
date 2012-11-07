@@ -15,7 +15,6 @@ function [trl] = trialfun_visual_word(cfg)
 %   column 5: trigger corresponding to the word
 %   column 6: sample number relative to the onset of the first word
 %   column 7: number of samples between word on and offset
-% $Id: trialfun_visual_word.m 39 2012-05-08 11:12:46Z jansch $
 
 prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.3);
 poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
@@ -66,9 +65,12 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       end
       offset    = round(hdr.Fs*prestim);
       begsample = tmpsmp(kk) - offset;                   % onset of word: sample value of Xth word within the current trial 
-      %endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), tmpsmp(kk+2));
-      endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), inf);%smplast);   % offset of word: sample value of Xth word within the current trial + poststim (3s);  
-      
+      if ischar(poststim) && strcmp(poststim, 'nextword')
+        endsample = tmpsmp(kk+2); % epoch lasts until next word onset
+      else
+        endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), inf);%smplast);   % offset of word: sample value of Xth word within the current trial + poststim (3s);  
+      end
+
       wordcount = wordcount + 1;
 
       %         1         2         3       4 5          6                   7

@@ -1,9 +1,10 @@
 
 dodss    = false;
-dofreq   = false;
+dofreq   = true;
 dosource = false;
 dovox    = false;
-doica    = true;
+doica    = false;
+dosourcedss = false;
 
 rootdir  = '/home/language/jansch/public/mous/';
 
@@ -34,6 +35,7 @@ if dosource,
   %mous_db_putdata(subjectname, ['meg_bfica_{_bfica_source',num2str(round(toi*1000)),'}'], source);
   mous_db_putdata(subjectname, 'meg_bfica_{_bfica_source}', source, rootdir);
 end
+
 if dovox,
   % theta frequency
   %freq   = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_freq5}');
@@ -44,15 +46,18 @@ if dovox,
   freq   = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_freq}', rootdir);
   source = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_source}', rootdir);
   sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedata}', sourcedata,rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedata}', sourcedata, rootdir);
 end
 
 if doica,
-  
   comp = mous_bfica_ica(subjectname, [], rootdir);
   mous_db_putdata(subjectname, 'meg_bfica_{_bfica_ica}', comp, rootdir);
 end
 
+if dosourcedss,
+  comp = mous_bfica_sourcedatadss(subjectname, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatadss}', comp, rootdir);
+end
 
 % 
 % % do ica -> can this be done on single subject if sufficient data is

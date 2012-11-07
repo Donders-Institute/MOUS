@@ -70,7 +70,7 @@ end
 %% Freesurfer pipeline
 if dosourcemodel2d
   % create directory that will contain the results
-  subjdirfs   = ['/home/language/annhul/MOUS/Processed/',subjectname,'/meg_anatomy'];
+  subjdirfs   = ['/home/language/annhul/MOUS/meg/',subjectname,'/anatomy'];
 
   str     = which('freesurferscript1.sh');
   [p,f,e] = fileparts(str);
