@@ -17,7 +17,11 @@ if nargin==3
   tmp = rmfield(tmp, 'time');
 else
   % concatenate all tois
-  tmp = mtmconvol2mtmfft(freq, 200);
+  if isfield(freq, 'time'), 
+    tmp = mtmconvol2mtmfft(freq, 200);
+  else
+    tmp = freq;
+  end
   tmp = ft_checkdata(tmp, 'cmbrepresentation', 'fullfast');
   tmp = ft_checkdata(tmp,  'cmbrepresentation', 'sparse');
   tmp = ft_checkdata(tmp,  'cmbrepresentation', 'sparsewithpow');
@@ -44,3 +48,8 @@ cfg.vol             = headmodel;
 cfg.grid            = sourcemodel;
 source              = ft_sourceanalysis(cfg, tmp);
 trialinfo           = freq.trialinfo;
+
+% estimate fwhm of spatial filters for voxel specific smoothing
+cfg      = [];
+cfg.fwhm = 'yes';
+source   = ft_sourcedescriptives(cfg, source);
