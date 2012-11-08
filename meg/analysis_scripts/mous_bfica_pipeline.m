@@ -1,11 +1,12 @@
 
 dodss    = false;
-dofreq   = true;
+dofreq   = false;
 dosource = false;
 dovox    = false;
 doica    = false;
 dosourcedss = false;
 dosentvsseq = false;
+dowordsentpar = true;
 
 rootdir  = '/home/language/jansch/public/mous/';
 
@@ -94,6 +95,19 @@ if dosentvsseq,
   mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatasentseq70}', tlcksent, tlckseq, rootdir);
 
 end  
+if dowordsentpar,
+  toi        = -0.2:0.05:0.8;
+  sourcedata = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_sourcedata}', rootdir);
+  source     = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_source}', rootdir);
+  krn        = compute_kernel(source);
+  [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  sourcedata.trialinfo = trialinfo;
+  sourcedata.trial     = trial;
+  sourcedata.time      = time;
+  [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordsent_parametric');
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatawordsentpar}', tlck, stat, stat2, rootdir);
+end
+
 if doica,
   comp = mous_bfica_ica(subjectname, [], rootdir);
   mous_db_putdata(subjectname, 'meg_bfica_{_bfica_ica}', comp, rootdir);
