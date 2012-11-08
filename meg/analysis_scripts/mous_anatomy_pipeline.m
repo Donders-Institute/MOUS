@@ -104,7 +104,7 @@ if dosourcemodel2d
   mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
   bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd); % creates V1025sourcemodel2D.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd);
 end
 
 %% create a 3D sourcemodel based on the MNI brain
