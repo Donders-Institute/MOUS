@@ -6,7 +6,8 @@ dovox    = false;
 doica    = false;
 dosourcedss = false;
 dosentvsseq = false;
-dowordsentpar = true;
+dowordsentpar = false;
+sourcedata2avgword = true;
 
 rootdir  = '/home/language/jansch/public/mous/';
 
@@ -107,7 +108,22 @@ if dowordsentpar,
   [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordsent_parametric');
   mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatawordsentpar}', tlck, stat, stat2, rootdir);
 end
-
+if sourcedata2avgword
+  toi        = -0.2:0.05:0.8;
+  sourcedata = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_sourcedata}', rootdir);
+  source     = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_source}', rootdir);
+  krn        = compute_kernel(source);
+  [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  for k = 1:numel(trial)
+    sel      = time{k}>=0;
+    trial{k} = nanmean(trial{k}(:,sel),2);
+    time{k}  = nanmean(time{k}(sel),2);
+  end
+  sourcedata.trial = trial;
+  sourcedata.time  = time;
+  sourcedata.trialinfo = trialinfo;
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedataavgword}', sourcedata, rootdir);
+end
 if doica,
   comp = mous_bfica_ica(subjectname, [], rootdir);
   mous_db_putdata(subjectname, 'meg_bfica_{_bfica_ica}', comp, rootdir);
