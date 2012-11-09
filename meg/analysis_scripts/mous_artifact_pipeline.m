@@ -24,3 +24,4 @@ trl = cfg.trl;
 [cfgmuscle]       = mous_artifact_muscle(filename{1}, trl);
 
 mous_db_putdata(subjectname, 'meg_artifactcfg', cfgeog1, cfgeog2, cfgjump, cfgmuscle); 
+
