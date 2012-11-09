@@ -1,4 +1,4 @@
-function [h1,h2] = mous_artifact_qualitycheck(subjectname, artifact)
+function [h1,h2] = mous_artifact_qualitycheck(subjectname, artifactType)
 % MOUS_ARTIFACT_QUALITYCHECK does a quality control check on the
 % ouput of the artifact pipeline, relying on visual inspection of a
 % number of output figures, generated from the output from the dss artifact identification.
@@ -15,11 +15,14 @@ function [h1,h2] = mous_artifact_qualitycheck(subjectname, artifact)
 % trl for trials (sent/seq)
 filename    = mous_db_getfilename(subjectname, 'meg_raw_task'); 
 trlSen      = mous_defineTrial(filename{1}, 0.5, 0.5, 'all','visual_sentence');  % entire sentence, with prestim and poststim = 0.5s 
+trlSen1     = trlSen(1:120,:);
+trlSen2     = trlSen(121:240,:); 
 
 %%%  Artifact info  %%%
 cfgart      = mous_db_getdata(subjectname, 'meg_artifactcfg');
 
-for m = 1:numel(cfgart)
+m = artifactType;
+%for m = 1:numel(cfgart)
     % trl for artifacts
     trlArt  = cfgart{m}.artfctdef.zvalue.artifact;
     artvec  = zeros(1,max(trlSen(:,2)));   % zero vector: each element is a sample within trial data
@@ -67,7 +70,8 @@ for m = 1:numel(cfgart)
     % load relevant trial data for each type of artifact  
     cfg             = [];
     cfg.dataset     = filename{1};
-    cfg.trl         = trlSen;
+    cfg.trl         = trlSen1;
+    %cfg.trl         = trlSen2; 
     cfg.continuous  = 'yes';
     
     if strcmp(cfgart{m}.varname, 'cfgeog1') > 0        % for blinks
@@ -82,11 +86,8 @@ for m = 1:numel(cfgart)
         if strcmp(cfgart{m}.varname, 'cfgmuscle') > 0  
             cfg.bpfilter = 'no';
             cfg.hilbert  = 'no';
-            %cfg.rectify  = 'yes';
             cfg.hpfilter = 'yes';
             cfg.hpfreq   = 80;
-            %cfg.demean     = 'yes';
-            %cfg.boxcar     = 0.5;
             cfg.fltpadding = 0;
             cfg.trlpadding = 0;
             cfg.artpadding = 0;
@@ -107,28 +108,33 @@ for m = 1:numel(cfgart)
     
     % plot trials and superimpose artifact           
     %for j = 1:size(diagnostics,2)
-     for j = 1:25
-        if mod(j,25) == 1                           % new figure for each set of 10 trials
+     for j = 1:60
+        if mod(j,20) == 1                           % new figure for X number of trials
             figure;
             hold on
-            title([subjectname ': Trials ' num2str(j) ' to ' num2str(j+24)])
-            axis on
+            set(gcf,'color','w');
+            title([subjectname ': Trials ' num2str(j) ' to ' num2str(j+19)])
+            axis off
         end
         hpos        = mod(j-1,5)*0.2;
         vpos        = 0.8 - floor((j-1)/5)*0.2;
         hlim        = dataSen.time{j}([1 end]);
-        %vlim        = [min(dataSen.trial{j}(:)) max(dataSen.trial{j}(:))];
-        trialFig    = ft_plot_vector(dataSen.time{j},dataSen.trial{j},'height', 0.18 ,'width', 0.18, 'hpos', hpos, 'vpos', vpos ,'color','k','hlim',hlim,'vlim',vlim);  % plot the trial
-        if mod(j,25) == 1 
-            hold on
-            ft_plot_box([-0.08 -0.08 vlim(1) vlim(2)],'height', 0.18 ,'width', 0.18,'hlim',hlim,'vlim',vlim,'color','g');
+        height      = 0.50; % orig 0.18
+        width       = 0.18;
+        trialFig    = ft_plot_vector(dataSen.time{j},dataSen.trial{j},'height', height ,'width', width, 'hpos', hpos, 'vpos', vpos ,'color','k','hlim',hlim,'vlim',vlim);  % plot the trial
+        if mod(j,20) == 1 % plot box showing min and max amplitude of data
+            ft_plot_box([hlim(1) hlim(2) vlim(1) vlim(2)],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim,'hpos',hpos, 'vpos', vpos,'color','b');
+%             need hlim, vlim so that the line doesn't extend across entire figure, but only local area of the trial
+%             need hpos, vpos to specify centre location, else is in right corner of the whole figure
+            ft_plot_text(hlim(1), vlim(2), ['max: ' num2str(vlim(2))],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim,'hpos',hpos, 'vpos', vpos, 'fontsize', 5); 
+            ft_plot_text(hlim(1), vlim(1), ['min: ' num2str(vlim(1))],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim,'hpos',hpos, 'vpos', vpos, 'fontsize', 5);
         end
-        ft_plot_text(hpos, vpos+0.07, num2str(j));
+        ft_plot_text(hpos+0.07, vpos, num2str(j));  % number the trials
         artindx     = diagnostics(j).artifact;
         for jj = 1:size(artindx,1)
-            ft_plot_vector(dataSen.time{j}(artindx(jj,1):artindx(jj,2)), dataSen.trial{j}(:,artindx(jj,1):artindx(jj,2)),'color','r','hpos',hpos,'vpos',vpos,'height',0.18,'width',0.18,'hlim',hlim,'vlim',vlim);
+            ft_plot_vector(dataSen.time{j}(artindx(jj,1):artindx(jj,2)), dataSen.trial{j}(:,artindx(jj,1):artindx(jj,2)),'color','r','hpos',hpos,'vpos',vpos,'height',height,'width',width,'hlim',hlim,'vlim',vlim);
         end
      end
-end 
+%end 
 saveas(gca,strcat('ArtQC',title.eps),'epsc2'); % convert into pdf
  % set size of figure to fit paper: http://www.parl.clemson.edu/~ahoover/Matlab-figures.txt

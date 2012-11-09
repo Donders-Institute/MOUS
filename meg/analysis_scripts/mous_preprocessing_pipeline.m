@@ -1,8 +1,10 @@
-function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preprocessing stages for the TFR and ERFs
-% Annika 1.6 2012 | edited 2.7.2012 NL
+%function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preprocessing stages for the TFR and ERFs
+% Annika 1.6 2012 | edited 2.7.2012 NL | edited 9.11. 2012 AH
 
-% addpath('/home/common/matlab/fieldtrip/qsub');
-% clear all
+doTFR       = false;
+doERFlong   = false;
+doERFshort  = true;
+
 
     % subjectname = subjlist{n};    %  comment out when running qsub
     fprintf('Preprocessing subject %s  \n', subjectname);
@@ -22,18 +24,27 @@ function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preproces
     trialfun =  'visual_word';       % onset of each word (but not fixation cross)
     %           'visual_sentence';   % onset of fixation cross until offset of last word (marks target word type; can also retrieve first word info but not in default trl)
          
-    % define time window
+
+    % if you do the long time windows you can remove the artefacts commonly
+    % ofr both, the artefacts for the short are removed later in the
+    % doERfshort section
+    
+     if doTFR || doERFlong 
+         
+    % define long time window
     prestim = 0.5;  % X seconds prior to chosen event of interest
     poststim = 3.0;
-       
+    
     % define trial window 
     [trl] = mous_defineTrial(filename{1}, prestim, poststim, wordType, trialfun); 
-
+         
     % remove the artifacts that have been defined/detected
-    [trl] = mous_artifact_remove(trl, filename{1}, tmp);
-   
+    [trl] = mous_artifact_remove(trl, filename{1}, tmp);   
+     end
+     
               
-    %% TFR %%%%%%%%%%%%%%%%%%%%%     
+    %% TFR %%%%%%%%%%%%%%%%%%%%% 
+    if doTFR
        
     % PREPROCESS data 
     % filename = subject, trl = data, 300 = downsample target frequency,
@@ -44,10 +55,13 @@ function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preproces
     mous_db_putdata(subjectname, ['meg_processed_{preProcTFR' trialfun '_' wordType '05-3ds}'], data);
     
     % go to TFR pipeline: "mous_tfr_pipline" 
+    
+    end
 
     %% ERF %%%%%%%%%%%%%%%%%%%%
 
     %% long time window
+    if doERFlong
     % for qsub: max 15 minutes, 2.5GB 
 
     % preprocess data 
@@ -57,8 +71,12 @@ function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preproces
     
     % save preprocessed data
     mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '05-3ds}'], data);
+    
+    end
 
     %% short time window
+    
+    if doERFshort
     % redefine the trial window and remove the artefacts for the short window
     % no point running this analyses for 'First3sLast3s'
     
@@ -74,4 +92,5 @@ function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preproces
     
     % save preprocessed data  
     mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '02-1ds}'], data);
+    end
 

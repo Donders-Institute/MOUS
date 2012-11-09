@@ -47,7 +47,7 @@ if ft_datatype(data, 'volume')
   ft_volumewrite(cfg, data);
 elseif ishandle(data)
  if exist(filename{1},'file'), system(['rm -rf ',filename{1}]); end
- print(data, '-dpng', filename{1});
+ print(data, '-dpng', filename{1}, '-r500');
 elseif ~isempty(strfind(type, 'headmodel'))
   % save headmodel data as mat-file and name variable 'vol'
   vol = data;

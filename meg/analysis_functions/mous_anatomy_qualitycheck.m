@@ -17,6 +17,7 @@ visible = ft_getopt(varargin, 'visible', 'on');
 close all
 
 headmodel     = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+headmodel     = ft_datatype_headmodel(headmodel); % due to change in type naming convention: nolte->singleshell
 sourcemodel2d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D');
 sourcemodel3d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
 mri           = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
@@ -114,6 +115,20 @@ mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice1', h4);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice2', h5);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice3', h6);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg',               h7);
+
+[f1,s1]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice1');
+[f2,s2]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice2');
+[f3,s3]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice3');
+[f4,s4]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2d');
+[f5,s5]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel3d');
+[f6,s6]=mous_db_getfilename(subjectname,'meg_anatomy_figure_headmodel');
+[f7,s7]=mous_db_getfilename(subjectname,'meg_anatomy_figure_coreg');
+
+
+figlist  = [f1;f2;f3;f4;f7];
+[p,fn,e] = fileparts(f1{1});
+pdfname  = fullfile(p,[subjectname, '_anatomy_qc.pdf']);
+mous_makePDF(pdfname, figlist);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION

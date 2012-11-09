@@ -16,7 +16,13 @@ if ~exist('doqualitycheck',   'var'), doqualitycheck   = true;  end
 
 %% Coregister to MNI coordinate system
 if docoregistration
-  mri      = mous_db_getdata(subjectname, 'mri_nifti');
+  % FIXME Subject V1048 has an issue with the FOV, use (hardcoded) another nifti
+  if strcmp(subjectname, 'V1048')
+    mri = ft_read_mri(fullfile('/home/language/juludd/MOUS/preprocdata/V1048/Structural/old/', 'str-V1048-001.nii'));
+  else
+    mri = mous_db_getdata(subjectname, 'mri_nifti');
+  end
+
   [mri, T] = mous_anatomy_coregMNI(mri);
   mous_db_putdata(subjectname, 'meg_anatomy_coregMNI', mri); % creates a V1024coregMNI.nii file
 end
@@ -34,7 +40,7 @@ if docoregistration
     end
   end
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
-  pos = mous_db_getdata(subjectname, 'meg_pos');
+  pos = mous_db_getdata(subjectname, 'meg_raw_pos');
   mri = mous_anatomy_coregCTF(mri, pos);
   mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);% creates a V1025coregCTF.nii file
 end
@@ -98,7 +104,7 @@ if dosourcemodel2d
   mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
   bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd); % creates V1025sourcemodel2D.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd);
 end
 
 %% create a 3D sourcemodel based on the MNI brain

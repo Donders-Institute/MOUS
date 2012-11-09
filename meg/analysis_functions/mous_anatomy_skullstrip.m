@@ -11,10 +11,10 @@ function [seg, mask] = mous_anatomy_skullstrip(subjectname, threshold, center)
 %cfg.smooth = 2;
 %seg = ft_volumesegment(cfg, mri);
 
-d   = '/home/language/annhul/MOUS/Processed/';
-str = ['/opt/fsl/bin/bet ',d,subjectname,'/meg_anatomy/',subjectname,'coregMNI.nii ',d,subjectname,'/meg_anatomy/',subjectname,'coregMNIskullstrip '];
+d   = '/home/language/annhul/MOUS/meg/';
+str = ['/opt/fsl/bin/bet ',d,subjectname,'/anatomy/',subjectname,'coregMNI.nii ',d,subjectname,'/anatomy/',subjectname,'coregMNIskullstrip '];
 str = [str,'-R -f ',num2str(threshold),' -c ', num2str(center),' -g 0 -m -v'];
 
 system(str);
-seg  = ft_read_mri([d,subjectname,'/meg_anatomy/',subjectname,'coregMNIskullstrip.nii.gz']);
-mask = ft_read_mri([d,subjectname,'/meg_anatomy/',subjectname,'coregMNIskullstrip_mask.nii.gz']);
+seg  = ft_read_mri([d,subjectname,'/anatomy/',subjectname,'coregMNIskullstrip.nii.gz']);
+mask = ft_read_mri([d,subjectname,'/anatomy/',subjectname,'coregMNIskullstrip_mask.nii.gz']);

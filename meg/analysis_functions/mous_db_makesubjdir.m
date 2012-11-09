@@ -25,7 +25,7 @@ if ~existdir
   system(cmd);
 end
 
-subdir = {'anatomy';'erf';'tfr';'mne';'bfica';'RAW';'artifact';'test';'other'};
+subdir = {'anatomy';'erf';'tfr';'mne';'bfica';'RAW';'artifact';'test';'other';'qualitycheck';'headposition'};
 
 % create sub directories
 for k = 1:numel(subdir)

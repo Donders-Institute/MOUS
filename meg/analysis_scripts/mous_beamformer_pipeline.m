@@ -62,6 +62,36 @@ if 0,
 end
 
 if 1,
+  cfg          = [];
+  cfg.dataset  = filename;
+  cfg.trialfun = 'visual_word';
+  cfg.trialdef.prestim  =  0.5;
+  cfg.trialdef.poststim =  0-1./1200; %FIXME assumes 1200 Hz sampling rate
+  cfg = ft_definetrial(cfg);
+  trl = cfg.trl;
+  trl = trl(trl(:,end)==1,:);
+  
+  % get the description of the artifacts
+  tmp = mous_db_getdata(subjectname, 'meg_artifactcfg');
+  
+  % remove the data containing artifacts from the epoch definition
+  cfg         = [];
+  cfg.trl     = trl;
+  cfg.dataset = filename;
+  cfg.artfctdef.zvalue1.artifact = tmp{1}.artfctdef.zvalue.artifact;
+  cfg.artfctdef.zvalue2.artifact = tmp{2}.artfctdef.zvalue.artifact;
+  cfg.artfctdef.zvalue3.artifact = tmp{3}.artfctdef.zvalue.artifact;
+  cfg.artfctdef.zvalue4.artifact = tmp{4}.artfctdef.zvalue.artifact;
+  cfg.artfctdef.reject = 'complete';
+  cfg         = ft_rejectartifact(cfg);
+  trl         = cfg.trl;
+  
+  % compute frequency representation of data
+  freq = mous_beamformer_freqbaseline(filename, trl);
+  mous_db_putdata(subjectname, 'meg_processed_{freqbaseline05-00}', freq);
+end
+
+if 0,
   headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
   sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
   freq1       = mous_db_getdata(subjectname, 'meg_processed_{freq03-08}');
