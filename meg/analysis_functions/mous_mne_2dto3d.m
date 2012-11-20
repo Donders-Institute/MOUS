@@ -32,11 +32,11 @@ cfg.grid.template  = template;
 cfg.grid.nonlinear = 'yes';
 target  = ft_prepare_sourcemodel(cfg);
 
-cfg     = [];
-cfg.parameter = ft_getopt(varargin, 'parameter', 'avg.pow');
+cfg              = [];
+cfg.parameter    = ft_getopt(varargin, 'parameter', 'avg.pow');
 cfg.interpmethod = ft_getopt(varargin, 'interpmethod', 'sphere_avg');
 cfg.sphereradius = ft_getopt(varargin, 'sphereradius', 1);
-source3d = ft_sourceinterpolate(cfg, source2d, target);
+source3d         = ft_sourceinterpolate(cfg, source2d, target);
 
 source3d.pos      = template.pos;
 source3d.coordsys = 'spm';
