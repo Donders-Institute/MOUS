@@ -121,6 +121,8 @@ switch type{2}
           [m,ix] = max(totalbytes);
           d = d(ix);
         case 'rest'
+          [m,ix] = min(totalbytes);
+          d = d(ix);
         case 'pos'
           % Polhemus .pos file
           D = [rootdir filesep subject filesep 'RAW' filesep];
@@ -269,7 +271,16 @@ switch type{2}
           d(1).name = [subject suff];
         end
       otherwise
-        error('unrecognized type requested');    
+        % error('unrecognized type requested');    
+        suff = '_';
+        for k = 2:numel(type)
+          suff = [suff type{k} , '_'];
+        end
+        suff = suff(1:end-1);
+        d    = dir([D filesep subject suff '.mat']);
+        if isempty(d)
+          d(1).name = [subject suff];
+        end
     end
 
   otherwise
