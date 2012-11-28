@@ -32,6 +32,9 @@ function [filename, st, info] = mous_db_getfilename(subject, type, infoflag, roo
 %   'meg_anatomy_sourcemodel3D_xxx'
 %   'meg_anatomy_figure_xxx'
 %   'meg_processed_{xxx}' (fixed forms are erf, tfr and mne)
+%   'meg_qualitycheck_{qc_general_raw}  / {qc_general_task}
+%   'meg_qualitycheck_{qc_art}' % combined pdf of all artifacts
+%   'meg_qualitycheck_{qc_artXXXX_task}' fixed forms: blink, sacc, jump, musc  % individual eps. files
 
 %
 % Output arguments:
@@ -121,6 +124,8 @@ switch type{2}
           [m,ix] = max(totalbytes);
           d = d(ix);
         case 'rest'
+          [m,ix] = min(totalbytes);
+          d = d(ix);
         case 'pos'
           % Polhemus .pos file
           D = [rootdir filesep subject filesep 'RAW' filesep];
@@ -253,7 +258,7 @@ switch type{2}
       otherwise
         error('unrecognized type requested');    
     end
-  case {'bfica' 'artifact'} %FIXME add the other ones also, so that the 'processed' can be removed
+  case {'bfica' 'artifact' 'qualitycheck'} %FIXME add the other ones also, so that the 'processed' can be removed
     D = [rootdir filesep subject filesep type{2} filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'
@@ -271,7 +276,6 @@ switch type{2}
       otherwise
         error('unrecognized type requested');    
     end
-
   otherwise
     error('unrecognized type requested');
 end
