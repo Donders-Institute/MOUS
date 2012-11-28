@@ -1,0 +1,83 @@
+######################################################
+ csurf0.9: log ending: Tue Apr  5 10:38:12 PDT 2005
+######################################################
+
+
+
+#############
+ Command Log 
+#############
+
+
+###########
+ Medit Log 
+###########
+
+
+############
+ Surfer Log 
+############
+env tksurferinterface=csurf patchname=full.patch.3d /usr/pubsw/freesurfer/bin/Linux/tksurfer -spm_CanonicalBrain lh inflated -tcl /tmp/TmpTclSurf.30013
+INFO: Volume /tmp/mritotal_7438/orig_8_dxyz.mnc cannot be found.
+Reading /usr/pubsw/freesurfer/lib/tcl/tkm_common.tcl
+Reading /usr/pubsw/freesurfer/lib/tcl/tkm_wrappers.tcl
+Reading /usr/pubsw/freesurfer/lib/tcl/fsgdfPlot.tcl
+Using /usr/pubsw/freesurfer/lib/Linux/libtclfsgdf.so
+Reading /usr/pubsw/freesurfer/lib/tcl/tkUtils.tcl
+Successfully parsed tksurfer.tcl
+surfer: current subjects dir: /data4/SEM_ASSOC
+surfer: in subjects "scripts" dir
+surfer: session root data dir ($session) set to:
+surfer:     /data4/SEM_ASSOC/spm_CanonicalBrain
+surfer: /data4/SEM_ASSOC/spm_CanonicalBrain/mri/T1/COR-.info
+INFO: Src volume /tmp/mritotal_7438/orig_8_dxyz.mnc
+INFO: Target volume /usr/pubsw/packages/mni/1.0.4/data/mni_autoreg/average_305_8_dxyz.mnc
+DimSizes: 3, 86, 110, 68, 1
+DataType: 1
+MINC Linear Transform
+ 2.0000  0.0000  0.0000 -86.0950 
+ 0.0000  2.0000  0.0000 -126.5100 
+ 0.0000  0.0000  2.0000 -58.2500 
+ 0.0000  0.0000  0.0000  1.0000 
+Done reading minc
+surfer: vertices=175409, faces=350814
+surfer: single buffered window
+surfer: using interface /usr/pubsw/freesurfer/lib/tcl/tksurfer.tcl
+Read /usr/pubsw/freesurfer/surface_labels.txt, found 95 structures
+tksurfer: run tcl script: /tmp/TmpTclSurf.30013
+surfer: ### GL window already open: can't open second
+surfer: curvature read: min=-1.677198 max=0.453966
+Command Finished
+
+env tksurferinterface=csurf patchname=full.patch.3d /usr/pubsw/freesurfer/bin/Linux/tksurfer -spm_CanonicalBrain rh inflated -tcl /tmp/TmpTclSurf.30013
+INFO: Volume /tmp/mritotal_7438/orig_8_dxyz.mnc cannot be found.
+Reading /usr/pubsw/freesurfer/lib/tcl/tkm_common.tcl
+Reading /usr/pubsw/freesurfer/lib/tcl/tkm_wrappers.tcl
+Reading /usr/pubsw/freesurfer/lib/tcl/fsgdfPlot.tcl
+Using /usr/pubsw/freesurfer/lib/Linux/libtclfsgdf.so
+Reading /usr/pubsw/freesurfer/lib/tcl/tkUtils.tcl
+Successfully parsed tksurfer.tcl
+surfer: current subjects dir: /data4/SEM_ASSOC
+surfer: in subjects "scripts" dir
+surfer: session root data dir ($session) set to:
+surfer:     /data4/SEM_ASSOC/spm_CanonicalBrain
+surfer: /data4/SEM_ASSOC/spm_CanonicalBrain/mri/T1/COR-.info
+INFO: Src volume /tmp/mritotal_7438/orig_8_dxyz.mnc
+INFO: Target volume /usr/pubsw/packages/mni/1.0.4/data/mni_autoreg/average_305_8_dxyz.mnc
+DimSizes: 3, 86, 110, 68, 1
+DataType: 1
+MINC Linear Transform
+ 2.0000  0.0000  0.0000 -86.0950 
+ 0.0000  2.0000  0.0000 -126.5100 
+ 0.0000  0.0000  2.0000 -58.2500 
+ 0.0000  0.0000  0.0000  1.0000 
+Done reading minc
+surfer: vertices=171090, faces=342176
+surfer: single buffered window
+surfer: using interface /usr/pubsw/freesurfer/lib/tcl/tksurfer.tcl
+Read /usr/pubsw/freesurfer/surface_labels.txt, found 95 structures
+tksurfer: run tcl script: /tmp/TmpTclSurf.30013
+surfer: ### GL window already open: can't open second
+surfer: curvature read: min=-0.752560 max=0.641948
+
+

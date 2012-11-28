@@ -1,0 +1,23 @@
+tkmedit started: Fri Mar 11 16:35:19 2005
+
+	/usr/pubsw/freesurfer/bin/Linux/tkmedit spm_CanonicalBrain T1 -csurf 
+
+$Id: tkmedit.c,v 1.199 2004/02/20 19:33:19 kteich Exp $ $Name:  $
+Set user home dir to /data4/SEM_ASSOC/spm_CanonicalBrain/scripts
+Set subject home dir to /data4/SEM_ASSOC//spm_CanonicalBrain
+Using interface file /usr/pubsw/freesurfer/lib/tcl/tkmedit.tcl
+Error in main() (line 6008)
+	while Opening control point file
+	Error 24: Error accessing a file.
+xDebug stack (length: 3)
+      02: ProcessControlPointFile ()
+      02: Opening control point file
+    01: main()
+    01: Processing control point file.
+  00: 
+  00: 
+Tcl: Successfully parsed tkmedit.tcl
+Tcl: Successfully parsed tkm_functional.tcl
+Cmd: CsurfInterface 
+	Command did not return OK.
+	Result: invalid command name "CsurfInterface"
