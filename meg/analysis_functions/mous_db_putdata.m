@@ -31,7 +31,12 @@ if numel(varargin)>1
   end
   str = [str(1:end-2),');'];
   eval(str);
-  cmd = ['chmod g+w ' filename{1}];
+  [p,n,e] = fileparts(filename{1});
+  if ~isempty(e)
+    cmd = ['chmod g+w ' filename{1}];
+  else
+    cmd = ['chmod g+w ' filename{1}, '.mat'];
+  end
   system(cmd);
   return;
 end
