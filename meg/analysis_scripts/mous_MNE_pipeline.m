@@ -135,7 +135,7 @@ sd_Seq.avg.dspm = spdiags(1./sd_Seq.avg.noise,0,npnt,npnt)*sd_Seq.avg.pow;
 
 
 % save the solution
-mous_db_putdata(subjectname, 'meg_processed_{MNE02-1ds_target20121122}', sd_Sent,sd_Seq, source_sent, source_seq, grid, tlck);
+mous_db_putdata(subjectname, 'meg_processed_{MNE02-1ds_target20121122}', 'sd_Sent','sd_Seq', 'source_sent', 'source_seq', 'grid', 'tlck');
 
 %end
 

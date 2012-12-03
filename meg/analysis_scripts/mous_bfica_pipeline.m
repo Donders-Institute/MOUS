@@ -13,7 +13,7 @@ rootdir  = '/home/language/jansch/public/mous/';
 
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_comp}', comp, avgcomp, avgpre, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_comp}', 'comp', 'avgcomp', 'avgpre', rootdir);
 end
 
 %toi = 0.375;
@@ -25,14 +25,14 @@ if dofreq,
   
   % beta frequency
   freq   = mous_bfica_freq(subjectname, 20);
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_freq}', freq, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_freq}', 'freq', rootdir);
   
   % broadband gamma frequency
   options.tapsmofrq = 30;
   options.t_ftimwin = 0.1;
   options.resamplefs = 300;
   freq   = mous_bfica_freq(subjectname, 70, rootdir, options);
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_freq70}', freq, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_freq70}', 'freq', rootdir);
 end
 if dosource,
   % theta frequency
@@ -48,7 +48,7 @@ if dosource,
   % broadband gamma frequency
   freq   = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_freq70}', rootdir);
   source = mous_bfica_source(subjectname, freq);
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_source70}', source, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_source70}', 'source', rootdir);
   
 end
 
@@ -68,7 +68,7 @@ if dovox,
   freq   = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_freq70}', rootdir);
   source = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_source70}', rootdir);
   sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedata70}', sourcedata, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedata70}', 'sourcedata', rootdir);
   
 end
 if dosentvsseq,
@@ -93,7 +93,7 @@ if dosentvsseq,
   sourcedata.trial     = trial;
   sourcedata.time      = time;
   [tlcksent, tlckseq] = mous_makecontrast(sourcedata, 'sent-seq');
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatasentseq70}', tlcksent, tlckseq, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatasentseq70}', 'tlcksent', 'tlckseq', rootdir);
 
 end  
 if dowordsentpar,
@@ -106,7 +106,7 @@ if dowordsentpar,
   sourcedata.trial     = trial;
   sourcedata.time      = time;
   [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordsent_parametric');
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatawordsentpar}', tlck, stat, stat2, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatawordsentpar}', 'tlck', 'stat', 'stat2', rootdir);
 end
 if sourcedata2avgword
   toi        = -0.2:0.05:0.8;
@@ -122,16 +122,16 @@ if sourcedata2avgword
   sourcedata.trial = trial;
   sourcedata.time  = time;
   sourcedata.trialinfo = trialinfo;
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedataavgword}', sourcedata, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedataavgword}', 'sourcedata', rootdir);
 end
 if doica,
   comp = mous_bfica_ica(subjectname, [], rootdir);
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_ica}', comp, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_ica}', 'comp', rootdir);
 end
 
 if dosourcedss,
   comp = mous_bfica_sourcedatadss(subjectname, rootdir);
-  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatadss}', comp, rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_{_bfica_sourcedatadss}', 'comp', rootdir);
 end
 
 % 
