@@ -8,8 +8,13 @@ cfg.trl                      = trl;
 cfg.continuous               = 'yes';
 cfg.dataset                  = filename;
 cfg.memory                   = 'low';
+
 cfg.artfctdef.zvalue.method  = 'all';
 cfg.artfctdef.zvalue.ntrial  = 10;
+
+%cfg.artfctdef.zvalue.method  = 'trialdemean';
+cfg.artfctdef.zvalue.ntrial  = 15;
+
 cfg.artfctdef.zvalue.channel = {'MEG'};
 cfg.artfctdef.zvalue.bpfilter = 'no';
 cfg.artfctdef.zvalue.hilbert  = 'no';
