@@ -88,9 +88,9 @@ seqWord_CPG          = ft_combineplanar([], seqWord_PG);
 %% SAVE the data 
 
 outname = strcat(outputdata, '-ag}');
-mous_db_putdata(subjectname, outname, senWord_AG, seqWord_AG);
+mous_db_putdata(subjectname, outname, 'senWord_AG', 'seqWord_AG');
 outname = strcat(outputdata, '-pg}');
-mous_db_putdata(subjectname, outname, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG);
+mous_db_putdata(subjectname, outname, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG');
  
 %% Write number of accepted trials into text file
 txtfile = sprintf('/home/language/annhul/MOUS/Processed/MeanNumAvgTrials_%s_%s.txt',outputdata(16:22), date);

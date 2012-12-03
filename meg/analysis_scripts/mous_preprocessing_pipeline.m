@@ -52,7 +52,7 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'TFR');
   
     %save preprocessed data 
-    mous_db_putdata(subjectname, ['meg_processed_{preProcTFR' trialfun '_' wordType '05-3ds}'], data);
+    mous_db_putdata(subjectname, ['meg_processed_{preProcTFR' trialfun '_' wordType '05-3ds}'], 'data');
     
     % go to TFR pipeline: "mous_tfr_pipline" 
     
@@ -70,7 +70,7 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.5);
     
     % save preprocessed data
-    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '05-3ds}'], data);
+    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '05-3ds}'], 'data');
     
     end
 
@@ -91,6 +91,6 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.2);
     
     % save preprocessed data  
-    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '02-1ds}'], data);
+    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '02-1ds}'], 'data');
     end
 
