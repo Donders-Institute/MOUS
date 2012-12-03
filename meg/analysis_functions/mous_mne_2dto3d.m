@@ -26,7 +26,7 @@ template = sourcemodel;
 
 cfg     = [];
 cfg.mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF'); 
-cfg.mri.coordsys = 'ctf';
+cfg.mri.coordsys   = 'ctf';
 cfg.grid.warpmni   = 'yes';
 cfg.grid.template  = template;
 cfg.grid.nonlinear = 'yes';
@@ -40,5 +40,9 @@ source3d         = ft_sourceinterpolate(cfg, source2d, target);
 
 source3d.pos      = template.pos;
 source3d.coordsys = 'spm';
+try,
+  source3d.cfg.previous{2} = rmfield(source3d.cfg.previous{2}, 'mri');
+end
+
 
 
