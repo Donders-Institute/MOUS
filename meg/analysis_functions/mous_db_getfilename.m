@@ -81,7 +81,16 @@ if iscell(subject)
   end
   return;
 end
-  
+
+% throw a warning for the bad subjects. NOTE: consider making it an
+% explicit error
+badsubjects = {'V1018';'V1051';'V1056';'V1060';'V1082';'V1043';'V1014'};
+% V1041 has only 3 min worth of resting state, I'd say this is not a
+% criterion for rejection
+if ismember(subject, badsubjects)
+  warning('subject %s is considered a BAD subjects', subject);
+end
+
 % determine the root directory, i.e. either Annika's or Julia's home-dir
 type = tokenize(type, '_');
 if isempty(rootdir)
@@ -121,10 +130,12 @@ switch type{2}
       % crashed
       switch type{3}
         case 'task'
-          [m,ix] = max(totalbytes);
+          % heuristic: totalbytes > 1e9
+          [m,ix] = find(totalbytes>1e9);
           d = d(ix);
         case 'rest'
-          [m,ix] = min(totalbytes);
+          % heuristic: totalbytes > .1e9 and <.7e9
+          [m,ix] = find(totalbytes>0.1e9 & totalbytes<0.7e9);
           d = d(ix);
         case 'pos'
           % Polhemus .pos file
