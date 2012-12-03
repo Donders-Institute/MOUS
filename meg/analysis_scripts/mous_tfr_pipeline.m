@@ -96,7 +96,7 @@ TFRMult_Diff.powspctrm    = (TFRMult_SenTar.powspctrm./TFRMult_SeqTar.powspctrm)
 TFRMult_Diff_PG.powspctrm = (TFRMult_SenTar_PG.powspctrm./TFRMult_SeqTar_PG.powspctrm)-1;
 
 %% change name of file depending on word being analysed!
-mous_db_putdata(subjectname, 'meg_processed_{tfr_targetword_Hann4under30_05-3ds}',    TFRHann_Diff, TFRMult_Diff, TFRHann_SenTar, TFRHann_SeqTar, TFRMult_SenTar, TFRMult_SeqTar);
-mous_db_putdata(subjectname, 'meg_processed_{tfr_targetword_Hann4under30_05-3ds-pg}', TFRHann_Diff_PG, TFRMult_Diff_PG, TFRHann_SenTar_PG, TFRHann_SeqTar_PG, TFRMult_SenTar_PG, TFRMult_SeqTar_PG);
+mous_db_putdata(subjectname, 'meg_processed_{tfr_targetword_Hann4under30_05-3ds}',    'TFRHann_Diff', 'TFRMult_Diff', 'TFRHann_SenTar', 'TFRHann_SeqTar', 'TFRMult_SenTar', 'TFRMult_SeqTar');
+mous_db_putdata(subjectname, 'meg_processed_{tfr_targetword_Hann4under30_05-3ds-pg}', 'TFRHann_Diff_PG', 'TFRMult_Diff_PG', 'TFRHann_SenTar_PG', 'TFRHann_SeqTar_PG', 'TFRMult_SenTar_PG', 'TFRMult_SeqTar_PG');
 
 clear all;

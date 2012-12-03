@@ -70,7 +70,7 @@ if doheadmodel
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri.coordsys = 'ctf';
   vol = mous_anatomy_headmodel(mri);
-  mous_db_putdata(subjectname, 'meg_anatomy_headmodel', vol);
+  mous_db_putdata(subjectname, 'meg_anatomy_headmodel', 'vol');
 end
 
 %% Freesurfer pipeline
@@ -104,7 +104,7 @@ if dosourcemodel2d
   mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
   bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', bnd);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', 'bnd');
 end
 
 %% create a 3D sourcemodel based on the MNI brain
@@ -112,9 +112,9 @@ if dosourcemodel3d
   mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri1.coordsys = 'ctf';
   grid = mous_anatomy_sourcemodel3D(mri1, 8);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', grid); %creates V1025sourcemodel3Dnonlin8mm.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'grid'); %creates V1025sourcemodel3Dnonlin8mm.mat
   grid = mous_anatomy_sourcemodel3D(mri1, 10);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', grid); %creates V1025sourcemodel3Dnonlin8mm.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'grid'); %creates V1025sourcemodel3Dnonlin8mm.mat
 end
 
 %% do quality check

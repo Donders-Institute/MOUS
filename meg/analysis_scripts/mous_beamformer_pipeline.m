@@ -29,7 +29,7 @@ if 0,
   
   % compute frequency representation of data
   freq = mous_beamformer_freq(filename, trl);
-  mous_db_putdata(subjectname, 'meg_processed_{freq03-08}', freq);
+  mous_db_putdata(subjectname, 'meg_processed_{freq03-08}', 'freq');
 end
 
 if 0,
@@ -58,7 +58,7 @@ if 0,
   
   % compute frequency representation of data
   freq = mous_beamformer_freq(filename, trl);
-  mous_db_putdata(subjectname, 'meg_processed_{freq05-00}', freq);
+  mous_db_putdata(subjectname, 'meg_processed_{freq05-00}', 'freq');
 end
 
 if 1,
@@ -88,7 +88,7 @@ if 1,
   
   % compute frequency representation of data
   freq = mous_beamformer_freqbaseline(filename, trl);
-  mous_db_putdata(subjectname, 'meg_processed_{freqbaseline05-00}', freq);
+  mous_db_putdata(subjectname, 'meg_processed_{freqbaseline05-00}', 'freq');
 end
 
 if 0,
@@ -115,7 +115,7 @@ if 0,
   source = rmfield(source, 'mask');
   source.stat = reshape(source.stat, size(source.pos,1), numel(source.freq));
   
-  mous_db_putdata(subjectname, 'meg_processed_{sourceDICSsent}', source);
+  mous_db_putdata(subjectname, 'meg_processed_{sourceDICSsent}', 'source');
 end
 
 if 0,
@@ -131,5 +131,5 @@ if 0,
   source = rmfield(source, 'mask');
   source.stat = reshape(source.stat, size(source.pos,1), numel(source.freq));
   
-  mous_db_putdata(subjectname, 'meg_processed_{sourceDICS}', source);
+  mous_db_putdata(subjectname, 'meg_processed_{sourceDICS}', 'source');
 end
