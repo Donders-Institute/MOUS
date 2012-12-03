@@ -6,7 +6,7 @@ warning on;
 
 % get necessary geometrical information
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
-sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm');
+sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
 
 if nargin==3
   % toi exist
@@ -46,6 +46,7 @@ cfg.dics.keepfilter = 'yes';
 cfg.dics.lambda     = '5%';
 cfg.vol             = headmodel;
 cfg.grid            = sourcemodel;
+cfg.keepleadfield   = 'yes';
 source              = ft_sourceanalysis(cfg, tmp);
 trialinfo           = freq.trialinfo;
 
