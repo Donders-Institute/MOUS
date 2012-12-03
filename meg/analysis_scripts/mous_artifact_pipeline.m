@@ -32,3 +32,6 @@ if 0,
   %mous_db_putdata(subjectname, 'meg_artifactdsssaccades', comp, avgcomp, avgpre, avgeog);
 end
 
+mous_db_putdata(subjectname, 'meg_artifactcfg', cfgeog1, cfgeog2, cfgjump, cfgmuscle); 
+
+
