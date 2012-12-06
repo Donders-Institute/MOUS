@@ -3,7 +3,36 @@ function mous_db_putdata(subject, type, varargin)
 % MOUS_DB_PUTDATA saves data from specified subject and type to 
 % the database.
 %
-% See also MOUS_DB_GETFILENAME, MOUS_WRITE_PROVENANCE
+% Use as 
+%   mous_db_putdata(subject, type, 'var1', 'var2', ...);
+%   mous_db_putdata(subject, type, 'var1', 'var2', ..., overwriteflag);
+%   mous_db_putdata(subject, type, 'var1', 'var2', rootdir);
+%   mous_db_putdata(subject, type, 'var1', ..., rootdir, overwriteflag);
+%
+% where
+%   subject = string, denoting the subject
+%   type    = string, denoting the type of the file
+%   rootdir = string, denoting the root directory of the results (defaults
+%                     to Annika's home dir).
+%   overwriteflag = boolean, 0 or 1 (default 1): overwrite the file if it
+%                   already exists, otherwise move the already existing
+%                   file to another file, appending the date and time at
+%                   which the backup was made to the original filename
+%
+% See also MOUS_DB_GETFILENAME, MOUS_WRITE_PROVENANCE, SAVE
+
+overwriteflag = true;
+if numel(varargin)>1
+  if (isnumeric(varargin{end}) || islogical(varargin{end})) && istrue(varargin{end})
+    overwriteflag = true;
+  elseif (isnumeric(varargin{end}) || islogical(varargin{end})) && ~istrue(varargin{end})
+    overwriteflag = false;
+  else
+    % all other cases: default behavior
+    overwriteflag = true;
+  end
+  varargin = varargin(1:end-1);
+end
 
 if numel(varargin)>1
   % it could be that the root directory is specified as last input argument
@@ -22,8 +51,16 @@ end
 % need to be changed however
 [filename, st] = mous_db_getfilename(subject, type, 0, rootdir);
 filename       = filename{1};
-if st(1)
+if st(1) && overwriteflag
   warning('file %s exists, overwriting existing file', filename);
+elseif st(1) && ~overwriteflag
+  c       = clock;
+  [p,f,e] = fileparts(filename);
+  newfilename = fullfile(p,sprintf('%s%04.0f%02.0f%02.0f%02.0f%02.0f%s',f,c(1),c(2),c(3),c(4),c(5),e));
+  newtype     = sprintf('%s%04.0f%02.0f%02.0f%02.0f%02.0f%s',type,c(1),c(2),c(3),c(4),c(5));
+  warning('file %s exists, creating back-up of %s as %s', filename, filename, newfilename);
+  system(['mv ',filename,' ',newfilename]);
+  mous_write_provenance(newfilename);
 end
 
 % create empty data structure when more than one variable is to be saved,
