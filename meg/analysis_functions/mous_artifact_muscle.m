@@ -1,4 +1,4 @@
-function [cfgmuscle] = mous_artifact_muscle(filename, trl)
+function [cfgmuscle] = mous_artifact_muscle(filename, trl, ntrial)
 
 % $Id: mous_artifact_muscle.m 44 2012-05-16 10:42:21Z jansch $
 
@@ -31,5 +31,9 @@ cfg.artfctdef.zvalue.interactive= 'yes';
 cfg.artfctdef.type           = 'zvalue';
 cfg.artfctdef.reject         = 'partial';
 
+if nargin>2 && ntrial>0
+  cfg.artfctdef.zvalue.method  = 'trial';
+  cfg.artfctdef.zvalue.ntrial  = ntrial;
+end
 cfg       = ft_checkconfig(cfg, 'dataset2files', 'yes');
 cfgmuscle = ft_artifact_zvalue(cfg);
