@@ -21,17 +21,14 @@ if 1,
   [cfgmuscle       ] = mous_artifact_muscle(filename{1},     trl); % detect muscle artifacts
 
   % put the results back into the database
-  mous_db_putdata(subjectname, 'meg_artifactcfg', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle'); 
+  mous_db_putdata(subjectname, 'meg_artifact_cfg', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle'); 
 end
 
 if 0,
   [comp, avgcomp, avgpre, avgeog] = mous_artifact_eog_dss_blinks(filename{1},   trl);
-  mous_db_putdata(subjectname, 'meg_artifactdssblinks', 'comp', 'avgcomp', 'avgpre', 'avgeog');
+  mous_db_putdata(subjectname, 'meg_artifact_dssblinks', 'comp', 'avgcomp', 'avgpre', 'avgeog');
   
   %[comp, avgcomp, avgpre, avgeog] = mous_artifact_eog_dss_saccades(filename{1}, trl);
   %mous_db_putdata(subjectname, 'meg_artifactdsssaccades', comp, avgcomp, avgpre, avgeog);
 end
-
-mous_db_putdata(subjectname, 'meg_artifactcfg', cfgeog1, cfgeog2, cfgjump, cfgmuscle); 
-
 
