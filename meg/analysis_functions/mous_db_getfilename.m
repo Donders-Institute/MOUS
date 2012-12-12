@@ -14,9 +14,9 @@ function [filename, st, info] = mous_db_getfilename(subject, type, infoflag, roo
 %   'meg_raw_rest'
 %   'meg_raw_pos'
 %   'meg_raw_fidpic'
-%   'meg_artifactcfg'
-%   'meg_artifactdssblinks' 
-%   'meg_artifactdsssaccades'
+%   'meg_artifact_cfg'
+%   'meg_artifactdssblinks'   %% FIXME meg_artifact_dssblinks
+%   'meg_artifactdsssaccades' %% FIXME  meg_artifact_dsssaccades
 %   'mri_dicom'
 %   'mri_nifti'
 %   'mri_coregMNI'
@@ -148,7 +148,7 @@ switch type{2}
         otherwise
       end
     end
-  case {'artifactcfg' 'artifactdssblinks' 'artifactdsssaccades'}
+  case {'artifactdssblinks' 'artifactdsssaccades'}
     D = [rootdir filesep subject filesep 'artifact' filesep];
     d = dir([D subject type{2} '.mat']);
     if isempty(d)
