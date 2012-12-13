@@ -20,6 +20,11 @@ dosacc  = true;
 dojump  = true;
 domusc  = true; 
 
+% doblink = false;
+% dosacc  = false;
+% dojump  = false;
+% domusc  = true; 
+
 % just for one artifact
 % switch artifactType
 %     case 'all'
@@ -38,8 +43,7 @@ domusc  = true;
 % load filename and trial(sent/seq) trl
 filename    = mous_db_getfilename(subjectname, 'meg_raw_task'); 
 trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'all','visual_sentence');  % entire sentence, with prestim and poststim = 0.5s 
-cfgart      = mous_db_getdata(subjectname, 'meg_artifactcfg');  %% MAYBE change mous_db_getdata to specify which artifact type to call instead of loading all.
-
+cfgart      = mous_db_getdata(subjectname, 'meg_artifact_cfg');  
 % cfg info for preprocessing trial data
     cfg             = [];
     cfg.dataset     = filename{1};
@@ -78,36 +82,30 @@ end % dosacc
 
 if dojump
     artType         = 3;
-    trlSen1 = trlDat(1:120,:); 
-    trlSen2 = trlDat(121:240,:);
     cfg.channel     = {'MEG'};
     cfg.hpfilter    = 'yes';
     cfg.hpfreq      = 1;
     cfg.hpfiltord   = 4;
     plotPerPage     = 30;
     artifactName    = 'jump';
-    figH            = 1.2;
+    figH            = 1.1;
     
     for i = 1:2
         if i == 1
-            cfg.trl = trlSen1;
-            trlDat  = trlSen1;
-            loop    = i;
-        else 
-            cfg.trl = trlSen2;
-            trlDat  = trlSen2;
+            cfg.trl = trlDat(1:120,:);
+              loop    = i;
+        elseif i == 2
+            cfg.trl = trlDat(121:240,:);
             loop    = i;
         end 
-        [diagnostics]   = getDiagnostics(cfgart, trlDat, artType);
+        [diagnostics]   = getDiagnostics(cfgart, cfg.trl, artType);
         [dataSen, vlim] = preprocData(cfg);
-        superimpose(diagnostics,vlim,dataSen, plotPerPage, artifactName, figH, trlDat, loop);
-    end 
+        superimpose(diagnostics, vlim, dataSen, plotPerPage, artifactName, figH, cfg.trl, loop);
+    end % loop through first and second half of data set
 end % end dojump
     
 if domusc
     artType         = 4;
-    trlSen1         = trlDat(1:120,:);
-    trlSen2         = trlDat(121:240,:); 
     cfg.channel     = {'MEG'};           
     cfg.bpfilter    = 'no';
     cfg.hilbert     = 'no';
@@ -118,28 +116,19 @@ if domusc
     cfg.artpadding  = 0;
     plotPerPage     = 30;
     artifactName    = 'musc';
-    figH            = 1.2;
-    
-%     cfg.trl = trlSen2;
-%     trlDat  = trlSen2;
-%     loop    = 2; 
-%     [diagnostics]   = getDiagnostics(cfgart, trlDat, artType);
-%     [dataSen, vlim] = preprocData(cfg);
-%     superimpose(diagnostics,vlim,dataSen, plotPerPage, artifactName, figH, trlDat, loop);
+    figH            = 1.1;
     
     for i = 1:2
         if i == 1
-            cfg.trl = trlSen1;
-            trlDat  = trlSen1;
+            cfg.trl = trlDat(1:120,:);
             loop    = i;
-        else 
-            cfg.trl = trlSen2;
-            trlDat  = trlSen2;
+        elseif i == 2 
+            cfg.trl = trlDat(121:240,:);
             loop    = i;
         end 
-        [diagnostics]   = getDiagnostics(cfgart, trlDat, artType);
+        [diagnostics]   = getDiagnostics(cfgart, cfg.trl, artType);
         [dataSen, vlim] = preprocData(cfg);
-        superimpose(diagnostics,vlim,dataSen, plotPerPage, artifactName, figH, trlDat, loop);
+        superimpose(diagnostics, vlim, dataSen, plotPerPage, artifactName, figH, cfg.trl, loop);
     end
 end  % end domusc
 
@@ -247,19 +236,19 @@ function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, l
         elseif strcmp(artif, 'jump') > 0 
             ft_plot_vector(dataSen.time{q},ft_preproc_smooth(dataSen.trial{q},20),'height', height ,'width', width, 'hpos', hpos, 'vpos', vpos ,'color','k','hlim',hlim,'vlim',vlim);  % plot the trial
         elseif strcmp(artif,'musc') > 0
-            ft_plot_vector(dataSen.time{q},ft_preproc_smooth(dataSen.trial{q},1),'height', height ,'width', width, 'hpos', hpos, 'vpos', vpos ,'color','k','hlim',hlim,'vlim',vlim);  % plot the trial
+            ft_plot_vector(dataSen.time{q},ft_preproc_smooth(dataSen.trial{q},5),'height', height ,'width', width, 'hpos', hpos, 'vpos', vpos ,'color','k','hlim',hlim,'vlim',vlim);  % plot the trial
         end 
         
         % plot box with labels for min/max of signal
         if mod(q,trialsPerPage) == 11   
             ft_plot_box([hlim(1) hlim(2) vlim(1) vlim(2)],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim,'hpos',hpos, 'vpos', vpos,'color','b');
-            ft_plot_text(hlim(1)-1, 0, '0', 'height', height ,'width', width, 'hlim',hlim,'vlim',vlim,'hpos',hpos, 'vpos', vpos, 'fontsize', 5); 
+            ft_plot_text(hlim(1)-1, 0, '0', 'height', height ,'width', width, 'hlim',hlim,'vlim',vlim,'hpos',hpos, 'vpos', vpos, 'fontsize', 10, 'color', 'b'); 
             if strcmp(artif, 'blink') > 0 || strcmp(artif, 'sacc') > 0          
                 ft_plot_text(hlim(1)-.2, vlim(2), ['max: ' num2str(vlim(2))],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim-1.5,'hpos',hpos, 'vpos', vpos, 'fontsize', 10, 'color','b'); 
                 ft_plot_text(hlim(1)-.2, vlim(1), ['min: ' num2str(vlim(1))],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim+1.5,'hpos',hpos, 'vpos', vpos, 'fontsize', 10, 'color','b');
             elseif strcmp(artif,'jump') > 0 || strcmp(artif, 'musc') > 0
-                ft_plot_text(hlim(1), vlim(2)+.5, ['max: ' num2str(vlim(2))],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim-1,'hpos',hpos, 'vpos', vpos, 'fontsize', 10, 'color','b'); 
-                ft_plot_text(hlim(1), vlim(1)-1, ['min: ' num2str(vlim(1))],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim+1,'hpos',hpos, 'vpos', vpos, 'fontsize', 10, 'color','b');
+                ft_plot_text(hlim(1), vlim(2), ['max: ' num2str(vlim(2))],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim,'hpos',hpos, 'vpos', vpos, 'fontsize', 10, 'color','b'); 
+                ft_plot_text(hlim(1), vlim(1), ['min: ' num2str(vlim(1))],'height', height ,'width', width, 'hlim',hlim,'vlim',vlim,'hpos',hpos, 'vpos', vpos, 'fontsize', 10, 'color','b');
             end
         end 
         
@@ -336,3 +325,10 @@ function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, l
 end  % of plotting subfunction
 end  % of main function
  
+%     cfg.trl = trlSen4;
+%     trlDat  = trlSen4;
+%     loop    = 2; 
+%     [diagnostics]   = getDiagnostics(cfgart, trlDat, artType);
+%     [dataSen, vlim] = preprocData(cfg);
+%     superimpose(diagnostics,vlim,dataSen, plotPerPage, artifactName, figH, trlDat, loop);
+%     
