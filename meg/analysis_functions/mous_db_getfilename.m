@@ -62,9 +62,21 @@ end
 if ischar(subject) && strcmp(subject, 'all')
   % request all subjects -> convert into cell-array and call function
   % recursively
-  d       = dir('/home/language/annhul/MOUS/meg/V*');
-  subject = {d.name};
-  [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir);
+  type = tokenize(type,'_');
+  if strcmp(type{1},'jan') > 0 
+      d = dir('/home/language/jansch/public/mous/V*');  % d is a struct N(subjects) x 1 struct
+  else
+      d = dir('/home/language/annhul/MOUS/meg/V*');
+  end 
+  subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
+
+  % exclude all the V1020coo* files created by JM, i.e. only look in V*** folders for  bfica files
+  for k = numel(subject):-1:1
+      if strfind(num2str(subject{k}),'V1020c') > 0  
+          subject(k) = [];
+      end
+  end 
+  [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
   return;
 end
 
@@ -75,10 +87,10 @@ if iscell(subject)
   st       = false(0,1);
   info     = struct([]);
   for k = 1:numel(subject)
-    [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag, rootdir);
-    filename = cat(1,filename,tmpf);
-    st       = cat(1,st,      tmps);
-    info     = cat(1,info,    tmpi);
+      [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag, rootdir);
+      filename = cat(1,filename,tmpf);
+      st       = cat(1,st,      tmps);
+      info     = cat(1,info,    tmpi);
   end
   return;
 end
@@ -93,7 +105,7 @@ if ismember(subject, badsubjects)
 end
 
 % determine the root directory, i.e. either Annika's or Julia's home-dir
-type = tokenize(type, '_');
+%type = tokenize(type, '_');
 if isempty(rootdir)
   switch type{1}
     case 'subjectname'
@@ -105,6 +117,8 @@ if isempty(rootdir)
       rootdir = '/home/language/annhul/MOUS/meg';
     case 'mri'
       rootdir = '/home/language/juludd/MOUS';
+    case 'jan'
+      rootdir = '/home/language/jansch/public/mous';  
     otherwise
       error('unrecognized type requested');
   end
@@ -281,7 +295,9 @@ switch type{2}
           suff = [suff type{k} , '_'];
         end
         suff = suff(2:end-2);
-        d    = dir([D filesep subject suff '.mat']);
+%         if strcmp(type{1},'jan'} > 0
+%             d = dir([D filesep 
+        d = dir([D filesep subject suff '.mat']);
         if isempty(d)
           d(1).name = [subject suff];
         end
