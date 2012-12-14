@@ -31,6 +31,7 @@ function [filename, st, info] = mous_db_getfilename(subject, type, infoflag, roo
 %   'meg_anatomy_sourcemodel2D'
 %   'meg_anatomy_sourcemodel3D_xxx'
 %   'meg_anatomy_figure_xxx'
+%   'meg_bfica_{xxx}'
 %   'meg_processed_{xxx}' (fixed forms are erf, tfr and mne)
 %   'meg_qualitycheck_{qc_general_rest}  / {qc_general_task}
 %   'meg_qualitycheck_{qc_art}' % combined pdf of all artifacts
