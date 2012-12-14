@@ -34,6 +34,24 @@ end
  
 qsubcellfun(@mous_erf_pipeline, allinput1, allinput2, allinput3,'timreq', 600, 'memreq', 4*1024^3);  
 
+   
+% mous_qualitycheck_pipeline (to run mouse_qualitycheck_general);
+subjectnames = {'V1017' 'V1019' 'V1020'};
+pipelinename = 'mous_qualitycheck_artifact_pipeline';
+qsubcellfun('mous_execute_pipeline', repmat({pipelinename}, [numel(subjectnames) 1]), subjectnames, 'memreq', 6*1024^3, 'timreq', 3000);
 
-% 1 hour: 60 seconds * 60 minutes = 3600s
+
+%% DONE FOR QC_GENERAL
+% 'V1010' 'V1012' 'V1013' 'V1015'
+%% NEXT IN LINE FOR QC_GENERAL
+% 'V1024' 'V1025' 'V1026' 'V1027' 'V1028' 'V1029' 'V1030'
+
+
+
+%% 1 hour: 60 seconds * 60 minutes = 3600s
+% 1 hr20: 60 * 80                 = 4800s   
 % 1.94h = 7000s 
+% 2 hours: 3600*2 = 7200
+
+% if get "violates resources policies"  usually mean that the request job
+% requires more memory than you asked for!
