@@ -8,7 +8,7 @@ function [present, numpres, absent, numabs] = ptpWithFiles(subject, type)
 % where X = comp, source, sourcedata... etc, see mous_bfica_pipeline.m
 
 
-[filename, st] = mous_db_getfilename_test(subject, type);
+[filename, st] = mous_db_getfilename(subject, type);
 
 
 present = find(st);

@@ -1,4 +1,4 @@
-function mous_db_putdata(subject, type, varargin)
+    function mous_db_putdata(subject, type, varargin)
 
 % MOUS_DB_PUTDATA saves data from specified subject and type to 
 % the database.
@@ -49,15 +49,21 @@ end
 % create the string that specifies the file name and check whether it
 % already exists: FIXME now the default behavior is overwrite, this may
 % need to be changed however
+
 [filename, st] = mous_db_getfilename(subject, type, 0, rootdir);
 filename       = filename{1};
 if st(1) && overwriteflag
   warning('file %s exists, overwriting existing file', filename);
 elseif st(1) && ~overwriteflag
-  c       = clock;
+  %c       = clock;
   [p,f,e] = fileparts(filename);
-  newfilename = fullfile(p,sprintf('%s%04.0f%02.0f%02.0f%02.0f%02.0f%s',f,c(1),c(2),c(3),c(4),c(5),e));
-  newtype     = sprintf('%s%04.0f%02.0f%02.0f%02.0f%02.0f%s',type,c(1),c(2),c(3),c(4),c(5));
+  %newfilename = fullfile(p,sprintf('%s%04.0f%02.0f%02.0f%02.0f%02.0f%s',f,c(1),c(2),c(3),c(4),c(5),e));
+  %newfilename = fullfile(p,f,'v',newVersion);
+  d = dir(filename);
+  fullstr = strtok(d.date);
+  oldVersionDate = [fullstr(1:2) fullstr(4:6) fullstr(end-3:end)]; % rename older file with the day it was created ( usually = last date modified)
+  newfilename = [p filesep f oldVersionDate e];
+  %newtype     = sprintf('%s%04.0f%02.0f%02.0f%02.0f%02.0f%s',type,c(1),c(2),c(3),c(4),c(5));
   warning('file %s exists, creating back-up of %s as %s', filename, filename, newfilename);
   system(['mv ',filename,' ',newfilename]);
   mous_write_provenance(newfilename);
