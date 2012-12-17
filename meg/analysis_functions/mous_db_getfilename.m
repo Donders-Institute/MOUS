@@ -62,8 +62,8 @@ end
 if ischar(subject) && strcmp(subject, 'all')
   % request all subjects -> convert into cell-array and call function
   % recursively
-  type = tokenize(type,'_');
-  if strcmp(type{1},'jan') > 0 
+  checker = tokenize(type,'_');
+  if strcmp(checker{1},'jan') > 0 
       d = dir('/home/language/jansch/public/mous/V*');  % d is a struct N(subjects) x 1 struct
   else
       d = dir('/home/language/annhul/MOUS/meg/V*');
@@ -105,7 +105,7 @@ if ismember(subject, badsubjects)
 end
 
 % determine the root directory, i.e. either Annika's or Julia's home-dir
-%type = tokenize(type, '_');
+type = tokenize(type, '_');
 if isempty(rootdir)
   switch type{1}
     case 'subjectname'
