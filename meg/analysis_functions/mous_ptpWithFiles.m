@@ -20,8 +20,11 @@ function mous_ptpWithFiles(subject, structnames, exportname)
 %     warning('cannot proceed, please specify root directory')
 % end 
 
+
+%% input arguments
 subject = 'all';
 rootdir = '/home/language/nielam/MOUS_AnalysisNotes/';
+exportname = 'Bfica_Alloutputs';
 
 % name each struct in the field 'filename'
 % FIXME: could probably use 'dir()' for this to be more efficient
@@ -31,7 +34,10 @@ structnames = {'bfica_comp','bfica_freq','bfica_freq5','bfica_freq70','bfica_ica
                'bfica_sourcedata475','bfica_sourcedata525','bfica_sourcedataavgword', ...
                'bfica_sourcedatadss','bfica_sourcedatasentseq','bfica_sourcedatasentseq70', ...
                'bfica_sourcedatawordsentpar'};
+
+structnames = 
  
+%% actual calculation %%%%%%%%%%%%%%%%%
 % create fields in advance
 for q = 1:numel(structnames)     
    % numFiles(q).filename = structnames{q};
@@ -52,9 +58,9 @@ for q = 1:numel(structnames)
     numFiles(q).numabs      = numel(numFiles(q).abslist);
 end 
 
-exportname = 'Bfica_Alloutputs';
-
-save(strcat('numPtp_',exportname),'numFiles'); %save(filename, variable) % both need to be str arguments
+when = tokenize(date,'-');
+now  = strcat(when{1:3});
+save(strcat('numPtp_',exportname,'_',now),'numFiles'); %save(filename, variable) % both need to be str arguments
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
