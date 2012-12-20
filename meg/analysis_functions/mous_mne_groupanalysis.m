@@ -4,8 +4,8 @@ function stat = mous_mne_groupanalysis(subjectnames)
 for k = 1:numel(subjectnames)
   %tmp = mous_db_getdata(subjectnames{k}, 'meg_processed_{MNE02-1ds}');
   % assume the file to contain sd1 and sd2 variables 
-  tmp = mous_db_getdata(subjectnames{k},'meg_processed_{MNE02-1ds_Allwords_Sent_20121126}');
-  tmp2 = mous_db_getdata(subjectnames{k},'meg_processed_{MNE02-1ds_Allwords_Seq_20121126}');
+  tmp  = mous_db_getdata(subjectnames{k},'meg_mne_{MNE02-1ds_Allwords_Sent_20121126}');
+  tmp2 = mous_db_getdata(subjectnames{k},'meg_mne_{MNE02-1ds_Allwords_Seq_20121126}');
   
   s1 = [];
   s2 = [];
@@ -22,16 +22,6 @@ for k = 1:numel(subjectnames)
   clear tmp;
   clear tmp2;
   
-    
-    % if strcmp(tmp{m}.varname, 'source1')
-      %FIXME this is needed because Annika saves the inflated meshes, which is a bit clunky
-      % Annika no longer saves the inflated meshes so this is also
-      % redundant
-    %  pos = tmp{m}.pos;
-    %end
-  %s1.pos = pos;
-  %s2.pos = pos;  
-
   % subselect time
   tim1 = nearest(s1.time, -0.1);
   tim2 = nearest(s1.time, 0.9);
@@ -41,11 +31,9 @@ for k = 1:numel(subjectnames)
   s2.time     = s2.time(tim1:tim2);
 
   % interpolate to 3D
-  tmp1 = mous_mne_2dto3d(subjectnames{k}, s1, 'parameter', 'avg.dspm');
-  tmp2 = mous_mne_2dto3d(subjectnames{k}, s2, 'parameter', 'avg.dspm');
+  tmp1 = mous_mne_2dto3d(subjectnames{k}, s1, 'parameter', 'avg.dspm', 'interpmethod', 'nearest', 'insidemethod', 'source');
+  tmp2 = mous_mne_2dto3d(subjectnames{k}, s2, 'parameter', 'avg.dspm', 'interpmethod', 'nearest', 'insidemethod', 'source');
   
-  
-
   % spatial smoothing 
   ft_hastoolbox('spm8', 1);
   dum = zeros(tmp1.dim);
@@ -67,22 +55,23 @@ for k = 1:numel(subjectnames)
   invol(1:2:end,1:2:end,1:2:end) = invol(1:2:end,1:2:end,1:2:end) + 1; 
 
 
-  sel = dum(1:2:end,1:2:end,1:2:end);
-  sel = sel(:);
+  sel   = dum(1:2:end,1:2:end,1:2:end);
+  sel   = sel(:);
   invol = invol(1:2:end,1:2:end,1:2:end);
   in    = find(invol==2);
   out   = find(invol~=2);
  
-  tmp1.pos = tmp1.pos(sel,:);
+  tmp1.pos      = tmp1.pos(sel,:);
   tmp1.avg.dspm = tmp1.avg.dspm(sel,:);
-  tmp1.inside = in;
-  tmp1.outside = out;
-  tmp2.pos = tmp2.pos(sel,:);
+  tmp1.inside   = in;
+  tmp1.outside  = out;
+  tmp1.dim      = size(invol);
+  
+  tmp2.pos      = tmp2.pos(sel,:);
   tmp2.avg.dspm = tmp2.avg.dspm(sel,:);
-  tmp2.inside = in;
-  tmp2.outside = out;
-  tmp1.dim = size(invol);
-  tmp2.dim = size(invol);
+  tmp2.inside   = in;
+  tmp2.outside  = out;
+  tmp2.dim      = size(invol);
 
   dat1{k} = tmp1;
   dat2{k} = tmp2;
@@ -90,8 +79,8 @@ end
 
 Nsubj = numel(dat1);
 
-cfg = [];
-cfg.method = 'montecarlo';
+cfg           = [];
+cfg.method    = 'montecarlo';
 cfg.statistic = 'depsamplesT';
 cfg.parameter = 'avg.dspm';
 cfg.numrandomization = 1000;
