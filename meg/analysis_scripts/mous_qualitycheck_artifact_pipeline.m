@@ -14,27 +14,31 @@
 
 % NL - 27.11.2012.
 
-doArtCheck  = false;
+doArtCheck  = true;
 doCompile   = true;
 
 %% Artifact Quality Check: blinks, saccades, jumps and muscle artifacts
-artFile = mous_db_getfilename(subjectname, 'meg_artifact_cfg'); 
+artFile = mous_db_getfilename(subjectname, 'meg_artifact_cfg}'); 
 if exist(artFile{1}, 'file')  % only run this script for participants whom don't yet have the pdf file generated 
-
     if doArtCheck
-       % standard is to run a quality check for all artifact types
-
-            artifactType = 'all';                    % CAN ALSO CALL INDIVIDUAL ARTIFACTS: 'blink' 'saccade','jump','muscle'
-            %mous_qualitycheck_artifact(subjectname, artifactType);
-            mous_qualitycheck_artifact(subjectname);
+         mous_qualitycheck_artifact(subjectname);
     end 
-
     %% File compilation: % make 1 pdf with all artifacts
     if doCompile
         allfiles    = cell(1,24);
-        allfiles = mous_db_getfilename2(subjectname, 'meg_qualitycheck_{qc_art}');       
-
+        allfiles = mous_db_getfilename(subjectname, 'meg_qualitycheck_{_qc_art}');       
         pdfName = mous_db_getfilename(subjectname, 'meg_qualitycheck_{qc_artAll_task}');
-        mous_makePDF([pdfName{1} 'b.pdf'], allfiles); 
+        mous_makePDF([pdfName{1} '.pdf'], filter); 
     end 
 end 
+
+%%
+%         filter = cell(1,8);
+%         filter{1} = [allfiles{1}, 'blinkB1.eps'];
+%         filter{2} = [allfiles{1}, 'blinkB2.eps'];
+%         filter{3} = [allfiles{1}, 'blinkB3.eps'];
+%         filter{4} = [allfiles{1}, 'blinkB4.eps'];
+%         filter{5} = [allfiles{1}, 'saccB1.eps'];
+%         filter{6} = [allfiles{1}, 'saccB2.eps'];
+%         filter{7} = [allfiles{1}, 'saccB3.eps'];
+%         filter{8} = [allfiles{1}, 'saccB4.eps'];
