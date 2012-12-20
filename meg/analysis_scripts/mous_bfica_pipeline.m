@@ -1,5 +1,5 @@
 
-dodss    = false;
+dodss    = true;
 dofreq   = false;
 dosource = false;
 dovox    = false;
@@ -7,7 +7,7 @@ doica    = false;
 dosourcedss = false;
 dosentvsseq = false;
 dowordsentpar = false;
-sourcedata2avgword = true;
+sourcedata2avgword = false;
 
 rootdir  = '/home/language/jansch/public/mous/';
 
