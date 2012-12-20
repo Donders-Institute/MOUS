@@ -95,10 +95,11 @@ cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
 cfg.parameter = 'avg.dspm';
 cfg.numrandomization = 1000;
-cfg.correctm = 'cluster';
+%cfg.correctm = 'cluster';
 cfg.design = [ones(1,Nsubj) 2*ones(1,Nsubj);1:Nsubj 1:Nsubj];
 cfg.ivar   = 1;
 cfg.uvar   = 2;
 stat = ft_sourcestatistics(cfg, dat1{:}, dat2{:}); 
 
+%mous_db_putdata('groupresults', 'meg_processed_{MNE37subj_stat_allwords20121220}',stat, subjectnames);
 save MOUS/meg/mne/mne37subjStatsAllwords.mat stat subjectnames
