@@ -1,4 +1,4 @@
-function [data] = mous_db_getdata(subject, type, rootdir)
+function [varargout] = mous_db_getdata(subject, type, rootdir)
 
 % MOUS_DB_GETDATA extracts data of a particular type from the
 % from a specified subject
@@ -35,10 +35,25 @@ switch lower(ext)
         data{k}.varname = s(k).name;
       end
     end
-    if numel(data)==1
-      data = data{1};
-    end
   case {'.png'}
     system(['eog ' filename{1} ' &']); %open figure in the background
   otherwise
 end 
+
+if nargout
+  if numel(data)==1
+    data = data{1};
+  end
+  varargout{1} = data;
+else
+  % evaluate the variables in the caller's workspace
+  if numel(data)==1 && ~isfield(data{1}, 'varname')
+  else
+    for k = 1:numel(data)
+      varname = data{k}.varname;
+      tmp     = rmfield(data{k}, 'varname');
+      assignin('caller', varname, tmp);
+    end
+  end
+end
+  
