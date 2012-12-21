@@ -31,8 +31,8 @@ for k = 1:numel(subjectnames)
   s2.time     = s2.time(tim1:tim2);
 
   % interpolate to 3D
-  tmp1 = mous_mne_2dto3d(subjectnames{k}, s1, 'parameter', 'avg.dspm', 'interpmethod', 'nearest', 'insidemethod', 'source');
-  tmp2 = mous_mne_2dto3d(subjectnames{k}, s2, 'parameter', 'avg.dspm', 'interpmethod', 'nearest', 'insidemethod', 'source');
+  tmp1 = mous_mne_2dto3d(subjectnames{k}, s1, 'parameter', 'avg.dspm', 'interpmethod', 'nearest');%, 'insidemethod', 'source');
+  tmp2 = mous_mne_2dto3d(subjectnames{k}, s2, 'parameter', 'avg.dspm', 'interpmethod', 'nearest');%, 'insidemethod', 'source');
   
   % spatial smoothing 
   ft_hastoolbox('spm8', 1);
@@ -78,7 +78,6 @@ for k = 1:numel(subjectnames)
 end
 
 Nsubj = numel(dat1);
-
 cfg           = [];
 cfg.method    = 'montecarlo';
 cfg.statistic = 'depsamplesT';
@@ -90,5 +89,8 @@ cfg.ivar   = 1;
 cfg.uvar   = 2;
 stat = ft_sourcestatistics(cfg, dat1{:}, dat2{:}); 
 
+
+
+% it is forbidden to save within a function: should be done in a script
 %mous_db_putdata('groupresults', 'meg_processed_{MNE37subj_stat_allwords20121220}',stat, subjectnames);
-save MOUS/meg/mne/mne37subjStatsAllwords.mat stat subjectnames
+%save MOUS/meg/mne/mne37subjStatsAllwords.mat stat subjectnames
