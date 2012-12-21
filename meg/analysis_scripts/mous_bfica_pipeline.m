@@ -142,3 +142,55 @@ end
 % cfg.method       = 'fastica';
 % cfg.fastica.lastEig = 100;
 % comp = ft_componentanalysis(cfg, sdata);
+
+
+% group statistics
+if 0
+  rootdir = '/home/language/jansch/public/mous';
+  subj    = mous_db_getfilename('all', 'subjectname');
+  [f,s]   = mous_db_getfilename(subj, 'meg_bfica_sourcedatasentseq', 0, rootdir);
+  subj    = subj(s);
+  Nsubj   = numel(subj);
+  
+  for k = 1:numel(subj)
+    mous_db_getdata(subj{k}, 'meg_bfica_sourcedatasentseq', rootdir);
+    mous_db_getdata(subj{k}, 'meg_bfica_source', rootdir);
+    
+    source.time = tlckseq.time;
+    source      = rmfield(source, 'freq');
+    source.avg.pow = tlckseq.avg;
+    seq{k}      = source;
+    source.avg.pow = tlcksent.avg;
+    sent{k}     = source;
+  end
+  
+  for k = 1:numel(subj)
+    seq{k}.avg.pow  = seq{k}.avg.pow  - mean(seq{k}.avg.pow(:));
+    sent{k}.avg.pow = sent{k}.avg.pow - mean(sent{k}.avg.pow(:));
+    seq{k}.pos = seq{1}.pos;
+    sent{k}.pos = sent{1}.pos;
+  end
+  
+  % the pow is only defined on the insides, ft_sourcestatistics expects all
+  % voxels
+  for k = 1:numel(subj)
+    tmp = zeros(prod(seq{k}.dim),numel(seq{k}.time));
+    tmp(seq{k}.inside,:) = seq{k}.avg.pow;
+    seq{k}.avg.pow = tmp;
+    
+    tmp = zeros(prod(sent{k}.dim),numel(sent{k}.time));
+    tmp(sent{k}.inside,:) = sent{k}.avg.pow;
+    sent{k}.avg.pow = tmp;
+  end
+  
+  cfg           = [];
+  cfg.method    = 'montecarlo';
+  cfg.statistic = 'depsamplesT';
+  cfg.design    = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
+  cfg.ivar      = 1;
+  cfg.uvar      = 2;
+  cfg.numrandomization = 500;
+  cfg.parameter = 'avg.pow';
+  stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
+  
+end
