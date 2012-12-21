@@ -2,7 +2,8 @@ function [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname)
 
 % get data and apply artifact rejection
 dataset   = mous_db_getfilename(subjectname, 'meg_ds_task');
-artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_{_artifact_cfg}');
+artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+
 
 cfg          = [];
 cfg.dataset  = dataset{1};
