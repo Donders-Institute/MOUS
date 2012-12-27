@@ -1,6 +1,6 @@
 
-dodss    = true;
-dofreq   = false;
+dodss    = false;
+dofreq   = true;
 dosource = false;
 dovox    = false;
 doica    = false;
@@ -11,65 +11,50 @@ sourcedata2avgword = false;
 
 rootdir  = '/home/language/jansch/public/mous/';
 
+% use the variable suff and frequency to toggle between different frequency bands
+suff      = '5';
+frequency = 5;
+
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
   mous_db_putdata(subjectname, 'meg_bfica_comp', 'comp', 'avgcomp', 'avgpre', rootdir);
 end
-
-%toi = 0.375;
-%toi = 0.5;
 if dofreq,
   % theta frequency
-  %freq   = mous_bfica_freq(subjectname, 5);
-  %mous_db_putdata(subjectname, 'meg_bfica_freq5', freq);
-  
-  % beta frequency
-  freq   = mous_bfica_freq(subjectname, 20);
-  mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
-  
-  % broadband gamma frequency
-  options.tapsmofrq = 30;
-  options.t_ftimwin = 0.1;
+  options            = [];
+  options.taper      = 'hanning';
+  options.t_ftimwin  = 0.4;
   options.resamplefs = 300;
-  freq   = mous_bfica_freq(subjectname, 70, rootdir, options);
-  mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
+  freq   = mous_bfica_freq(subjectname, 5, rootdir, options);
+  mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq');
+  
+%  % beta frequency
+%   options            = [];
+%   options.taper      = 'hanning';
+%   options.t_ftimwin  = 0.250;
+%   options.resamplefs = 300;
+%   freq   = mous_bfica_freq(subjectname, 20, rootdir);
+%   mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
+%   
+%   % broadband gamma frequency
+%   options            = [];
+%   options.tapsmofrq  = 30;
+%   options.taper      = 'dpss';
+%   options.t_ftimwin  = 0.1;
+%   options.resamplefs = 300;
+%   freq   = mous_bfica_freq(subjectname, 70, rootdir, options);
+%   mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
 end
 if dosource,
-  % theta frequency
-  %freq   = mous_db_getdata(subjectname, 'meg_bfica_freq5');
-  %source = mous_bfica_source(subjectname, freq, toi);
-  %mous_db_putdata(subjectname, ['meg_bfica_source5_',num2str(round(toi*1000)),''], source);
-  
-%   freq   = mous_db_getdata(subjectname, 'meg_bfica_freq', rootdir);
-%   source = mous_bfica_source(subjectname, freq);
-%   %mous_db_putdata(subjectname, ['meg_bfica_source',num2str(round(toi*1000)),''], source);
-%   mous_db_putdata(subjectname, 'meg_bfica_source', source, rootdir);
-  
-  % broadband gamma frequency
-  freq   = mous_db_getdata(subjectname, 'meg_bfica_freq70', rootdir);
+  freq   = mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   source = mous_bfica_source(subjectname, freq);
-  mous_db_putdata(subjectname, 'meg_bfica_source70', 'source', rootdir);
-  
+  mous_db_putdata(subjectname, ['meg_bfica_source',suff], 'source', rootdir);  
 end
-
 if dovox,
-  % theta frequency
-  %freq   = mous_db_getdata(subjectname, 'meg_bfica_freq5');
-  %source = mous_db_getdata(subjectname, ['meg_bfica_source5_',num2str(round(toi*1000)),'']);
-  %sourcedata = mous_bfica_sourcedata(source, freq, toi);
-  %mous_db_putdata(subjectname, ['meg_bfica_sourcedata5_',num2str(round(toi*1000)),''], sourcedata);
-  
-%   freq   = mous_db_getdata(subjectname, 'meg_bfica_freq', rootdir);
-%   source = mous_db_getdata(subjectname, 'meg_bfica_source', rootdir);
-%   sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
-%   mous_db_putdata(subjectname, 'meg_bfica_sourcedata', sourcedata, rootdir);
-%   
-  % broadband gamma frequency
-  freq   = mous_db_getdata(subjectname, 'meg_bfica_freq70', rootdir);
-  source = mous_db_getdata(subjectname, 'meg_bfica_source70', rootdir);
+  freq   = mous_db_getdata(subjectname, ['meg_bfica_freq',suff],   rootdir);
+  source = mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
   sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
-  mous_db_putdata(subjectname, 'meg_bfica_sourcedata70', 'sourcedata', rootdir);
-  
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedata',suff], 'sourcedata', rootdir);
 end
 if dosentvsseq,
 %   toi        = -0.2:0.05:0.8;
@@ -96,22 +81,23 @@ if dosentvsseq,
   mous_db_putdata(subjectname, 'meg_bfica_sourcedatasentseq70', 'tlcksent', 'tlckseq', rootdir);
 
 end  
+
 if dowordsentpar,
   toi        = -0.2:0.05:0.8;
-  sourcedata = mous_db_getdata(subjectname, 'meg_bfica_sourcedata', rootdir);
-  source     = mous_db_getdata(subjectname, 'meg_bfica_source', rootdir);
+  sourcedata = mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+  source     = mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
   krn        = compute_kernel(source);
   [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
   sourcedata.trialinfo = trialinfo;
   sourcedata.trial     = trial;
   sourcedata.time      = time;
-  [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordsent_parametric');
-  mous_db_putdata(subjectname, 'meg_bfica_sourcedatawordsentpar', 'tlck', 'stat', 'stat2', rootdir);
+  [tlck,stat,stat2]    = mous_makecontrast(sourcedata, 'wordsent_parametric');
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordsentpar',suff], 'tlck', 'stat', 'stat2', rootdir);
 end
 if sourcedata2avgword
   toi        = -0.2:0.05:0.8;
-  sourcedata = mous_db_getdata(subjectname, 'meg_bfica_sourcedata', rootdir);
-  source     = mous_db_getdata(subjectname, 'meg_bfica_source', rootdir);
+  sourcedata = mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+  source     = mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
   krn        = compute_kernel(source);
   [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
   for k = 1:numel(trial)
@@ -122,7 +108,7 @@ if sourcedata2avgword
   sourcedata.trial = trial;
   sourcedata.time  = time;
   sourcedata.trialinfo = trialinfo;
-  mous_db_putdata(subjectname, 'meg_bfica_sourcedataavgword', 'sourcedata', rootdir);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataavgword',suff], 'sourcedata', rootdir);
 end
 if doica,
   comp = mous_bfica_ica(subjectname, [], rootdir);
@@ -148,13 +134,13 @@ end
 if 0
   rootdir = '/home/language/jansch/public/mous';
   subj    = mous_db_getfilename('all', 'subjectname');
-  [f,s]   = mous_db_getfilename(subj, 'meg_bfica_sourcedatasentseq', 0, rootdir);
+  [f,s]   = mous_db_getfilename(subj, ['meg_bfica_sourcedatasentseq',suff], 0, rootdir);
   subj    = subj(s);
   Nsubj   = numel(subj);
   
   for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, 'meg_bfica_sourcedatasentseq', rootdir);
-    mous_db_getdata(subj{k}, 'meg_bfica_source', rootdir);
+    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatasentseq',suff], rootdir);
+    mous_db_getdata(subj{k}, ['meg_bfica_source',suff],            rootdir);
     
     source.time = tlckseq.time;
     source      = rmfield(source, 'freq');
@@ -192,5 +178,5 @@ if 0
   cfg.numrandomization = 500;
   cfg.parameter = 'avg.pow';
   stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
-  
+  i1   = mous_bfica_sourceinterpolate(stat, 'stat');
 end
