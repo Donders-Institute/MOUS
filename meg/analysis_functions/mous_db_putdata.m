@@ -1,4 +1,4 @@
-    function mous_db_putdata(subject, type, varargin)
+function mous_db_putdata(subject, type, varargin)
 
 % MOUS_DB_PUTDATA saves data from specified subject and type to 
 % the database.
@@ -25,13 +25,14 @@ overwriteflag = true;
 if numel(varargin)>1
   if (isnumeric(varargin{end}) || islogical(varargin{end})) && istrue(varargin{end})
     overwriteflag = true;
+    varargin      = varargin(1:end-1);
   elseif (isnumeric(varargin{end}) || islogical(varargin{end})) && ~istrue(varargin{end})
     overwriteflag = false;
+    varargin      = varargin(1:end-1);
   else
     % all other cases: default behavior
     overwriteflag = true;
   end
-  varargin = varargin(1:end-1);
 end
 
 if numel(varargin)>1
