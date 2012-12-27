@@ -29,11 +29,15 @@ if isfield(options, 'resamplefs')
 else
   resamplefs = 200;
 end
-
+if isfield(options, 'taper')
+  taper = options.taper;
+else
+  taper = 'dpss';
+end
 % get data and apply artifact rejection
 dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
-artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_{artifactcfg}');
-comp      = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_comp}', rootdir);
+artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+comp      = mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);
 avgcomp   = comp{1};
 avgpre    = comp{2};
 comp      = comp{3};
@@ -78,44 +82,55 @@ cfg           = [];
 cfg.component = find(v>0.1);
 data          = ft_rejectcomponent(cfg, comp, data);
 
-if frequency>=20 && frequency < 30
-  % spectral analysis
-  cfg = [];
-  cfg.method = 'mtmconvol';
-  cfg.output = 'fourier';
-  %cfg.toi    = 0.125:0.025:0.625;
-  cfg.toi    = -0.2:0.05:0.8;
-  cfg.foi    = frequency;
-  cfg.t_ftimwin = 0.250;
-  %cfg.tapsmofrq = 8;
-  cfg.taper = 'hanning';
-  cfg.pad    = 10;
-  freq       = ft_freqanalysis(cfg, data);
-elseif frequency>=30
-  % spectral analysis
-  cfg = [];
-  cfg.method = 'mtmconvol';
-  cfg.output = 'fourier';
-  %cfg.toi    = 0.125:0.025:0.625;
-  cfg.toi    = -0.2:0.05:0.8;
-  cfg.foi    = frequency;
-  cfg.t_ftimwin = t_ftimwin;
-  cfg.tapsmofrq = tapsmofrq;
-  cfg.pad    = 4;
-  freq       = ft_freqanalysis(cfg, data);
-else
-  % spectral analysis
-  cfg = [];
-  cfg.method = 'mtmconvol';
-  cfg.output = 'fourier';
-  cfg.toi    = 0.2:0.025:0.6;
-  cfg.foi    = frequency;
-  cfg.t_ftimwin = 0.40;
-  %cfg.tapsmofrq = 8;
-  cfg.taper  = 'hanning';
-  cfg.pad    = 1;
-  freq       = ft_freqanalysis(cfg, data);
-end
+% if frequency>=20 && frequency < 30
+%   % spectral analysis
+%   cfg = [];
+%   cfg.method = 'mtmconvol';
+%   cfg.output = 'fourier';
+%   %cfg.toi    = 0.125:0.025:0.625;
+%   cfg.toi    = -0.2:0.05:0.8;
+%   cfg.foi    = frequency;
+%   cfg.t_ftimwin = 0.250;
+%   %cfg.tapsmofrq = 8;
+%   cfg.taper = 'hanning';
+%   cfg.pad    = 10;
+%   freq       = ft_freqanalysis(cfg, data);
+% elseif frequency>=30
+%   % spectral analysis
+%   cfg = [];
+%   cfg.method = 'mtmconvol';
+%   cfg.output = 'fourier';
+%   %cfg.toi    = 0.125:0.025:0.625;
+%   cfg.toi    = -0.2:0.05:0.8;
+%   cfg.foi    = frequency;
+%   cfg.t_ftimwin = t_ftimwin;
+%   cfg.tapsmofrq = tapsmofrq;
+%   cfg.pad    = 4;
+%   freq       = ft_freqanalysis(cfg, data);
+% else
+%   % spectral analysis
+%   cfg = [];
+%   cfg.method = 'mtmconvol';
+%   cfg.output = 'fourier';
+%   cfg.toi    = 0.2:0.025:0.6;
+%   cfg.foi    = frequency;
+%   cfg.t_ftimwin = 0.40;
+%   %cfg.tapsmofrq = 8;
+%   cfg.taper  = 'hanning';
+%   cfg.pad    = 1;
+%   freq       = ft_freqanalysis(cfg, data);
+% end
+% spectral analysis
+cfg        = [];
+cfg.method = 'mtmconvol';
+cfg.output = 'fourier';
+cfg.toi    = -0.2:0.05:0.8;
+cfg.foi    = frequency;
+cfg.t_ftimwin = t_ftimwin;
+cfg.tapsmofrq = tapsmofrq;
+cfg.taper  = taper;
+cfg.pad    = 4;
+freq       = ft_freqanalysis(cfg, data);
 warning off;
 freq = ft_struct2single(freq);
 
