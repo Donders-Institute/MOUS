@@ -32,7 +32,7 @@ end
 
 % get data and apply artifact rejection
 dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
-artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_{artifactcfg}');
+artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
 comp      = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_comp}', rootdir);
 avgcomp   = comp{1};
 avgpre    = comp{2};
