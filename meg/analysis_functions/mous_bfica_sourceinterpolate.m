@@ -44,7 +44,11 @@ cfgi.downsample = 2;
 grid.avg.pow = zeros(prod(grid.dim),1);
 mri          = ft_read_mri('/home/language/jansch/matlab/mri/templateMRI.nii');
 for k = 1:size(comp.(fieldname),2)
-  grid.avg.pow(inside) = comp.(fieldname)(:,k);
+  try
+    grid.avg.pow(inside) = comp.(fieldname)(:,k);
+  catch
+    grid.avg.pow(:) = comp.(fieldname)(:,k);
+  end
   %grid.avg.pow(grid.inside) = comp.corrmap(:,k);
   source(k) = ft_sourceinterpolate(cfgi, grid, mri);
 end
