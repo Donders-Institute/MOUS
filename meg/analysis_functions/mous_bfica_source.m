@@ -6,7 +6,7 @@ warning on;
 
 % get necessary geometrical information
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
-sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
+sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm');
 
 if nargin==3
   % toi exist
