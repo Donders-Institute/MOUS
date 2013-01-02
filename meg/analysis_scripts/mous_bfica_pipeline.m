@@ -1,7 +1,7 @@
 
-dodss    = true;
+dodss    = false;
 dofreq   = false;
-dosource = false;
+dosource = true;
 dovox    = false;
 doica    = false;
 dosourcedss = false;
@@ -28,11 +28,11 @@ if dofreq,
   mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
   
   % broadband gamma frequency
-  options.tapsmofrq = 30;
-  options.t_ftimwin = 0.1;
-  options.resamplefs = 300;
-  freq   = mous_bfica_freq(subjectname, 70, rootdir, options);
-  mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
+%   options.tapsmofrq = 30;
+%   options.t_ftimwin = 0.1;
+%   options.resamplefs = 300;
+%   freq   = mous_bfica_freq(subjectname, 70, rootdir, options);
+%   mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
 end
 if dosource,
   % theta frequency
@@ -40,16 +40,16 @@ if dosource,
   %source = mous_bfica_source(subjectname, freq, toi);
   %mous_db_putdata(subjectname, ['meg_bfica_source5_',num2str(round(toi*1000)),''], source);
   
-%   freq   = mous_db_getdata(subjectname, 'meg_bfica_freq', rootdir);
-%   source = mous_bfica_source(subjectname, freq);
-%   %mous_db_putdata(subjectname, ['meg_bfica_source',num2str(round(toi*1000)),''], source);
-%   mous_db_putdata(subjectname, 'meg_bfica_source', source, rootdir);
+  freq   = mous_db_getdata(subjectname, 'meg_bfica_freq', rootdir);
+  source = mous_bfica_source(subjectname, freq);
+  %mous_db_putdata(subjectname, ['meg_bfica_source',num2str(round(toi*1000)),''], source);
+  mous_db_putdata(subjectname, 'meg_bfica_source', source, rootdir);
   
   % broadband gamma frequency
-  freq   = mous_db_getdata(subjectname, 'meg_bfica_freq70', rootdir);
-  source = mous_bfica_source(subjectname, freq);
-  mous_db_putdata(subjectname, 'meg_bfica_source70', 'source', rootdir);
-  
+%   freq   = mous_db_getdata(subjectname, 'meg_bfica_freq70', rootdir);
+%   source = mous_bfica_source(subjectname, freq);
+%   mous_db_putdata(subjectname, 'meg_bfica_source70', 'source', rootdir);
+%   
 end
 
 if dovox,
