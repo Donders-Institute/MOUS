@@ -22,12 +22,12 @@ for k = 1:numel(source.inside)
   filt = source.avg.filter{source.inside(k)};
   trial(:,k) = P*(abs(freq.fourierspctrm*filt').^2);
 end
-%trial  = trial';
-trial  = log10(trial)';
-mtrial = nanmean(trial,2);
-for k = 1:size(trial,2)
-  trial(:,k) = trial(:,k)-mtrial;
-end
+trial  = trial';
+% trial  = log10(trial)';
+% mtrial = nanmean(trial,2);
+% for k = 1:size(trial,2)
+%   trial(:,k) = trial(:,k)-mtrial;
+% end
 
 % convert to a raw array
 sdata = [];
