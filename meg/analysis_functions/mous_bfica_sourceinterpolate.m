@@ -1,4 +1,4 @@
-function [source] = mous_bfica_sourceinterpolate(subjectname, fieldname, inside)
+function [source] = mous_bfica_sourceinterpolate(subjectname, fieldname, inside, range)
 
 if nargin<2
   fieldname = 'topo';
@@ -8,6 +8,10 @@ if nargin<3
   inside = [];
 end
 
+if nargin<4,
+  range = [];
+end
+
 if ischar(subjectname)
   comp = mous_db_getdata(subjectname, 'meg_processed_{bfICA_ica}');
 else
@@ -15,6 +19,15 @@ else
 end
 
 load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
+
+if ~isempty(range)
+  comp.(fieldname) = mean(comp.(fieldname)(:,range),2);
+  comp.time        = mean(comp.time(range));
+  
+  source = mous_bfica_sourceinterpolate(comp, fieldname, inside);
+  return;
+end
+
 
 % % demean
 % dat  = cat(2,data.trial{:});
@@ -47,7 +60,11 @@ for k = 1:size(comp.(fieldname),2)
   try
     grid.avg.pow(inside) = comp.(fieldname)(:,k);
   catch
-    grid.avg.pow(:) = comp.(fieldname)(:,k);
+    try
+      grid.avg.pow(:) = comp.(fieldname)(:,k);
+    catch
+      grid.avg.pow(:) = comp.(fieldname)(:);
+    end
   end
   %grid.avg.pow(grid.inside) = comp.corrmap(:,k);
   source(k) = ft_sourceinterpolate(cfgi, grid, mri);
