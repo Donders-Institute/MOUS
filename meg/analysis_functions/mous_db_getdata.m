@@ -34,6 +34,7 @@ switch lower(ext)
       if isstruct(data{k})
         data{k}.varname = s(k).name;
       end
+      varname{k}      = s(k).name;
     end
   case {'.png'}
     system(['eog ' filename{1} ' &']); %open figure in the background
@@ -50,9 +51,12 @@ else
   if numel(data)==1 && ~isfield(data{1}, 'varname')
   else
     for k = 1:numel(data)
-      varname = data{k}.varname;
-      tmp     = rmfield(data{k}, 'varname');
-      assignin('caller', varname, tmp);
+      if isstruct(data{k}) && isfield(data{k}, 'varname'),
+        tmp = rmfield(data{k}, 'varname');
+      else
+        tmp = data{k};
+      end
+      assignin('caller', varname{k}, tmp);
     end
   end
 end
