@@ -6,15 +6,18 @@ dovox    = false;
 doica    = false;
 dosourcedss = false;
 dosentvsseq = false;
-dowordsentpar = true;
-dowordseqpar  = true;
+dowordsentpar = false;
+dowordseqpar  = false;
 sourcedata2avgword = false;
+
+dowordsentpar2 = false;
+dowordseqpar2  = false;
 
 rootdir  = '/home/language/jansch/public/mous/';
 
 % use the variable suff and frequency to toggle between different frequency bands
-suff      = '';'5';
-frequency = 20;%5;
+suff      = '';
+frequency = 20;
 
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
@@ -47,13 +50,13 @@ if dofreq,
 %   mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
 end
 if dosource,
-  freq   = mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  source = mous_bfica_source(subjectname, freq);
-  mous_db_putdata(subjectname, ['meg_bfica_source',suff], 'source', rootdir);  
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
+  [source, trialinfo] = mous_bfica_source(subjectname, freq);
+  mous_db_putdata(subjectname, ['meg_bfica_source',suff], 'source', 'trialinfo', rootdir);  
 end
 if dovox,
-  freq   = mous_db_getdata(subjectname, ['meg_bfica_freq',suff],   rootdir);
-  source = mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff],   rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
   sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedata',suff], 'sourcedata', rootdir);
 end
@@ -70,47 +73,96 @@ if dosentvsseq,
 %   mous_db_putdata(subjectname, 'meg_bfica_sourcedatasentseq', tlcksent, tlckseq, rootdir);
 
   toi        = -0.2:0.05:0.8;
-  sourcedata = mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
-  source     = mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
-  krn        = compute_kernel(source);
-  [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
-  sourcedata.trialinfo = trialinfo;
-  sourcedata.trial     = trial;
-  sourcedata.time      = time;
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
+  %krn        = compute_kernel(source);
+  %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  
+  % match the trials with the trialinfo from the sourcedata file
+  [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
+  % chop until word offset minus half a time window for the spectral analysis
+  % FIXME
+  
+  sourcedata.trialinfo = trialinfonew(ia,:);
+  sourcedata.trial     = trial(ia);
+  sourcedata.time      = time(ia);
   [tlcksent, tlckseq] = mous_makecontrast(sourcedata, 'sent-seq');
   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff], 'tlcksent', 'tlckseq', rootdir);
 
 end  
 
-if dowordsentpar,
+% if dowordsentpar,
+%   toi        = -0.2:0.05:0.8;
+%   sourcedata = mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+%   source     = mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
+%   krn        = compute_kernel(source);
+%   [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+%   sourcedata.trialinfo = trialinfo;
+%   sourcedata.trial     = trial;
+%   sourcedata.time      = time;
+%   [tlck,stat,stat2]    = mous_makecontrast(sourcedata, 'wordsent_parametric');
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordsentpar',suff], 'tlck', 'stat', 'stat2', rootdir);
+% end
+% if dowordseqpar,
+%   toi        = -0.2:0.05:0.8;
+%   sourcedata = mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+%   source     = mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
+%   krn        = compute_kernel(source);
+%   [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+%   sourcedata.trialinfo = trialinfo;
+%   sourcedata.trial     = trial;
+%   sourcedata.time      = time;
+%   [tlck,stat,stat2]    = mous_makecontrast(sourcedata, 'wordseq_parametric');
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordseqpar',suff], 'tlck', 'stat', 'stat2', rootdir);
+% end
+if dowordsentpar2,
   toi        = -0.2:0.05:0.8;
-  sourcedata = mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
-  source     = mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
   krn        = compute_kernel(source);
   [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
   sourcedata.trialinfo = trialinfo;
   sourcedata.trial     = trial;
   sourcedata.time      = time;
+  sourcedata.fsample   = 1;
+
+  for k = 1:numel(sourcedata.trial)
+    ix = nearest(sourcedata.time{k}, 0.3);
+    iy = nearest(sourcedata.time{k}, 0.5);
+    sourcedata.trial{k} = nanmean(sourcedata.trial{k}(:,ix:iy),2);
+    sourcedata.time{k}  = nanmean(sourcedata.time{k}(ix:iy),2);
+  end
+  
   [tlck,stat,stat2]    = mous_makecontrast(sourcedata, 'wordsent_parametric');
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordsentpar',suff], 'tlck', 'stat', 'stat2', rootdir);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordsentpar2',suff], 'tlck', 'stat', 'stat2', rootdir);
 end
-if dowordseqpar,
+if dowordseqpar2,
   toi        = -0.2:0.05:0.8;
-  sourcedata = mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
-  source     = mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
   krn        = compute_kernel(source);
   [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
   sourcedata.trialinfo = trialinfo;
   sourcedata.trial     = trial;
   sourcedata.time      = time;
+  sourcedata.fsample   = 1;
+
+  for k = 1:numel(sourcedata.trial)
+    ix = nearest(sourcedata.time{k}, 0.3);
+    iy = nearest(sourcedata.time{k}, 0.5);
+    sourcedata.trial{k} = nanmean(sourcedata.trial{k}(:,ix:iy),2);
+    sourcedata.time{k}  = nanmean(sourcedata.time{k}(ix:iy),2);
+  end
+ 
   [tlck,stat,stat2]    = mous_makecontrast(sourcedata, 'wordseq_parametric');
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordseqpar',suff], 'tlck', 'stat', 'stat2', rootdir);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordseqpar2',suff], 'tlck', 'stat', 'stat2', rootdir);
 end
 
 if sourcedata2avgword
   toi        = -0.2:0.05:0.8;
-  sourcedata = mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
-  source     = mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source',suff],     rootdir);
   krn        = compute_kernel(source);
   [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
   for k = 1:numel(trial)
@@ -143,30 +195,37 @@ end
 
 
 % group statistics
-if 0
+if 1
   rootdir = '/home/language/jansch/public/mous';
   subj    = mous_db_getfilename('all', 'subjectname');
   [f,s]   = mous_db_getfilename(subj, ['meg_bfica_sourcedatasentseq',suff], 0, rootdir);
   subj    = subj(s);
   Nsubj   = numel(subj);
   
+  load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
+
   for k = 1:numel(subj)
+    clear tlcksent tlckseq
     mous_db_getdata(subj{k}, ['meg_bfica_sourcedatasentseq',suff], rootdir);
     mous_db_getdata(subj{k}, ['meg_bfica_source',suff],            rootdir);
     
     source.time = tlckseq.time;
     source      = rmfield(source, 'freq');
-    source.avg.pow = tlckseq.avg;
+    %source.avg.pow = tlckseq.avg;
+    source.avg.pow = log10(tlckseq.avg);
+    
     seq{k}      = source;
-    source.avg.pow = tlcksent.avg;
+    %source.avg.pow = tlcksent.avg;
+    source.avg.pow = log10(tlcksent.avg);
+    
     sent{k}     = source;
   end
   
   for k = 1:numel(subj)
-    seq{k}.avg.pow  = seq{k}.avg.pow  - mean(seq{k}.avg.pow(:));
-    sent{k}.avg.pow = sent{k}.avg.pow - mean(sent{k}.avg.pow(:));
-    seq{k}.pos = seq{1}.pos;
-    sent{k}.pos = sent{1}.pos;
+    seq{k}.avg.pow  = seq{k}.avg.pow;%  - mean(seq{k}.avg.pow(:));
+    sent{k}.avg.pow = sent{k}.avg.pow;% - mean(sent{k}.avg.pow(:));
+    seq{k}.pos  = grid.pos;
+    sent{k}.pos = grid.pos;
   end
   
   % the pow is only defined on the insides, ft_sourcestatistics expects all
@@ -187,13 +246,44 @@ if 0
   cfg.design    = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
   cfg.ivar      = 1;
   cfg.uvar      = 2;
-  cfg.numrandomization = 500;
+  cfg.numrandomization = 0;
+  cfg.parameter = 'avg.pow';
+  stattime = ft_sourcestatistics(cfg, sent{:}, seq{:});
+  senttime = sent;
+  seqtime  = seq;
+  
+  ix = nearest(sent{1}.time, 0.3);
+  iy = nearest(sent{1}.time, 0.5);
+  for k = 1:numel(sent)
+    sent{k}.avg.pow = nanmean(sent{k}.avg.pow(:,ix:iy),2); sent{k}.avg.pow = sent{k}.avg.pow - nanmean(sent{k}.avg.pow(sent{k}.inside));
+    seq{k}.avg.pow  = nanmean(seq{k}.avg.pow(:,ix:iy),2);  seq{k}.avg.pow  = seq{k}.avg.pow  - nanmean(seq{k}.avg.pow(seq{k}.inside));
+    sent{k}.time    = nanmean(sent{k}.time(ix:iy));
+    seq{k}.time     = nanmean(seq{k}.time(ix:iy));
+  end
+  
+  cfg           = [];
+  cfg.method    = 'montecarlo';
+  cfg.statistic = 'depsamplesT';
+  cfg.design    = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
+  cfg.ivar      = 1;
+  cfg.uvar      = 2;
+  cfg.numrandomization = 5000;
   cfg.parameter = 'avg.pow';
   cfg.correctm  = 'cluster';
   cfg.clusterthreshold = 'nonparametric_common';
-  stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
-  i1   = mous_bfica_sourceinterpolate(stat, 'stat');
-  iprob = mous_bfica_sourceinterpolate(stat, 'prob');
+  cfg.clusteralpha = 0.001;
+  stat  = ft_sourcestatistics(cfg, sent{:}, seq{:});
+  if ndims(stat.stat)>2
+    stat.stat=stat.stat(:);
+    stat.prob=stat.prob(:);
+    stat.mask=stat.mask(:);
+  end
+  i1    = mous_bfica_sourceinterpolate(stat, 'stat', stat.inside);
+  iprob = mous_bfica_sourceinterpolate(stat, 'prob', stat.inside);
+  imask = mous_bfica_sourceinterpolate(stat, 'mask', stat.inside);
+  i1.coordsys = 'spm';
+  i1.mask     = imask.avg.pow;
+  i1.prob     = iprob.avg.pow;
 end
 
 % group statistics
@@ -280,12 +370,12 @@ end
 if 0
   rootdir = '/home/language/jansch/public/mous';
   subj    = mous_db_getfilename('all', 'subjectname');
-  [f,s]   = mous_db_getfilename(subj, ['meg_bfica_sourcedatawordseqpar',suff], 0, rootdir);
+  [f,s]   = mous_db_getfilename(subj, ['meg_bfica_sourcedatawordseqpar2',suff], 0, rootdir);
   subj    = subj(s);
   Nsubj   = numel(subj);
   
   for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatawordseqpar',suff], rootdir);
+    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatawordseqpar2',suff], rootdir);
     mous_db_getdata(subj{k}, ['meg_bfica_source',suff],            rootdir);
     
     source.time = stat.time;
@@ -297,7 +387,7 @@ if 0
   end
   data2 = data;
   for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatawordsentpar',suff], rootdir);
+    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatawordsentpar2',suff], rootdir);
     mous_db_getdata(subj{k}, ['meg_bfica_source',suff],            rootdir);
     
     source.time = stat.time;
@@ -314,11 +404,21 @@ if 0
   cfg.design    = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
   cfg.ivar      = 1;
   cfg.uvar      = 2;
-  cfg.numrandomization = 0;
+  cfg.numrandomization = 2000;
   cfg.parameter = 'avg.pow';
-  cfg.correctm  = 'no';%'cluster';
+  cfg.correctm  = 'cluster';
   cfg.clusterthreshold = 'nonparametric_common';
+  cfg.clusteralpha = 0.01;
   stat = ft_sourcestatistics(cfg, data{:}, data2{:});
-  i1   = mous_bfica_sourceinterpolate(stat, 'stat');
-  
+  if ndims(stat.stat)>2
+    stat.stat=stat.stat(:);
+    stat.prob=stat.prob(:);
+    stat.mask=stat.mask(:);
+  end
+  i1    = mous_bfica_sourceinterpolate(stat, 'stat', stat.inside);
+  iprob = mous_bfica_sourceinterpolate(stat, 'prob', stat.inside);
+  imask = mous_bfica_sourceinterpolate(stat, 'mask', stat.inside);
+  i1.coordsys = 'spm';
+  i1.mask     = imask.avg.pow;
+  i1.prob     = iprob.avg.pow;
 end
