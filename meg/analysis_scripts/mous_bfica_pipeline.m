@@ -1,23 +1,25 @@
 
 dodss    = false;
 dofreq   = false;
-dosource = false;
-dovox    = false;
-doica    = false;
-dosourcedss = false;
-dosentvsseq = false;
-dowordsentpar = false;
-dowordseqpar  = false;
-sourcedata2avgword = false;
+dofreqbaseline = false;
+dosource       = 0;
+dovox          = 0;
+dovoxbaseline  = false;
+doica          = false;
+dosourcedss    = false;
+dosentvsseq    = 0;
+dowordsentpar  = false;
+dowordseqpar   = false;
+sourcedata2avgword = 0;
 
-dowordsentpar2 = false;
-dowordseqpar2  = false;
+dowordsentpar2 = 0;
+dowordseqpar2  = 0;
 
 rootdir  = '/home/language/jansch/public/mous/';
 
 % use the variable suff and frequency to toggle between different frequency bands
-suff      = '';
-frequency = 20;
+suff      = '5';
+frequency = 5;
 
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
@@ -49,6 +51,12 @@ if dofreq,
 %   freq   = mous_bfica_freq(subjectname, 70, rootdir, options);
 %   mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
 end
+if dofreqbaseline,
+  options.taper = 'dpss';
+  options.tapsmofrq = 4;
+  freq = mous_bfica_freqbaseline(subjectname, rootdir, options);
+  mous_db_putdata(subjectname, 'meg_bfica_freqbaseline', 'freq', rootdir);
+end
 if dosource,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   [source, trialinfo] = mous_bfica_source(subjectname, freq);
@@ -59,6 +67,12 @@ if dovox,
   mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
   sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedata',suff], 'sourcedata', rootdir);
+end
+if dovoxbaseline,
+  mous_db_getdata(subjectname, 'meg_bfica_freqbaseline', rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
+  sourcedata = mous_bfica_sourcedatabaseline(source, freq, frequency);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatabaseline',suff], 'sourcedata', rootdir);
 end
 if dosentvsseq,
 %   toi        = -0.2:0.05:0.8;
@@ -129,7 +143,7 @@ if dowordsentpar2,
 
   for k = 1:numel(sourcedata.trial)
     ix = nearest(sourcedata.time{k}, 0.3);
-    iy = nearest(sourcedata.time{k}, 0.5);
+    iy = nearest(sourcedata.time{k}, 0.6);
     sourcedata.trial{k} = nanmean(sourcedata.trial{k}(:,ix:iy),2);
     sourcedata.time{k}  = nanmean(sourcedata.time{k}(ix:iy),2);
   end
@@ -150,7 +164,7 @@ if dowordseqpar2,
 
   for k = 1:numel(sourcedata.trial)
     ix = nearest(sourcedata.time{k}, 0.3);
-    iy = nearest(sourcedata.time{k}, 0.5);
+    iy = nearest(sourcedata.time{k}, 0.6);
     sourcedata.trial{k} = nanmean(sourcedata.trial{k}(:,ix:iy),2);
     sourcedata.time{k}  = nanmean(sourcedata.time{k}(ix:iy),2);
   end
@@ -195,7 +209,7 @@ end
 
 
 % group statistics
-if 1
+if 0
   rootdir = '/home/language/jansch/public/mous';
   subj    = mous_db_getfilename('all', 'subjectname');
   [f,s]   = mous_db_getfilename(subj, ['meg_bfica_sourcedatasentseq',suff], 0, rootdir);
@@ -204,7 +218,13 @@ if 1
   
   load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
 
-  for k = 1:numel(subj)
+   
+  for k = 1:Nsubj
+    %mous_db_getdata(subj{k}, ['meg_bfica_sourcedatabaseline',suff], rootdir);
+    %sel = ismember(sourcedata.trialinfo(:,2), [2 6]); % 1 is sent, 0 is seq
+    %Bsent = (mean(sourcedata.trial{1}(:,sel),2));
+    %Bseq  = (mean(sourcedata.trial{1}(:,~sel),2));
+    
     clear tlcksent tlckseq
     mous_db_getdata(subj{k}, ['meg_bfica_sourcedatasentseq',suff], rootdir);
     mous_db_getdata(subj{k}, ['meg_bfica_source',suff],            rootdir);
@@ -212,32 +232,33 @@ if 1
     source.time = tlckseq.time;
     source      = rmfield(source, 'freq');
     %source.avg.pow = tlckseq.avg;
-    source.avg.pow = log10(tlckseq.avg);
+    source.avg.pow = log10(tlckseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
     
     seq{k}      = source;
     %source.avg.pow = tlcksent.avg;
-    source.avg.pow = log10(tlcksent.avg);
+    source.avg.pow = log10(tlcksent.avg);% ./ repmat(Bsent, [1 numel(tlcksent.time)]);
     
     sent{k}     = source;
   end
   
-  for k = 1:numel(subj)
-    seq{k}.avg.pow  = seq{k}.avg.pow;%  - mean(seq{k}.avg.pow(:));
-    sent{k}.avg.pow = sent{k}.avg.pow;% - mean(sent{k}.avg.pow(:));
+  for k = 1:Nsubj
+    globalpow = mean(seq{k}.avg.pow(:)+sent{k}.avg.pow(:))./2;
+    seq{k}.avg.pow  = seq{k}.avg.pow  - globalpow;
+    sent{k}.avg.pow = sent{k}.avg.pow - globalpow;
     seq{k}.pos  = grid.pos;
     sent{k}.pos = grid.pos;
   end
   
   % the pow is only defined on the insides, ft_sourcestatistics expects all
   % voxels
-  for k = 1:numel(subj)
-    tmp = zeros(prod(seq{k}.dim),numel(seq{k}.time));
-    tmp(seq{k}.inside,:) = seq{k}.avg.pow;
-    seq{k}.avg.pow = tmp;
+  for k = 1:Nsubj
+    tmp1 = zeros(prod(seq{k}.dim),numel(seq{k}.time));
+    tmp1(seq{k}.inside,:) = seq{k}.avg.pow;
+    tmp2 = zeros(prod(sent{k}.dim),numel(sent{k}.time));
+    tmp2(sent{k}.inside,:) = sent{k}.avg.pow;
     
-    tmp = zeros(prod(sent{k}.dim),numel(sent{k}.time));
-    tmp(sent{k}.inside,:) = sent{k}.avg.pow;
-    sent{k}.avg.pow = tmp;
+    seq{k}.avg.pow  = (tmp1);% - repmat(mean((tmp1),1), [size(tmp1,1) 1]);
+    sent{k}.avg.pow = (tmp2);% - repmat(mean((tmp2),1), [size(tmp1,1) 1]);
   end
   
   cfg           = [];
@@ -248,17 +269,28 @@ if 1
   cfg.uvar      = 2;
   cfg.numrandomization = 0;
   cfg.parameter = 'avg.pow';
-  stattime = ft_sourcestatistics(cfg, sent{:}, seq{:});
   senttime = sent;
   seqtime  = seq;
+%   for k = 1:Nsubj
+%     senttime{k}.avg.pow = senttime{k}.avg.pow - repmat(mean(senttime{k}.avg.pow(:,4:11),2),[1 20]);
+%     seqtime{k}.avg.pow  = seqtime{k}.avg.pow  - repmat(mean(seqtime{k}.avg.pow(:,4:11),2),[1 20]);
+%   end
+  stattime = ft_sourcestatistics(cfg, senttime{:}, seqtime{:});
+  
   
   ix = nearest(sent{1}.time, 0.3);
-  iy = nearest(sent{1}.time, 0.5);
+  iy = nearest(sent{1}.time, 0.6);
   for k = 1:numel(sent)
-    sent{k}.avg.pow = nanmean(sent{k}.avg.pow(:,ix:iy),2); sent{k}.avg.pow = sent{k}.avg.pow - nanmean(sent{k}.avg.pow(sent{k}.inside));
-    seq{k}.avg.pow  = nanmean(seq{k}.avg.pow(:,ix:iy),2);  seq{k}.avg.pow  = seq{k}.avg.pow  - nanmean(seq{k}.avg.pow(seq{k}.inside));
+    sent{k}.avg.pow = nanmean(sent{k}.avg.pow(:,ix:iy),2); 
+    seq{k}.avg.pow  = nanmean(seq{k}.avg.pow(:,ix:iy),2);  
     sent{k}.time    = nanmean(sent{k}.time(ix:iy));
     seq{k}.time     = nanmean(seq{k}.time(ix:iy));
+    
+    globalpow = nanmean(sent{k}.avg.pow(sent{k}.inside)+seq{k}.avg.pow(seq{k}.inside))./2;
+    sent{k}.avg.pow = sent{k}.avg.pow - globalpow;
+    seq{k}.avg.pow  = seq{k}.avg.pow  - globalpow;
+    %sent{k}.avg.pow = sent{k}.avg.pow - nanmean(sent{k}.avg.pow(sent{k}.inside));
+    %seq{k}.avg.pow  = seq{k}.avg.pow  - nanmean(seq{k}.avg.pow(seq{k}.inside));
   end
   
   cfg           = [];
@@ -267,11 +299,11 @@ if 1
   cfg.design    = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
   cfg.ivar      = 1;
   cfg.uvar      = 2;
-  cfg.numrandomization = 5000;
+  cfg.numrandomization = 2000;
   cfg.parameter = 'avg.pow';
   cfg.correctm  = 'cluster';
   cfg.clusterthreshold = 'nonparametric_common';
-  cfg.clusteralpha = 0.001;
+  cfg.clusteralpha = 0.005;
   stat  = ft_sourcestatistics(cfg, sent{:}, seq{:});
   if ndims(stat.stat)>2
     stat.stat=stat.stat(:);
@@ -304,6 +336,9 @@ if 0
     source.avg.pow(source.inside,:)     = stat.stat;
     data{k}      = source;
     data{k}.pos  = data{1}.pos;
+    
+    wordavg(1:size(tlck.trial,1),:,:,k) = tlck.trial;
+    
   end
   data2 = data;
   for k = 1:numel(data)
@@ -367,15 +402,15 @@ if 0
 end
 
 % group statistics
-if 0
+if 1
   rootdir = '/home/language/jansch/public/mous';
   subj    = mous_db_getfilename('all', 'subjectname');
-  [f,s]   = mous_db_getfilename(subj, ['meg_bfica_sourcedatawordseqpar2',suff], 0, rootdir);
+  [f,s]   = mous_db_getfilename(subj, ['meg_bfica_sourcedatawordseqpar',suff], 0, rootdir);
   subj    = subj(s);
   Nsubj   = numel(subj);
   
   for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatawordseqpar2',suff], rootdir);
+    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatawordseqpar',suff], rootdir);
     mous_db_getdata(subj{k}, ['meg_bfica_source',suff],            rootdir);
     
     source.time = stat.time;
@@ -384,10 +419,14 @@ if 0
     source.avg.pow(source.inside,:)     = stat.stat;
     data{k}      = source;
     data{k}.pos  = data{1}.pos;
+  
+    %wordavg(1:size(tlck.trial,1),:,:,k) = tlck.trial;  
   end
   data2 = data;
+  %wordavgseq = wordavg;
+  
   for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatawordsentpar2',suff], rootdir);
+    mous_db_getdata(subj{k}, ['meg_bfica_sourcedatawordsentpar',suff], rootdir);
     mous_db_getdata(subj{k}, ['meg_bfica_source',suff],            rootdir);
     
     source.time = stat.time;
@@ -396,6 +435,17 @@ if 0
     source.avg.pow(source.inside,:)     = stat.stat;
     data{k}      = source;
     data{k}.pos  = data{1}.pos;
+  
+    %wordavg(1:size(tlck.trial,1),:,:,k) = tlck.trial;    
+  end
+  %wordavgsent = wordavg;
+  clear wordavg;
+  
+  for k = 1:Nsubj
+    data{k}.avg.pow = mean(data{k}.avg.pow(:,10:16),2); %300 to 600
+    data2{k}.avg.pow = mean(data2{k}.avg.pow(:,10:16),2);
+    data{k}.time = 0.45;
+    data2{k}.time = 0.45;
   end
   
   cfg           = [];
