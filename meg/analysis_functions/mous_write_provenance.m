@@ -63,6 +63,9 @@ prov.Attributes.xsi_colon_noNamespaceSchemaLocation = 'mous.xsd';
 % xml = struct2xml(struct('huisdier', huisdier));
 
 struct2xml(struct('mous', prov), filename);
+cmd = ['chmod g+w ' filename, '.xml'];
+system(cmd);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
