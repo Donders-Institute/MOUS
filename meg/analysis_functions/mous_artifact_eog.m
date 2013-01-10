@@ -28,7 +28,7 @@ cfgout = ft_artifact_zvalue(cfg);
 % hEOG
 cfg.artfctdef.zvalue.channel    = {'EEG057'};
 cfg.artfctdef.zvalue.medianfilter  = 'yes';
-cfg.artfctdef.zvalue.medianfiltord = 9;
+cfg.artfctdef.zvalue.medianfiltord = 301;
 cfg.artfctdef.zvalue.absdiff       = 'yes';
 cfg.artfctdef.zvalue.bpfilter      = 'no';
 cfg.artfctdef.zvalue.demean        = 'yes';
