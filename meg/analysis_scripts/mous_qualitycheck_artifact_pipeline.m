@@ -18,7 +18,7 @@ doArtCheck  = true;
 doCompile   = true;
 
 %% Artifact Quality Check: blinks, saccades, jumps and muscle artifacts
-artFile = mous_db_getfilename(subjectname, 'meg_artifact_cfg}'); 
+artFile = mous_db_getfilename(subjectname, 'meg_artifact_cfg'); 
 if exist(artFile{1}, 'file')  % only run this script for participants whom don't yet have the pdf file generated 
     if doArtCheck
          mous_qualitycheck_artifact(subjectname);
@@ -26,9 +26,13 @@ if exist(artFile{1}, 'file')  % only run this script for participants whom don't
     %% File compilation: % make 1 pdf with all artifacts
     if doCompile
         allfiles    = cell(1,24);
-        allfiles = mous_db_getfilename(subjectname, 'meg_qualitycheck_{_qc_art}');       
-        pdfName = mous_db_getfilename(subjectname, 'meg_qualitycheck_{qc_artAll_task}');
-        mous_makePDF([pdfName{1} '.pdf'], filter); 
+        filebase    = mous_db_getfilename(subjectname, 'meg_qualitycheck_{_qc_art}');       
+        d           = dir([filebase{1}, '*']);
+        for q = 1:24
+            allfiles{q} = d(q).name;
+        end 
+        pdfName     = mous_db_getfilename(subjectname, 'meg_qualitycheck_{qc_artAll_task}');
+        mous_makePDF([pdfName{1} '.pdf'], allfiles); 
     end 
 end 
 
