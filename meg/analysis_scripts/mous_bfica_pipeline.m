@@ -17,8 +17,8 @@ dowordseqpar2 = 0;
 rootdir = '/home/language/jansch/public/mous/';
 
 % use the variable suff and frequency to toggle between different frequency bands
-suff = '5';
-frequency = 5;
+suff      = '70';
+frequency = 70;
 
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
@@ -401,7 +401,7 @@ if 0
 end
 
 % group statistics
-if 1
+if 0
   rootdir = '/home/language/jansch/public/mous';
   subj = mous_db_getfilename('all', 'subjectname');
   [f,s] = mous_db_getfilename(subj, ['meg_bfica_sourcedatawordseqpar',suff], 0, rootdir);
