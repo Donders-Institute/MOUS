@@ -41,6 +41,10 @@ switch lower(ext)
   otherwise
 end 
 
+if ~iscell(data)
+  data = {data};
+end
+
 if nargout
   if numel(data)==1
     data = data{1};
