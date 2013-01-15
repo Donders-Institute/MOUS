@@ -1,4 +1,5 @@
 function [cfgout, cfgout2] = mous_artifact_eog(filename, trl)
+
 % $Id: mous_artifact_eog.m 44 2012-05-16 10:42:21Z jansch $
 
 % vEOG
@@ -46,3 +47,4 @@ cfg.artfctdef.zvalue.custom.varargin = [];
 % cfg.artfctdef.zvalue.demean        = 'yes';
 % cfg.artfctdef.zvalue.boxcar        = 0.1;
 cfgout2                      = ft_artifact_zvalue(cfg);
+
