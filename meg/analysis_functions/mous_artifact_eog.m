@@ -1,3 +1,4 @@
+function [cfgout, cfgout2] = mous_artifact_eog(filename, trl)
 % $Id: mous_artifact_eog.m 44 2012-05-16 10:42:21Z jansch $
 
 % vEOG
