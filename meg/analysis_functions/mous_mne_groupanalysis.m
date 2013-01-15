@@ -1,4 +1,4 @@
-function stat = mous_mne_groupanalysis(subjectnames)
+function [stat GA_Sen GA_Seq] = mous_mne_groupanalysis(subjectnames)
 
 
 for k = 1:numel(subjectnames)
@@ -77,20 +77,50 @@ for k = 1:numel(subjectnames)
   dat2{k} = tmp2;
 end
 
+% if the the stat cacluation runs out memory, this intermediate data can be
+% saved and and the rest of the code run step by step
+% keyboard
+% save MOUS/meg/mne/mne37subjStatsAllwords.mat dat2 dat1 stat subjectnames
+
+
+% compute statistics
 Nsubj = numel(dat1);
 cfg           = [];
 cfg.method    = 'montecarlo';
 cfg.statistic = 'depsamplesT';
 cfg.parameter = 'avg.dspm';
 cfg.numrandomization = 1000;
-%cfg.correctm = 'cluster';
+cfg.correctm = 'cluster';
 cfg.design = [ones(1,Nsubj) 2*ones(1,Nsubj);1:Nsubj 1:Nsubj];
 cfg.ivar   = 1;
 cfg.uvar   = 2;
 stat = ft_sourcestatistics(cfg, dat1{:}, dat2{:}); 
 
 
+%compute grand averages
 
-% it is forbidden to save within a function: should be done in a script
-%mous_db_putdata('groupresults', 'meg_processed_{MNE37subj_stat_allwords20121220}',stat, subjectnames);
-%save MOUS/meg/mne/mne37subjStatsAllwords.mat stat subjectnames
+for n = 1:length(dat1)
+    if n ==1
+        temp1= dat1{1,n}.avg.dspm; 
+        temp2 = dat2{1,n}.avg.dspm;
+    else
+        temp1= temp1+dat1{1,n}.avg.dspm;
+        temp2= temp2+dat2{1,n}.avg.dspm;
+    end
+end
+
+ga_temp1 =temp1/length(dat1);
+ga_temp2 = temp2/length(dat2);
+
+% copy the other necessary field to the array from the stat array
+GA_Sen = stat;
+tmp=cell(size(GA_Sen)); [GA_Sen(:).dspm]=ga_temp1(tmp{:});
+GA_Sen.dspm = ga_temp1;
+GA_Sen = rmfield(GA_Sen, 'stat');
+
+GA_Seq = stat;
+tmp=cell(size(GA_Seq)); [GA_Seq(:).dspm]=ga_temp2(tmp{:});
+GA_Sen.dspm = ga_temp2;
+GA_Seq = rmfield(GA_Seq, 'stat');
+
+
