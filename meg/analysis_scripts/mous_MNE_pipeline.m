@@ -19,7 +19,7 @@
 % Load preprocessed rawERF for covariance matrix
 % data is filtered and artefacts are removed, all stim conditions are then
 % selected for the actual covariance matrix
-data = mous_db_getdata(subjectname, 'meg_processed_{preProcERFvisual_word_First2Last2_02-1ds}');
+data = mous_db_getdata(subjectname, 'meg_processed_{preProcERFvisual_word_all_02-1ds}');
 
 
 % include both conditions (targets only)
@@ -147,10 +147,10 @@ mous_db_putdata(subjectname, 'meg_processed_{MNE02-1ds_Allwords_Sent_20121126}',
 % % sd_Sent.pos_sur = sd_Sent.pos;
 % sd_Seq.pos = sd_Seq.pos_infl;
 % sd_Sent.pos = sd_Sent.pos_infl;
-%        figure
-%        cfg = [];
-%        cfg.funparameter = 'avg.dspm';
-%        ft_sourcemovie(cfg,sd_Sent, sd_Seq);
+%         figure
+%         cfg = [];
+%         cfg.funparameter = 'avg.dspm';
+%         ft_sourcemovie(cfg,sd_Sent, sd_Seq);
 % % % %    
 %  
 % 
