@@ -47,3 +47,4 @@ cfg.artfctdef.zvalue.custom.varargin = [];
 % cfg.artfctdef.zvalue.demean        = 'yes';
 % cfg.artfctdef.zvalue.boxcar        = 0.1;
 cfgout2                      = ft_artifact_zvalue(cfg);
+

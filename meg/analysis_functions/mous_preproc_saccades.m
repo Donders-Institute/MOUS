@@ -55,7 +55,7 @@ dattrig(sel) = datthr(sel);
 % now go back to datm and combine with info from datout to classify as
 % saccade
 %triggers     = find(dattrig);
-triggers     = find(standardise(abs(dattrig))>5);
+triggers     = find(ft_preproc_standardize(abs(dattrig))>5);
 triggerssign = sign(dattrig(triggers));
 
 datout = zeros(size(dattrig));
