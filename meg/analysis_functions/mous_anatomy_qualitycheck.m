@@ -128,6 +128,9 @@ mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg',               h7);
 figlist  = [f1;f2;f3;f4;f7];
 [p,fn,e] = fileparts(f1{1});
 pdfname  = fullfile(p,[subjectname, '_anatomy_qc.pdf']);
+if exist(pdfname)
+  keyboard;
+end
 mous_makePDF(pdfname, figlist);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
