@@ -1,4 +1,4 @@
-function [datout] = mous_preproc_saccades(dat, x)
+function [datout, Rout] = mous_preproc_saccades(dat, x)
 
 % MOUS_PREPROC_SACCADES serves the purpose as a custom function to be
 % called in preproc, in order to maximize sensitivity to the features of a
@@ -59,6 +59,7 @@ triggers     = find(standardise(abs(dattrig))>5);
 triggerssign = sign(dattrig(triggers));
 
 datout = zeros(size(dattrig));
+cnt    = 0;
 for k = 1:numel(triggers)-1
   %begsmp = max(1,triggers(k)-20);
   %endsmp = min(size(dat,2), triggers(k+1)+20);
@@ -81,6 +82,7 @@ for k = 1:numel(triggers)-1
     % rationale: if the R squared > threshold, then the data looks like a
     % step function locally
     if R>0.8
+      cnt = cnt+1;
       % refine a bit
 %       tmpbeta  = beta;
 %       Rtmp     = R;
@@ -99,9 +101,15 @@ for k = 1:numel(triggers)-1
 %       end
 %       %if triggers(k)>2000,keyboard;end 
       datout(triggers(k):triggers(k+1)) = abs(beta).*sqrt(R);
+      Rout(cnt) = R;
     end
   else
   end
 end
 
+if cnt==0
+  Rout = [];
+end
 
+% on = find(diff([0 datout 0])>0 | (diff([0 datout 0])<0 & [0 datout]>0 & [datout 0]>0));
+% off = find(diff([0 datout 0])<0 | (diff([0 datout 0])>0 & [0 datout]>0 & [datout 0]>0));
