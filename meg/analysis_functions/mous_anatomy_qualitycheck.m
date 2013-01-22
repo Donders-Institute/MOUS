@@ -129,7 +129,8 @@ figlist  = [f1;f2;f3;f4;f7];
 [p,fn,e] = fileparts(f1{1});
 pdfname  = fullfile(p,[subjectname, '_anatomy_qc.pdf']);
 if exist(pdfname)
-  keyboard;
+  c = clock;
+  pdfname = fullfile(p,[subjectname,'_anatomy_qc_',sprintf('%d%02d%02d',c(1),c(2),c(3)),'.pdf']);
 end
 mous_makePDF(pdfname, figlist);
 
