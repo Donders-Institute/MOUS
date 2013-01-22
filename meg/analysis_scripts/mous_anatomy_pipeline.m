@@ -14,6 +14,8 @@ if ~exist('dosourcemodel2d',  'var'), dosourcemodel2d  = true;  end
 if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = true;  end
 if ~exist('doqualitycheck',   'var'), doqualitycheck   = true;  end
 
+if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.5; end
+
 %% Coregister to MNI coordinate system
 if docoregistration
   % FIXME Subject V1048 has an issue with the FOV, use (hardcoded) another nifti
@@ -69,7 +71,7 @@ end
 if doheadmodel
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri.coordsys = 'ctf';
-  vol = mous_anatomy_headmodel(mri);
+  vol = mous_anatomy_headmodel(mri, thr_headmodel);
   mous_db_putdata(subjectname, 'meg_anatomy_headmodel', 'vol');
 end
 

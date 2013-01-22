@@ -5,6 +5,7 @@ dosource = 0;
 dovox = 0;
 dovoxbaseline = false;
 doica = false;
+doccc = 1;
 dosourcedss = false;
 dosentvsseq = 0;
 dowordsentpar = false;
@@ -17,8 +18,8 @@ dowordseqpar2 = 0;
 rootdir = '/home/language/jansch/public/mous/';
 
 % use the variable suff and frequency to toggle between different frequency bands
-suff      = '70';
-frequency = 70;
+suff      = '';
+frequency = 20;
 
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
@@ -196,6 +197,14 @@ if dosourcedss,
   comp = mous_bfica_sourcedatadss(subjectname, rootdir);
   mous_db_putdata(subjectname, 'meg_bfica_sourcedatadss', 'comp', rootdir);
 end
+if doccc,
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
+  [cohsent, cohseq] = mous_bfica_ccc(source, freq);
+  mous_db_putdata(subjectname, ['meg_bfica_ccc',suff], 'cohsent', 'cohseq', rootdir);
+end
+
+  
 
 %
 % % do ica -> can this be done on single subject if sufficient data is
