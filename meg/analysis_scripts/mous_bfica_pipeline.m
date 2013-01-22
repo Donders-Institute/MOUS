@@ -471,3 +471,4 @@ if 0
   i1.mask = imask.avg.pow;
   i1.prob = iprob.avg.pow;
 end
+'
