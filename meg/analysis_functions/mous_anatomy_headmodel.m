@@ -13,7 +13,7 @@ end
 cfg = [];
 cfg.output = 'brain';
 cfg.brainthreshold = thr;
-seg = ft_volumesegment([], mri);
+seg = ft_volumesegment(cfg, mri);
 
 % create the vol
 cfg = [];
