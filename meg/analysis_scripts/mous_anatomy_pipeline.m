@@ -4,7 +4,6 @@
 % $Id: mous_anatomy_pipeline.m 31 2012-03-30 18:12:08Z jansch $
 
 %% Set subject, input & output dirs
-subjectname = 'V1048'; % if running from the middle you need this
 %mous_db_makesubjdir(subjectname);
 
 if ~exist('docoregistration', 'var'), docoregistration = false; end
@@ -86,12 +85,35 @@ if dosourcemodel2d
   % run the first part of the freesurfer pipeline
   system([p,'/freesurferscript1.sh ',subjdirfs,' ',subjectname]);
    
-  % At this stage have a look at the brainmasked anatomy in matlab to see whether
-  % it is a problematic one. If this is the caes, check the brainmask in
-  % tkmedit, and edit if necessary. Instructions for tkmedit in
-  %
-  % FIXME: once edited, the information needs to be transported to the
-  % _mask image!!!
+  % At this stage have a look at the wm.mgz in matlab to see whether
+  % it is a problematic one. Most problems arise downstream in the analysis
+  % pipeline when large slabs of dura have not been removed.
+  % If there is a generous amount of dura, and if it is close to the cortex
+  % the wm.mgz needs to be manually edited. This can be done in tkmedit,
+  % but since 20130125 also in matlab, using mous_volumeedit.
+  
+  % check wm.mgz
+  wm = ft_read_mri(fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm.mgz'));
+  
+  cfg             = [];
+  cfg.interactive = 'yes';
+  figure;ft_sourceplot(cfg, wm);
+  
+  doedit = 0; % change this to 1 if needed
+  if doedit
+    wmfilename    = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm.mgz');
+    wmfilenameold = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm_old.mgz');
+    system(['cp ',wmfilename,' ',wmfilenameold]);
+    
+    % here the editing takes place
+    wm = mous_volumeedit(wm);
+    
+    cfg = [];
+    cfg.parameter = 'anatomy';
+    cfg.filetype  = 'mgz';
+    cfg.filename  = wmfilename;
+    ft_volumewrite(cfg, wm);
+  end
   
   % run the second part of the freesurfer pipeline
   system([p,'/freesurferscript2.sh ',subjdirfs,' ',subjectname]);

@@ -5,7 +5,18 @@ export SUBJECTS_DIR=$1
 
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
-recon-all -autorecon2 -subjid $2
+# rest of autorecon2
+#recon-all -autorecon2 -subjid $2
+recon-all -fill -subjid $2
+recon-all -tessellate -subjid $2
+recon-all -smooth1 -subjid $2
+recon-all -inflate1 -subjid $2
+recon-all -qsphere -subjid $2
+recon-all -fix -subjid $2
+recon-all -white -subjid $2
+recon-all -smooth2 -subjid $2
+recon-all -inflate2 -subjid $2
+
 recon-all -autorecon3 -subjid $2
 
 #recon-all -gcareg -subjid $2
