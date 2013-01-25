@@ -1,4 +1,3 @@
-
  function mous_db_putdata(subject, type, varargin)
 
 % MOUS_DB_PUTDATA saves data from specified subject and type to 
