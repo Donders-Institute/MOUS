@@ -118,9 +118,9 @@ else
 
   [p,n,e] = fileparts(filename_c9e61b166b);
   if ~isempty(e)
-    cmd = ['chmod g+w ' filename_c9e61b166b];
+    cmd = ['chmod 774 ' filename_c9e61b166b];
   else
-    cmd = ['chmod g+w ' filename_c9e61b166b, '.mat'];
+    cmd = ['chmod 774 ' filename_c9e61b166b, '.mat'];
   end
   system(cmd);
 end
