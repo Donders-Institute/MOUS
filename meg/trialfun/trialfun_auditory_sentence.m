@@ -10,7 +10,10 @@ function [trl] = trialfun_auditory_sentence(cfg)
 % timepoint zero is the speech onset of the first word!
 % 
 % the trl-matrix has 6 columns:
-%   column 1: begin sample: speech onset of first word 
+%   column 1: begin sample: speech onset of first word - offset of 500ms
+%             this is the auditory version of the begsmp in the visual
+%             version
+%   Offset allows for pre-sent/seq baseline
 %   column 2: end sample, offset of audiofile 
 %             Can change to: (1) offset of last speech word, (2) onset of
 %             fixation cross
@@ -58,9 +61,8 @@ for k = 1:numel(selfix)-1
     trg1 = tmpval(kk);
     % trg2 = tmpval(kk+1);  no offset
     if trg1 == 1 || trg1 == 3 || trg1 == 5 || trg1 == 7  % && trg2==15
-      offset = min(1200,tmpsmp(kk)-fixsmp);
-      strtsmp = tmpsmp(kk);  % first word speech onset == time point 0
-      bslsmp  = tmpsmp(kk)-1200; % 1s before speech onset of first word = onset of baseline
+      offset = min(600,tmpsmp(kk)-fixsmp);
+      begsmp = tmpsmp(kk) - offset;  % first word speech onset == time point 0  
       break;    
     end    
   end
@@ -70,8 +72,7 @@ for k = 1:numel(selfix)-1
   critsmp   = [];
   for kk = 1:numel(tmpval)-1  % need -1 otherwise it counts the following fixation-cross' trigger
     trg1 = tmpval(kk);
-    % trg2 = tmpval(kk+1);  % <- doesn't apply no single word offset present
-    if trg1<=8 && mod(trg1,2)==0  %  && trg2==15 
+    if trg1<=8 && mod(trg1,2)==0 
       condition = trg1;
       critsmp   = tmpsmp(kk);
       break;
@@ -95,7 +96,7 @@ for k = 1:numel(selfix)-1
   
   %%
   %tmp = [fixsmp endsmp -offset k condition critsmp-offset-fixsmp]; % visual stimuli
-  tmp = [strtsmp endsmp -offset k condition critsmp-offset-strtsmp];
+  tmp = [begsmp endsmp -offset k condition critsmp-offset-begsmp];
   trl = cat(1,trl,tmp);
 
 end
