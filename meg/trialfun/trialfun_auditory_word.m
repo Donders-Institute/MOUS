@@ -7,7 +7,8 @@ function [trl] = trialfun_auditory_word(cfg)
 %   cfg.dataset = string, name of the dataset
 %
 % the trl-matrix has 6 columns:
-%   column 1: begin sample of word: speech word onset trigger - 200ms  (WHY?)
+%   column 1: begin sample of word: speech word onset trigger - 500ms.
+%    Offset allows for pre-sent/seq baseline
 %   column 2: end sample of word + 800 ms, or next word onset
 %             trigger, whichever occurs first.
 %   column 3: offset of first sample with respect to time point 0
@@ -17,7 +18,7 @@ function [trl] = trialfun_auditory_word(cfg)
 %   column 7: number of samples between word on and offset
 %   column 8: wordcount 
 
-prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.3);
+prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.5);
 poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
 
 % read in event information
