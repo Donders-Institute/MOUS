@@ -7,7 +7,7 @@ function [trl] = trialfun_visual_word(cfg)
 %   cfg.dataset = string, name of the dataset
 %
 % the trl-matrix has 6 columns:
-%   column 1: begin sample, word onset trigger - 200 ms.
+%   column 1: begin sample, word onset trigger - 500 ms.
 %   column 2: end sample, onset of word + 800 ms, or next word onset
 %             trigger, whichever occurs first.
 %   column 3: offset of first sample with respect to time point 0
@@ -20,8 +20,8 @@ prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.3);
 poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
 
 % read in event information
-hdr   = ft_read_header(cfg.dataset);   % if running code locally, change to "cfg.dataset{1}"
-event = ft_read_event(cfg.dataset);
+hdr   = ft_read_header(cfg.dataset{1});   % if running code locally, change to "cfg.dataset{1}"
+event = ft_read_event(cfg.dataset{1});
 
 % select the UPPT001 events
 type = {event.type};
