@@ -21,8 +21,8 @@ function [trl] = trialfun_baseline(cfg)
 % $Id: trialfun_visual_sentence.m 39 2012-05-08 11:12:46Z jansch $
 
 % read in event information
-hdr   = ft_read_header(cfg.dataset{1});  % ***remove {1} when done testing within function ***
-event = ft_read_event(cfg.dataset{1});
+hdr   = ft_read_header(cfg.dataset);  % ***remove {1} when done testing within function ***
+event = ft_read_event(cfg.dataset);
 
 % select the UPPT001 events
 type = {event.type};
@@ -56,9 +56,8 @@ for k = 1:numel(selfix)-1
   for kk = 1:numel(tmpval)
     trg1 = tmpval(kk);
     if trg1 == 1 || trg1 == 3 || trg1 == 5 || trg1 == 7  % && trg2==15
-      offset = 0;
-      start = 1200;
-      begsmp = tmpsmp(kk) - start;  % first word speech onset == time point 0  
+      offset = 1200;
+      begsmp = tmpsmp(kk) - offset;  % first word speech onset == time point 0  
       endsmp = tmpsmp(kk);
       fstwrd = trg1;
       break;    
