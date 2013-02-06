@@ -14,9 +14,9 @@ doERFshort  = true;
     filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
 
     % get the description of the artifacts
-    tmp = mous_db_getdata(subjectname, 'meg_artifactcfg');
+    tmp = mous_db_getdata(subjectname, 'meg_artifact_cfg');
     
-    wordType = 'First2Last2';   % all words in a  sentence / sequence
+    wordType = 'all';   % all words in a  sentence / sequence
         % other options:
         % ;'all' 'target'; 'tarplusOne'; 'tarplusTwo';
         % to be implemented: 'nouns'; 'verbs' ; firstWord etc
@@ -70,7 +70,7 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.5);
     
     % save preprocessed data
-    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '05-3ds}'], 'data');
+    mous_db_putdata(subjectname, ['meg_processed_{preProcERF' trialfun wordType '05-3ds}'], 'data');
     
     end
 
@@ -91,6 +91,6 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.2);
     
     % save preprocessed data  
-    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '02-1ds}'], 'data');
+    mous_db_putdata(subjectname, ['meg_processed_{preProcERF' trialfun wordType '02-1ds20130206}'], 'data');
     end
 
