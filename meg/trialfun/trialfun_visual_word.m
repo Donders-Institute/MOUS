@@ -20,8 +20,8 @@ prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.3);
 poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
 
 % read in event information
-hdr   = ft_read_header(cfg.dataset{1});   % if running code locally, change to "cfg.dataset{1}"
-event = ft_read_event(cfg.dataset{1});
+hdr   = ft_read_header(cfg.dataset);   % if running code locally, change to "cfg.dataset{1}"
+event = ft_read_event(cfg.dataset);
 
 % select the UPPT001 events
 type = {event.type};
