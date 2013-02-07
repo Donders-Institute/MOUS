@@ -14,14 +14,14 @@ doERFshort  = true;
     filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
 
     % get the description of the artifacts
-    tmp = mous_db_getdata(subjectname, 'meg_artifactcfg');
+    tmp = mous_db_getdata(subjectname, 'meg_artifact_cfg');
     
-    wordType = 'First2Last2';   % all words in a  sentence / sequence
+    wordType = 'all';   % all words in a  sentence / sequence
         % other options:
         % ;'all' 'target'; 'tarplusOne'; 'tarplusTwo';
         % to be implemented: 'nouns'; 'verbs' ; firstWord etc
 
-    trialfun =  'visual_word';       % onset of each word (but not fixation cross)
+    trialfun =  'auditory_word';       % onset of each word (but not fixation cross)
     %           'visual_sentence';   % onset of fixation cross until offset of last word (marks target word type; can also retrieve first word info but not in default trl)
          
 
@@ -32,12 +32,12 @@ doERFshort  = true;
      if doTFR || doERFlong 
          
     % define long time window
-    prestim = 0.5;  % X seconds prior to chosen event of interest
+    prestim = 0.5;  % default for auditory trialfuns is 0.5;
     poststim = 3.0;
     
     % define trial window 
     [trl] = mous_defineTrial(filename{1}, prestim, poststim, wordType, trialfun); 
-         
+             
     % remove the artifacts that have been defined/detected
     [trl] = mous_artifact_remove(trl, filename{1}, tmp);   
      end
@@ -52,7 +52,7 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'TFR');
   
     %save preprocessed data 
-    mous_db_putdata(subjectname, ['meg_processed_{preProcTFR' trialfun '_' wordType '05-3ds}'], 'data');
+    mous_db_putdata(subjectname, ['meg_processed_{_preprocTFR' trialfun '_' wordType '05-3ds}'], 'test');
     
     % go to TFR pipeline: "mous_tfr_pipline" 
     
@@ -70,7 +70,7 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.5);
     
     % save preprocessed data
-    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '05-3ds}'], 'data');
+    mous_db_putdata(subjectname, ['meg_processed_{_preprocERF' trialfun wordType '05-3ds}'], 'data');
     
     end
 
@@ -91,6 +91,6 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.2);
     
     % save preprocessed data  
-    mous_db_putdata(subjectname, ['meg_processed_{TESTpreProcERF' trialfun wordType '02-1ds}'], 'data');
+    mous_db_putdata(subjectname, ['meg_processed_{_preprocERF' trialfun wordType '02-1ds}'], 'data');
     end
 
