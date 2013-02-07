@@ -1,7 +1,19 @@
 function [cohsent, cohseq] = mous_bfica_ccc(source, freq, varargin)
 
+addpath('/home/language/jansch/projects/ccc_new');
+
 refindx = ft_getopt(varargin, 'refindx', 1:numel(source.inside));
-freq    = mtmconvol2mtmfft(freq, []);
+if isfield(freq, 'time') && numel(freq.time)>1
+  freq    = mtmconvol2mtmfft(freq, []);
+end
+
+% orient the leadfields
+if isfield(source,'avg') && isfield(source.avg,'ori')
+for k = 1:numel(source.inside)
+  indx = source.inside(k);
+  source.leadfield{indx} = source.leadfield{indx}*source.avg.ori{indx};
+end
+end
 
 sel1    = find(ismember(freq.trialinfo(:,2), [1 2 5 6]));
 sel2    = find(ismember(freq.trialinfo(:,2), [3 4 7 8]));
@@ -23,9 +35,22 @@ cohseq  = estimate_nullcoh3(source, tmp, 'refindx', refindx);
 cohsent.inside  = source.inside;
 cohsent.outside = source.outside;
 cohsent.dim     = source.dim;
-cohsent.fwhm    = source.fwhm;
 
 cohseq.inside  = source.inside;
 cohseq.outside = source.outside;
 cohseq.dim     = source.dim;
-cohseq.fwhm    = source.fwhm;
+
+if isfield(source, 'fwhm')
+  cohsent.fwhm   = source.fwhm;
+  cohseq.fwhm    = source.fwhm;
+end
+
+krn = compute_kernel(source);
+cohsent.coh = single(krn'*double(abs(cohsent.coh)));%*krn);
+cohsent.w12 = single(krn'*double(abs(cohsent.w12)));%*krn);
+%cohsent     = rmfield(cohsent, 'w12');
+
+cohseq.coh = single(krn'*double(abs(cohseq.coh)));%*krn);
+cohseq.w12 = single(krn'*double(abs(cohseq.w12)));%*krn);
+%cohseq     = rmfield(cohseq, 'w12');
+

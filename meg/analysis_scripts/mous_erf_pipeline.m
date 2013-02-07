@@ -6,8 +6,7 @@ function mous_erf_pipeline(subjectname, length, wordType)
 
 %% Paramters
 % Window length: long/short
-% data: target word, tarplus1, nouns...
-
+% wordType = target/ allWords
 if strcmp(length, 'short')
   inputdata = 'meg_processed_{_preprocERFauditory_wordall02-1ds}';
   outputdata = 'meg_processed_{_erf_Firstword_02-1ds';
@@ -40,7 +39,7 @@ cfgplanar.neighbours   = ft_prepare_neighbours(cfg_neighb, data);
 if strcmp(wordType, 'target')
     sel1 = find(data.trialinfo(:,2)==2 | data.trialinfo(:,2)==6);   % sentences target word
     sel2 = find(data.trialinfo(:,2)==4 | data.trialinfo(:,2)==8);   % sequences target word
-elseif strcmp(wordType,'nonTarWord')  % all words in the sentence
+elseif strcmp(wordType,'allWords')  % all words in the sentence
     sel1 = find(data.trialinfo(:,2)==1 | data.trialinfo(:,2)==5);   
     sel2 = find(data.trialinfo(:,2)==3 | data.trialinfo(:,2)==7);  
 end
@@ -77,6 +76,8 @@ seqWord_PG           = ft_timelockanalysis(cfg2, data);
 cfg                 = [];  
 cfg.baseline        = [baseln 0];
 cfg.channel          = 'MEG';
+
+cfg.trackcallinfo = 'no';
 senWord_PG           = ft_timelockbaseline(cfg, senWord_PG);
 seqWord_PG           = ft_timelockbaseline(cfg, seqWord_PG);
 
@@ -93,7 +94,11 @@ outname = strcat(outputdata, '-pg}');
 mous_db_putdata(subjectname, outname, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG');
  
 %% Write number of accepted trials into text file
+<<<<<<< HEAD
 txtfile = sprintf('/home/language/annhul/MOUS/meg/%s/MeanNumAvgTrials%s_%s.txt',subjectname, outputdata(16:23), date);
+=======
+txtfile = sprintf('/home/language/annhul/MOUS/MeanNumAvgTrials_%s_%s.txt',outputdata(16:22), date);
+>>>>>>> 9c7d59defffa7fcef05830edcefb91819553d461
 fid = fopen(txtfile, 'a');
 
 fprintf(fid, '%s %s SenWord mean:\t%d\t SD:\t%1.1f \tSeqWord mean:\t%d\t SD:\t%1.1f \n', ...

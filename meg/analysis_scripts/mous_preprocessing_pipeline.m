@@ -71,7 +71,6 @@ doERFshort  = true;
     
     % save preprocessed data
     mous_db_putdata(subjectname, ['meg_processed_{_preprocERF' trialfun wordType '05-3ds}'], 'data');
-    
     end
 
     %% short time window
