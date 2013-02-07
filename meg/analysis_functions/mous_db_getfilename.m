@@ -219,9 +219,9 @@ switch type{2}
         end
       case 'sourcemodel3D'
         if numel(type)==3, type{4} = ''; end
-        d = dir([D subject 'sourcemodel3D' type{4} '.*']);
+        d = dir([D subject 'sourcemodel3D' type{4} '.mat']);
         if isempty(d)
-          d(1).name = [subject 'sourcemodel3D' type{4}];
+          d(1).name = [subject 'sourcemodel3D' type{4},'.mat'];
         end
       case 'figure'
         d = dir([D subject 'figure_' type{4} '.png']);

@@ -1,7 +1,7 @@
-function [stat GA_Sen GA_Seq] = mous_mne_groupanalysis(subjectnames)
+function [stat, GA_Sen, GA_Seq] = mous_mne_groupanalysis(subjectnames)
 
 
-for k = 1:numel(subjectnames)
+for k = 8:numel(subjectnames)
   %tmp = mous_db_getdata(subjectnames{k}, 'meg_processed_{MNE02-1ds}');
   % assume the file to contain sd1 and sd2 variables 
   tmp  = mous_db_getdata(subjectnames{k},'meg_mne_{MNE02-1ds_Allwords_Sent_20121126}');
@@ -24,12 +24,23 @@ for k = 1:numel(subjectnames)
   
   % subselect time
   tim1 = nearest(s1.time, -0.1);
+  tim0 = nearest(s1.time, 0);
   tim2 = nearest(s1.time, 0.9);
+  bsl1 = nanmean(s1.avg.dspm(:,tim1:tim0),2);
   s1.avg.dspm = s1.avg.dspm(:,tim1:tim2);
   s1.time     = s1.time(tim1:tim2);
+  tim1 = nearest(s2.time, -0.1);
+  tim0 = nearest(s2.time, 0);
+  tim2 = nearest(s2.time, 0.9);
+  bsl2 = nanmean(s2.avg.dspm(:,tim1:tim0),2);
   s2.avg.dspm = s2.avg.dspm(:,tim1:tim2);
   s2.time     = s2.time(tim1:tim2);
 
+  % subtract average baseline across conditions
+  bsl = (bsl1+bsl2)./2;
+  s1.avg.dspm = s1.avg.dspm - bsl*ones(1,numel(s1.time));
+  s2.avg.dspm = s2.avg.dspm - bsl*ones(1,numel(s2.time));
+  
   % interpolate to 3D
   tmp1 = mous_mne_2dto3d(subjectnames{k}, s1, 'parameter', 'avg.dspm', 'interpmethod', 'nearest');%, 'insidemethod', 'source');
   tmp2 = mous_mne_2dto3d(subjectnames{k}, s2, 'parameter', 'avg.dspm', 'interpmethod', 'nearest');%, 'insidemethod', 'source');
@@ -100,27 +111,27 @@ stat = ft_sourcestatistics(cfg, dat1{:}, dat2{:});
 %compute grand averages
 
 for n = 1:length(dat1)
-    if n ==1
-        temp1= dat1{1,n}.avg.dspm; 
-        temp2 = dat2{1,n}.avg.dspm;
-    else
-        temp1= temp1+dat1{1,n}.avg.dspm;
-        temp2= temp2+dat2{1,n}.avg.dspm;
-    end
+  if n ==1
+    temp1= dat1{1,n}.avg.dspm;
+    temp2 = dat2{1,n}.avg.dspm;
+  else
+    temp1= temp1+dat1{1,n}.avg.dspm;
+    temp2= temp2+dat2{1,n}.avg.dspm;
+  end
 end
 
 ga_temp1 =temp1/length(dat1);
 ga_temp2 = temp2/length(dat2);
 
 % copy the other necessary field to the array from the stat array
-GA_Sen = stat;
-tmp=cell(size(GA_Sen)); [GA_Sen(:).dspm]=ga_temp1(tmp{:});
+GA_Sen      = stat;
 GA_Sen.dspm = ga_temp1;
-GA_Sen = rmfield(GA_Sen, 'stat');
+GA_Sen      = rmfield(GA_Sen, 'stat');
+GA_Sen      = rmfield(GA_Sen, 'prob');
 
-GA_Seq = stat;
-tmp=cell(size(GA_Seq)); [GA_Seq(:).dspm]=ga_temp2(tmp{:});
-GA_Sen.dspm = ga_temp2;
-GA_Seq = rmfield(GA_Seq, 'stat');
+GA_Seq      = stat;
+GA_Seq.dspm = ga_temp2;
+GA_Seq      = rmfield(GA_Seq, 'stat');
+GA_Seq      = rmfield(GA_Seq, 'prob');
 
 

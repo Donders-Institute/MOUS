@@ -1,4 +1,8 @@
-function [source, trialinfo] = mous_bfica_source(subjectname, freq, toi)
+function [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, res)
+
+if nargin<4
+  res = 10;
+end
 
 warning off;
 freq = ft_struct2double(freq);
@@ -29,11 +33,11 @@ warning on;
 
 % get necessary geometrical information
 headmodel = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
-sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm');
+sourcemodel = mous_db_getdata(subjectname, ['meg_anatomy_sourcemodel3D_nonlin',num2str(res),'mm']);
 
-if nargin==3
+if nargin>2 && ~isempty(toi)
   % toi exist
-  tmp = ft_selectdata(freq, 'toilim', toi+[-eps eps]);
+  tmp = ft_selectdata(freq, 'toilim', toi+[-0.4 0.4]*mean(diff(freq.time)));
   tmp = ft_checkdata(tmp, 'cmbrepresentation', 'fullfast');
   tmp = ft_checkdata(tmp, 'cmbrepresentation', 'sparse');
   tmp = ft_checkdata(tmp, 'cmbrepresentation', 'sparsewithpow');
