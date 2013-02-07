@@ -1,4 +1,4 @@
-function mous_ERF_pipeline(subjectname, length, wordType)
+function mous_erf_pipeline(subjectname, length, wordType)
 % This script performs ERF analyses on preprocessed data for one subject
 % To run across subjects use qsub
 
@@ -6,11 +6,14 @@ function mous_ERF_pipeline(subjectname, length, wordType)
 
 %% Paramters
 % Window length: long/short
-% data: target word, tarplus1, nouns...
+% wordType = target/ allWords
+
+
 
 if strcmp(length, 'short')
-  inputdata = 'meg_processed_{rawERF_targetword_02-1ds}';
-  outputdata = 'meg_processed_{ERF_targetword_02-1ds';
+  %inputdata = 'meg_processed_{rawERF_targetword_02-1ds}';
+  inputdata = 'meg_processed_{preProcERFvisual_word_all_02-1ds20130206}';
+  outputdata = 'meg_processed_{ERF_visual_word_Allwords_02-1ds20130206}';
   baseln = -0.2;
 elseif strcmp(length,'long')
   inputdata = 'meg_processed_{rawERF_targetword_05-3ds}';
@@ -40,7 +43,7 @@ cfgplanar.neighbours   = ft_prepare_neighbours(cfg_neighb, data);
 if strcmp(wordType, 'target')
     sel1 = find(data.trialinfo(:,2)==2 | data.trialinfo(:,2)==6);   % sentences target word
     sel2 = find(data.trialinfo(:,2)==4 | data.trialinfo(:,2)==8);   % sequences target word
-elseif strcmp(wordType,'nonTarWord')  % all words in the sentence
+elseif strcmp(wordType,'allWords')  % all words in the sentence
     sel1 = find(data.trialinfo(:,2)==1 | data.trialinfo(:,2)==5);   
     sel2 = find(data.trialinfo(:,2)==3 | data.trialinfo(:,2)==7);  
 end
@@ -77,6 +80,8 @@ seqWord_PG           = ft_timelockanalysis(cfg2, data);
 cfg                 = [];  
 cfg.baseline        = [baseln 0];
 cfg.channel          = 'MEG';
+
+cfg.trackcallinfo = 'no';
 senWord_PG           = ft_timelockbaseline(cfg, senWord_PG);
 seqWord_PG           = ft_timelockbaseline(cfg, seqWord_PG);
 
@@ -93,7 +98,7 @@ outname = strcat(outputdata, '-pg}');
 mous_db_putdata(subjectname, outname, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG');
  
 %% Write number of accepted trials into text file
-txtfile = sprintf('/home/language/annhul/MOUS/Processed/MeanNumAvgTrials_%s_%s.txt',outputdata(16:22), date);
+txtfile = sprintf('/home/language/annhul/MOUS/MeanNumAvgTrials_%s_%s.txt',outputdata(16:22), date);
 fid = fopen(txtfile, 'a');
 
 fprintf(fid, '%s %s SenWord mean:\t%d\t SD:\t%1.1f \tSeqWord mean:\t%d\t SD:\t%1.1f \n', ...
