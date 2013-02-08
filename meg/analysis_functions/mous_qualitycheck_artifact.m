@@ -19,11 +19,11 @@ doblink = true;
 dosacc  = true;
 dojump  = true;
 domusc  = true; 
-
-% doblink = false;
+% 
+% doblink = true;
 % dosacc  = false;
 % dojump  = false;
-% domusc  = true; 
+% domusc  = false; 
 
 % just for one artifact
 % switch artifactType
@@ -89,13 +89,15 @@ if dojump
     plotPerPage     = 30;
     artifactName    = 'jump';
     figH            = 1.1;
+    full            = size(trlDat,1);
+    half            = size(trlDat,1)/2;
     
     for i = 1:2
         if i == 1
-            cfg.trl = trlDat(1:120,:);
+            cfg.trl = trlDat(1:half,:);
               loop    = i;
         elseif i == 2
-            cfg.trl = trlDat(121:240,:);
+            cfg.trl = trlDat(half+1:full,:);
             loop    = i;
         end 
         [diagnostics]   = getDiagnostics(cfgart, cfg.trl, artType);

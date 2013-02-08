@@ -8,20 +8,28 @@ warning off;
 freq = ft_struct2double(freq);
 warning on;
 
-% balance the number of replicates per condition
-% (only sentences versus sequences
-T = freq.trialinfo(:,2);
-sel1 = find(ismember(T, [1 2 5 6])); n1 = numel(sel1);
-sel2 = find(ismember(T, [3 4 7 8])); n2 = numel(sel2);
+% % balance the number of replicates per condition
+% % (only sentences versus sequences
+% T = freq.trialinfo(:,2);
+% sel1 = find(ismember(T, [1 2 5 6])); n1 = numel(sel1);
+% sel2 = find(ismember(T, [3 4 7 8])); n2 = numel(sel2);
+% 
+% n = min(n1,n2);
+% tmp1 = randperm(n1);
+% tmp2 = randperm(n2);
+% sel1 = sel1(sort(tmp1(1:n)));
+% sel2 = sel2(sort(tmp2(1:n)));
+% 
+% sel = [sel1(:);sel2(:)];
+% freq = ft_selectdata(freq, 'rpt', sel);
 
-n = min(n1,n2);
-tmp1 = randperm(n1);
-tmp2 = randperm(n2);
-sel1 = sel1(sort(tmp1(1:n)));
-sel2 = sel2(sort(tmp2(1:n)));
+% select trials that (1) have latency of interest 
+%                    (2) balanced between conditions (sentences and sequences)
+% mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_balanced_-02-05ds}');
+% freq = ft_selectdata(freq, 'rpt', data.seltotal);
 
-sel = [sel1(:);sel2(:)];
-freq = ft_selectdata(freq, 'rpt', sel);
+% suff = '_balanced_-02-05ds';
+% mous_db_getdata(subjectname, ['meg_bfica_freq', suff], rootdir);
 
 % get necessary geometrical information
 headmodel = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
