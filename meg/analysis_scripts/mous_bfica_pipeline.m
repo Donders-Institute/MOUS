@@ -2,14 +2,15 @@ dodss = false;
 dofreq = false;
 dofreqbaseline = false;
 dosource = 0;
+dosource8mm = 0;
 dovox = 0;
-dovoxbaseline = false;
-doica = false;
+dovoxbaseline = 0;
+doica = 0;
 doccc = 1;
-dosourcedss = false;
+dosourcedss = 0;
 dosentvsseq = 0;
-dowordsentpar = false;
-dowordseqpar = false;
+dowordsentpar = 0;
+dowordseqpar = 0;
 sourcedata2avgword = 0;
 
 dowordsentpar2 = 0;
@@ -61,6 +62,11 @@ if dosource,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   [source, trialinfo] = mous_bfica_source(subjectname, freq);
   mous_db_putdata(subjectname, ['meg_bfica_source',suff], 'source', 'trialinfo', rootdir);
+end
+if dosource8mm,
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
+  [source, trialinfo] = mous_bfica_source(subjectname, freq, 0.4, 8);
+  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff], 'source', 'trialinfo', rootdir);
 end
 if dovox,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
@@ -199,7 +205,9 @@ if dosourcedss,
 end
 if doccc,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  
+  freq              = ft_selectdata(freq, 'toilim', [0.38 0.42]);
   [cohsent, cohseq] = mous_bfica_ccc(source, freq);
   mous_db_putdata(subjectname, ['meg_bfica_ccc',suff], 'cohsent', 'cohseq', rootdir);
 end
@@ -480,4 +488,4 @@ if 0
   i1.mask = imask.avg.pow;
   i1.prob = iprob.avg.pow;
 end
-'
+
