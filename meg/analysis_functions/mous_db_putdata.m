@@ -67,7 +67,7 @@ elseif st(1) && ~overwriteflag
   %newtype     = sprintf('%s%04.0f%02.0f%02.0f%02.0f%02.0f%s',type,c(1),c(2),c(3),c(4),c(5));
   warning('file %s exists, creating back-up of %s as %s', filename, filename, newfilename);
   system(['mv ',filename,' ',newfilename]);
-  mous_write_provenance(newfilename);
+%   mous_write_provenance(newfilename);
 end
 
 % create empty data structure when more than one variable is to be saved,
@@ -86,7 +86,7 @@ if ft_datatype(data, 'volume')
   cfg.parameter = 'anatomy';
   cfg.filename  = filename;
   ft_volumewrite(cfg, data);
-  mous_write_provenance(filename);
+%   mous_write_provenance(filename);
   
 elseif ishandle(data)
  if exist(filename,'file'), system(['rm -rf ',filename]); end
@@ -114,15 +114,15 @@ else
   save(filename_c9e61b166b, varargin{:});
   
   % write the corresponding provenance information
-  mous_write_provenance(filename_c9e61b166b);
-
-  [p,n,e] = fileparts(filename_c9e61b166b);
-  if ~isempty(e)
-    cmd = ['chmod 774 ' filename_c9e61b166b];
-  else
-    cmd = ['chmod 774 ' filename_c9e61b166b, '.mat'];
-  end
-  system(cmd);
+%   mous_write_provenance(filename_c9e61b166b);
+% 
+%   [p,n,e] = fileparts(filename_c9e61b166b);
+%   if ~isempty(e)
+%     cmd = ['chmod 774 ' filename_c9e61b166b];
+%   else
+%     cmd = ['chmod 774 ' filename_c9e61b166b, '.mat'];
+%   end
+%   system(cmd);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
