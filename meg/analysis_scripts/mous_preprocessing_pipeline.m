@@ -21,7 +21,8 @@ doERFshort  = true;
         % ;'all' 'target'; 'tarplusOne'; 'tarplusTwo';
         % to be implemented: 'nouns'; 'verbs' ; firstWord etc
 
-    trialfun =  'auditory_word';       % onset of each word (but not fixation cross)
+    trialfun =  'auditory_word';     % onset of speech for first word and target word  
+    %            visual_word';       % onset of each word (but not fixation cross)
     %           'visual_sentence';   % onset of fixation cross until offset of last word (marks target word type; can also retrieve first word info but not in default trl)
          
 
@@ -52,7 +53,7 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'TFR');
   
     %save preprocessed data 
-    mous_db_putdata(subjectname, ['meg_processed_{_preprocTFR' trialfun '_' wordType '05-3ds}'], 'test');
+    mous_db_putdata(subjectname, ['meg_processed_{_preProcTFR' trialfun '_' wordType '05-3ds}'], 'test');
     
     % go to TFR pipeline: "mous_tfr_pipline" 
     
@@ -70,7 +71,7 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.5);
     
     % save preprocessed data
-    mous_db_putdata(subjectname, ['meg_processed_{_preprocERF' trialfun wordType '05-3ds}'], 'data');
+    mous_db_putdata(subjectname, ['meg_processed_{_preProcERF' trialfun wordType '05-3ds}'], 'data');
     end
 
     %% short time window
@@ -90,6 +91,6 @@ doERFshort  = true;
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.2);
     
     % save preprocessed data  
-    mous_db_putdata(subjectname, ['meg_processed_{_preprocERF' trialfun wordType '02-1ds}'], 'data');
+    mous_db_putdata(subjectname, ['meg_processed_{_preProcERF' trialfun wordType '02-1ds}'], 'data');
     end
 
