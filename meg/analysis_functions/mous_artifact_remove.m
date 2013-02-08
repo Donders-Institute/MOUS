@@ -16,7 +16,9 @@ function [trlclean] = mous_artifact_remove(trl, filename, artifactcfg, method, m
 %     definitions
 %   method   = 'partial', or 'complete', pertaining to whether the whole
 %     epoch is rejected once it is contaminated, or whether the artifact is
-%     cut out.
+%     cut out. If not specified, the default is partial.
+%   minlength =   minimum length  in seconds of remaining trial (default = 0.1)
+% 
 %
 % Output arguments:
 %   trlclean = the updated matrix specifying the epochs containing clean
