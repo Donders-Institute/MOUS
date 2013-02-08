@@ -7,17 +7,13 @@ function mous_erf_pipeline(subjectname, length, wordType)
 %% Paramters
 % Window length: long/short
 % wordType = target/ allWords
-
-
-
 if strcmp(length, 'short')
-  %inputdata = 'meg_processed_{rawERF_targetword_02-1ds}';
-  inputdata = 'meg_processed_{preProcERFvisual_word_all_02-1ds20130206}';
-  outputdata = 'meg_processed_{ERF_visual_word_Allwords_02-1ds20130206}';
+  inputdata = 'meg_processed_{_preprocERFauditory_wordall02-1ds}';
+  outputdata = 'meg_processed_{_erf_Firstword_02-1ds';
   baseln = -0.2;
 elseif strcmp(length,'long')
-  inputdata = 'meg_processed_{rawERF_targetword_05-3ds}';
-  outputdata = 'meg_processed_{ERF_targetword_05-3ds';
+  inputdata = 'meg_processed_{_preprocERF_targetword_05-3ds}';
+  outputdata = 'meg_processed_{_erf_targetword_05-3ds';
   baseln = -0.5;
 end
 
@@ -98,7 +94,11 @@ outname = strcat(outputdata, '-pg}');
 mous_db_putdata(subjectname, outname, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG');
  
 %% Write number of accepted trials into text file
+<<<<<<< HEAD
+txtfile = sprintf('/home/language/annhul/MOUS/meg/%s/MeanNumAvgTrials%s_%s.txt',subjectname, outputdata(16:23), date);
+=======
 txtfile = sprintf('/home/language/annhul/MOUS/MeanNumAvgTrials_%s_%s.txt',outputdata(16:22), date);
+>>>>>>> 9c7d59defffa7fcef05830edcefb91819553d461
 fid = fopen(txtfile, 'a');
 
 fprintf(fid, '%s %s SenWord mean:\t%d\t SD:\t%1.1f \tSeqWord mean:\t%d\t SD:\t%1.1f \n', ...
