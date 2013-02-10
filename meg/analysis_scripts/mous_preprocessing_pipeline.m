@@ -1,6 +1,13 @@
 %function mous_preprocessing_pipeline(subjectname)% Pipeline to run all preprocessing stages for the TFR and ERFs
 % Annika 1.6 2012 | edited 2.7.2012 NL | edited 9.11. 2012 AH
 
+% Filenaming convention
+%  Filename consists of  [subjectnum] [preProc] [ERF/TFR] [trial fun] [word type: all/target/nouns etc] [time window]
+%   ALWAYS put an underscore '_' between subjectnum and the rest
+%  e.g. preProcERFvisual_word_all_02-1ds
+% (previous(old) versions are called rawERF or rawTFR respectively)
+% check the filename at the end of the script before running it.
+
 doTFR       = false;
 doERFlong   = false;
 doERFshort  = true;
