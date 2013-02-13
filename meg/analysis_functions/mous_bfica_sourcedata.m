@@ -5,7 +5,7 @@ freq = ft_struct2double(freq);
 warning on;
 
 if nargin==3
-  freq = ft_selectdata(freq, 'toilim', toi+[-eps eps]);
+  freq =  ft_selectdata(freq, 'toilim', toi+[-0.4 0.4]*mean(diff(freq.time)));
 else
   freq = mtmconvol2mtmfft(freq, 200);
 end
