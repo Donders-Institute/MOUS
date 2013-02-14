@@ -1,3 +1,4 @@
+
 % this script contains the sequential steps for the artifact processing pipeline.
 
 % create directory that will contain the results
@@ -14,15 +15,17 @@ ntrials = 0;
 cfg          = [];
 cfg.dataset  = filename{1};
 cfg.trialfun = 'visual_sentence';
+%cfg.trialfun = 'auditory_sentence';
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 trl(:,1) = trl(:,1) - 0.2*1200;
 trl(:,2) = trl(:,2) + 0.1*1200;
 
 if 1,
-  [cfgeog1, cfgeog2] = mous_artifact_eog(filename{1},        trl); % detect eog artifacts
-  [cfgjump         ] = mous_artifact_squidjumps(filename{1}, trl); % detect squid jumps
-  [cfgmuscle       ] = mous_artifact_muscle(filename{1},     trl, ntrials); % detect muscle artifacts
+  [cfgeog1       ] = mous_artifact_eogb(filename{1},        trl); % detect blinks
+  [cfgeog2       ] = mous_artifact_eogs(filename{1},        trl); % detect saccades
+  [cfgjump       ] = mous_artifact_squidjumps(filename{1}, trl); % detect squid jumps
+  [cfgmuscle     ] = mous_artifact_muscle(filename{1},     trl, ntrials); % detect muscle artifacts
 
   % put the results back into the database
   mous_db_putdata(subjectname, 'meg_artifact_cfg', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle',0); 
