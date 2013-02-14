@@ -1,8 +1,8 @@
-% renaming scripts/files
+%% renaming scripts/files
 for  k = 1:100
     
 subjectname = ['V' int2str(k+1000)];    
-list = dir(['/home/language/annhul/MOUS/meg/',subjectname,'/tfr/', subjectname, 'raw*']);
+list = dir(['/home/language/annhul/MOUS/meg/',subjectname,'/erf/', subjectname, 'rawERF_tarplusOne_02-1ds.mat']);
 %list = cat(1, list, dir(['/home/language/annhul/MOUS/Processed/',subjectname,'/TFR/*raw*']));
 %list = cat(1, list, dir(['/home/language/annhul/MOUS/Processed/',subjectname,'/other/*raw*']));
 
@@ -20,29 +20,31 @@ list = dir(['/home/language/annhul/MOUS/meg/',subjectname,'/tfr/', subjectname, 
     % old = ['/home/language/annhul/MOUS/meg/',subjectname,'/other/', list(t).name];
     % new = mous_db_getfilename(subjectname, ['meg_' fileType ]);
 
-    old = ['/home/language/annhul/MOUS/meg/',subjectname,'/tfr/', list(t).name];
-    new = ['/home/language/annhul/MOUS/meg/',subjectname,'/tfr/', subjectname, '_', list(t).name(6:end)];
+        old = ['/home/language/annhul/MOUS/meg/',subjectname,'/erf/', list(t).name];
+        new = ['/home/language/annhul/MOUS/meg/',subjectname,'/erf/', subjectname, '_', list(t).name(6:end)];
 
-    str =['mv ' old ' ' new];
-       system(str);
+        str =['mv ' old ' ' new];
+        system(str);
     end
 
 clear list
 
 end
 
-% deleting files
+%% deleting files
+% need to specify: foldername & filename
 for k = 1:100
     subjectname = ['V' int2str(k+1000)];
-    list = dir(['/home/language/annhul/MOUS/meg/',subjectname,'/tfr/', subjectname, '<enter filename>']);
+    list = dir(['/home/language/annhul/MOUS/meg/',subjectname,'/mne/', subjectname, '_mne_0-05ms_singletrials.mat']);
+   
     for t = 1:length(list)
-        str = ['rm ' list(t).name];
+        delfile = ['/home/language/annhul/MOUS/meg/',subjectname,'/mne/', list(t).name];
+        str = ['rm ' delfile];
         system(str);
     end 
-end 
+end
 
-
-% rename and move files
+%% rename and move files
 if doHeadCheck
     cfg2 = [];
     cfg2.dataset = filename{1};
