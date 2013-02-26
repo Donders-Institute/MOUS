@@ -135,7 +135,7 @@ switch type{2}
           [m,ix] = find(totalbytes>1e9);
           d = d(ix);
         case 'rest'
-          % heuristic: totalbytes > .1e9 and <.7e9
+          % heuristic: totalbytes > .1e9 and <.7e9, does not work for V1012
           [m,ix] = find(totalbytes>0.1e9 & totalbytes<0.7e9);
           d = d(ix);
         case 'pos'
