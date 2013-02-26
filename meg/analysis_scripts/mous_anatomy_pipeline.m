@@ -6,12 +6,12 @@
 %% Set subject, input & output dirs
 %mous_db_makesubjdir(subjectname);
 
-if ~exist('docoregistration', 'var'), docoregistration = false; end
-if ~exist('doskullstrip',     'var'), doskullstrip     = true;  end
-if ~exist('doheadmodel',      'var'), doheadmodel      = true;  end
-if ~exist('dosourcemodel2d',  'var'), dosourcemodel2d  = true;  end
-if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = true;  end
-if ~exist('doqualitycheck',   'var'), doqualitycheck   = true;  end
+if ~exist('docoregistration', 'var'), docoregistration = 0; end
+if ~exist('doskullstrip',     'var'), doskullstrip     = 0;  end
+if ~exist('doheadmodel',      'var'), doheadmodel      = 0;  end
+if ~exist('dosourcemodel2d',  'var'), dosourcemodel2d  = 0;  end
+if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = 1;  end
+if ~exist('doqualitycheck',   'var'), doqualitycheck   = 0;  end
 
 if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.5; end
 
@@ -135,10 +135,10 @@ end
 if dosourcemodel3d
   mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri1.coordsys = 'ctf';
-  grid = mous_anatomy_sourcemodel3D(mri1, 8);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'grid'); %creates V1025sourcemodel3Dnonlin8mm.mat
-  grid = mous_anatomy_sourcemodel3D(mri1, 10);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'grid'); %creates V1025sourcemodel3Dnonlin8mm.mat
+  sourcemodel = mous_anatomy_sourcemodel3D(mri1, 8);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',0); %creates V1025sourcemodel3Dnonlin8mm.mat
+  sourcemodel = mous_anatomy_sourcemodel3D(mri1, 10);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',0); %creates V1025sourcemodel3Dnonlin8mm.mat
 end
 
 %% do quality check
