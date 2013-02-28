@@ -2,13 +2,13 @@ dodss = false;
 dofreq = false;
 dofreqbaseline = false;
 dosource = 0;
-dosource8mm = 0;
-dovox = 0;
+dosource8mm = 1;
+dovox = 1;
 dovoxbaseline = 0;
 doica = 0;
-doccc = 1;
+doccc = 0;
 dosourcedss = 0;
-dosentvsseq = 0;
+dosentvsseq = 1;
 dowordsentpar = 0;
 dowordseqpar = 0;
 sourcedata2avgword = 0;
@@ -21,6 +21,7 @@ rootdir = '/home/language/jansch/public/mous/';
 % use the variable suff and frequency to toggle between different frequency bands
 suff      = '';
 frequency = 20;
+toi       = 0.4;
 
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
@@ -65,13 +66,13 @@ if dosource,
 end
 if dosource8mm,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  [source, trialinfo] = mous_bfica_source(subjectname, freq, 0.4, 8);
-  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff], 'source', 'trialinfo', rootdir);
+  [source, trialinfo] = mous_bfica_source(subjectname, ft_struct2double(freq), toi, 8);
+  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff], 'source', 'trialinfo', rootdir, 0);
 end
 if dovox,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
-  sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  sourcedata = mous_bfica_sourcedata(source, freq, toi);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedata',suff], 'sourcedata', rootdir);
 end
 if dovoxbaseline,
@@ -94,9 +95,12 @@ if dosentvsseq,
 
   toi = -0.2:0.05:0.8;
   mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
+  %mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  
   %krn = compute_kernel(source);
   %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
   [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
   
   % match the trials with the trialinfo from the sourcedata file
@@ -108,7 +112,7 @@ if dosentvsseq,
   sourcedata.trial = trial(ia);
   sourcedata.time = time(ia);
   [tlcksent, tlckseq] = mous_makecontrast(sourcedata, 'sent-seq');
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff], 'tlcksent', 'tlckseq', rootdir);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff], 'tlcksent', 'tlckseq', rootdir, 0);
 
 end
 
@@ -232,7 +236,8 @@ if 0
   subj = subj(s);
   Nsubj = numel(subj);
   
-  load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
+  %load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
+  load('/home/language/jansch/projects/mous/meg/templates/sourcemodel/standard_sourcemodel3d8mm');
 
    
   for k = 1:Nsubj
@@ -243,7 +248,8 @@ if 0
     
     clear tlcksent tlckseq
     mous_db_getdata(subj{k}, ['meg_bfica_sourcedatasentseq',suff], rootdir);
-    mous_db_getdata(subj{k}, ['meg_bfica_source',suff], rootdir);
+    %mous_db_getdata(subj{k}, ['meg_bfica_source',suff], rootdir);
+    mous_db_getdata(subj{k}, ['meg_bfica_source8mm',suff], rootdir);
     
     source.time = tlckseq.time;
     source = rmfield(source, 'freq');
@@ -261,8 +267,8 @@ if 0
     globalpow = mean(seq{k}.avg.pow(:)+sent{k}.avg.pow(:))./2;
     seq{k}.avg.pow = seq{k}.avg.pow - globalpow;
     sent{k}.avg.pow = sent{k}.avg.pow - globalpow;
-    seq{k}.pos = grid.pos;
-    sent{k}.pos = grid.pos;
+    seq{k}.pos = sourcemodel.pos;
+    sent{k}.pos = sourcemodel.pos;
   end
   
   % the pow is only defined on the insides, ft_sourcestatistics expects all
@@ -315,7 +321,7 @@ if 0
   cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
   cfg.ivar = 1;
   cfg.uvar = 2;
-  cfg.numrandomization = 2000;
+  cfg.numrandomization = 1000;
   cfg.parameter = 'avg.pow';
   cfg.correctm = 'cluster';
   cfg.clusterthreshold = 'nonparametric_common';
