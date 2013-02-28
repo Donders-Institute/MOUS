@@ -87,6 +87,8 @@ if ft_datatype(data, 'volume')
   cfg.filename  = filename;
   ft_volumewrite(cfg, data);
 %   mous_write_provenance(filename);
+  try,system(['chmod -f 774 ',filename]);        end
+  try,system(['chmod -f 774 ',filename,'.nii']); end
   
 elseif ishandle(data)
  if exist(filename,'file'), system(['rm -rf ',filename]); end
@@ -116,13 +118,13 @@ else
   % write the corresponding provenance information
 %   mous_write_provenance(filename_c9e61b166b);
 % 
-%   [p,n,e] = fileparts(filename_c9e61b166b);
-%   if ~isempty(e)
-%     cmd = ['chmod 774 ' filename_c9e61b166b];
-%   else
-%     cmd = ['chmod 774 ' filename_c9e61b166b, '.mat'];
-%   end
-%   system(cmd);
+  [p,n,e] = fileparts(filename_c9e61b166b);
+  if ~isempty(e)
+    cmd = ['chmod 774 ' filename_c9e61b166b];
+  else
+    cmd = ['chmod 774 ' filename_c9e61b166b, '.mat'];
+  end
+  system(cmd);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
