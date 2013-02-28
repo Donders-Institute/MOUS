@@ -20,9 +20,11 @@ artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg_restingstate',rootdir
 
 cfg          = [];
 cfg.dataset  = dataset{1};
-hdr          = ft_read_header(cfg.dataset);
-trl          = [2401 hdr.nSamples*hdr.nTrials-2400 0]; % adjust for the two seconds deleted for padding purposes
-trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
+%hdr          = ft_read_header(cfg.dataset);
+%trl          = [2401 hdr.nSamples*hdr.nTrials-2400 0]; % adjust for the two seconds deleted for padding purposes
+trl          = [2401 365000 0];
+%trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
+trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 2 3 4]), 'partial', 1); % don't do the horizontal EOG
 
 cfg            = [];
 cfg.dataset    = dataset{1};
