@@ -205,7 +205,7 @@ switch type{2}
           d(1).name = [subject 'coregMNIskullstripmask'];
         end
       case 'headmodel'
-        d = dir([D subject 'vol.*']);
+        d = dir([D subject 'vol.mat']);
         if isempty(d)
           d(1).name = [subject 'vol'];
         end
