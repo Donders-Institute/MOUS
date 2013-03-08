@@ -8,11 +8,17 @@ clear all
 %% SHORT
 
 
-ag = sprintf('/home/language/annhul/MOUS/Processed/%s/ERF/%sERF02-1ds-ag.mat', subject, subject);
-pg = sprintf('/home/language/annhul/MOUS/Processed/%s/ERF/%sERF02-1ds-pg.mat', subject, subject);
+inputdata = 'meg_processed_{_erf_visual_word_all_02-1ds20130206-pg}';
 
-load(ag) 
-load(pg) 
+data = mous_db_getdata('V1048', inputdata);
+
+sen_CPG = data{1};
+seq_CPG = data{3};
+
+inputdata = 'meg_processed_{_erf_visual_word_all_02-1ds20130206-ag}';
+data = mous_db_getdata('V1040', inputdata);
+sen_AG = data{1};
+seq_AG = data{2};
 
 cfg = [];
 cfg.showlabels = 'no'; 
@@ -20,11 +26,11 @@ cfg.fontsize = 6;
 cfg.interactive = 'yes';
 cfg.layout = 'CTF273.lay';
 %cfg.ylim = [-2e-13 2e-13];
-figure(1); ft_multiplotER(cfg,senTar_AG, seqTar_AG);
-figure(2); ft_multiplotER(cfg,senTar_CPG, seqTar_CPG);
+figure(1); ft_multiplotER(cfg,sen_AG, seq_AG);
+figure(2); ft_multiplotER(cfg,sen_CPG, seq_CPG);
 
-figure(3);ft_movieplotER(cfg, senTar_AG);
-figure(4);ft_movieplotER(cfg, seqTar_AG);
+figure(3);ft_movieplotER(cfg, sen_AG);
+figure(4);ft_movieplotER(cfg, seq_AG);
 
 
 %% LONG
@@ -36,7 +42,7 @@ load(ag)
 load(pg) 
 
 cfg = [];
-cfg.showlabels = 'no'; 
+cfg.showlabels = 'yes'; 
 cfg.fontsize = 6; 
 cfg.interactive = 'yes';
 cfg.layout = 'CTF273.lay';
@@ -47,4 +53,12 @@ figure(2); ft_multiplotER(cfg,senTar_CPG, seqTar_CPG);
 figure(3);ft_movieplotER(cfg, senTar_AG);
 figure(4);ft_movieplotER(cfg, seqTar_AG);
 
+cfg = [];
+cfg.channel = 'MRT23';
+cfg.ylim = [-5e-14 16e-14];
+
+figure(3); ft_singleplotER(cfg, senWord_AG);
+figure(4); ft_singleplotER(cfg, senWord_CPG);
+cfg.channel = 'MLT25_dH';
+figure(5); ft_singleplotER(cfg, senWord_PG);
 
