@@ -1,8 +1,8 @@
 dopreproc = 0;
-dofreq    = 1;
+dofreq    = 0;
 doccc     = 0;
 collectresults = false;
-docardiacconfound = 0;
+docardiacconfound = 1;
 rootdir = '/home/language/jansch/public/mous';
 if dopreproc
   [data, ecg] = mous_restingstate_preprocessing(subjectname);
