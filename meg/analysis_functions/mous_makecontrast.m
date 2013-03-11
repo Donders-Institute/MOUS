@@ -1,22 +1,41 @@
-function varargout = mous_makecontrast(data, contrast)
+function varargout = mous_makecontrast(data, contrast, trialinfo)
 
 % data.trialinfo:
 %  column 1: sentence index
 %  column 2: word index
 %  column 3: condition trigger
+%
+% if trialinfo is specified, this takes prevalence (first column is
+% condition)
+
 
 % sentence trigger values: 1 2 5 6
 % sequence trigger values: 3 4 7 8
 
 switch contrast
   case 'sent-seq'
-    T = data.trialinfo(:,3);
+    if nargin<3
+      T = data.trialinfo(:,3);
+    else 
+      T = trialinfo(:,1);
+    end
     
     cfg              = [];
     cfg.vartrllength = 2;
 
     sel1 = find(ismember(T,[1 2 5 6]));
     sel2 = find(ismember(T,[3 4 7 8]));
+    
+    if numel(sel1)~=numel(sel2)
+      n1=numel(sel1);
+      n2=numel(sel2);
+      n=min(n1,n2);
+      x1=randperm(n1);
+      x2=randperm(n2);
+      sel1=sel1(sort(x1(1:n)));
+      sel2=sel2(sort(x2(1:n)));
+    end
+    
     
 %     n1 = numel(sel1);
 %     n2 = numel(sel2);
@@ -28,14 +47,62 @@ switch contrast
 %       tmp = randperm(n2);
 %       sel2 = sort(tmp(1:n1));
 %     end
+    switch ft_datatype(data)
+      case 'raw'
+        cfg.trials = sel1
+        tlck1      = ft_timelockanalysis(cfg, data);
+        cfg.trials = sel2;
+        tlck2      = ft_timelockanalysis(cfg, data);
+        
+        varargout{1} = tlck1;
+        varargout{2} = tlck2;
+        
+        if all(cellfun('size',data.time,2)==1)
+          % compute T contrast, too
+          dat1 = cat(2,data.trial{sel1});
+          dat2 = cat(2,data.trial{sel2});
+          Tstat = yuent(dat1,dat2,0.2,2);
+          varargout{3} = Tstat;
+        end
+      case 'freq'
+        % convert to planar
+        cfg = [];
+        cfg.method = 'distance';
+        neighbours = ft_prepare_neighbours(cfg, data);
+        cfg = [];
+        cfg.planarmethod = 'sincos';
+        cfg.neighbours   = neighbours;
+        data             = ft_megplanar(cfg, data);
+        
+        if any(data.freq>=50)
+          cfg = [];
+          cfg.frequency  = [49 51];
+          tmp = ft_selectdata(cfg, data);
+          cfg = [];
+          cfg.keeptrials = 'yes';
+          tmp = ft_freqdescriptives(cfg, tmp);
+          tmp = ft_combineplanar([], tmp);
+          tmp = standardise(max(tmp.powspctrm,[],2));
+          exclude = find(tmp>3); % more than 3 std bigger than average
+          sel1    = setdiff(sel1,exclude);
+          sel2    = setdiff(sel2,exclude);
+        end
+        
+        cfg = [];
+        cfg.trials = sel1;
+        freq1      = ft_freqdescriptives(cfg, data);
+        cfg.trials = sel2;
+        freq2      = ft_freqdescriptives(cfg, data);
+        
+        % combine planar
+        freq1 = ft_combineplanar([],freq1);
+        freq2 = ft_combineplanar([],freq2);
+        
+        varargout{1} = freq1;
+        varargout{2} = freq2;
+      otherwise
+    end
     
-    cfg.trials = sel1
-    tlck1      = ft_timelockanalysis(cfg, data);
-    cfg.trials = sel2;
-    tlck2      = ft_timelockanalysis(cfg, data);
-    
-    varargout{1} = tlck1;
-    varargout{2} = tlck2;
   case 'wordsent_parametric'
     Xcond = data.trialinfo(:,3);
     sel   = find(ismember(Xcond,[1 2 5 6]));
