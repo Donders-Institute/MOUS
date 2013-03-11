@@ -1,4 +1,4 @@
-function [source] = mous_bfica_sourceinterpolate(subjectname, fieldname, inside, range)
+function [source] = mous_bfica_sourceinterpolate(subjectname, fieldname, inside, range, resolution)
 
 if nargin<2
   fieldname = 'topo';
@@ -12,13 +12,21 @@ if nargin<4,
   range = [];
 end
 
+if nargin<5
+  resolution = 8;
+end
+
 if ischar(subjectname)
   comp = mous_db_getdata(subjectname, 'meg_processed_{bfICA_ica}');
 else
   comp = subjectname;
 end
 
-load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
+%load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_sourcemodel3d10mm');
+[p,f,e] = fileparts(which('mous_anatomy_sourcemodel3D'));
+fname   = fullfile(p(1:end-18), 'templates', 'sourcemodel', ['standard_sourcemodel3d',num2str(resolution),'mm.mat']);
+load(fname);
+
 
 if ~isempty(range)
   comp.(fieldname) = mean(comp.(fieldname)(:,range),2);
@@ -47,32 +55,32 @@ end
 % end
 
 if isempty(inside)
-  inside = grid.inside;
+  inside = sourcemodel.inside;
 end
 
 cfgi = [];
 cfgi.parameter  = 'avg.pow';
 cfgi.downsample = 2;
 
-grid.avg.pow = zeros(prod(grid.dim),1);
+sourcemodel.avg.pow = zeros(prod(sourcemodel.dim),1);
 mri          = ft_read_mri('/home/language/jansch/matlab/mri/templateMRI.nii');
 if ndims(comp.(fieldname))==2
   for k = 1:size(comp.(fieldname),2)
     try
-      grid.avg.pow(inside) = comp.(fieldname)(:,k);
+      sourcemodel.avg.pow(inside) = comp.(fieldname)(:,k);
     catch
       try
-        grid.avg.pow(:) = comp.(fieldname)(:,k);
+        sourcemodel.avg.pow(:) = comp.(fieldname)(:,k);
       catch
-        grid.avg.pow(:) = comp.(fieldname)(:);
+        sourcemodel.avg.pow(:) = comp.(fieldname)(:);
       end
     end
-    %grid.avg.pow(grid.inside) = comp.corrmap(:,k);
-    source(k) = ft_sourceinterpolate(cfgi, grid, mri);
+    %sourcemodel.avg.pow(sourcemodel.inside) = comp.corrmap(:,k);
+    source(k) = ft_sourceinterpolate(cfgi, sourcemodel, mri);
   end
 else
-  grid.avg.pow(:) = comp.(fieldname)(:);
-  source          = ft_sourceinterpolate(cfgi, grid, mri);
+  sourcemodel.avg.pow(:) = comp.(fieldname)(:);
+  source          = ft_sourceinterpolate(cfgi, sourcemodel, mri);
 end
 
 
