@@ -173,7 +173,7 @@ switch type{2}
     D = [rootdir filesep subject filesep 'anatomy' filesep];
     switch type{3}
       case 'coregCTF'
-        d = dir([D subject 'coregCTF.*']);
+        d = dir([D subject 'coregCTF.nii']);
         if isempty(d)
           d(1).name = [subject 'coregCTF'];
         end
@@ -183,7 +183,7 @@ switch type{2}
           d(1).name = [subject 'coregCTFresliced'];
         end
       case 'coregMNI'
-        d = dir([D subject 'coregMNI.*']);
+        d = dir([D subject 'coregMNI.nii']);
         %d = dir([D 'cstr-' subject '-001.nii']);
         if isempty(d)
           d(1).name = [subject 'coregMNI'];
@@ -213,7 +213,7 @@ switch type{2}
         D = [D subject filesep 'bem' filesep];
         d = dir([D '*.fif']);
       case 'sourcemodel2D'
-        d = dir([D subject 'sourcemodel2D.*']);
+        d = dir([D subject 'sourcemodel2D.mat']);
         if isempty(d)
           d(1).name = [subject 'sourcemodel2D'];
         end
