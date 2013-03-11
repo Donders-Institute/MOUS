@@ -7,9 +7,16 @@ ecg = ft_preprocessing(cfg, data);
 % compute peak times for ecg
 ecg = ft_channelnormalise([], ecg);
 tmp = cat(2, ecg.trial{:});
-polarity = 2*(double(sum(tmp>3.5)>sum(tmp<-3.5))-0.5);
+%polarity = 2*(double(sum(tmp>3.5)>sum(tmp<-3.5))-0.5);
+figure;plot(tmp);
+s1 = input('polarity?','s');
+s2 = input('threshold?','s');
+close;
+
+polarity = str2double(s1);
+threshold = str2double(s2);
 for k = 1:numel(ecg.trial)
-  p{k} = peakdetect2(polarity*ecg.trial{k},3.5,1);
+  p{k} = peakdetect2(polarity*ecg.trial{k},threshold,1);
 end
 paramscell.tr = p;
 paramscell.pre = 0.25*ecg.fsample;
