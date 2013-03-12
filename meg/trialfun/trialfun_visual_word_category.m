@@ -66,37 +66,45 @@ for q = 1:size(finaltext,1)
         expwords{cnt,1} = '';
         continue;
     end
-    expwords{cnt,1} = cat(2,expwords{cnt,1},word);
+    expwords{cnt,1} = lower(cat(2,expwords{cnt,1},word));
 end 
 
 
 %% match trials (240) to excel file (800)
 % 1. read in excel file with range: A1 - Q1599
-[cat,text,catdata] = xlsread('home/language/nielam/MOUS_AnalysisNotes/Mous_codedCategorieswords.xls','','A1:Q1599','basic'); 
+% this excel file removes all the <'s> from all words in order to match the words in catwords  (strcat remove 's in words)
+[cat,text,catdata] = xlsread('home/language/nielam/MOUS_AnalysisNotes/Mous_categories.xls','','A1:Q1599','basic'); 
 
-% put categorisation into a separate matrix, removing NaNs
+% put categorisation into a separate matrix, removing first NaN column
 % each row is one sentence/sequence
+% FIXME: how to remove trailing NaNs of each row without automatic reshaping matrix
+% into vector 
 catnum = cat(2:2:end,:);
 catnum = catnum(:,2:end);
 
 % turn trials into concatenated words
+% use lower case for everything to get a perfect match (since logfiles have both "india"  and "India").
 catdata = catdata(1:2:end,:);      % remove every other line holding category numbers
 catwords = cell(size(catdata,1)/2, 1);
 for qq = 1:size(catdata,1)
-    catwords{qq} = strcat(2,catdata{qq,2:end}); %%FIXME:there's a funny square box before the sent
+    catwords{qq} = lower(strcat(2,catdata{qq,2:end})); %%FIXME:there's a funny square box before the sent/seq   
 end 
 
 % 2. match sentences/sequences
-% note that the sequences are missing the last word (but not the sentences)
 % N.B. check if matlab will flipout for ptp's with <240 trials
 
-idx4expword = [];
+% idx4expword is the index of the sent/seq in catwords, not the (audiofile) name of
+% the actual sentence/sequence
+idx4expword = [];  % prefer this than assigning space because some participants have <240 trials
 %idx4expword = zeros(240,1)
 for qq = 1:size(expwords,1)
     % catwords is first arguement cuz it is a cellstr (the one to check thru)
-    itmp     = strfind(catwords,expwords{qq});
+    itmp     = strfind(catwords,expwords{qq}); % going for 100% match, but there possessive s, and capitals causing issues
     idxsent  = find(not(cellfun('isempty',itmp)));
-    idx4expword = [idx4expword; idxsent];  % this only gives idx for 232/240 sentences.
+    if isempty(idxsent)
+        warning('%d has no index',qq);  % indices of sentences in expword that don't have a match in catdata
+    end 
+    idx4expword = [idx4expword; idxsent];  
     %idx4expword(qq,1) = idxsent;          % this one stops after expword{17}, why?
 end
 
@@ -108,8 +116,35 @@ wordType    = 'all';
 trialfun    = 'visual_word';
 [trl] = mous_defineTrial(filename{1}, prestim, poststim, wordType, trialfun); 
 
-% trialfun is missing the LAST word for sequences, make sure I code for
-% that!
+% Clean cat: shift 1st column down by one, and remove NaNs 
+tmp = cat(:,1);
+tmp = [false;tmp(1:end-1)];
+cat(:,1) = tmp;
+cat(1,:) = [];
+cat(all(isnan(cat),2),:) = [];
+
+fileid = cat(idx4expword);
+% CHANGE:  don't need to assign category values for each sentence one by
+% one, just create the ENTIRE column of category values and then attach
+% them as one whole column
+
+catvec = [];
+for mm = 1:size(idx4expword,1)
+    row = find(cat(:,1) == fileid(mm));
+    assignvec = cat(row,2:end)';
+    assignvec(all(isnan(assignvec),2),:) = []; % remove NaNs from being assigned to trialfun   
+    if fileid(mm) < 500  % sentence trials
+       catvec = [catvec; assignvec];      
+    elseif fileid(mm) % sequence trials
+       catvec = [catvec; assignvec(1:end-1)];
+    end    
+end
+
+% catvec = 2650 values.  MISSING 5?
+% trl = 2625 values
+catvec = [catvec; 0; 0 ;0; 0 ;0];
+trl = [trl, catvec];
+
 
 %% doesn't work
 % 
