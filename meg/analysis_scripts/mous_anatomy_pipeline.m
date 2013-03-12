@@ -6,17 +6,18 @@
 %% Set subject, input & output dirs
 %mous_db_makesubjdir(subjectname);
 
-if ~exist('docoregistration', 'var'), docoregistration = 0; end
-if ~exist('doskullstrip', 'var'), doskullstrip = 0; end
-if ~exist('doheadmodel', 'var'), doheadmodel = 0; end
-if ~exist('dosourcemodel2d', 'var'), dosourcemodel2d = 0; end
-if ~exist('dosourcemodel3d', 'var'), dosourcemodel3d = 1; end
-if ~exist('doqualitycheck', 'var'), doqualitycheck = 0; end
+if ~exist('docoregistration1', 'var'), docoregistration1 = 0; end
+if ~exist('docoregistration2', 'var'), docoregistration2 = 0; end
+if ~exist('doskullstrip',     'var'), doskullstrip     = 0;  end
+if ~exist('doheadmodel',      'var'), doheadmodel      = 1;  end
+if ~exist('dosourcemodel2d',  'var'), dosourcemodel2d  = 0;  end
+if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = 0;  end
+if ~exist('doqualitycheck',   'var'), doqualitycheck   = 0;  end
 
 if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.5; end
 
 %% Coregister to MNI coordinate system
-if docoregistration
+if docoregistration1
   % FIXME Subject V1048 has an issue with the FOV, use (hardcoded) another nifti
   if strcmp(subjectname, 'V1048')
     mri = ft_read_mri(fullfile('/home/language/juludd/MOUS/preprocdata/V1048/Structural/old/', 'str-V1048-001.nii'));
@@ -29,7 +30,7 @@ if docoregistration
 end
 
 %% Coregister to CTF coordinate system
-if docoregistration
+if docoregistration2
   % display the pictures of the ears
   filename3 = mous_db_getfilename(subjectname, 'meg_raw_fidpic');
   % read in the picture(s)
@@ -58,11 +59,11 @@ end
 if doskullstrip
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
   mri.coordsys = 'mni';
-  threshold = 0.5;
-  T = inv(mri.transform);
-  center = round(T(1:3,4))';
-  [seg, mask] = mous_anatomy_skullstrip(subjectname, threshold, center); % threshold is a configurable parameter that determines the skullstrip behavior
-  mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip', seg); % creates a V1025coregMNIskullstrip.nii file
+  threshold    = 0.5;
+  T            = inv(mri.transform);
+  center       = round(T(1:3,4))';
+  [seg, mask]  = mous_anatomy_skullstrip(subjectname, threshold, center); % threshold is a configurable parameter that determines the skullstrip behavior
+  mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip',      seg); % creates a V1025coregMNIskullstrip.nii file
   mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstripmask', mask);
 end
 
@@ -77,9 +78,9 @@ end
 %% Freesurfer pipeline
 if dosourcemodel2d
   % create directory that will contain the results
-  subjdirfs = ['/home/language/annhul/MOUS/meg/',subjectname,'/anatomy'];
+  subjdirfs   = ['/home/language/annhul/MOUS/meg/',subjectname,'/anatomy'];
 
-  str = which('freesurferscript1.sh');
+  str     = which('freesurferscript1.sh');
   [p,f,e] = fileparts(str);
   
   % run the first part of the freesurfer pipeline
@@ -95,23 +96,26 @@ if dosourcemodel2d
   % check wm.mgz
   wm = ft_read_mri(fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm.mgz'));
   
-  cfg = [];
+  cfg             = [];
   cfg.interactive = 'yes';
   figure;ft_sourceplot(cfg, wm);
   
   doedit = 0; % change this to 1 if needed
   if doedit
-    wmfilename = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm.mgz');
+    wmfilename    = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm.mgz');
+    T1filename    = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'T1.mgz');
     wmfilenameold = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm_old.mgz');
     system(['cp ',wmfilename,' ',wmfilenameold]);
     
     % here the editing takes place
-    wm = mous_volumeedit(wm);
+    wm = ft_read_mri(wmfilename);
+    T1 = ft_read_mri(T1filename);
+    wm = mous_volumeedit(wm, T1);
     
     cfg = [];
     cfg.parameter = 'anatomy';
-    cfg.filetype = 'mgz';
-    cfg.filename = wmfilename;
+    cfg.filetype  = 'mgz';
+    cfg.filename  = wmfilename;
     ft_volumewrite(cfg, wm);
   end
   
@@ -126,8 +130,8 @@ if dosourcemodel2d
   % coordinate system
   mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
-  bnd = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
-  bnd = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
+  bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
+  bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
   mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', 'bnd');
 end
 
@@ -136,14 +140,12 @@ if dosourcemodel3d
   mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri1.coordsys = 'ctf';
   sourcemodel = mous_anatomy_sourcemodel3D(mri1, 8);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',0); %creates V1025sourcemodel3Dnonlin8mm.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',0); 
   sourcemodel = mous_anatomy_sourcemodel3D(mri1, 10);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',0); %creates V1025sourcemodel3Dnonlin8mm.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',0);
 end
 
 %% do quality check
 if doqualitycheck
   mous_anatomy_qualitycheck(subjectname);
 end
-
-
