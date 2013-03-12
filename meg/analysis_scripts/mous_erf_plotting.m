@@ -42,7 +42,7 @@ load(ag)
 load(pg) 
 
 cfg = [];
-cfg.showlabels = 'no'; 
+cfg.showlabels = 'yes'; 
 cfg.fontsize = 6; 
 cfg.interactive = 'yes';
 cfg.layout = 'CTF273.lay';
@@ -53,4 +53,12 @@ figure(2); ft_multiplotER(cfg,senTar_CPG, seqTar_CPG);
 figure(3);ft_movieplotER(cfg, senTar_AG);
 figure(4);ft_movieplotER(cfg, seqTar_AG);
 
+cfg = [];
+cfg.channel = 'MRT23';
+cfg.ylim = [-5e-14 16e-14];
+
+figure(3); ft_singleplotER(cfg, senWord_AG);
+figure(4); ft_singleplotER(cfg, senWord_CPG);
+cfg.channel = 'MLT25_dH';
+figure(5); ft_singleplotER(cfg, senWord_PG);
 

@@ -13,8 +13,9 @@ if dofreq
   mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
   data = ft_appenddata([], data, ecg);
   freq = mous_restingstate_freq(data);
+  fd   = ft_freqdescriptives([], freq);
   freq = ft_checkdata(freq, 'cmbrepresentation', 'fullfast');
-  mous_db_putdata(subjectname, 'meg_restingstate_freq', 'freq', rootdir);
+  mous_db_putdata(subjectname, 'meg_restingstate_freq', 'freq', 'fd', rootdir);
 end
 
 if doccc
@@ -79,6 +80,6 @@ if collectresults
 end
 
 if docardiacconfound
-  [comp, comp2, avgpre, avgcomp, avgpst, sel1, sel2, compsel, fdlow, fdhigh, cohlow, cohhigh, icohlow, icohhigh] = mous_restingstate_cardiacconfound(subjectname)
+  [comp, comp2, avgpre, avgcomp, avgpst, sel1, sel2, compsel, fdlow, fdhigh, cohlow, cohhigh, icohlow, icohhigh] = mous_restingstate_cardiacconfound(subjectname);
   mous_db_putdata(subjectname, 'mous_restingstate_cardiacconfound', 'comp', 'comp2', 'avgpre', 'avgcomp', 'avgpst', 'sel1', 'sel2', 'compsel', 'fdlow', 'fdhigh', 'cohlow', 'cohhigh', 'icohlow', 'icohhigh', rootdir);
 end

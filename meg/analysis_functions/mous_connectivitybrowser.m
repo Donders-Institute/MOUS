@@ -1,4 +1,4 @@
-function mous_connectivitybrowser(grid, source, parameter, anasc, cohsc)
+function mous_connectivitybrowser(grid, source, varargin)
 
 % MOUS_CONNECTIVITYBROWSER allows to browse a 6D-connectome
 % 
@@ -12,13 +12,10 @@ function mous_connectivitybrowser(grid, source, parameter, anasc, cohsc)
 % voxels), and parameter is a string denoting the fieldname in the source
 % structure denoting the connectivity metric
 
-
-if nargin<4
-  anasc = [];
-end
-if nargin<5
-  cohsc = [];
-end
+parameter = ft_getopt(varargin, 'parameter', '');
+anasc     = ft_getopt(varargin, 'anasc', []);
+cohsc     = ft_getopt(varargin, 'cohsc', []);
+method    = ft_getopt(varargin, 'method', {'ortho' 'slice'});
 
 coh = zeros(prod(grid.dim), 'single')+nan;
 if ~isa(source.(parameter), 'single')
@@ -77,55 +74,90 @@ set(h, 'windowbuttonupfcn',   @cb_buttonrelease);
 set(h, 'windowkeypressfcn',   @cb_keyboard);
 
 clf;
-h1a = axes( 'position', [0.05 0.55 0.20 0.4], 'tag', 'ik'); 
-h1b = axes( 'position', [0.3  0.55 0.20 0.4],  'tag', 'jk'); 
-h1c = axes( 'position', [0.05 0.10 0.20 0.4], 'tag', 'ij'); 
-h1d = axes( 'position', [0.3  0.10 0.20 0.4]); axis off;
-h2a = axes( 'position', [0.57 0.15 0.4 0.8]); 
-h2d = axes( 'position', [0.55  0.05 0.55 0.55]); axis off
-
-% initialize left part of the figure
-vol1 = coh(:,:,:,x1i,y1i,z1i);
-vol1(~isfinite(vol1))=0;
-vol1a=squeeze(max(vol1,[],2));
-vol1b=squeeze(max(vol1,[],1));
-vol1c=squeeze(max(vol1,[],3));
-  
-hs1a = imagesc(x, z, vol1a', 'parent', h1a); 
-axis equal; axis tight; 
-hs1b = imagesc(y, z, vol1b', 'parent', h1b); 
-axis equal; axis tight; 
-hs1c = imagesc(x, y, vol1c', 'parent', h1c); 
-axis equal; axis tight; axis off;
-
-set(h1a, 'tag', 'ik', 'ydir', 'normal', 'visible', 'off');
-set(h1b, 'tag', 'jk', 'ydir', 'normal', 'visible', 'off');
-set(h1c, 'tag', 'ij', 'ydir', 'normal', 'visible', 'off');
-
-% initialize right part of the figure
-map  = makemontage(coh(:,:,:,x1i,y1i,z1i));
-hs2a = imagesc(map, 'parent', h2a);
-set(h2a, 'tag', 'map', 'ydir', 'normal', 'visible', 'off');
-colormap jet;
-
-hc1a = crosshair([x1i z1i], 'color', 'yellow', 'parent', h1a);
-hc1b = crosshair([y1i z1i], 'color', 'yellow', 'parent', h1b);
-hc1c = crosshair([x1i y1i], 'color', 'yellow', 'parent', h1c);
 
 info = getinfo_pos(squeeze(coh(x1i,y1i,z1i,:,:,:)), coh(:,:,:,x1i,y1i,z1i),  [x1i y1i z1i], [x2i y2i z2i]);
+vol1 = squeeze(coh(x1i,y1i,z1i,:,:,:));
+vol2 = coh(:,:,:,x1i,y1i,z1i);
+
+% initialize left part of the figure
+switch method{1}
+  case 'ortho'
+    h1a = axes( 'position', [0.05 0.55 0.20 0.4], 'tag', 'ik'); 
+    h1b = axes( 'position', [0.3  0.55 0.20 0.4],  'tag', 'jk');
+    h1c = axes( 'position', [0.05 0.10 0.20 0.4], 'tag', 'ij');
+    h1d = axes( 'position', [0.3  0.10 0.20 0.4]); axis off;
+    
+    [vol1a,vol1b,vol1c] = makeortho(vol1);
+    
+    hs1a = imagesc(x, z, vol1a', 'parent', h1a);
+    axis equal; axis tight;
+    hs1b = imagesc(y, z, vol1b', 'parent', h1b);
+    axis equal; axis tight;
+    hs1c = imagesc(x, y, vol1c', 'parent', h1c);
+    axis equal; axis tight; axis off;
+    
+    set(h1a, 'tag', 'ik1', 'ydir', 'normal', 'visible', 'off');
+    set(h1b, 'tag', 'jk1', 'ydir', 'normal', 'visible', 'off');
+    set(h1c, 'tag', 'ij1', 'ydir', 'normal', 'visible', 'off');
+    
+    hc1a = crosshair([x1i z1i], 'color', 'yellow', 'parent', h1a);
+    hc1b = crosshair([y1i z1i], 'color', 'yellow', 'parent', h1b);
+    hc1c = crosshair([x1i y1i], 'color', 'yellow', 'parent', h1c);
+  case 'slice'
+    h1a = axes( 'position', [0.07 0.15 0.4 0.8]);
+    h1b = nan;
+    h1c = nan;
+    h1d = axes( 'position', [0.05  0.05 0.55 0.55]); axis off
+
+    map  = makemontage(vol1);
+    hs1a = imagesc(map, 'parent', h1a);
+    hs1b = nan;
+    hs1c = nan;
+    set(h1a, 'tag', 'map1', 'ydir', 'normal', 'visible', 'off');
+    colormap jet;
+    
+    hc1a = crosshair(info.id2d, 'color', 'm', 'parent', h1a);
+    hc1b = [nan nan];
+    hc1c = [nan nan];
+
+  otherwise
+end
+
+
+% initialize right part of the figure
+switch method{2}
+  case 'ortho'
+  case 'slice'
+    h2a = axes( 'position', [0.57 0.15 0.4 0.8]);
+    h2b = nan;
+    h2c = nan;
+    h2d = axes( 'position', [0.55  0.05 0.55 0.55]); axis off
+
+    map  = makemontage(vol2);
+    hs2a = imagesc(map, 'parent', h2a);
+    hs2b = nan;
+    hs2c = nan;
+    set(h2a, 'tag', 'map2', 'ydir', 'normal', 'visible', 'off');
+    colormap jet;
+    
+    hc2a = crosshair(info.id2d, 'color', 'm', 'parent', h2a);
+    hc2b = [nan nan];
+    hc2c = [nan nan];
+  otherwise
+end
+
 
 p1   = grid.pos(info.ind1,:);
 p2   = grid.pos(info.ind2,:);
 
-hc2  = crosshair(info.id2d, 'color', 'm', 'parent', h2a);
 ht1  = text(0,0,sprintf('ind1=%6.0f\npos1=[%3.1f %3.1f %3.1f],\nval1=%f', info.ind1,p1(1),p1(2),p1(3), info.val1), 'parent', h1d);
 ht2  = text(0,0,sprintf('ind2=%6.0f\npos2=[%3.1f %3.1f %3.1f],\nval2=%f', info.ind2,p2(1),p2(2),p2(3), info.val2), 'parent', h2d);
 
 % create structure to be passed to gui
 opt.data          = coh;
-opt.handlesaxes   = [h1a  h1b  h1c  h1d h2a  h2d];
-opt.handlesslice  = [hs1a hs1b hs1c nan hs2a nan];
-opt.handlescross  = [hc1a(:)';hc1b(:)';hc1c(:)';hc2(:)'];
+opt.handlesaxes   = [h1a  h1b  h1c  h1d h2a  h2b  h2c  h2d];
+opt.handlesslice  = [hs1a hs1b hs1c nan hs2a hs2b hs2c nan];
+opt.handlescross  = [hc1a(:)';hc1b(:)';hc1c(:)';hc2a(:)';hc2b(:)';hc2c(:)'];
 opt.handlestext   = [ht1 ht2];
 opt.ijk1          = [x1i y1i z1i];
 opt.ijk2          = [x2i y2i z2i];
@@ -134,6 +166,7 @@ opt.clim2         = [c2min c2max];
 opt.dim           = size(coh);
 opt.pos           = grid.pos;
 opt.quit          = 0;
+opt.method        = method;
 
 setappdata(h, 'opt', opt);
 cb_redraw(h);
@@ -194,7 +227,16 @@ for k=1:siz(3)
   map(siz(2)*(ny-1)+1:siz(2)*ny,siz(1)*(nx-1)+1:siz(1)*nx) = dat(:,:,k)';
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SUBFUNCTION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function [vol1a,vol1b,vol1c] = makeortho(vol1)
 
+vol1(~isfinite(vol1))=0;
+vol1a=squeeze(max(vol1,[],2));
+vol1b=squeeze(max(vol1,[],1));
+vol1c=squeeze(max(vol1,[],3));
+    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -281,31 +323,55 @@ y2i  = opt.ijk2(2);
 z2i  = opt.ijk2(3);
 
 vol1 = squeeze(opt.data(x1i,y1i,z1i,:,:,:));
-vol2 = opt.data(:,:,:,x1i,y1i,z1i);
-map  = makemontage(vol2);
+vol2 = opt.data(:,:,:,x2i,y2i,z2i);
+info2 = getinfo_pos(vol1, vol2, opt.ijk1, opt.ijk2);
+info1 = getinfo_pos(vol2, vol1, opt.ijk2, opt.ijk1);
+
+% deal with left part of the figure
+switch opt.method{1}
+  case 'ortho'
+    [vol1a,vol1b,vol1c] = makeortho(vol1);
+    set(opt.handlesslice(1), 'CData', vol1a');
+    set(opt.handlesslice(2), 'CData', vol1b');
+    set(opt.handlesslice(3), 'CData', vol1c');
+    set(opt.handlesaxes(1), 'clim', opt.clim1);
+    set(opt.handlesaxes(2), 'clim', opt.clim1);
+    set(opt.handlesaxes(3), 'clim', opt.clim1);
+    crosshair([x1i z1i], 'handle', opt.handlescross(1,:));
+    crosshair([y1i z1i], 'handle', opt.handlescross(2,:));
+    crosshair([x1i y1i], 'handle', opt.handlescross(3,:));
+  case 'slice'
+    map = makemontage(vol1);
+    set(opt.handlesslice(1), 'Cdata', map);
+    set(opt.handlesaxes(1), 'clim', opt.clim1);
+    crosshair(info1.id2d, 'handle', opt.handlescross(1,:));    
+end
+
+% deal with right part of the figure
+switch opt.method{2}
+  case 'ortho'
+    [vol2a,vol2b,vol2c] = makeortho(vol2);
+    set(opt.handlesslice(4), 'CData', vol2a');
+    set(opt.handlesslice(5), 'CData', vol2b');
+    set(opt.handlesslice(6), 'CData', vol2c');
+    set(opt.handlesaxes(4), 'clim', opt.clim2);
+    set(opt.handlesaxes(5), 'clim', opt.clim2);
+    set(opt.handlesaxes(6), 'clim', opt.clim2);
+    crosshair([x2i z2i], 'handle', opt.handlescross(4,:));
+    crosshair([y2i z2i], 'handle', opt.handlescross(5,:));
+    crosshair([x2i y2i], 'handle', opt.handlescross(6,:));
+  case 'slice'
+    map = makemontage(vol2);
+    set(opt.handlesslice(5), 'Cdata', map);
+    set(opt.handlesaxes(5), 'clim', opt.clim2);
+    crosshair(info2.id2d, 'handle', opt.handlescross(4,:));    
+end
 
 
-set(opt.handlesslice(1), 'CData', squeeze(vol1(:,y2i,:))');
-set(opt.handlesslice(2), 'CData', squeeze(vol1(x2i,:,:))');
-set(opt.handlesslice(3), 'CData', vol1(:,:,z2i)');
-set(opt.handlesslice(5), 'Cdata', map);
-
-set(opt.handlesaxes(1), 'clim', opt.clim1);
-set(opt.handlesaxes(2), 'clim', opt.clim1);
-set(opt.handlesaxes(3), 'clim', opt.clim1);
-set(opt.handlesaxes(5), 'clim', opt.clim2);
-
-crosshair([x1i z1i], 'handle', opt.handlescross(1,:));
-crosshair([y1i z1i], 'handle', opt.handlescross(2,:));
-crosshair([x1i y1i], 'handle', opt.handlescross(3,:));
-
-info = getinfo_pos(vol1, vol2, opt.ijk1, opt.ijk2);
-crosshair(info.id2d, 'handle', opt.handlescross(4,:));
-
-p1 = opt.pos(info.ind1,:);
-p2 = opt.pos(info.ind2,:);
-set(opt.handlestext(1), 'string', sprintf('ind1=%6.0f\npos1=[%3.1f %3.1f %3.1f],\nval1=%f', info.ind1,p1(1),p1(2),p1(3), info.val1));
-set(opt.handlestext(2), 'string', sprintf('ind2=%6.0f\npos2=[%3.1f %3.1f %3.1f],\nval2=%f', info.ind2,p2(1),p2(2),p2(3), info.val2));
+p1 = opt.pos(info1.ind2,:);
+p2 = opt.pos(info2.ind2,:);
+set(opt.handlestext(1), 'string', sprintf('ind1=%6.0f\npos1=[%3.1f %3.1f %3.1f],\nval1=%f', info1.ind2,p1(1),p1(2),p1(3), info1.val2));
+set(opt.handlestext(2), 'string', sprintf('ind2=%6.0f\npos2=[%3.1f %3.1f %3.1f],\nval2=%f', info2.ind2,p2(1),p2(2),p2(3), info2.val2));
 
 
 set(h, 'currentaxes', curr_ax);
@@ -390,19 +456,28 @@ pos     = get(curr_ax, 'currentpoint');
 
 tag = get(curr_ax, 'tag');
 switch tag
-  case 'jk'
+  case 'jk1'
     opt.ijk1([2,3]) = round(pos(1,1:2));
     opt.ijk2([2,3]) = round(pos(1,1:2));
 
-  case 'ij'
+  case 'ij1'
     opt.ijk1([1,2]) = round(pos(1,1:2));
     opt.ijk2([1,2]) = round(pos(1,1:2));
 
-  case 'ik'
+  case 'ik1'
     opt.ijk1([1,3]) = round(pos(1,1:2));
     opt.ijk2([1,3]) = round(pos(1,1:2));
-
-  case 'map'
+    
+  case 'map1'
+    siz    = opt.dim(1:3);
+    ndiv   = [ceil(sqrt(siz(3))) floor(sqrt(siz(3)))]; 
+    pos    = round(pos(1,1:2));
+    xcoord = rem(pos(1)-1, siz(1))+1;
+    ycoord = rem(pos(2)-1, siz(2))+1;
+    zcoord = floor(pos(2)./siz(2))*ndiv(1)+1+floor(pos(1)./siz(1));
+    opt.ijk1 = [xcoord ycoord zcoord];
+  
+  case 'map2'
     siz    = opt.dim(4:6);
     ndiv   = [ceil(sqrt(siz(3))) floor(sqrt(siz(3)))]; 
     pos    = round(pos(1,1:2));
