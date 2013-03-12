@@ -108,6 +108,7 @@ if dosourcemodel2d
     system(['cp ',wmfilename,' ',wmfilenameold]);
     
     % here the editing takes place
+    wm = ft_read_mri(wmfilename);
     T1 = ft_read_mri(T1filename);
     wm = mous_volumeedit(wm, T1);
     
@@ -139,9 +140,9 @@ if dosourcemodel3d
   mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri1.coordsys = 'ctf';
   sourcemodel = mous_anatomy_sourcemodel3D(mri1, 8);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',0); %creates V1025sourcemodel3Dnonlin8mm.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',0); 
   sourcemodel = mous_anatomy_sourcemodel3D(mri1, 10);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',0); %creates V1025sourcemodel3Dnonlin8mm.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',0);
 end
 
 %% do quality check
