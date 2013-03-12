@@ -1,12 +1,12 @@
 dodss = false;
-dofreq = false;
+dofreq = true;
 dofreqbaseline = false;
 dosource = 0;
 dosource8mm = 0;
 dovox = 0;
 dovoxbaseline = 0;
 doica = 0;
-doccc = 1;
+doccc = 0;
 dosourcedss = 0;
 dosentvsseq = 0;
 dowordsentpar = 0;
@@ -27,21 +27,21 @@ if dodss,
   mous_db_putdata(subjectname, 'meg_bfica_comp', 'comp', 'avgcomp', 'avgpre', rootdir);
 end
 if dofreq,
-  % theta frequency
-  options = [];
-  options.taper = 'hanning';
-  options.t_ftimwin = 0.4;
-  options.resamplefs = 300;
-  freq = mous_bfica_freq(subjectname, 5, rootdir, options);
-  mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
+%   % theta frequency
+%   options = [];
+%   options.taper = 'hanning';
+%   options.t_ftimwin = 0.4;
+%   options.resamplefs = 300;
+%   freq = mous_bfica_freq(subjectname, 20, rootdir, options);
+%   mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
   
-% % beta frequency
-% options = [];
-% options.taper = 'hanning';
-% options.t_ftimwin = 0.250;
-% options.resamplefs = 300;
-% freq = mous_bfica_freq(subjectname, 20, rootdir);
-% mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
+% beta frequency
+options = [];
+options.taper = 'hanning';
+options.t_ftimwin = 0.250;
+options.resamplefs = 300;
+freq = mous_bfica_freq(subjectname, 20, rootdir);
+mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
 %
 % % broadband gamma frequency
 % options = [];
