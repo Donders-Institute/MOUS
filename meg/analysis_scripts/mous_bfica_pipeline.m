@@ -1,5 +1,6 @@
-dodss = false;
-dofreq = true;
+dodss = 0;
+dofreq = false;
+dofreqmtmfft = 0;
 dofreqbaseline = false;
 dosource = 0;
 dosource8mm = 0;
@@ -9,6 +10,7 @@ doica = 0;
 doccc = 0;
 dosourcedss = 0;
 dosentvsseq = 0;
+dosentvsseq_chan = 1;
 dowordsentpar = 0;
 dowordseqpar = 0;
 sourcedata2avgword = 0;
@@ -19,29 +21,29 @@ dowordseqpar2 = 0;
 rootdir = '/home/language/jansch/public/mous/';
 
 % use the variable suff and frequency to toggle between different frequency bands
-suff      = '';
+suff = '';
 frequency = 20;
+toi = 0.4;
 
 if dodss,
   [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
   mous_db_putdata(subjectname, 'meg_bfica_comp', 'comp', 'avgcomp', 'avgpre', rootdir);
 end
 if dofreq,
-%   % theta frequency
-%   options = [];
-%   options.taper = 'hanning';
-%   options.t_ftimwin = 0.4;
-%   options.resamplefs = 300;
-%   freq = mous_bfica_freq(subjectname, 20, rootdir, options);
-%   mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
+  options = [];
+  options.taper = 'hanning';
+  options.t_ftimwin = 0.4;
+  options.resamplefs = 300;
+  freq = mous_bfica_freq(subjectname, 5, rootdir, options);
+  mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
   
-% beta frequency
-options = [];
-options.taper = 'hanning';
-options.t_ftimwin = 0.250;
-options.resamplefs = 300;
-freq = mous_bfica_freq(subjectname, 20, rootdir);
-mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
+% % beta frequency
+% options = [];
+% options.taper = 'hanning';
+% options.t_ftimwin = 0.250;
+% options.resamplefs = 300;
+% freq = mous_bfica_freq(subjectname, 20, rootdir);
+% mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
 %
 % % broadband gamma frequency
 % options = [];
@@ -51,6 +53,19 @@ mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
 % options.resamplefs = 300;
 % freq = mous_bfica_freq(subjectname, 70, rootdir, options);
 % mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
+end
+if dofreqmtmfft
+  options = [];
+  %options.taper = 'hanning';
+  %options.resamplefs = 300;
+  %options.tapsmofrq = 2.5;
+  options.taper = 'dpss';
+  options.resamplefs = 600;
+  options.tapsmofrq = 7.5;
+  %freq = mous_bfica_freq_mtmfft(subjectname, [0 40], rootdir, options);
+  %mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft', 'freq', rootdir);
+  freq = mous_bfica_freq_mtmfft(subjectname, [40 160], rootdir, options);
+  mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft_high', 'freq', rootdir);
 end
 if dofreqbaseline,
   options.taper = 'dpss';
@@ -65,13 +80,13 @@ if dosource,
 end
 if dosource8mm,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  [source, trialinfo] = mous_bfica_source(subjectname, freq, 0.4, 8);
-  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff], 'source', 'trialinfo', rootdir);
+  [source, trialinfo] = mous_bfica_source(subjectname, ft_struct2double(freq), toi, 8);
+  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff], 'source', 'trialinfo', rootdir, 0);
 end
 if dovox,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
-  sourcedata = mous_bfica_sourcedata(source, freq);%, toi);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  sourcedata = mous_bfica_sourcedata(source, freq, toi);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedata',suff], 'sourcedata', rootdir);
 end
 if dovoxbaseline,
@@ -79,6 +94,14 @@ if dovoxbaseline,
   mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
   sourcedata = mous_bfica_sourcedatabaseline(source, freq, frequency);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedatabaseline',suff], 'sourcedata', rootdir);
+end
+if dosentvsseq_chan,
+  mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft', rootdir);
+  [fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seq', freq.trialinfo(:,2));
+  mous_db_putdata(subjectname, 'meg_bfica_chandatasentseq', 'fsent', 'fseq', rootdir);
+  mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft_high', rootdir);
+  [fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seq', freq.trialinfo(:,2));
+  mous_db_putdata(subjectname, 'meg_bfica_chandatasentseq_high', 'fsent', 'fseq', rootdir);
 end
 if dosentvsseq,
 % toi = -0.2:0.05:0.8;
@@ -94,9 +117,12 @@ if dosentvsseq,
 
   toi = -0.2:0.05:0.8;
   mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
+  %mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  
   %krn = compute_kernel(source);
   %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
   [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
   
   % match the trials with the trialinfo from the sourcedata file
@@ -107,8 +133,8 @@ if dosentvsseq,
   sourcedata.trialinfo = trialinfonew(ia,:);
   sourcedata.trial = trial(ia);
   sourcedata.time = time(ia);
-  [tlcksent, tlckseq] = mous_makecontrast(sourcedata, 'sent-seq');
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff], 'tlcksent', 'tlckseq', rootdir);
+  [tlcksent, tlckseq,tstat] = mous_makecontrast(sourcedata, 'sent-seq');
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff], 'tlcksent', 'tlckseq', 'tstat', rootdir, 0);
 
 end
 
@@ -207,7 +233,7 @@ if doccc,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
   
-  freq              = ft_selectdata(freq, 'toilim', [0.38 0.42]);
+  freq = ft_selectdata(freq, 'toilim', [0.38 0.42]);
   [cohsent, cohseq] = mous_bfica_ccc(source, freq);
   mous_db_putdata(subjectname, ['meg_bfica_ccc',suff], 'cohsent', 'cohseq', rootdir);
 end
@@ -232,7 +258,8 @@ if 0
   subj = subj(s);
   Nsubj = numel(subj);
   
-  load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
+  %load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_grid3d10mm');
+  load('/home/language/jansch/projects/mous/meg/templates/sourcemodel/standard_sourcemodel3d8mm');
 
    
   for k = 1:Nsubj
@@ -243,26 +270,23 @@ if 0
     
     clear tlcksent tlckseq
     mous_db_getdata(subj{k}, ['meg_bfica_sourcedatasentseq',suff], rootdir);
-    mous_db_getdata(subj{k}, ['meg_bfica_source',suff], rootdir);
+    %mous_db_getdata(subj{k}, ['meg_bfica_source',suff], rootdir);
+    mous_db_getdata(subj{k}, ['meg_bfica_source8mm',suff], rootdir);
     
     source.time = tlckseq.time;
     source = rmfield(source, 'freq');
+    
     %source.avg.pow = tlckseq.avg;
     source.avg.pow = log10(tlckseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
-    
     seq{k} = source;
+    seq{k}.pos = sourcemodel.pos;
+    
     %source.avg.pow = tlcksent.avg;
     source.avg.pow = log10(tlcksent.avg);% ./ repmat(Bsent, [1 numel(tlcksent.time)]);
-    
+    source.tstat = tstat;
     sent{k} = source;
-  end
+    sent{k}.pos = sourcemodel.pos;
   
-  for k = 1:Nsubj
-    globalpow = mean(seq{k}.avg.pow(:)+sent{k}.avg.pow(:))./2;
-    seq{k}.avg.pow = seq{k}.avg.pow - globalpow;
-    sent{k}.avg.pow = sent{k}.avg.pow - globalpow;
-    seq{k}.pos = grid.pos;
-    sent{k}.pos = grid.pos;
   end
   
   % the pow is only defined on the insides, ft_sourcestatistics expects all
@@ -272,27 +296,31 @@ if 0
     tmp1(seq{k}.inside,:) = seq{k}.avg.pow;
     tmp2 = zeros(prod(sent{k}.dim),numel(sent{k}.time));
     tmp2(sent{k}.inside,:) = sent{k}.avg.pow;
+    tmp3 = zeros(prod(seq{k}.dim),numel(seq{k}.time));
+    tmp3(seq{k}.inside,:) = sent{k}.tstat;
+    
     
     seq{k}.avg.pow = (tmp1);% - repmat(mean((tmp1),1), [size(tmp1,1) 1]);
     sent{k}.avg.pow = (tmp2);% - repmat(mean((tmp2),1), [size(tmp1,1) 1]);
+    sent{k}.tstat = tmp3;
   end
   
-  cfg = [];
-  cfg.method = 'montecarlo';
-  cfg.statistic = 'depsamplesT';
-  cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
-  cfg.ivar = 1;
-  cfg.uvar = 2;
-  cfg.numrandomization = 0;
-  cfg.parameter = 'avg.pow';
-  senttime = sent;
-  seqtime = seq;
-% for k = 1:Nsubj
-% senttime{k}.avg.pow = senttime{k}.avg.pow - repmat(mean(senttime{k}.avg.pow(:,4:11),2),[1 20]);
-% seqtime{k}.avg.pow = seqtime{k}.avg.pow - repmat(mean(seqtime{k}.avg.pow(:,4:11),2),[1 20]);
-% end
-  stattime = ft_sourcestatistics(cfg, senttime{:}, seqtime{:});
-  
+% cfg = [];
+% cfg.method = 'montecarlo';
+% cfg.statistic = 'depsamplesT';
+% cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
+% cfg.ivar = 1;
+% cfg.uvar = 2;
+% cfg.numrandomization = 0;
+% cfg.parameter = 'avg.pow';
+% senttime = sent;
+% seqtime = seq;
+% % for k = 1:Nsubj
+% % senttime{k}.avg.pow = senttime{k}.avg.pow - repmat(mean(senttime{k}.avg.pow(:,4:11),2),[1 20]);
+% % seqtime{k}.avg.pow = seqtime{k}.avg.pow - repmat(mean(seqtime{k}.avg.pow(:,4:11),2),[1 20]);
+% % end
+% stattime = ft_sourcestatistics(cfg, senttime{:}, seqtime{:});
+%
   
   ix = nearest(sent{1}.time, 0.3);
   iy = nearest(sent{1}.time, 0.6);
@@ -302,9 +330,9 @@ if 0
     sent{k}.time = nanmean(sent{k}.time(ix:iy));
     seq{k}.time = nanmean(seq{k}.time(ix:iy));
     
-    globalpow = nanmean(sent{k}.avg.pow(sent{k}.inside)+seq{k}.avg.pow(seq{k}.inside))./2;
-    sent{k}.avg.pow = sent{k}.avg.pow - globalpow;
-    seq{k}.avg.pow = seq{k}.avg.pow - globalpow;
+    %globalpow = nanmean(sent{k}.avg.pow(sent{k}.inside)+seq{k}.avg.pow(seq{k}.inside))./2;
+    %sent{k}.avg.pow = sent{k}.avg.pow - globalpow;
+    %seq{k}.avg.pow = seq{k}.avg.pow - globalpow;
     %sent{k}.avg.pow = sent{k}.avg.pow - nanmean(sent{k}.avg.pow(sent{k}.inside));
     %seq{k}.avg.pow = seq{k}.avg.pow - nanmean(seq{k}.avg.pow(seq{k}.inside));
   end
@@ -315,13 +343,13 @@ if 0
   cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
   cfg.ivar = 1;
   cfg.uvar = 2;
-  cfg.numrandomization = 2000;
+  cfg.numrandomization = 1000;
   cfg.parameter = 'avg.pow';
   cfg.correctm = 'cluster';
   cfg.clusterthreshold = 'nonparametric_common';
-  cfg.clusteralpha = 0.005;
+  cfg.clusteralpha = 0.05;
   stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
-  if ndims(stat.stat)>2
+  if ndims(stat.stat)>2 %i.e. being a 3d matrix, rather than space x something else
     stat.stat=stat.stat(:);
     stat.prob=stat.prob(:);
     stat.mask=stat.mask(:);

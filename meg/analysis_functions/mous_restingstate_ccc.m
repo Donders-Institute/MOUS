@@ -1,12 +1,12 @@
-function varargout=mous_restingstate_ccc(subjectname,freq,frequency,removechannel,suff)
+function varargout=mous_restingstate_ccc(subjectname,sourcemodel,freq,frequency,removechannel,suff)
 
-if nargin<5 
+if nargin<6 
   suff = 'coh';
 end
-if nargin<4 || isempty(removechannel)
+if nargin<5 || isempty(removechannel)
   removechannel = 0;
 end
-if nargin<3 || isempty(frequency)
+if nargin<4 || isempty(frequency)
   frequency = 20;
 end
 if ischar(freq)
@@ -14,7 +14,21 @@ if ischar(freq)
   freq = mous_db_getdata(subjectname, 'mous_restingstate_freq', freq);
 end
   
-sourcemodel = mous_db_getdata(subjectname, 'meg_bfica_{_bfccc_sourcemodel}', '/home/language/jansch/public/mous');
+%sourcemodel = mous_db_getdata(subjectname, 'meg_bfica_{_bfccc_sourcemodel}', '/home/language/jansch/public/mous');
+headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+
+if isempty(sourcemodel)
+  sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
+end
+
+if ~isfield(sourcemodel, 'leadfield')
+  cfg         = [];
+  cfg.grid    = sourcemodel;
+  cfg.vol     = headmodel;
+  cfg.channel = ft_channelselection('MEG', freq.label);
+  cfg.grad    = freq.grad;
+  sourcemodel = ft_prepare_leadfield(cfg);
+end
 
 % cfg         = [];
 % cfg.channel = freq.label;
@@ -33,13 +47,13 @@ if ~isempty(removechannel) && removechannel>0
 end
 
 freqcsd = ft_checkdata(freqcsd, 'cmbrepresentation', 'fullfast');
-coh     = estimate_nullcoh3(sourcemodel, freqcsd, 'threshold', 0.3);
+coh     = estimate_nullcoh3(sourcemodel, freqcsd, 'threshold', 0,'refindx',1:numel(sourcemodel.inside));
 %coh.trials     = sel;
 %coh.randomseed = randseed;
 
 dcoh = abs(coh.coh)-abs(coh.w12);
 %dcoh = dcoh(tril(true(size(dcoh,1)),-1)==1);
-filt = coh.filt;'coh'
+filt = coh.filt;
 ori  = coh.ori;
 
 fprintf('computing fwhm\n');
@@ -49,10 +63,11 @@ inside = sourcemodel.inside;
 [ix,i1,i2] = intersect(inside,insidenew);
 sourcemodel.fwhm   = fwhm;
 sourcemodel.inside = insidenew;
-%fprintf('computing smoothing kernel\n');
-%krn  = compute_kernel(sourcemodel);
-%fprintf('smoothing differential coherence matrix\n');
-%dcoh = single(krn'*double(dcoh(i1,i1))*krn); 
+
+fprintf('computing smoothing kernel\n');
+krn  = compute_kernel(sourcemodel);
+fprintf('smoothing differential coherence matrix\n');
+dcoh = single(krn'*double(dcoh(i1,i1))*krn); 
 
 %fname = ['/home/language/jansch/public/mous/',subjectname,'coh',num2str(randseed)];
 %save(fname,'dcoh','filt','randseed','sel','fwhm','insidenew','inside');
@@ -62,6 +77,8 @@ if 0,
   save(fname,'dcoh','filt','fwhm','insidenew','inside');
 else
   if nargout
+    coh.fwhm = fwhm;
+    coh.dcoh = dcoh;
     varargout{1} = coh;
   end
 end

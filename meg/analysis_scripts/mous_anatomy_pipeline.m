@@ -6,17 +6,18 @@
 %% Set subject, input & output dirs
 %mous_db_makesubjdir(subjectname);
 
-if ~exist('docoregistration', 'var'), docoregistration = 0; end
+if ~exist('docoregistration1', 'var'), docoregistration1 = 0; end
+if ~exist('docoregistration2', 'var'), docoregistration2 = 0; end
 if ~exist('doskullstrip',     'var'), doskullstrip     = 0;  end
-if ~exist('doheadmodel',      'var'), doheadmodel      = 0;  end
+if ~exist('doheadmodel',      'var'), doheadmodel      = 1;  end
 if ~exist('dosourcemodel2d',  'var'), dosourcemodel2d  = 0;  end
-if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = 1;  end
+if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = 0;  end
 if ~exist('doqualitycheck',   'var'), doqualitycheck   = 0;  end
 
 if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.5; end
 
 %% Coregister to MNI coordinate system
-if docoregistration
+if docoregistration1
   % FIXME Subject V1048 has an issue with the FOV, use (hardcoded) another nifti
   if strcmp(subjectname, 'V1048')
     mri = ft_read_mri(fullfile('/home/language/juludd/MOUS/preprocdata/V1048/Structural/old/', 'str-V1048-001.nii'));
@@ -29,7 +30,7 @@ if docoregistration
 end
 
 %% Coregister to CTF coordinate system
-if docoregistration
+if docoregistration2
   % display the pictures of the ears
   filename3 = mous_db_getfilename(subjectname, 'meg_raw_fidpic');
   % read in the picture(s)
@@ -102,11 +103,14 @@ if dosourcemodel2d
   doedit = 0; % change this to 1 if needed
   if doedit
     wmfilename    = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm.mgz');
+    T1filename    = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'T1.mgz');
     wmfilenameold = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm_old.mgz');
     system(['cp ',wmfilename,' ',wmfilenameold]);
     
     % here the editing takes place
-    wm = mous_volumeedit(wm);
+    wm = ft_read_mri(wmfilename);
+    T1 = ft_read_mri(T1filename);
+    wm = mous_volumeedit(wm, T1);
     
     cfg = [];
     cfg.parameter = 'anatomy';
@@ -136,9 +140,9 @@ if dosourcemodel3d
   mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri1.coordsys = 'ctf';
   sourcemodel = mous_anatomy_sourcemodel3D(mri1, 8);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',0); %creates V1025sourcemodel3Dnonlin8mm.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',0); 
   sourcemodel = mous_anatomy_sourcemodel3D(mri1, 10);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',0); %creates V1025sourcemodel3Dnonlin8mm.mat
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',0);
 end
 
 %% do quality check
