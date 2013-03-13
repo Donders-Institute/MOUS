@@ -15,6 +15,7 @@ function [trl] = trialfun_visual_word(cfg)
 %   column 5: trigger corresponding to the word
 %   column 6: sample number relative to the onset of the first word
 %   column 7: number of samples between word on and offset
+%   column 8: ordinal number of word position
 
 prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.3);
 poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
@@ -76,7 +77,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       wordcount = wordcount + 1;
 
       %         1         2         3       4 5          6                   7
-      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
+           tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
       tmptrl = cat(1,tmptrl,tmp);
     end
   end
