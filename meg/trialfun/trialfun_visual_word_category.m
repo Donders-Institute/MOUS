@@ -127,22 +127,62 @@ fileid = cat(idx4expword);
 % CHANGE:  don't need to assign category values for each sentence one by
 % one, just create the ENTIRE column of category values and then attach
 % them as one whole column
+% NOPE, can´t do that cuz stimuli in presentation (hence logfile) is wrong (one word short) in
+% some sentences. 
+
+% catvec = [];
+% checker = [];
+% for mm = 1:size(idx4expword,1)
+%     row = find(cat(:,1) == fileid(mm));
+%     assignvec = cat(row,2:end)';
+%     assignvec(all(isnan(assignvec),2),:) = []; % remove NaNs from being assigned to trialfun   
+%     if fileid(mm) < 500  % sentence trials
+%        catvec = [catvec; assignvec];      
+%        length = numel(assignvec);
+%        tmpc = zeros(length,1);
+%        checkvec = [true; tmpc(1:end-1)];
+%        checker = [checker; checkvec];
+%     elseif fileid(mm) % sequence trials
+%        catvec = [catvec; assignvec(1:end-1)];
+%        length = numel(assignvec(1:end-1));
+%        tmpc = zeros(length,1);
+%        checkvec = [true; tmpc(1:end-1)];
+%        checker = [checker; checkvec];
+%     end    
+% end
+% 
+% % mark start of sentences based on file category values
+% for k = 1:size(trl,1)
+%     if trl(k,10) == 1 && trl(k,8) ~= 1
+%         trl(k,11) = 1;
+%     end
+% end
+
+% length of each sentence/sequence based on trl matrix
+triallen = [];
+dumtrl = [trl; ones(size(trl,2),1)'];
+for kk = 2:size(dumtrl,1)
+    if dumtrl(kk,8) == 1;
+        tmplen = dumtrl(kk-1,8);
+        triallen = [triallen; tmplen];
+    end
+end
 
 catvec = [];
 for mm = 1:size(idx4expword,1)
     row = find(cat(:,1) == fileid(mm));
     assignvec = cat(row,2:end)';
-    assignvec(all(isnan(assignvec),2),:) = []; % remove NaNs from being assigned to trialfun   
-    if fileid(mm) < 500  % sentence trials
-       catvec = [catvec; assignvec];      
-    elseif fileid(mm) % sequence trials
-       catvec = [catvec; assignvec(1:end-1)];
-    end    
-end
+    assignvec(all(isnan(assignvec),2),:) = [];
+    assignvec = assignvec(1:triallen(mm));
+    catvec = [catvec; assignvec];
+end 
 
-% catvec = 2650 values.  MISSING 5?
+
+% catvec = 2631 values.  extra 5...
 % trl = 2625 values
-catvec = [catvec; 0; 0 ;0; 0 ;0];
+% catvec = [catvec(1:end-6)];
+% checker = [checker(1:end-6)];
+%trl = [trl, catvec, checker];
 trl = [trl, catvec];
 
 
