@@ -6,8 +6,20 @@ function [trl] = trialfun_visual_word(cfg)
 % the cfg needs to contain the following option:
 %   cfg.dataset = string, name of the dataset
 %
-% the trl-matrix has 6 columns:
-%   column 1: begin sample, word onset trigger - 500 ms.
+%%  Terms
+% 1) time point 0: onset of trigger (in val variable, line 35)
+%                  in this case, it represents onset of each word (but more
+%                  generally refers to onset of a trial)
+%              
+% 2) prestim: duration before time point 0, also referred to as 'offset'
+%             (not to be confused with "word offset")
+%
+%             in this case it is also the baseline (but this is not definitive)
+% 3) poststim: duration from time point 0 until (a) next trial begins or 
+%              (b) end of poststim value (as defined in cfg.poststim)
+% 
+%%  The trl-matrix has 6 columns:
+%   column 1: begin sample: word onset trigger - 500 ms.
 %   column 2: end sample, onset of word + 800 ms, or next word onset
 %             trigger, whichever occurs first.
 %   column 3: offset of first sample with respect to time point 0
