@@ -1,5 +1,4 @@
 function [trl] = trialfun_visual_word(cfg)
-
 % [trl] = trialfun_visual_word(cfg) creates the trl-matrix for the 
 % single words
 % 
