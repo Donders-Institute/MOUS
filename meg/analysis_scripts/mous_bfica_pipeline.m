@@ -336,14 +336,14 @@ if 0
     
     %source.avg.pow = tlckseq.avg;
     source.avg.pow = log10(tlckseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
-    seq{k}         = source;
-    seq{k}.pos     = sourcemodel.pos;
+    seq{k} = source;
+    seq{k}.pos = sourcemodel.pos;
     
     %source.avg.pow = tlcksent.avg;
     source.avg.pow = log10(tlcksent.avg);% ./ repmat(Bsent, [1 numel(tlcksent.time)]);
-    source.tstat   = tstat;
-    sent{k}        = source;
-    sent{k}.pos    = sourcemodel.pos;
+    source.tstat = tstat;
+    sent{k} = source;
+    sent{k}.pos = sourcemodel.pos;
   
   end
   
@@ -360,25 +360,25 @@ if 0
     
     seq{k}.avg.pow = (tmp1);% - repmat(mean((tmp1),1), [size(tmp1,1) 1]);
     sent{k}.avg.pow = (tmp2);% - repmat(mean((tmp2),1), [size(tmp1,1) 1]);
-    sent{k}.tstat   = tmp3;
+    sent{k}.tstat = tmp3;
   end
   
-%   cfg = [];
-%   cfg.method = 'montecarlo';
-%   cfg.statistic = 'depsamplesT';
-%   cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
-%   cfg.ivar = 1;
-%   cfg.uvar = 2;
-%   cfg.numrandomization = 0;
-%   cfg.parameter = 'avg.pow';
-%   senttime = sent;
-%   seqtime = seq;
+% cfg = [];
+% cfg.method = 'montecarlo';
+% cfg.statistic = 'depsamplesT';
+% cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
+% cfg.ivar = 1;
+% cfg.uvar = 2;
+% cfg.numrandomization = 0;
+% cfg.parameter = 'avg.pow';
+% senttime = sent;
+% seqtime = seq;
 % % for k = 1:Nsubj
 % % senttime{k}.avg.pow = senttime{k}.avg.pow - repmat(mean(senttime{k}.avg.pow(:,4:11),2),[1 20]);
 % % seqtime{k}.avg.pow = seqtime{k}.avg.pow - repmat(mean(seqtime{k}.avg.pow(:,4:11),2),[1 20]);
 % % end
-%   stattime = ft_sourcestatistics(cfg, senttime{:}, seqtime{:});
-%   
+% stattime = ft_sourcestatistics(cfg, senttime{:}, seqtime{:});
+%
   
   ix = nearest(sent{1}.time, 0.3);
   iy = nearest(sent{1}.time, 0.6);

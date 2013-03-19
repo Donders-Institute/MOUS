@@ -52,8 +52,8 @@ if nargout
   varargout{1} = data;
 else
   % evaluate the variables in the caller's workspace
-  if numel(data)==1 && ~isfield(data{1}, 'varname')
-  else
+  %if numel(data)==1 && ~isfield(data{1}, 'varname')
+  %else
     for k = 1:numel(data)
       if isstruct(data{k}) && isfield(data{k}, 'varname'),
         tmp = rmfield(data{k}, 'varname');
@@ -62,6 +62,6 @@ else
       end
       assignin('caller', varname{k}, tmp);
     end
-  end
+  %end
 end
   

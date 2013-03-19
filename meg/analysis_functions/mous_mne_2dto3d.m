@@ -21,7 +21,7 @@ insidemethod = ft_getopt(varargin, 'insidemethod', 'target');
 % create individual 3D grid based on the MNI-template with specified
 % resolution.
 [p,f,e] = fileparts(which('mous_mne_2dto3d'));
-fname   = fullfile(p(1:end-18), 'templates', 'sourcemodel', 'standard_sourcemodel3d5mm.mat');
+fname   = fullfile(p(1:end-18), 'templates', 'sourcemodel', ['standard_sourcemodel3d',num2str(resolution),'mm.mat']);
 load(fname);
 template = sourcemodel;
 

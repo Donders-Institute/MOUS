@@ -1,9 +1,8 @@
-function [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname)
+function [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname, p)
 
 % get data and apply artifact rejection
 dataset   = mous_db_getfilename(subjectname, 'meg_ds_task');
 artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
-
 
 cfg          = [];
 cfg.dataset  = dataset{1};
@@ -23,30 +22,44 @@ cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
 data           = ft_preprocessing(cfg);
 
-cfg.padding    = 1.5;
-cfg.hpfilter   = 'yes';
-cfg.hpfreq     = 4;
-cfg.channel    = 'EEG059';
-ecg            = ft_preprocessing(cfg);
+if nargin>1
+  cfg.padding    = 1.5;
+  cfg.hpfilter   = 'yes';
+  cfg.hpfreq     = 4;
+  cfg.channel    = 'EEG059';
+  ecg            = ft_preprocessing(cfg);
+end
 
 % downsample
 cfg            = [];
 cfg.demean     = 'yes';
 cfg.detrend    = 'no';
 cfg.resamplefs = 200;
-ecg            = ft_resampledata(cfg, ecg);
 data           = ft_resampledata(cfg, data);
 
-% compute peak times for ecg
-ecg = ft_channelnormalise([], ecg);
-tmp = cat(2, ecg.trial{:});
-polarity = 2*(double(sum(tmp>4)>sum(tmp<-4))-0.5);
-for k = 1:numel(ecg.trial)
-  p{k} = peakdetect2(polarity*ecg.trial{k},4,1);
+if nargin==1
+  ecg = ft_resampledata(cfg, ecg);
+  
+  % compute peak times for ecg
+  ecg = ft_channelnormalise([], ecg);
+  tmp = cat(2, ecg.trial{:});
+  %polarity = 2*(double(sum(tmp>4)>sum(tmp<-4))-0.5);
+  figure;plot(tmp);
+  s1 = input('polarity?','s');
+  s2 = input('threshold?','s');
+  close;
+  
+  polarity = str2double(s1);
+  threshold = str2double(s2);
+  
+  for k = 1:numel(ecg.trial)
+    p{k} = peakdetect2(polarity*ecg.trial{k},4,1);
+  end
 end
+
 paramscell.tr = p;
-paramscell.pre = 0.25*ecg.fsample;
-paramscell.pst = 0.50*ecg.fsample;
+paramscell.pre = 0.25*data.fsample;
+paramscell.pst = 0.50*data.fsample;
 paramscell.demean = true;
 
 cfg                   = [];

@@ -14,6 +14,7 @@ function [filename, st, info] = mous_db_getfilename(subject, type, infoflag, roo
 %   'meg_raw_rest'
 %   'meg_raw_pos'
 %   'meg_raw_fidpic'
+%   'meg_raw_log'             % presentation log file 
 %   'meg_artifact_cfg'
 %   'meg_artifactdssblinks'   %% FIXME meg_artifact_dssblinks
 %   'meg_artifactdsssaccades' %% FIXME  meg_artifact_dsssaccades
@@ -146,6 +147,9 @@ switch type{2}
           % Photograph of fiducials
           D = [rootdir filesep subject filesep 'RAW' filesep];
           d = dir([D, '*.JPG']);
+        case 'log'
+          D = [rootdir filesep subject filesep 'RAW' filesep];
+          d = dir([D, '*.log']);    
         otherwise
       end
     end
