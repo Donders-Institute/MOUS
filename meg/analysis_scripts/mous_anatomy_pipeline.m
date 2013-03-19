@@ -8,9 +8,11 @@
 
 if ~exist('docoregistration1', 'var'), docoregistration1 = 0; end
 if ~exist('docoregistration2', 'var'), docoregistration2 = 0; end
+if ~exist('docoregistration3', 'var'), docoregistration3 = 0; end
 if ~exist('doskullstrip',     'var'), doskullstrip     = 0;  end
-if ~exist('doheadmodel',      'var'), doheadmodel      = 1;  end
-if ~exist('dosourcemodel2d',  'var'), dosourcemodel2d  = 0;  end
+if ~exist('doheadmodel',      'var'), doheadmodel      = 0;  end
+if ~exist('dosourcemodel2d1',  'var'), dosourcemodel2d1  = 0;  end
+if ~exist('dosourcemodel2d2',  'var'), dosourcemodel2d2  = 0;  end
 if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = 0;  end
 if ~exist('doqualitycheck',   'var'), doqualitycheck   = 0;  end
 
@@ -44,7 +46,16 @@ if docoregistration2
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
   pos = mous_db_getdata(subjectname, 'meg_raw_pos');
   mri = mous_anatomy_coregCTF(mri, pos);
-  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);% creates a V1025coregCTF.nii file
+  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);
+end
+
+%% Coregister in a second step to the polhemus point-cloud
+if docoregistration3
+  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  pos = mous_db_getdata(subjectname, 'meg_raw_pos');
+  [mri, shape, shapemri] = mous_anatomy_coregCTF(mri, pos, 0, 1);
+  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri, 0);% creates a V1025coregCTF.nii file
+  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri');
 end
 
 % next step is not necessary anymore when using the converted nifties
@@ -72,11 +83,11 @@ if doheadmodel
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   mri.coordsys = 'ctf';
   vol = mous_anatomy_headmodel(mri, thr_headmodel);
-  mous_db_putdata(subjectname, 'meg_anatomy_headmodel', 'vol');
+  mous_db_putdata(subjectname, 'meg_anatomy_headmodel', 'vol', 0);
 end
 
 %% Freesurfer pipeline
-if dosourcemodel2d
+if dosourcemodel2d1
   % create directory that will contain the results
   subjdirfs   = ['/home/language/annhul/MOUS/meg/',subjectname,'/anatomy'];
 
@@ -124,7 +135,9 @@ if dosourcemodel2d
   
   % mne call to create dipole grid
   system([p,'/mnescript.sh ',subjdirfs,' ',subjectname]);
-  
+end
+
+if dosourcemodel2d2
   % create the 2D sourcemodel based on the freesurfer mesh
   % extract the dipole grid from the *.fif-file and coregister it to CTF
   % coordinate system
@@ -132,7 +145,7 @@ if dosourcemodel2d
   mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
   bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', 'bnd');
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', 'bnd', 0);
 end
 
 %% create a 3D sourcemodel based on the MNI brain

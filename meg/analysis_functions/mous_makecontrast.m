@@ -13,7 +13,7 @@ function varargout = mous_makecontrast(data, contrast, trialinfo)
 % sequence trigger values: 3 4 7 8
 
 switch contrast
-  case 'sent-seq'
+  case {'sent-seq', 'sent-seqTarget', 'sent1-sent2'}
     if nargin<3
       T = data.trialinfo(:,3);
     else 
@@ -23,8 +23,16 @@ switch contrast
     cfg              = [];
     cfg.vartrllength = 2;
 
-    sel1 = find(ismember(T,[1 2 5 6]));
-    sel2 = find(ismember(T,[3 4 7 8]));
+    if strcmp(contrast, 'sent-seq')
+      sel1 = find(ismember(T,[1 2 5 6]));
+      sel2 = find(ismember(T,[3 4 7 8]));
+    elseif strcmp(contrast, 'sent-seqTarget')
+      sel1 = find(ismember(T,[2 6]));
+      sel2 = find(ismember(T,[4 8]));      
+    elseif strcmp(contrast, 'sent1-sent2')
+      sel1 = find(ismember(T,[1 2]));
+      sel2 = find(ismember(T,[5 6]));
+    end
     
     if numel(sel1)~=numel(sel2)
       n1=numel(sel1);

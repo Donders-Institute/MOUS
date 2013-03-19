@@ -79,6 +79,10 @@ v = v./v(1);
 % dummy trial to fool ft_rejectcomponent
 comp.trial = comp.time;
 
+% NOTE: this avoids a crash later on, but not sure which grad structure is
+% used in ft_rejectcomponent.
+comp = rmfield(comp, 'grad');
+
 cfg           = [];
 cfg.component = find(v>0.1);
 data          = ft_rejectcomponent(cfg, comp, data);
