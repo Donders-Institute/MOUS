@@ -1,49 +1,34 @@
-dodss = 0;
-dofreq = false;
-dofreqmtmfft = 0;
-dofreqbaseline = false;
-dosource = 0;
-dosource8mm = 0;
-dovox = 0;
-dovoxbaseline = 0;
-doica = 0;
-doccc = 0;
-dosourcedss = 0;
-dosentvsseq = 0;
-dosentvsseq_chan = 1;
-dowordsentpar = 0;
-dowordseqpar = 0;
-sourcedata2avgword = 0;
-
-dowordsentpar2 = 0;
-dowordseqpar2 = 0;
-
-rootdir = '/home/language/jansch/public/mous/';
-
-% use the variable suff and frequency to toggle between different frequency bands
-suff      = '';
-frequency = 20;
-toi       = 0.4;
-
+% execute script that sets some variables if they have not been specified
+mous_bfica_pipelineoptions;
+if doecg,
+  [polarity, threshold, p] = mous_bfica_ecg(subjectname);
+  mous_db_putdata(subjectname, 'meg_bfica_ecg', 'polarity', 'threshold', 'p', rootdir);
+end
 if dodss,
-  [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
+  %try
+    mous_db_getdata(subjectname, 'meg_bfica_ecg', rootdir);
+    [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname, p);
+  %catch
+  %  [comp, avgpre, avgcomp] = mous_bfica_dss(subjectname);
+  %end
   mous_db_putdata(subjectname, 'meg_bfica_comp', 'comp', 'avgcomp', 'avgpre', rootdir);
 end
 if dofreq,
-  options = [];
-  options.taper = 'hanning';
-  options.t_ftimwin = 0.4;
-  options.resamplefs = 300;
-  freq = mous_bfica_freq(subjectname, 5, rootdir, options);
-  mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
-  
-% % beta frequency
-% options = [];
-% options.taper = 'hanning';
-% options.t_ftimwin = 0.250;
-% options.resamplefs = 300;
-% freq = mous_bfica_freq(subjectname, 20, rootdir);
-% mous_db_putdata(subjectname, 'meg_bfica_freq', 'freq', rootdir);
+%   options = [];
+%   options.taper = 'hanning';
+%   options.t_ftimwin = 0.4;
+%   options.resamplefs = 300;
+%   freq = mous_bfica_freq(subjectname, 5, rootdir, options);
+%   mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
+%   
+
+% beta frequency
+options = [];
+options.taper = 'hanning';
+options.t_ftimwin = 0.250;
+options.resamplefs = 300;
+freq = mous_bfica_freq(subjectname, frequency, rootdir, options);
+mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', rootdir);
 %
 % % broadband gamma frequency
 % options = [];
@@ -56,16 +41,18 @@ if dofreq,
 end
 if dofreqmtmfft
   options = [];
-  %options.taper = 'hanning';
-  %options.resamplefs = 300;
-  %options.tapsmofrq  = 2.5;
-  options.taper = 'dpss';
-  options.resamplefs = 600;
-  options.tapsmofrq  = 7.5;
-  %freq = mous_bfica_freq_mtmfft(subjectname, [0 40], rootdir, options);
-  %mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft', 'freq', rootdir);
-  freq = mous_bfica_freq_mtmfft(subjectname, [40 160], rootdir, options);
-  mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft_high', 'freq', rootdir);
+  options.taper = 'hanning';
+  options.resamplefs = 300;
+  options.tapsmofrq  = 2.5;
+  options.toilim     = [0.2 0.6];
+  freq = mous_bfica_freq_mtmfft(subjectname, [0 40], rootdir, options);
+  mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft', 'freq', rootdir);
+%   options.taper = 'dpss';
+%   options.resamplefs = 600;
+%   options.tapsmofrq  = 7.5;
+%   options.toilim     = [0.2 0.6];
+%   freq = mous_bfica_freq_mtmfft(subjectname, [40 160], rootdir, options);
+%   mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft_high', 'freq', rootdir);
 end
 if dofreqbaseline,
   options.taper = 'dpss';
@@ -81,13 +68,18 @@ end
 if dosource8mm,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   [source, trialinfo] = mous_bfica_source(subjectname, ft_struct2double(freq), toi, 8);
-  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff], 'source', 'trialinfo', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi))], 'source', 'trialinfo', rootdir, 0);
+end
+if doleadfield8mm,
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
+  [sourcemodel, newinside, oldinside] = mous_bfica_leadfield(subjectname, ft_struct2double(freq), toi, 8);
+  mous_db_putdata(subjectname, 'meg_bfica_leadfield8mm', 'sourcemodel', 'newinside', 'oldinside', rootdir, 0);
 end
 if dovox,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi))], rootdir);
   sourcedata = mous_bfica_sourcedata(source, freq, toi);
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedata',suff], 'sourcedata', rootdir);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi))], 'sourcedata', rootdir);
 end
 if dovoxbaseline,
   mous_db_getdata(subjectname, 'meg_bfica_freqbaseline', rootdir);
@@ -98,10 +90,26 @@ end
 if dosentvsseq_chan,
   mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft', rootdir);
   [fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seq', freq.trialinfo(:,2));
-  mous_db_putdata(subjectname, 'meg_bfica_chandatasentseq', 'fsent', 'fseq', rootdir);
+  mous_db_putdata(subjectname, 'meg_bfica_chandatasentseq', 'fsent', 'fseq', rootdir,0);
+  %mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft_high', rootdir);
+  %[fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seq', freq.trialinfo(:,2));
+  %mous_db_putdata(subjectname, 'meg_bfica_chandatasentseq_high', 'fsent', 'fseq', rootdir,0);
+end
+if dosentvsseqTarget_chan,
+  %mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft', rootdir);
+  %[fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seqTarget', freq.trialinfo(:,2));
+  %mous_db_putdata(subjectname, 'meg_bfica_chandatasentseqTarget', 'fsent', 'fseq', rootdir,0);
   mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft_high', rootdir);
-  [fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seq', freq.trialinfo(:,2));
-  mous_db_putdata(subjectname, 'meg_bfica_chandatasentseq_high', 'fsent', 'fseq', rootdir);
+  [fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seqTarget', freq.trialinfo(:,2));
+  mous_db_putdata(subjectname, 'meg_bfica_chandatasentseqTarget_high', 'fsent', 'fseq', rootdir,0);
+end
+if dosent1vssent2_chan,
+  mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft', rootdir);
+  [fsent1, fsent2] = mous_makecontrast(ft_struct2double(freq), 'sent1-sent2', freq.trialinfo(:,2));
+  mous_db_putdata(subjectname, 'meg_bfica_chandatasent1sent2', 'fsent1', 'fsent2', rootdir,0);
+  %mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft_high', rootdir);
+  %[fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seq', freq.trialinfo(:,2));
+  %mous_db_putdata(subjectname, 'meg_bfica_chandatasentseq_high', 'fsent', 'fseq', rootdir,0);
 end
 if dosentvsseq,
 % toi = -0.2:0.05:0.8;
@@ -115,13 +123,33 @@ if dosentvsseq,
 % [tlcksent, tlckseq] = mous_makecontrast(sourcedata, 'sent-seq');
 % mous_db_putdata(subjectname, 'meg_bfica_sourcedatasentseq', tlcksent, tlckseq, rootdir);
 
-  toi = -0.2:0.05:0.8;
-  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+  tois = -0.2:0.05:0.8;
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi))], rootdir);
   %mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi))], rootdir);
   
   %krn = compute_kernel(source);
   %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
+  [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),tois);
+  
+  % match the trials with the trialinfo from the sourcedata file
+  [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
+  % chop until word offset minus half a time window for the spectral analysis
+  % FIXME
+  
+  sourcedata.trialinfo = trialinfonew(ia,:);
+  sourcedata.trial = trial(ia);
+  sourcedata.time = time(ia);
+  [tlcksent, tlckseq,tstat] = mous_makecontrast(sourcedata, 'sent-seq');
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff,'_',num2str(round(1000*toi))], 'tlcksent', 'tlckseq', 'tstat', rootdir, 0);
+
+end
+if dosentvsseqTarget,
+  toi = -0.2:0.05:0.8;
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  
   sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
   [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
   
@@ -133,8 +161,8 @@ if dosentvsseq,
   sourcedata.trialinfo = trialinfonew(ia,:);
   sourcedata.trial = trial(ia);
   sourcedata.time = time(ia);
-  [tlcksent, tlckseq,tstat] = mous_makecontrast(sourcedata, 'sent-seq');
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff], 'tlcksent', 'tlckseq', 'tstat', rootdir, 0);
+  [tlcksent, tlckseq,tstat] = mous_makecontrast(sourcedata, 'sent-seqTarget');
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqTarget',suff], 'tlcksent', 'tlckseq', 'tstat', rootdir, 0);
 
 end
 
@@ -231,11 +259,11 @@ if dosourcedss,
 end
 if doccc,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff], rootdir);
+  mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', rootdir);
   
-  freq              = ft_selectdata(freq, 'toilim', [0.38 0.42]);
-  [cohsent, cohseq] = mous_bfica_ccc(source, freq);
-  mous_db_putdata(subjectname, ['meg_bfica_ccc',suff], 'cohsent', 'cohseq', rootdir);
+  freq              = ft_selectdata(freq, 'toilim', toi+[-0.01 0.01]);
+  [cohsent, cohseq] = mous_bfica_ccc(sourcemodel, freq, 'refindx', [], 'lambda', 0.05);
+  mous_db_putdata(subjectname, ['meg_bfica_ccc',suff,'Hz_',num2str(round(1000*toi)),'ms'], 'cohsent', 'cohseq', rootdir);
 end
 
   
@@ -250,7 +278,37 @@ end
 % comp = ft_componentanalysis(cfg, sdata);
 
 
-% group statistics
+% group statistics channel level frequency data
+if 0
+  rootdir = '/home/language/jansch/public/mous';
+  subj    = mous_db_getfilename('all', 'subjectname');
+  [f,s]   = mous_db_getfilename(subj, 'meg_bfica_chandatasentseqTarget', 0, rootdir);
+  subj    = subj(s);
+  Nsubj   = numel(subj);
+  Fsent   = cell(1,Nsubj);
+  Fseq    = cell(1,Nsubj);
+  for k = 1:Nsubj
+    mous_db_getdata(subj{k}, 'meg_bfica_chandatasentseqTarget',rootdir);
+    Fsent{1,k} = fsent;
+    Fseq{1,k}  = fseq;
+    %Fsent{1,k} = fsent1;
+    %Fseq{1,k}  = fsent2;
+  end
+  cfg = [];
+  cfg.method = 'montecarlo';
+  cfg.statistic = 'depsamplesT';
+  cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
+  cfg.ivar = 1;
+  cfg.uvar = 2;
+  cfg.numrandomization = 1000;
+  cfg.parameter = 'powspctrm';
+  cfg.correctm = 'no';
+  %cfg.clusterthreshold = 'nonparametric_common';
+  %cfg.clusteralpha = 0.05;
+  stat = ft_freqstatistics(cfg, Fsent{:}, Fseq{:});
+end
+
+% group statistics source level data
 if 0
   rootdir = '/home/language/jansch/public/mous';
   subj = mous_db_getfilename('all', 'subjectname');
