@@ -182,6 +182,11 @@ switch type{2}
         if isempty(d)
           d(1).name = [subject 'coregCTFresliced'];
         end
+      case 'coreginfo'
+        d = dir([D subject 'coreginfo.mat']);
+        if isempty(d)
+          d(1).name = [subject 'coreginfo'];
+        end
       case 'coregMNI'
         d = dir([D subject 'coregMNI.nii']);
         %d = dir([D 'cstr-' subject '-001.nii']);
@@ -270,7 +275,7 @@ switch type{2}
       otherwise
         error('unrecognized type requested');    
     end
-  case {'bfica' 'artifact' 'corrmnebf' 'restingstate' 'qualitycheck' 'mne'} %FIXME add the other ones also, so that the 'processed' can be removed
+  case {'bfica' 'artifact' 'corrmnebf' 'restingstate' 'qualitycheck' 'mne' 'corrmnebf'} %FIXME add the other ones also, so that the 'processed' can be removed
     D = [rootdir filesep subject filesep type{2} filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'
