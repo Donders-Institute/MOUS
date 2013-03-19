@@ -279,7 +279,7 @@ switch type{2}
       otherwise
         error('unrecognized type requested');    
     end
-  case {'bfica' 'artifact' 'corrmnebf' 'restingstate' 'qualitycheck' 'mne' 'corrmnebf'} %FIXME add the other ones also, so that the 'processed' can be removed
+  case {'bfica' 'artifact' 'corrmnebf' 'restingstate' 'qualitycheck' 'mne' } %FIXME add the other ones also, so that the 'processed' can be removed
     D = [rootdir filesep subject filesep type{2} filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'
