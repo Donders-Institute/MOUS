@@ -100,6 +100,6 @@ if doERFshort
     
     data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.2);
         
-    mous_db_putdata(subjectname, ['meg_processed_{_preProcERF' trialfun '_' wordType '_test_temp}'], 'data','dataStats');
+    mous_db_putdata(subjectname, ['meg_processed_{_preProcERF' trialfun '_' wordType '02-1ds}'], 'data','dataStats');
 end
 
