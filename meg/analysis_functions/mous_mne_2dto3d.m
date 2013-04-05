@@ -17,16 +17,19 @@ function source3d = mous_mne_2dto3d(subjectname, source2d, varargin)
 
 resolution   = ft_getopt(varargin, 'resolution',   5);
 insidemethod = ft_getopt(varargin, 'insidemethod', 'target');
+template     = ft_getopt(varargin, 'template', []);
 
-% create individual 3D grid based on the MNI-template with specified
-% resolution.
-[p,f,e] = fileparts(which('mous_mne_2dto3d'));
-fname   = fullfile(p(1:end-18), 'templates', 'sourcemodel', ['standard_sourcemodel3d',num2str(resolution),'mm.mat']);
-load(fname);
-template = sourcemodel;
+if isempty(template)
+  % create individual 3D grid based on the MNI-template with specified
+  % resolution.
+  [p,f,e] = fileparts(which('mous_mne_2dto3d'));
+  fname   = fullfile(p(1:end-18), 'templates', 'sourcemodel', ['standard_sourcemodel3d',num2str(resolution),'mm.mat']);
+  load(fname);
+  template = sourcemodel;
+end
 
 cfg     = [];
-cfg.mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF'); 
+cfg.mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
 cfg.mri.coordsys   = 'ctf';
 cfg.grid.warpmni   = 'yes';
 cfg.grid.template  = template;
@@ -62,4 +65,12 @@ if strcmp(insidemethod, 'source')
   
   source3d.inside  = find(inside);
   source3d.outside = find(inside==0);
+end
+
+if ft_datatype(template, 'parcellation')
+  % do the parcellation
+  cfg = [];
+  cfg.parameter    = 'pow'; %hard coded for the time being
+  cfg.parcellation = 'seg'; %hard coded for the time being
+  source3d = ft_sourceparcellate(cfg, source3d, template);
 end
