@@ -44,7 +44,7 @@ if selfix(end)<numel(val)
   selfix(end+1) = numel(val);
 end
 
-trl    = zeros(0,6);
+trl    = zeros(0,7);
 for k = 1:numel(selfix)-1
   
   % FIXATION CROSS - keep track of the '20' trigger
@@ -98,7 +98,7 @@ for k = 1:numel(selfix)-1
   %%
   %tmp = [fixsmp endsmp -offset k condition critsmp-offset-fixsmp]; % visual stimuli
   %begsmp = first onset - 1s.
-   tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset];
+  tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset];
   trl = cat(1,trl,tmp);
 
 end
