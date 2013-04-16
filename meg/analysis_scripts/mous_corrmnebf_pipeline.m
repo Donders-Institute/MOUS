@@ -1,5 +1,4 @@
 % mous_corrmnebf_pipeline
-% older version of this was called "mous_MNEsingletrials_pipeline"
 % trial == a single word (not averaged across word position)
 % 
 % Perform source level analysis for a certain time window of interest in
@@ -33,27 +32,30 @@
 
 mous_db_makesubjdir(subjectname)
 
-dofreq      = false;  % works with altered version of JM's script
+toie        = [0.05 0.25];  % toi for ERFs
+toi         = 0.4;          % toi for frequency analysis
+
+dofreq      = false;  % uses with altered version of JM's script
+doselfreq   = true;
+
+doselerf    = true;
+domatch     = true;
+dotlck      = true;
 
 doleadmne   = true;
 doleadbf    = true;
-docov       = true;
 
-doselfreq   = false;
-doerf       = false;
-doselerf    = false;
-
-domatch     = false;
-dotlck      = false;
-domne       = false;
-dobeam      = false;   % 
+domneavg    = false;
+domnesingle = false;
+dobeam      = true;   % 
 docor_cross = false;
-docor_bf   = false;
-docor_mne    = false;
+docor_bf    = false;
+docor_mne   = false;
 dogrpavg    = false;
 
+%docov       = false;
+
 if dofreq
-    %%% Recalculate so that it only reflects sentences? 
     rootdir = '/home/language/jansch/public/mous/';
     suff = '';
     options = [];
@@ -65,28 +67,69 @@ if dofreq
     mous_db_putdata(subjectname, ['meg_corrmnebf_freq',suff], 'freq','dataStats');
 end
 
-if docov   % noise covariance matrix based on entire interval (-0.2 to 1s) to get accurate estimate of noise
-    %% only using data from sentences!  
-    mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_02-1ds}');
-    cfg                 = [];
-    cfg.vartrllength    = 2;
-    cfg.feedback        = 'textbar';
-    cfg.channel         = {'MEG', '-EEG057', '-EEG058'};
-    cfg.covariance      = 'yes';
-    cfg.covariancewindow = [-inf 1];
-    cfg.preproc.baselinewindow = [-inf 0];
-    sencdtn = [1 2 5 6];                                    % sentence triggers
-    cfg.trials = find(ismember(data.trialinfo(:,2),cdtn));  % choose only sentences from data
-    covtlck = ft_timelockanalysis(cfg,data);
-    fullcov = covtlck.cov;
-    mous_db_putdata(subjectname,'meg_corrmnebf_noisecov_sent_02-1','fullcov');
-    gradinfo = covtlck.grad;
-    mous_db_putdata(subjectname,'meg_corrmnebf_gradinfo_sent_02-1','gradinfo');
+if doselfreq
+    %% select only sentences and toi
+    freq   = ft_struct2double(freq);
+    sidx   = find(ismember(freq.trialinfo(:,2),sencdtn));
+    freq   = ft_selectdata(freq,'rpt',sidx);
     
-end 
+    cfg = [];
+    cfg.latency = [-0.12 -0.08];  % equivalent of specifying -0.1, but using wider range to circumvent matlab's rounding issue
+    freq        = ft_selectdata(cfg,freq); 
+    %Go from 4D to 2D: rpttap_chan
+    idxful      = find(~isnan(freq.fourierspctrm(:,1,1,1)));  % remove trials with missing data due to artifact rejection
+    freq        = ft_selectdata(freq,'rpt',idxful);  
+end
 
-if doleadmne  % leadfields MNE
-    % 2D sourcemodel info
+if doselerf
+    %% select only the sentences and baseline normalise
+    mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_02-1ds}'); % 360 samples for full trials
+    sencdtn = [1 2 5 6];
+    sentidx     = find(ismember(data.trialinfo(:,2),sencdtn));
+    data2       = ft_selectdata(data,'rpt',sentidx);
+
+    % calc baseline
+    all = size(data.trial,2);
+    bslavgMat = ft_selectdata(data, 'rpt', all,'avgoverrpt','yes','toilim',[-0.2 0]);  
+    bslavgVec = mean(bslavgMat.trial{1},2);  % avg across timepoints(columns)
+    
+    % normalise
+    rows = 1; columns = size(data.trial{1},2);  % matrix dim for each trial
+    bslrep = repmat(bslavgVec, [rows columns]); % replicate bslvector to fit size of toi trials
+
+    for k = 1:size(data.trial,2)
+        data.trial{k} = data.trial{k}-bslrep;     
+    end
+end
+
+if domatch
+%% match trials between ERFs and TFRs
+    % find matching trials
+    erf = data.trialinfo(:,1)*1000+data.trialinfo(:,5);  
+    tfr = freq.trialinfo(:,1)*1000+freq.trialinfo(:,5);  
+    [comm, ierf, itfr] = intersect(erf, tfr);    % comm = same trials in both
+
+    % exclude non-matching trials from both datasets
+    freq = ft_selectdata(freq,'rpt',itfr);
+    data = ft_selectdata(data,'rpt',ierf);  
+end
+
+if dotlck
+    %% Timelock data and calc covariance matrix
+    cfg              = [];
+    cfg.vartrllength = 2;
+    cfg.feedback     = 'textbar';
+    cfg.covariance   = 'yes';
+    cfg.covariancewindow = [-inf 1]; % calculate the covariance matrix for timepoints before the zero-time point (onset of word) 
+    cfg.preproc.demean = 'yes';
+    cfg.channel        = {'MEG', '-EEG057', '-EEG058'};
+    cfg.preproc.baselinewindow = [-inf 0];
+    tlck = ft_timelockanalysis(cfg, data);  % 
+end
+
+if doleadmne  
+    %% leadfields for MNE
+    % Get  sourcemodel and headmodel
     sourcemodel = mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D');  
     if ~isfield(sourcemodel, 'pos') && isfield(sourcemodel, 'pnt')
         sourcemodel.pos  = sourcemodel.pnt;
@@ -109,9 +152,9 @@ if doleadmne  % leadfields MNE
     mous_db_putdata(subjectname, 'meg_corrmnebf_mnesourcemodel_sent_-02-1s','sourcemodelmne');
 end 
 
-if doleadbf   % leadfields for beamformer
-    
-    % 3D sourcemodel info
+if doleadbf   
+    %% leadfields for beamformer (not specific to toi/cdtn of interest)
+    % Get  sourcemodel and headmodel
     headmodel = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
     sourcemodel = mous_db_getdata(subjectname, ['meg_anatomy_sourcemodel3D_nonlin','8mm']);
 
@@ -128,83 +171,12 @@ if doleadbf   % leadfields for beamformer
     mous_db_putdata(subjectname, 'meg_corrmnebf_bfsourcemodel_-02-1s','sourcemodelbf');
 end  
 
-if doselfreq
-    suff = '';
-    mous_db_getdata(subjectname, ['meg_corrmnebf_freq',suff]);
-    cfg = [];
-    cfg.latency = [-0.12 -0.08];  % equivalent of specifying -0.1, but using wider range to circumvent matlab's rounding issue
-    freq       = ft_selectdata(cfg,freq); 
-    %Go from 4D to 2D: rpttap_chan
-    idxful      = find(~isnan(freq.fourierspctrm(:,1,1,1)));  % remove trials with missing data due to artifact rejection
-    freq       = ft_selectdata(freq,'rpt',idxful);  
-end
-
-if doselerf
-    % select toi
-    mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_02-1ds}'); % 360 samples for full trials
-    cfg         = [];
-    cfg.latency = [0.1 0.2];  % approximation of N1
-    data        = ft_selectdata(cfg,data);
-    nsmp        = cellfun('size',data.trial,2);
-    dur         = 0.1*300;
-    smpful      = find(nsmp == dur);  % get trials with a full 100ms worth of data
-    data        = ft_selectdata(data,'rpt',smpful);
-    
-    % calc baseline
-    all = size(data.trial,2);
-    bslavgMat = ft_selectdata(data, 'rpt', all,'avgoverrpt','yes','toilim',[-0.2 0]);  
-    bslavgVec = mean(bslavgMat.trial{1},2);  % avg across timepoints(columns)
-    
-    % normalise
-    rows = 1; columns = size(data.trial{1},2);  % matrix dim for each trial
-    bslrep = repmat(bslavgVec, [rows columns]); % replicate bslvector to fit size of toi trials
-
-    for k = 1:size(data.trial,2)
-        data.trial{k} = data.trial{k}-bslrep;     
-    end
-end
-
-if domatch
-% match trials between ERFs and TFRs
-    % find matching trials
-    erf = data.trialinfo(:,1)*1000+data.trialinfo(:,5);  
-    tfr = freq.trialinfo(:,1)*1000+freq.trialinfo(:,5);  
-    [comm, ierf, itfr] = intersect(erf, tfr);            % common words w/ loi 
-
-    % exclude non-matching trials from both datasets
-    freq = ft_selectdata(freq,'rpt',itfr);
-    data = ft_selectdata(data,'rpt',ierf);  
-end
-
-if dotlck
-    % Timelock data   
-    cfg              = [];
-    cfg.vartrllength = 2;
-    cfg.feedback     = 'textbar';
-    cfg.covariance   = 'yes';
-    cfg.covariancewindow = [-inf 1]; % calculate the covariance matrix for timepoints before the zero-time point (onset of word) 
-    cfg.preproc.demean = 'yes';
-    cfg.channel        = {'MEG', '-EEG057', '-EEG058'};
-    cfg.preproc.baselinewindow = [-inf 0];
-    tlck = ft_timelockanalysis(cfg, data);  % actual timelocked data is not used, we only need sensor positions and the noise cov. matrix
-    
-    % replace noise cov matrix within toi with full one
-    mous_db_getdata(subjectname,'meg_corrmnebf_noisecov_02-1');
-    tlck.cov = fullcov; 
-end
-
-if domne
-% models
-    mous_db_getdata(subjectname,'meg_processed_{_erf_visual_word_all_02-1ds-ag}');
-    data1 = data{1}; % sentTar_AG
-    % data1.cov = tlck.cov; % IF WANT TO DO A CONTRAST, RECALC COVARIANCE
-    % to cover both conditions
-    
+if domneavg  
     % calculate sources
     cfg                     = [];
     cfg.channel             = {'MEG', '-EEG057', '-EEG058'};
     cfg.method              = 'mne';
-    cfg.vol                 = vol;
+    cfg.vol                 = vol;             % vol and grid from "doleadmne"
     cfg.grid                = sourcemodelmne;
     cfg.mne.prewhiten       = 'yes';
     cfg.mne.lambda          = 3; % used to be 2
@@ -222,19 +194,26 @@ if domne
     % sd.avg.ori == 3 vectors (x,y,z) describing location of vector (that moves over time)
     % sd.avg.filter == how to weigh sensor level data (all channels) to project to source level
     % sd.pos == [8196 x 3], what does "3" stand for?
+end 
 
-% create the vertex x channel spatial filter matrix
-    mnefilter = zeros(size(sd.pos,1), size(sourcemodel.leadfield{1},1));  % 8196 x 273
+if domnesingle
+    % get source data on averaged trials from AH
+    % if want to do a contrast btw cdtns, recalculate covariance to cover both conditions
+    mous_db_getdata(subjectname,'meg_processed_{MNE02-1ds_Allwords_Sent_20130410}');
+    
+    % create the vertex x channel spatial filter matrix
+    mnefilter = zeros(size(sd_Sent.pos,1), size(sourcemodelmne.leadfield{1},1));  % 8196 x 273
     % calc filter for each vertex 
     % one filter for each channel: project sensor lvl data to source lvl (each vertex)
     for k = 1:size(mnefilter,1)
-        mnefilter(k,:) = sd.avg.ori{k}*sd.avg.filter{k}; 
+        mnefilter(k,:) = sd_Sent.avg.ori{k}*sd_Sent.avg.filter{k}; 
     end
     
     % apply filter to data; output is amplitude of trial
+    %% make sure that 273 filters do not include eogs!
     vertM = nan(size(mnefilter,1), numel(data.trial));  
     for k = 1:numel(data.trial)   
-        tmp = mnefilter*data.trial{k}(1:273,:);  % [8196*273] * [273 * 120 - timepoints] 
+        tmp = mnefilter*data.trial{k}(1:273,toie(1):toie(2));  % [8196*273] * [273 * xx timepoints] 
         vertM(:,k) = tmp;  % Vertices(8196) by Trials (words: number varies depending on artifact rejection and MEG condition)
     end
 
@@ -248,12 +227,12 @@ if dobeam
     %  --> previously, these 2 models were called *inside* this function
     % Beamformer calculation - turned off balancing cdtns (sent/seq)
     % source analysis
-    headmodel = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+    
     mous_db_getdata(subjectname, 'meg_corrmnebf_bfsourcemodel_-02-1s');    
     
-    toi = 0.4;
-        mous_db_getdata(subjectname, 'meg_corrmnebf_tfrsingletrial_02-06');
-    [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, 8, headmodel, sourcemodelbf);
+    % toi = ?
+    mous_db_getdata(subjectname, 'meg_corrmnebf_tfrsingletrial_02-06');
+    [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, 8, sourcemodelbf);
     % mous_db_putdata(subjectname,'meg_corrmnebf_bfsourcesingletrial_02-06','source','trialinfo');   % 10mm grid
     mous_db_putdata(subjectname, 'meg_corrmnebf_bfsourcesingletrial8mm_02-06','source','trialinfo');
 
@@ -343,7 +322,27 @@ if dogrpavg
     end
     dataAvg = data./numel(subjectnames);
 end    
-        
+
+
+% if docov   % noise covariance matrix based on entire interval (-0.2 to 1s) to get accurate estimate of noise
+%     %% only using data from sentences!  
+%     mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_02-1ds}');
+%     cfg                 = [];
+%     cfg.vartrllength    = 2;
+%     cfg.feedback        = 'textbar';
+%     cfg.channel         = {'MEG', '-EEG057', '-EEG058'};
+%     cfg.covariance      = 'yes';
+%     cfg.covariancewindow = [-inf 1];
+%     cfg.preproc.baselinewindow = [-inf 0];
+%     sencdtn = [1 2 5 6];                                    % sentence triggers
+%     cfg.trials = find(ismember(data.trialinfo(:,2),cdtn));  % choose only sentences from data
+%     covtlck = ft_timelockanalysis(cfg,data);
+%     fullcov = covtlck.cov;
+%     mous_db_putdata(subjectname,'meg_corrmnebf_noisecov_sent_02-1','fullcov');
+%     gradinfo = covtlck.grad;
+%     mous_db_putdata(subjectname,'meg_corrmnebf_gradinfo_sent_02-1','gradinfo');
+%     
+% end 
     
 
 %% Surfaces & saving 
