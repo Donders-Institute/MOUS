@@ -1,11 +1,13 @@
 % mous_corrmnebf_pipeline
+% older version of this was called "mous_MNEsingletrials_pipeline"
 % trial == a single word (not averaged across word position)
 % 
-% This function source level analysis for ERFs and TFRs and then correlates
-% their activity together.
-% 
+% Perform source level analysis for a certain time window of interest in
+% ERFs and TFRs, which are then (partially-)correlated together 
+
 % (1) ERFs done using Minimum Norm Estimate 
 % (2) TFRs done using Beamforming.
+%     *****If Xmm is not specified, then beamformer was 10mm between voxels (points)*
 % the trials are matched between ERFs sand TFRs
 % currently (11-2-2013) the trials used for baselining ERFs are only chosen from trials which 
 % contain the time window of interest. Theoretically,however, we could
@@ -23,86 +25,159 @@
 %   interested can be selected for that word e.g., 250 - 500ms
 % the next step: to average the vertices*trial matrix across subjects
 
-%   
-% list ={'V1004'  'V1005'    'V1007'    'V1010'   'V1011'    'V1012' ...
-%        'V1013'  'V1015'    'V1016'    'V1017'   'V1019'    'V1020'    'V1021'    ...
-%        'V1024'  'V1025'    'V1026'    'V1027'   'V1028'    'V1029'    'V1030'    'V1031'    'V1032' ...
-%        'V1033'  'V1034'    'V1036'   'V1037'    'V1039'     ...
-%        'V1044'  'V1045'    'V1046'    'V1049'   'V1050'    'V1052'    'V1066'    'V1067'    'V1068' ...
-%        'V1079'};
+%% Things to define 
+% doselxxx, domatch, dobf/mne need to be done in one go because intermediate outputs are NOT saved
+% suff:  '' = 20Hz, anything else needs to be specified 
 
 % Always exclude V1014 V1018 V1041 V1043 V1047 V1051 V1056 V1060 V1082 V1091
 
 mous_db_makesubjdir(subjectname)
 
-doerf   = false;
-domatch = false;
-dotlck  = false;
-domne   = false;
-dobeam  = false;
-docor   = true;
-dogrpavg = false;
+dofreq      = false;  % works with altered version of JM's script
 
-if doerf
-% select toi, include baseline 
+doleadmne   = true;
+doleadbf    = true;
+docov       = true;
 
-    mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_02-1ds}'); % 360 samples for full trials
+doselfreq   = false;
+doerf       = false;
+doselerf    = false;
 
+domatch     = false;
+dotlck      = false;
+domne       = false;
+dobeam      = false;   % 
+docor_cross = false;
+docor_bf   = false;
+docor_mne    = false;
+dogrpavg    = false;
+
+if dofreq
+    %%% Recalculate so that it only reflects sentences? 
+    rootdir = '/home/language/jansch/public/mous/';
+    suff = '';
+    options = [];
+    options.taper = 'hanning';
+    options.t_ftimwin = 0.250;
+    options.resamplefs = 300;
+    frequency = 20;
+    [freq,dataStats] = mous_bfica_freq(subjectname, frequency, rootdir, options); % data from mous_corrmnebf_comp is called inside mous_bfica_freq
+    mous_db_putdata(subjectname, ['meg_corrmnebf_freq',suff], 'freq','dataStats');
+end
+
+if docov   % noise covariance matrix based on entire interval (-0.2 to 1s) to get accurate estimate of noise
+    %% only using data from sentences!  
+    mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_02-1ds}');
+    cfg                 = [];
+    cfg.vartrllength    = 2;
+    cfg.feedback        = 'textbar';
+    cfg.channel         = {'MEG', '-EEG057', '-EEG058'};
+    cfg.covariance      = 'yes';
+    cfg.covariancewindow = [-inf 1];
+    cfg.preproc.baselinewindow = [-inf 0];
+    sencdtn = [1 2 5 6];                                    % sentence triggers
+    cfg.trials = find(ismember(data.trialinfo(:,2),cdtn));  % choose only sentences from data
+    covtlck = ft_timelockanalysis(cfg,data);
+    fullcov = covtlck.cov;
+    mous_db_putdata(subjectname,'meg_corrmnebf_noisecov_sent_02-1','fullcov');
+    gradinfo = covtlck.grad;
+    mous_db_putdata(subjectname,'meg_corrmnebf_gradinfo_sent_02-1','gradinfo');
+    
+end 
+
+if doleadmne  % leadfields MNE
+    % 2D sourcemodel info
+    sourcemodel = mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D');  
+    if ~isfield(sourcemodel, 'pos') && isfield(sourcemodel, 'pnt')
+        sourcemodel.pos  = sourcemodel.pnt;
+        sourcemodel      = rmfield(sourcemodel, 'pnt');
+    end
+    sourcemodel.inside = 1:8196; % hard code because coreg not perfect so some subj have sources hovering on border
+    sourcemodel.outside = [];
+    mous_db_getdata(subjectname,  'meg_anatomy_headmodel'); 
+    
+    % forward solution   
+    % sourcemodel.leadfield is {1 x 8196 vertices}, each vertex holds [273 channel x 3 orientation]
+    mous_db_getdata(subjectname,'meg_corrmnebf_gradinfo_02-1');
+    cfg             = [];
+    cfg.grad        = gradinfo;  % sensor positions
+    cfg.vol         = vol;
+    cfg.grid        = sourcemodel;
+    cfg.channel     = {'MEG', '-EEG057', '-EEG058'};
+    cfg.feedback    = 'textbar';
+    sourcemodelmne  = ft_prepare_leadfield(cfg);
+    mous_db_putdata(subjectname, 'meg_corrmnebf_mnesourcemodel_sent_-02-1s','sourcemodelmne');
+end 
+
+if doleadbf   % leadfields for beamformer
+    
+    % 3D sourcemodel info
+    headmodel = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+    sourcemodel = mous_db_getdata(subjectname, ['meg_anatomy_sourcemodel3D_nonlin','8mm']);
+
+    % forward solution
+    suff = '';
+    mous_db_getdata(subjectname,['meg_corrmnebf_freq',suff]);
     cfg = [];
-    cfg.latency = [-0.2 0.6];  % select trials such that those used for baseline == those used for analyses
-    data = ft_selectdata(cfg,data);       % altho, we could probably use as many as possible trials for baseline.
-    nsmp  = cellfun('size',data.trial,2); % 0.7*300 = 240; data.trial{k}(end) = 0.5967
-    smpfull = find(nsmp == 240);          % V1004: data.time{k}(1) == -0.1967 (not -0.2 like others) 
-    data = ft_selectdata(data,'rpt',smpfull); % only complete trials (i.e. no shortening due to artifact removal)
+    cfg.grid = sourcemodel;
+    cfg.vol = headmodel;
+    cfg.channel = 'MEG';
+    cfg.grad = ft_struct2double(freq.grad);
+    cfg.normalize = 'yes';
+    sourcemodelbf = ft_prepare_leadfield(cfg);
+    mous_db_putdata(subjectname, 'meg_corrmnebf_bfsourcemodel_-02-1s','sourcemodelbf');
+end  
 
+if doselfreq
+    suff = '';
+    mous_db_getdata(subjectname, ['meg_corrmnebf_freq',suff]);
+    cfg = [];
+    cfg.latency = [-0.12 -0.08];  % equivalent of specifying -0.1, but using wider range to circumvent matlab's rounding issue
+    freq       = ft_selectdata(cfg,freq); 
+    %Go from 4D to 2D: rpttap_chan
+    idxful      = find(~isnan(freq.fourierspctrm(:,1,1,1)));  % remove trials with missing data due to artifact rejection
+    freq       = ft_selectdata(freq,'rpt',idxful);  
+end
 
-% baseline ERFs manually
+if doselerf
+    % select toi
+    mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_02-1ds}'); % 360 samples for full trials
+    cfg         = [];
+    cfg.latency = [0.1 0.2];  % approximation of N1
+    data        = ft_selectdata(cfg,data);
+    nsmp        = cellfun('size',data.trial,2);
+    dur         = 0.1*300;
+    smpful      = find(nsmp == dur);  % get trials with a full 100ms worth of data
+    data        = ft_selectdata(data,'rpt',smpful);
+    
+    % calc baseline
     all = size(data.trial,2);
     bslavgMat = ft_selectdata(data, 'rpt', all,'avgoverrpt','yes','toilim',[-0.2 0]);  
     bslavgVec = mean(bslavgMat.trial{1},2);  % avg across timepoints(columns)
-
-    % redefine toi for erf analyses to exclude baseline section 
-    cfg = [];
-    cfg.latency = [0.2 0.6]; % now 120 samples
-    data = ft_selectdata(cfg,data); 
-
-    % compute baseline normalization for each trial
+    
+    % normalise
     rows = 1; columns = size(data.trial{1},2);  % matrix dim for each trial
-    bslrep = repmat(bslavgVec, [rows columns]);               % replicate bslvector to fit size of toi trials
+    bslrep = repmat(bslavgVec, [rows columns]); % replicate bslvector to fit size of toi trials
 
     for k = 1:size(data.trial,2)
         data.trial{k} = data.trial{k}-bslrep;     
     end
-
-    mous_db_putdata(subjectname, 'meg_corrmnebf_erfsingletrialbsld_02-06','data');
 end
 
 if domatch
 % match trials between ERFs and TFRs
-
-    rootdir = '/home/language/jansch/public/mous/';
-    suff = '';
-    mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-
+    % find matching trials
     erf = data.trialinfo(:,1)*1000+data.trialinfo(:,5);  
     tfr = freq.trialinfo(:,1)*1000+freq.trialinfo(:,5);  
     [comm, ierf, itfr] = intersect(erf, tfr);            % common words w/ loi 
 
-    % if TFRs trials == ERFs, then the following 2 lines are redundant, but that is okay.
+    % exclude non-matching trials from both datasets
     freq = ft_selectdata(freq,'rpt',itfr);
     data = ft_selectdata(data,'rpt',ierf);  
-
-    mous_db_putdata(subjectname, 'meg_corrmnebf_erfsingletrialbsld_02-06', 'data');
-    mous_db_putdata(subjectname, 'meg_corrmnebf_tfrsingletrial_02-06', 'freq');
 end
 
-
 if dotlck
-    % Time Locking & Covariance matrix
-    % compute covariance matrix of the noise
-    mous_db_getdata(subjectname, 'meg_corrmnebf_erfsingletrialbsld_02-06');
-    mous_db_getdata(subjectname, 'meg_corrmnebf_tfrsingletrial_02-06');
-    
+    % Timelock data   
     cfg              = [];
     cfg.vartrllength = 2;
     cfg.feedback     = 'textbar';
@@ -112,37 +187,25 @@ if dotlck
     cfg.channel        = {'MEG', '-EEG057', '-EEG058'};
     cfg.preproc.baselinewindow = [-inf 0];
     tlck = ft_timelockanalysis(cfg, data);  % actual timelocked data is not used, we only need sensor positions and the noise cov. matrix
+    
+    % replace noise cov matrix within toi with full one
+    mous_db_getdata(subjectname,'meg_corrmnebf_noisecov_02-1');
+    tlck.cov = fullcov; 
 end
 
 if domne
 % models
-    sourcemodel = mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D');  
-    if ~isfield(sourcemodel, 'pos') && isfield(sourcemodel, 'pnt')
-        sourcemodel.pos  = sourcemodel.pnt;
-        sourcemodel      = rmfield(sourcemodel, 'pnt');
-    end
-    sourcemodel.inside = (1:8196);
-    sourcemodel.outside = [];
-
-    mous_db_getdata(subjectname,  'meg_anatomy_headmodel'); 
-
-% Compute the leadfields
-    % Forward solution  
-    cfg             = [];
-    cfg.grad        = tlck.grad;  % sensor positions
-    cfg.vol         = vol;
-    cfg.grid        = sourcemodel;
-    cfg.channel     = {'MEG', '-EEG057', '-EEG058'};
-    cfg.feedback    = 'textbar';
-    sourcemodel     = ft_prepare_leadfield(cfg);  
-    % sourcemodel.leadfield is {1 x 8196 vertices}, each vertex holds [273 channel x 3 orientation]
-
+    mous_db_getdata(subjectname,'meg_processed_{_erf_visual_word_all_02-1ds-ag}');
+    data1 = data{1}; % sentTar_AG
+    % data1.cov = tlck.cov; % IF WANT TO DO A CONTRAST, RECALC COVARIANCE
+    % to cover both conditions
+    
     % calculate sources
     cfg                     = [];
     cfg.channel             = {'MEG', '-EEG057', '-EEG058'};
     cfg.method              = 'mne';
     cfg.vol                 = vol;
-    cfg.grid                = sourcemodel;
+    cfg.grid                = sourcemodelmne;
     cfg.mne.prewhiten       = 'yes';
     cfg.mne.lambda          = 3; % used to be 2
     cfg.mne.scalesourcecov  = 'yes';
@@ -172,7 +235,7 @@ if domne
     vertM = nan(size(mnefilter,1), numel(data.trial));  
     for k = 1:numel(data.trial)   
         tmp = mnefilter*data.trial{k}(1:273,:);  % [8196*273] * [273 * 120 - timepoints] 
-        vertM(:,k) = tmp; 
+        vertM(:,k) = tmp;  % Vertices(8196) by Trials (words: number varies depending on artifact rejection and MEG condition)
     end
 
     % vertex*trial data, trialinfo, MNE filter; source (+noise covariance matrix in source.avg); sd;
@@ -181,11 +244,16 @@ if domne
 end
 
 if dobeam
-    % Beamformer calculation
+    %% sourcemodel and headmodel need to be arguements given to mous_bfica_source
+    %  --> previously, these 2 models were called *inside* this function
+    % Beamformer calculation - turned off balancing cdtns (sent/seq)
     % source analysis
+    headmodel = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+    mous_db_getdata(subjectname, 'meg_corrmnebf_bfsourcemodel_-02-1s');    
+    
     toi = 0.4;
-    mous_db_getdata(subjectname, 'meg_corrmnebf_tfrsingletrial_02-06');
-    [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, 8);
+        mous_db_getdata(subjectname, 'meg_corrmnebf_tfrsingletrial_02-06');
+    [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, 8, headmodel, sourcemodelbf);
     % mous_db_putdata(subjectname,'meg_corrmnebf_bfsourcesingletrial_02-06','source','trialinfo');   % 10mm grid
     mous_db_putdata(subjectname, 'meg_corrmnebf_bfsourcesingletrial8mm_02-06','source','trialinfo');
 
@@ -196,7 +264,8 @@ if dobeam
 
 end
 
-if docor
+if docor_cross
+    %% cross correlation between TFRs (Vox) and ERFs (Vert)
     % Covariance & Correlation Calculation
     mous_db_getdata(subjectname,'meg_corrmnebf_bfsourcedatasingletrial8mm_02-06');
     mous_db_getdata(subjectname,'meg_corrmnebf_mnesingletrial_02-06');
@@ -218,34 +287,52 @@ if docor
     %   It is inefficient to compute A*A' and then subsequently select only the diagonal elements values
     varVox = sum(voxM.^2,2);  
     varVert = sum(vertM.^2,2); 
-    %% cross correlation between TFRs (Vox) and ERFs (Vert)
-%     covVoxvert = voxM*vertM';  
-%     cor = covVoxvert./sqrt(varVox*varVert'); % remove variance from each element
     
-    %% within correlations
+    covVoxvert = voxM*vertM';  
+    cor = covVoxvert./sqrt(varVox*varVert'); % remove variance from each element
+    
+    % save
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvert8','cor');  % 10mm grid - less precise
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvert8mm','cor');    
+end
+
+if docor_bf
+%% within correlations
+
+    % get data for beamformer only
+    
+    voxM  = sourcedata.trial{1}; 
+    
+    % Remove column(s) with NaN in TFR sourcedata (and remove same column in MNE data)
+    idxNan = find(isnan(voxM(1,:))); % check first row of each column for NaN (assume that it's entire column with NaN)
+    if ~isempty(idxNan)
+        voxM(:,idxNan) = [];
+      %  vertM(:,idxNan) = [];
+    end
+    
+    % mean subtraction (centre data)
+    voxM  = voxM - repmat(mean(voxM,2),[1 size(voxM,2)]);
+    varVox = sum(voxM.^2,2);  
+    
     covVoxvox   = voxM*voxM';
     corvox      = covVoxvox./sqrt(varVox*varVox');
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvoxt8mm_-0.1N1','corvert'); % tfrtoi = -0.1 and ERF = N1 response
+end
+
+if docor_mne
+    % get data for MNE only
     
+    varVert = sum(vertM.^2,2); 
     covVertvert = vertM*vertM';
     corvert     = covVertvert./sqrt(varVert*varVert');
     
-    %% save
-    % mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvert8','cor');  10mm grid - less precise
-    % mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvert8mm','cor');
-    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvox8mm','corvox');
-    mous_db_putdata(subjectname,'meg_corrmnebf_corVertvert8mm','corvert');
+    % save
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVertvert8mm','corvox'); 
 end
 
 if dogrpavg
 %% group average
-    subjectnames =  {'V1004' 'V1005' 'V1007'  ...
-                     'V1010' 'V1011' 'V1012' 'V1013' 'V1015' 'V1016' 'V1017' 'V1019'...
-                     'V1020' 'V1021' 'V1022' 'V1024' 'V1025' 'V1026' 'V1027' 'V1028' 'V1029' ...
-                     'V1030' 'V1031' 'V1032' 'V1033' 'V1034' 'V1035' 'V1036' 'V1037' 'V1039'...
-                     'V1042' 'V1044' 'V1045' 'V1046' 'V1049' ...
-                     'V1050' 'V1052' ...
-                     'V1066' 'V1067' 'V1068'...
-                     'V1072' 'V1078' 'V1079'};
+    subjectnames =  {ENTER SUBJs};
     for q = 1:numel(subjectnames)
         mous_db_getdata(subjectnames{q},'meg_corrmnebf_corrmnebf_corVoxvert8mm')
         if q == 1
