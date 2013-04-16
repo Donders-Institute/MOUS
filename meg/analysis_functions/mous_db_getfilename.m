@@ -60,13 +60,29 @@ if nargin<4
   rootdir = [];
 end
 
-if ischar(subject) && strcmp(subject, 'all')
-  % request all subjects -> convert into cell-array and call function
+if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
+  % 'all' is not consistent but kept for backward compatibility
+
+  % request all visual subjects -> convert into cell-array and call function
   % recursively
   d = dir('/home/language/annhul/MOUS/meg/V*');
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
   return;
+elseif ischar(subject) && strcmp(subject, 'allA')
+  % request all visual subjects -> convert into cell-array and call function
+  % recursively
+  d = dir('/home/language/annhul/MOUS/meg/A*');
+  subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
+  [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
+elseif ischar(subject) && strcmp(subject, 'allAV')
+  % request all subjects -> convert into cell-array and call function
+  % recursively
+  d = dir('/home/language/annhul/MOUS/meg/V*');
+  d = cat(1, d, dir('/home/language/annhul/MOUS/meg/A*'));
+  subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
+  [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
+
 end
 
 if iscell(subject)
