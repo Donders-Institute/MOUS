@@ -59,6 +59,7 @@ for k = 1:numel(selfix)-1
   % get FIRST WORD onset  
   for kk = 1:numel(tmpval)
     trg1 = tmpval(kk);
+    begsmp = nan;
     if trg1 == 1 || trg1 == 3 || trg1 == 5 || trg1 == 7  % Don't need to a second cdtn to check because first word's trigger don't overlap with target's trigger
       offset = 1200;
       begsmp = tmpsmp(kk) - offset;  % first word speech onset == time point 0  
@@ -85,6 +86,7 @@ for k = 1:numel(selfix)-1
   end
   
 %   % get AUDIOFILE OFFSET
+  endsmp = nan;
   for kk = numel(tmpval):-1:1
     trg1 = tmpval(kk);
     if trg1==15 
@@ -98,7 +100,9 @@ for k = 1:numel(selfix)-1
   %%
   %tmp = [fixsmp endsmp -offset k condition critsmp-offset-fixsmp]; % visual stimuli
   %begsmp = first onset - 1s.
+  if isfinite(begsmp) && isfinite(endsmp)
   tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset];
   trl = cat(1,trl,tmp);
+  end
 
 end
