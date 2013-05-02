@@ -1,4 +1,4 @@
-function mous_erf_pipeline(subjectname, length, wordType)
+function mous_erf_compute(subjectname, length, wordType)
 % This script performs ERF analyses on preprocessed data for one subject
 % To run across subjects use qsub
 
@@ -102,17 +102,21 @@ outname = strcat(outputdata, '-pg}');
 mous_db_putdata(subjectname, outname, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG');
  
 % %% Write number of accepted trials into text file
-% <<<<<<< HEAD
- txtfile = sprintf('/home/language/annhul/MOUS/meg/%s/MeanNumAvgTrials%s_%s.txt',subjectname, outputdata(16:23), date);
-% =======
- txtfile = sprintf('/home/language/annhul/MOUS/MeanNumAvgTrials_%s_%s.txt',outputdata(16:22), date);
-% >>>>>>> 9c7d59defffa7fcef05830edcefb91819553d461
- fid = fopen(txtfile, 'a');
-% 
- fprintf(fid, '%s %s SenWord mean:\t%d\t SD:\t%1.1f \tSeqWord mean:\t%d\t SD:\t%1.1f \n', ...
-               datestr(now), subjectname, round(mean(senWord_AG.dof(1:end))), std(senWord_AG.dof(1:end)),round(mean(seqWord_AG.dof(1:end))), std(seqWord_AG.dof(1:end)));          
- fclose(fid);
-% 
- fprintf('Updated number of averages file %s ', txtfile);
- cmd = ['chmod g+w ' txtfile];
- system(cmd);
+% This no longer is usefyll as we need to compare the number of samples
+% between the conditions and not the trials (as trials can be partially
+% rejected). Use mous_samplestats to compare samples.
+
+% % <<<<<<< HEAD
+%  txtfile = sprintf('/home/language/annhul/MOUS/meg/%s/MeanNumAvgTrials%s_%s.txt',subjectname, outputdata(16:23), date);
+% % =======
+%  txtfile = sprintf('/home/language/annhul/MOUS/MeanNumAvgTrials_%s_%s.txt',outputdata(16:22), date);
+% % >>>>>>> 9c7d59defffa7fcef05830edcefb91819553d461
+%  fid = fopen(txtfile, 'a');
+% % 
+%  fprintf(fid, '%s %s SenWord mean:\t%d\t SD:\t%1.1f \tSeqWord mean:\t%d\t SD:\t%1.1f \n', ...
+%                datestr(now), subjectname, round(mean(senWord_AG.dof(1:end))), std(senWord_AG.dof(1:end)),round(mean(seqWord_AG.dof(1:end))), std(seqWord_AG.dof(1:end)));          
+%  fclose(fid);
+% % 
+%  fprintf('Updated number of averages file %s ', txtfile);
+%  cmd = ['chmod g+w ' txtfile];
+%  system(cmd);
