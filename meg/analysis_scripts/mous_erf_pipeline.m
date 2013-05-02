@@ -19,8 +19,8 @@ length = 'short'; %means -0.2 to 1 sec
 
 WordType ='allWords'; 
 
-for k = 1:length(subjectnames)
+for k = 1:numel(subjectnames)
 
-mous_erf_compute(subjectnames{k}, length, wordType)
+mous_erf_compute(subjectnames{k}, length, WordType)
 
 end
