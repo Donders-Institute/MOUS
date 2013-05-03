@@ -3,12 +3,16 @@
 %
 % $Id: mous_anatomy_pipeline.m 31 2012-03-30 18:12:08Z jansch $
 
+global ft_default;
+ft_default.checksize = inf;
+
 %% Set subject, input & output dirs
 %mous_db_makesubjdir(subjectname);
 
 if ~exist('docoregistration1', 'var'), docoregistration1 = 0; end
 if ~exist('docoregistration2', 'var'), docoregistration2 = 0; end
 if ~exist('docoregistration3', 'var'), docoregistration3 = 0; end
+if ~exist('docoregistration4', 'var'), docoregistration4 = 0; end
 if ~exist('doskullstrip',     'var'), doskullstrip     = 0;  end
 if ~exist('doheadmodel',      'var'), doheadmodel      = 0;  end
 if ~exist('dosourcemodel2d1',  'var'), dosourcemodel2d1  = 0;  end
@@ -16,13 +20,17 @@ if ~exist('dosourcemodel2d2',  'var'), dosourcemodel2d2  = 0;  end
 if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = 0;  end
 if ~exist('doqualitycheck',   'var'), doqualitycheck   = 0;  end
 
-if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.5; end
+if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.5; end % influences behavior of headmodel creation step
+if ~exist('refineflag',    'var'), refineflag    = 1; end % influences behavior of coregistration to polhemus point cloud
 
 %% Coregister to MNI coordinate system
 if docoregistration1
   % FIXME Subject V1048 has an issue with the FOV, use (hardcoded) another nifti
   if strcmp(subjectname, 'V1048')
     mri = ft_read_mri(fullfile('/home/language/juludd/MOUS/preprocdata/V1048/Structural/old/', 'str-V1048-001.nii'));
+  elseif strcmp(subjectname, 'V1096')
+  elseif strcmp(subjectname, 'V1097')
+    mri = ft_read_mri(fullfile('/home/language/juludd/MOUS/rawdata/V1097/Structural', 'JULUDD_18022013_MOUS_V1097.MR.JULUDD_TRIO.0009.0187.2013.02.18.21.25.43.42912.20537773.IMA'));
   else
     mri = mous_db_getdata(subjectname, 'mri_nifti');
   end
@@ -53,9 +61,21 @@ end
 if docoregistration3
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
   pos = mous_db_getdata(subjectname, 'meg_raw_pos');
-  [mri, shape, shapemri] = mous_anatomy_coregCTF(mri, pos, 0, 1);
-  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri, 0);% creates a V1025coregCTF.nii file
-  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri');
+  [mri, shape, shapemri] = mous_anatomy_coregCTF(mri, pos, 0, refineflag);
+  %icp = struct(mri.cfg.icp);
+  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);
+  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri');%'icp', 0);
+end
+
+%% Coregister in a third step to the coils rather than the lpa/rpa
+if docoregistration4
+  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  pos = mous_db_getdata(subjectname, 'meg_raw_pos');
+  mous_db_getdata(subjectname, 'meg_anatomy_coreginfo');
+  [mri, shape, shapemri] = mous_anatomy_coregCTF(mri, pos, shape, shapemri, 1);
+  %icp = struct(mri.cfg.icp);
+  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);
+  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri', 0);%'icp', 0);
 end
 
 % next step is not necessary anymore when using the converted nifties
