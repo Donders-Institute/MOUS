@@ -51,7 +51,8 @@ cfg.trialdef.prestim  = 0.3;
 cfg.trialdef.poststim = 'nextword';
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
-trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
+%trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
+trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 2 3 4]), 'partial', 1); % don't do the horizontal EOG
 
 % trl > 2 second does not make sense, sanity check: FIXME
 nsmp = trl(:,2)-trl(:,1);

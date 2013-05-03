@@ -1,5 +1,8 @@
-function [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, res)
+function [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, res, rootdir)
 
+if nargin<5
+  rootdir = '/home/language/jansch/public/mous/';
+end
 if nargin<4
   res = 10;
 end
@@ -63,21 +66,23 @@ freq = ft_selectdata(freq, 'rpt', sel);
 % mous_db_getdata(subjectname, ['meg_bfica_freq', suff], rootdir);
 
 % get necessary geometrical information
-headmodel = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
-sourcemodel = mous_db_getdata(subjectname, ['meg_anatomy_sourcemodel3D_nonlin',num2str(res),'mm']);
+headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+%sourcemodel = mous_db_getdata(subjectname, ['meg_anatomy_sourcemodel3D_nonlin',num2str(res),'mm']);
+mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', rootdir);
 
 tmp = ft_checkdata(freq, 'cmbrepresentation', 'fullfast');
 tmp = ft_checkdata(tmp, 'cmbrepresentation', 'sparse');
 tmp = ft_checkdata(tmp, 'cmbrepresentation', 'sparsewithpow');
 
+%% commented out because leadfields are assumed to be computed as of May1, 2013
 % compute leadfields
-cfg = [];
-cfg.grid = sourcemodel;
-cfg.vol = headmodel;
-cfg.channel = 'MEG';
-cfg.grad = ft_struct2double(freq.grad);
-cfg.normalize = 'yes';
-sourcemodel = ft_prepare_leadfield(cfg);
+% cfg = [];
+% cfg.grid = sourcemodel;
+% cfg.vol = headmodel;
+% cfg.channel = 'MEG';
+% cfg.grad = ft_struct2double(freq.grad);
+% cfg.normalize = 'yes';
+% sourcemodel = ft_prepare_leadfield(cfg);
 
 % compute spatial filters
 cfg = [];
