@@ -98,3 +98,5 @@ cfg.fwhm = 'yes';
 source = ft_sourcedescriptives(cfg, source);
 newinside = source.inside(:)';
 oldinside = sourcemodel.inside(:)';
+%newinside = sourcemodel.inside(:)';
+%oldinside = sourcemodel.inside(:)';
