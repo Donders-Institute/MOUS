@@ -1,4 +1,4 @@
-function [h1,h2,h3,h4,h5,h6,h7] = mous_anatomy_qualitycheck(subjectname, varargin)
+function [h1,h2,h3,h4,h5,h6,h7,h8] = mous_anatomy_qualitycheck(subjectname, varargin)
 
 % MOUS_ANATOMY_QUALITYCHECK does a number of quality control checks on the
 % ouput of the anatomy pipeline, mainly relying on visual inspection of a
@@ -21,6 +21,7 @@ headmodel     = ft_datatype_headmodel(headmodel); % due to change in type naming
 sourcemodel2d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D');
 sourcemodel3d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
 mri           = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+mous_db_getdata(subjectname, 'meg_anatomy_coreginfo');
   
 
 % [p, f, x] = fileparts(filename);
@@ -108,6 +109,15 @@ subplot(2,2,1);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; f
 subplot(2,2,2);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(sourcemodel2d); view([0 90]);
 subplot(2,2,3);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(sourcemodel2d); view([90 0]);
 
+h8 = figure('visible',visible);
+subplot(2,2,1);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape);
+plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k');
+subplot(2,2,2);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([0 0]);
+plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k'); 
+subplot(2,2,3);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([90 0]);
+plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k');
+subplot(2,2,4);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([180 0]);
+   
 mous_db_putdata(subjectname, 'meg_anatomy_figure_headmodel',           h1);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel3d',       h2);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2d',       h3);
@@ -115,6 +125,7 @@ mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice1', h4);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice2', h5);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice3', h6);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg',               h7);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg2',              h8);
 
 [f1,s1]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice1');
 [f2,s2]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice2');
@@ -123,9 +134,9 @@ mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg',               h7);
 [f5,s5]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel3d');
 [f6,s6]=mous_db_getfilename(subjectname,'meg_anatomy_figure_headmodel');
 [f7,s7]=mous_db_getfilename(subjectname,'meg_anatomy_figure_coreg');
+[f8,s8]=mous_db_getfilename(subjectname,'meg_anatomy_figure_coreg2');
 
-
-figlist  = [f1;f2;f3;f4;f7];
+figlist  = [f1;f2;f3;f4;f7;f8];
 [p,fn,e] = fileparts(f1{1});
 pdfname  = fullfile(p,[subjectname, '_anatomy_qc.pdf']);
 if exist(pdfname)
