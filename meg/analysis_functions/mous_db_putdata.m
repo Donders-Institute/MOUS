@@ -63,7 +63,7 @@ elseif st(1) && ~overwriteflag
   d = dir(filename);
   fullstr = strtok(d.date);
   oldVersionDate = [fullstr(1:2) fullstr(4:6) fullstr(end-3:end)]; % rename older file with the day it was created ( usually = last date modified)
-  newfilename = [p filesep f oldVersionDate e];
+  newfilename = [p filesep f '_' oldVersionDate e];
   %newtype     = sprintf('%s%04.0f%02.0f%02.0f%02.0f%02.0f%s',type,c(1),c(2),c(3),c(4),c(5));
   warning('file %s exists, creating back-up of %s as %s', filename, filename, newfilename);
   system(['mv ',filename,' ',newfilename]);
