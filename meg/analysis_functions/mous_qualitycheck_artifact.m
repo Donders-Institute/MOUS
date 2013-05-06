@@ -1,4 +1,3 @@
-%function [h1] = mous_qualitycheck_artifact(subjectname, artifactType)
 function [h1] = mous_qualitycheck_artifact(subjectname)
 % MOUS_ARTIFACT_QUALITYCHECK does a quality control check on the
 % ouput of the artifact pipeline, relying on visual inspection of a
@@ -19,30 +18,11 @@ doblink = true;
 dosacc  = true;
 dojump  = true;
 domusc  = true; 
-% 
-% doblink = true;
-% dosacc  = false;
-% dojump  = false;
-% domusc  = false; 
-
-% just for one artifact
-% switch artifactType
-%     case 'all'
-%         % all remain true
-%     case 'blink' 
-%         dosacc = false; dojump = false; domusc = false;
-%     case 'sacc'
-%         doblink = false; dojump = false; domusc = false;
-%     case 'jump'
-%         doblink = false; dosacc = false; domusc = false;
-%     case 'musc'
-%         doblink = false; dosacc = false; dojump = false;
-% end 
 
 %% general data need for all artifacts
 % load filename and trial(sent/seq) trl
 filename    = mous_db_getfilename(subjectname, 'meg_raw_task'); 
-trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'all','visual_sentence');  % entire sentence, with prestim and poststim = 0.5s 
+trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'all','auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
 cfgart      = mous_db_getdata(subjectname, 'meg_artifact_cfg');  
 % cfg info for preprocessing trial data
     cfg             = [];
@@ -69,7 +49,7 @@ if dosacc
     artType         = 2;
     cfg.trl         = trlDat;
     cfg.demean      = 'yes';
-    cfg.channel     = {'EEG057'};             
+    cfg.channel     = {'EEG057'};            
     plotPerPage     = 60;
     artifactName    = 'sacc';
     figH            = 0.9;
@@ -119,13 +99,15 @@ if domusc
     plotPerPage     = 30;
     artifactName    = 'musc';
     figH            = 1.1;
+    full            = size(trlDat,1);
+    half            = round(size(trlDat,1)/2);  % use round so that odd number total trials doesn't cause error
     
     for i = 1:2
         if i == 1
-            cfg.trl = trlDat(1:120,:);
+            cfg.trl = trlDat(1:half,:);
             loop    = i;
         elseif i == 2 
-            cfg.trl = trlDat(121:240,:);
+            cfg.trl = trlDat(half+1:full,:);
             loop    = i;
         end 
         [diagnostics]   = getDiagnostics(cfgart, cfg.trl, artType);
@@ -157,16 +139,17 @@ function [diagnostics] = getDiagnostics(cfgart, trlSen, artType)
             % get the index relating to the original artifact
             diagnostics(k).artifactindx = setdiff(unique(tmpartvec),0);                 % returns values in tmpartvec not in 0 vector 
             uniqueartvec = unique(tmpartvec);                                           % unique values in tmpartvec (there maybe multiples of the same trial number depending on how many samples trial+art extend)
-
+            uniqueartvec = setdiff(uniqueartvec, 0);
+            
             % get the number of samples in the artifacts
-            for kk = 1:numel(uniqueartvec)-1
-                diagnostics(k).artifactnsmp(kk) = sum(tmpartvec==uniqueartvec(kk+1));     % sample duration of each artifact (which may span >1 trial) 
+            for kk = 1:numel(uniqueartvec)%-1
+                diagnostics(k).artifactnsmp(kk) = sum(tmpartvec==uniqueartvec(kk));     % sample duration of each artifact (which may span >1 trial) 
             end
 
             % get the begin and endpoint of the artifact, expressed relative to the trial
-            for kk = 1:numel(uniqueartvec)-1
-                diagnostics(k).artifact(kk,1) = find(diff([0 tmpartvec==uniqueartvec(kk+1)])==1);   
-                diagnostics(k).artifact(kk,2) = find(diff([tmpartvec==uniqueartvec(kk+1) 0])==-1);
+            for kk = 1:numel(uniqueartvec)%-1
+                diagnostics(k).artifact(kk,1) = find(diff([0 tmpartvec==uniqueartvec(kk)])==1);   
+                diagnostics(k).artifact(kk,2) = find(diff([tmpartvec==uniqueartvec(kk) 0])==-1);
             end
       else
             diagnostics(k).okflag       = true;   % is not an artifact
@@ -195,7 +178,7 @@ end
 %%%%%%%%%% Subfunction %%%%%%%%%%%%%%%%%%
 function [hdl] = figureParam(currTrial, trialsPerFig, arti,loop)
     hdl = figure;
-    % paper config
+ % paper config
     hold on;
     set(hdl,'PaperUnits', 'inches');
     set(hdl,'PaperSize', [8.27 11.69]);
@@ -207,7 +190,7 @@ function [hdl] = figureParam(currTrial, trialsPerFig, arti,loop)
     bottom = (papersize(2)- height)/2;
     set(hdl, 'PaperPosition', [left bottom width height]);  % middle of page
     set(gca,'LooseInset',get(gca,'TightInset'));            % remove white space
-    % figure axis, background, title
+ % figure axis, background, title
     set(hdl,'color','w');
     if loop == 1
         title([subjectname ' - ' arti ': Trials ' num2str(currTrial) ' to ' num2str(currTrial+trialsPerFig-1)]);
@@ -219,9 +202,11 @@ end
 
 %% plotting trial and superimpose artifacts for blinks and saccades
 %%%%%%%%%% Subfunction %%%%%%%%%%%%%%%%%%
+%        superimpose(diagnostics, vlim, dataSen, plotPerPage, artifactName, figH, cfg.trl, loop);
+   
 function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, loop)
+    total = size(trlSen,1);
     for q = 1:size(trlSen,1)
-    %for q = 1:120
         if mod(q,trialsPerPage) == 1                        
            figureParam(q, trialsPerPage, artif,loop) % create new figure after X number of trials
         end
@@ -230,14 +215,14 @@ function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, l
         vpos        = 0.8 - floor((q-1)/5)*0.35;  
         hlim        = dataSen.time{q}([1 end]); 
         height      = h; 
-        width       = 0.25;
+        width       = 0.23;
         
         % plot single trial
         if strcmp(artif, 'blink') > 0 || strcmp(artif, 'sacc') > 0
             ft_plot_vector(dataSen.time{q},dataSen.trial{q},'height', height ,'width', width, 'hpos', hpos, 'vpos', vpos ,'color','k','hlim',hlim,'vlim',vlim);  % plot the trial
-        elseif strcmp(artif, 'jump') > 0 
+        elseif strcmp(artif, 'jump') > 0            
             ft_plot_vector(dataSen.time{q},ft_preproc_smooth(dataSen.trial{q},20),'height', height ,'width', width, 'hpos', hpos, 'vpos', vpos ,'color','k','hlim',hlim,'vlim',vlim);  % plot the trial
-        elseif strcmp(artif,'musc') > 0
+        elseif strcmp(artif,'musc') > 0          
             ft_plot_vector(dataSen.time{q},ft_preproc_smooth(dataSen.trial{q},5),'height', height ,'width', width, 'hpos', hpos, 'vpos', vpos ,'color','k','hlim',hlim,'vlim',vlim);  % plot the trial
         end 
         
@@ -280,39 +265,39 @@ function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, l
                 page = 2;
                 saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');
                 close gcf
-            elseif q == 180 
+            elseif q == 180
                 page = 3;
                 saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');
                 close gcf
-            elseif q == 240 
+            elseif q == total 
                 page = 4;
                 saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');
                 close gcf
             end    
             
-        elseif strcmp(artif, 'jump') > 0 || strcmp(artif,'musc') > 0
-            if q == 30
+        elseif strcmp(artif, 'jump') > 0 || strcmp(artif,'musc') > 0             
+            if q == 30  % 30
                 page = 1;
                 if loop == 2
                     page = page+4;
                 end 
                 saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc'); 
-                %close gcf;   
-            elseif q == 60
+                %close gcf;                
+            elseif q == 60   % 60
                 page = 2;
                 if loop  == 2
                     page = page+4;
                 end 
                 saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');                
                 %close gcf;
-            elseif q == 90 
+            elseif q == 90 % 90
                 page = 3;
                 if loop == 2
                     page = page+4;
                 end 
                 saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');                
                 %close gcf ;
-            elseif q == 120 
+            elseif q == size(trlSen,1)  % 120 
                 page = 4;
                 if loop  == 2
                     page = page+4;
@@ -327,10 +312,3 @@ function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, l
 end  % of plotting subfunction
 end  % of main function
  
-%     cfg.trl = trlSen4;
-%     trlDat  = trlSen4;
-%     loop    = 2; 
-%     [diagnostics]   = getDiagnostics(cfgart, trlDat, artType);
-%     [dataSen, vlim] = preprocData(cfg);
-%     superimpose(diagnostics,vlim,dataSen, plotPerPage, artifactName, figH, trlDat, loop);
-%     
