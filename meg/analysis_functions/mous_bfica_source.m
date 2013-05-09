@@ -13,7 +13,7 @@ end
 % notify Izabela, who is using an old version of this code
 if nargin>2 && ~isempty(toi)
   % toi exist
-  tmp = ft_selectdata(freq, 'toilim', toi+[-0.4 0.4]*mean(diff(freq.time)));
+  tmp = ft_selectdata(freq, 'toilim', toi+[-0.1 0.1]*mean(diff(freq.time)));
   tmp = rmfield(tmp, 'time');
   nans = ~isfinite(tmp.fourierspctrm(:,1));
   ntap = tmp.cumtapcnt(1);
@@ -22,7 +22,7 @@ if nargin>2 && ~isempty(toi)
   fprintf('removing %d trials due to nans\n', sum(nans(1,:)));
   tmp.fourierspctrm(nans(:),:) = [];
   tmp.trialinfo(nans(1,:),:)   = [];
-  tmp.cumtapcnt(nans(1,:))     = [];
+  tmp.cumtapcnt(nans(1,:),:)   = [];
   tmp.dimord = 'rpttap_chan_freq';
   
   % identify ~finite trials, i.e. where the selected time slice coincided
