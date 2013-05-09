@@ -1,4 +1,4 @@
-% mous_corrmnebf_pipeline(subjectname)
+% function mous_corrmnebf_pipeline(subjectname)
 % trial == a single word (not averaged across word position)
 % 
 % Perform source level analysis for a certain time window of interest in
@@ -51,18 +51,19 @@ mous_db_makesubjdir(subjectname)
         toie        = [0.3 0.6];  % toi for ERFs
         toi         = [];         % toi for TFR % uncomment if bfica_sourcefixed
         selfq       = [0.08 0.12];% toi boundaries to circumvent matlab issue
-        doselfreq   = true;
-        doselerf    = true; 
-        domatch     = true;
-        domnesingle = true;
-        dobeam      = true;
-        docorcross  = true;
+        doselfreq   = false;
+        doselerf    = false; 
+        domatch     = false;
+        domnesingle = false;
+        dobeam      = false;
+        doregwordorder = false; 
 % % step 3:
 %     % correlation of MNEs and BF's or just within a measure
         %docorcross = false;
-        docorbf    = true;
-        docormne   = true;
-        dogrpavg   = false;
+        docorcross  = false;
+        docorbf    = false;
+        docormne   = false;
+        dogrpavg   = true;
         
 if dofreq
     %% TFRs 
@@ -197,12 +198,10 @@ if dobeam
     freq = rmfield(freq,'time');
     freq.dimord = 'rpttap_chan_freq'; 
     [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, 8);
-    mous_db_putdata(subjectname, 'meg_corrmnebf_bfsourcesingletrial8mm_01','source','trialinfo');
-
+    
     sourcedata = mous_bfica_sourcedata(source, freq);
-    % mous_db_putdata(subjectname, 'meg_corrmnebf_bfsourcedatasingletrial_02-06','sourcedata');  % 10mm grid
-    % mous_db_putdata(subjectname, 'meg_corrmnebf_bfsourcedatasingletrial8mm_-01','sourcedata');  % 8mm
-
+    mous_db_putdata(subjectname, 'meg_corrmnebf_bfsourcesingletrial8mm_-01','source','sourcedata','trialinfo','freq');
+    % need trialinfo and freq for regression, sourcedata for correlation
 end
 
 if domneavg  
@@ -217,13 +216,13 @@ if domneavg
     cfg.mne.scalesourcecov  = 'yes';
     cfg.mne.keepfilter      = 'yes';
     source                  = ft_sourceanalysis(cfg, tlck);  % noise covariance matrix used here
+    % need to save this data for it to be used by corrmnebf_interpolate
 
     cfg            = [];
     cfg.demean     = 'yes';
     cfg.projectmom = 'yes';
     cfg.zscore     = 'no';
     sd             = ft_sourcedescriptives(cfg, source);
-    mous_db_putdata(subjectname,'meg_corrmnebf_mneavgdata_-02-1s','source','sd');
 end 
 
 if domnesingle
@@ -247,23 +246,63 @@ if domnesingle
     channel  = {'MEG', '-EEG057', '-EEG058'};
     data     = ft_selectdata(data,'channel',channel);
     
+    % tlck avg of all toi sentences
+    cfg = [];
+    if strcmp(subjectname, 'V1011')
+        cfg.vartrllength = 2;
+    end
+    tlck = ft_timelockanalysis(cfg, data);
+    mnetlck = mnefilter*tlck.avg;
+    nword   = numel(data.trial);
+
+    % MNE filter for jack knife
     vertM = nan(size(mnefilter,1), numel(data.trial));  
     for k = 1:numel(data.trial)   
-        tmp = mnefilter*data.trial{k}; % (:,toie(1):toie(2));  % [8196*273] * [273 * xx timepoints] 
+        tmp = (mnetlck.*nword-mnefilter*data.trial{k})./(nword-1); % (:,toie(1):toie(2));  % [8196*273] * [273 * xx timepoints] 
+        %tmp = mnefilter*data.trial{k};
         tmp = nanmean(abs(tmp),2); 
         vertM(:,k) = tmp;  % Vertices(8196) by Trials (words: number varies depending on artifact rejection and MEG condition)
     end
     % save output for mous_corrmnebf_interpolate!!!
-    mous_db_putdata(subjectname,'meg_corrmnebf_mnesingletrial_0306','vertM','mnefilter');
+    source = source_sent;
+    sd = sd_Sent;
+    mous_db_putdata(subjectname,'meg_corrmnebf_mnesingletrial_jack_0306_bf01','vertM','mnefilter','source','sd');
 end
+
+if doregwordorder
+    %% regress out word order
+    
+    mous_db_getdata(subjectname,'meg_corrmnebf_mnesingletrial_jack_0306_bf01');  % get vertM
+    mous_db_getdata(subjectname, 'meg_corrmnebf_bfsourcesingletrial8mm_01') % get voxM
+    voxM  = sourcedata.trial{1}; 
+    
+    % Remove column(s) with NaN in TFR sourcedata (and remove same column in MNE data)    
+    idxNan = find(isnan(voxM(1,:))); 
+    if ~isempty(idxNan)
+        voxM(:,idxNan) = [];
+        vertM(:,idxNan) = [];
+    end
+    
+    % compute the leave-one-out for the oscillations, the mne has been done
+    % already
+    voxMsum = sum(voxM,2);
+    voxM    = (voxMsum*ones(1,size(voxM,2)) - voxM)./(size(voxM,2)-1);
+    
+    % regression    
+    [cor, corvox, corvert] = mous_corrmnebf_regression(subjectname, voxM, vertM, trialinfo);
+    
+    % saving
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvert8mm_sdregwordord_jack_bf01mne0306','cor');   
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVertvert8mm_sdregwordord_jack_bf01mne0306','corvert');    
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvox8mm_sdregwordord_jack_bf01mne0306','corvox');        
+end 
 
 if docorcross
     %% cross correlation between TFRs (Vox) and ERFs (Vert)
     % Covariance & Correlation Calculation
-%     mous_db_getdata(subjectname,'meg_corrmnebf_bfsourcedatasingletrial8mm_02-06');
-%     mous_db_getdata(subjectname,'meg_corrmnebf_mnesingletrial_02-06');
     voxM  = sourcedata.trial{1}; 
-
+    
+    
     % Remove column(s) with NaN in TFR sourcedata (and remove same column in MNE data)
     idxNan = find(isnan(voxM(1,:))); 
     if ~isempty(idxNan)
@@ -271,18 +310,22 @@ if docorcross
         vertM(:,idxNan) = [];
     end
 
+    % compute the leave-one-out for the oscillations, the mne has been done
+    % already
+    voxMsum = nansum(voxM,2);
+    voxM    = (voxMsum*ones(1,size(voxM,2)) - voxM)./(size(voxM,2)-1);
+    
     % mean subtraction (centre data)
     voxM  = voxM - repmat(mean(voxM,2),[1 size(voxM,2)]);
     vertM = vertM - repmat(mean(vertM,2),[1 size(vertM,2)]);
     
-    
-    varVox = sum(voxM.^2,2);  % calc variance for each measure
+    % remove variance 
+    varVox = sum(voxM.^2,2);  % variance 
     varVert = sum(vertM.^2,2); 
-    covVoxvert = voxM*vertM'; % calc covariance matrix
+    covVoxvert = voxM*vertM'; % covariance matrix
     cor = covVoxvert./sqrt(varVox*varVert'); % corr matrix = remove variance from each element
     
-    %mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvert8','cor');  % 10mm grid - less precise
-    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvert8mm_TFR01ERF0306','cor');    
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvert8mm_bf02mne0306','cor');    
 end
 
 if docorbf
@@ -297,38 +340,79 @@ if docorbf
     if ~isempty(idxNan)
         voxM(:,idxNan) = [];
     end
+            
+    % compute the leave-one-out for the oscillations, the mne has been done
+    % already
+    voxMsum = nansum(voxM,2);
+    voxM    = (voxMsum*ones(1,size(voxM,2)) - voxM)./(size(voxM,2)-1);
+    
     
     voxM  = voxM - repmat(mean(voxM,2),[1 size(voxM,2)]); % mean subtraction (centre data)
     varVox = sum(voxM.^2,2);                             % calc variance for each measure
+    %%% start here if cor_cross has just been executed
     covVoxvox   = voxM*voxM';                            % calc covariance matrix
     corvox      = covVoxvox./sqrt(varVox*varVox');       % corr matrix = remove variance from each element
-    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvoxt8mm_TFR01ERF0306','corvox'); % tfrtoi = -0.1 and ERF = N1 response
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVoxvoxt8mm_bf02mne0306','corvox'); % tfrtoi = -0.1 and ERF = N1 response
 end
 
 if docormne
     
-    varVert = sum(vertM.^2,2); 
+    varVert = sum(vertM.^2,2);
+    %%% start here if cor_cross has just been executed
     covVertvert = vertM*vertM';
     corvert     = covVertvert./sqrt(varVert*varVert');
-    
     % save
-    mous_db_putdata(subjectname,'meg_corrmnebf_corVertvert8mm_TFR01ERF0306','corvert'); 
+    mous_db_putdata(subjectname,'meg_corrmnebf_corVertvert8mm_bf02mne0306','corvert'); 
 end
 
 if dogrpavg
 %% group average
-    subjectnames =  {ENTER SUBJs};
+% interpolate 2dto3d for each participant prior to averaging (same
+% coordinate across subject ~= same brain location)
+    % subjectnames as of April 25, 2013.
+    subjectnames = {'V1004' 'V1005' 'V1007' 'V1008'...
+                 'V1010' 'V1011' 'V1012' 'V1013' 'V1015' 'V1016' 'V1019'...
+                 'V1020' 'V1023' 'V1024' 'V1025' 'V1026' 'V1027' 'V1028'...
+                 'V1031' 'V1032' 'V1033' 'V1036' 'V1037' 'V1039'...
+                 'V1044' 'V1045'...
+                 'V1050' 'V1052' 'V1055' 'V1057' 'V1059'...
+                 'V1061' 'V1062' 'V1063' 'V1064' 'V1065' 'V1066' 'V1068' 'V1069'... 
+                 'V1070' 'V1071' 'V1074' 'V1075' 'V1076' 'V1077'...
+                 'V1080' 'V1081' 'V1083' 'V1084' 'V1085' 'V1086' 'V1087'...
+                 'V1090' 'V1094' 'V1095' 'V1098'...
+                 'V1100' 'V1102' 'V1104'};    
+
+   
     for q = 1:numel(subjectnames)
-        mous_db_getdata(subjectnames{q},'meg_corrmnebf_corVoxvert8mm_TFR01ERF0306.mat')
+        % interpolate the correlation matrix to 3d space
+        % source   grid
+        [source3d, sourcemodel] = mous_corrmnebf_interpolate(subjectnames{q});
+        
         if q == 1
-            data = cor;
-        else 
-            data = data + cor;
-        end
+            data = source3d;
+        else
+            data.corrmat = data.corrmat + source3d.corrmat;
+        end 
     end
-    dataAvg = data./numel(subjectnames);
-    mous_db_putdata('groupresults','meg_corrmnebf_corVoxvert8mm_TFR01ERF0306.mat','dataAvg');
+    dataAvg = source3d;
+    dataAvg.corrmat = dataAvg.corrmat./numel(subjectnames);
+ 
+    mous_db_putdata('groupresults','meg_corrmnebf_corVoxvert8mm_sdregwordord_jack_bf01mne0306.mat','dataAvg');
 end    
+
+%% visualise
+    mous_db_getdata('groupresults','meg_corrmnebf_corVoxvert8mm_sdregwordord_jack_bf01mne0306.mat');
+     
+    fname = '/home/language/nielam/MOUS/meg/templates/sourcemodel/standard_sourcemodel3d8mm';
+    grid = load(fname);
+    grid = sourcemodel;  grid = grid.sourcemodel;
+    grid.inside = grid.inside(:,dataAvg.inside);
+    sourcemodel.pos    = sourcemodel.pos(dataAvg.pos,:);
+  
+    mous_connectivitybrowser(grid,dataAvg,'parameter','corrmat','method',{'slice','slice'},'anasc',[-0.007 0.007],'cohsc',[-0.007 0.007]);
+
+
+
 
 
 % if docov   % noise covariance matrix based on entire interval (-0.2 to 1s) to get accurate estimate of noise

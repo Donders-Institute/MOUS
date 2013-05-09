@@ -1,99 +1,210 @@
-function [source3d, sourcemodel] = mous_corrmnebf_interpolate(subjectname,cormat)
+function [source3d, sourcemodel] = mous_corrmnebf_interpolate(subjectname)
+% mous_corrmnebf_interpolate interpolates the correlation matrix of voxels by vertices
 
-switch cormat
-    case 'voxvert'
-        mous_db_getdata(subjectname, 'meg_corrmnebf_corVoxvert8mm');  % vox * vert
-        mous_db_getdata(subjectname, 'meg_corrmnebf_bfsourcesingletrial8mm_02-06');
+% This function calls the 2D MNE source solution to which the correlation m
+% matrix substitutes the MNE source values
+% These values are projected to 3D space
+% Following, the MNE3D space solution i.e. sources are replaced by the
+% Beamforming sources.
+% Visualisation of projected data is done by calling mous_connectivitybrowser
 
-        source2 = source; clear source;
-        %FIXME the above is not needed yet, think of using the sourcemodel3d
-        %directly in mous_mne_2dto3d rather than doing the warp on the fly
-        mous_db_getdata(subjectname, 'meg_corrmnebf_mnesingletrial_02-06');
+% voxels = source solution for TFR analyses
+% vertices = source solution for ERF analyses
+% subjectname can be a single subject or averaged across participants where
+% inarg subjectname = 'groupresults';
+% correlation matrix can also be between vertices (Vertvert) or voxels (Voxvox) only
 
-        source.avg.pow = cor';
-        source.time    = 1:size(cor,1);
+% subjectname = 'groupresults';  % 'V1020' 
+%% voxvert
+docorVoxvert8mm_sdregwordord_jack_bf01mne0306  = true;
+docorVoxvert8mm_sdregwordord_bf01mne0306  = true;
+docorVoxvert8mm_sdregwordord_bf02mne0306  = false;
+docorVoxvert8mm_sdregwordord_N1           = false;
+docorVoxvert8mm_regwordord_bf02mne0306    = false;
+docorVoxvert8mm_regwordord_bf01mne0306    = false;
+docorVoxvert8mm_bf01mne0306               = false;
+docorVoxvert8mm_N1                        = false;
+doorig                                    = false; % TFR and ERF are 0.2-0.6 =
 
-        source3d = mous_mne_2dto3d(subjectname, source, 'resolution', 8);  
-        source3d.inside  = source2.inside;
-        source3d.outside = source2.outside; % assuming they are the same as the interpolation target
+%% voxvox
+docorVoxvox8mm_sdregwordord_bf01mne0306  = false;
+docorVoxvox8mm_sdregwordord_bf02mne0306  = false;
+docorVoxvox8mm_sdregwordord_N1           = false;
+docorVoxvox8mm_regwordord_bf02mne0306    = false;
+% docorVoxvox8mm_regwordord_bf01mne0306    = false; % doesn't exist
+docorVoxvox8mm_bf01mne0306               = false;
+docorVoxvox8mm_N1                        = false;
+docorVoxvox8mm                           = false; % TFR and ERF are 0.2-0.6 =
 
-        sourcemodel = rmfield(source2, 'avg');
-        clear source source2;
+%% vertvert
+docorVertvert8mm_sdregwordord_bf01mne0306  = false;
+docorVertvert8mm_sdregwordord_bf02mne0306  = false;
+docorVertvert8mm_sdregwordord_N1           = false;
+docorVertvert8mm_regwordord_bf02mne0306    = false;
+% docorVertvert8mm_regwordord_bf01mne0306    = false; % doesn't exist
+docorVertvert8mm_bf01mne0306               = false;
+docorVertvert8mm_N1                        = false;
+docorVertvert8mm                           = false; % TFR and ERF are 0.2-0.6 =
 
-        source3d.corrmat = source3d.avg.pow(source3d.inside,:); % interpolated vertices X voxels
-        source3d.pos     = source3d.pos(source3d.inside,:);
-        source3d.inside  = 1:numel(source3d.inside);
-        source3d.outside = [];
-        source3d         = rmfield(source3d, 'avg');
-        
-    case 'grpvoxvert'  % FIXME: Condense: pretty much the same code as single subject voxvert 
-        mous_db_getdata('groupresults','meg_corrmnebf_corVoxvert8mm.mat'); %  groupaverage vox*vert
-        subjectname = 'V1020';  % arbitrary subject chosen such that a grid is available
-        cor = dataAvg;
-        
-        source2 = source; clear source;
-        mous_db_getdata(subjectname, 'meg_corrmnebf_mnesingletrial_02-06');
 
-        source.avg.pow = cor';
-        source.time    = 1:size(cor,1);
+%% voxvert
+if docorVoxvert8mm_sdregwordord_jack_bf01mne0306
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_sdregwordord_jack_bf01mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_01';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf01';
+end
 
-        source3d = mous_mne_2dto3d(subjectname, source, 'resolution', 8);  % source changed to source2
-        source3d.inside  = source2.inside;
-        source3d.outside = source2.outside; % assuming they are the same as the interpolation target
+if docorVoxvert8mm_sdregwordord_bf01mne0306
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_sdregwordord_bf01mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_01';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf01';
+end
 
-        sourcemodel = rmfield(source2, 'avg');
-        clear source source2;
+if docorVoxvert8mm_sdregwordord_bf01mne0306
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_sdregwordord_bf01mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_01';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf01';
+end
+    
+if docorVoxvert8mm_sdregwordord_bf02mne0306
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_sdregwordord_bf02mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_02';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf02';
+end
 
-        source3d.corrmat = source3d.avg.pow(source3d.inside,:); % interpolated vertices X voxels
-        source3d.pos     = source3d.pos(source3d.inside,:);
-        source3d.inside  = 1:numel(source3d.inside);
-        source3d.outside = [];
-        source3d         = rmfield(source3d, 'avg');
-        
-     case 'voxvox' %CHECKME - may not be working properly
-        mous_db_getdata(subjectname, 'meg_corrmnebf_corVoxvox8mm');   % correlation matrix
-        mous_db_getdata(subjectname, 'meg_corrmnebf_bfsourcesingletrial8mm_02-06');  % source data
-        res         = 8;
-        sourcemodel = mous_db_getdata(subjectname, ['meg_anatomy_sourcemodel3D_nonlin',num2str(res),'mm']);  % sourcemodel (grid)
-        cor         = corvox;
-        
-        source.avg.pow = cor';       % substitute source values for correlation values
-        source.time    = 1:size(cor,1);
+if docorVoxvert8mm_sdregwordord_N1
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_sdregwordord_N1.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_-01';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_N1';
+end
 
-        %N.B: number of inside sources must match between sourcemodel and source.
-        sourcemodel.inside = source.inside;
-        sourcemodel.pos    = source.pos;
-            
-        source.corrmat = source.avg.pow;  % mous_connectivitybrowser takes "corrmat" parameter
-        source.pos     = source.pos(source.inside,:);
-        source.inside  = 1:numel(source.inside);
-        source.outside = [];
-        source         = rmfield(source, 'avg');
-       
-        source3d       = source;     % keeping output arguments consistent
-    case 'vertvert'
-        mous_db_getdata(subjectname, 'meg_corrmnebf_corVertvert8mm'); % vert* vert corr matrix
-        cor = corvert;
+if docorVoxvert8mm_regwordord_bf02mne0306
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_regwordord_bf02mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_02';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf02';
+end
+    
+if docorVoxvert8mm_regwordord_bf01mne0306
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_regwordord_bf01mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_01';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf01';
+end
 
-        mous_db_getdata(subjectname, 'meg_corrmnebf_bfsourcesingletrial8mm_02-06');  % BF for 3D interp.
-        source2 = source; clear source;
+if docorVoxvert8mm_bf01mne0306
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_bf01mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_01';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf01';
+end
 
-        mous_db_getdata(subjectname, 'meg_corrmnebf_mnesingletrial_02-06');  % MNE source to be interpolated
+if docorVoxvert8mm_N1
+    corfilename = 'meg_corrmnebf_corVoxvert8mm_N1.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_-01';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_N1';
+end
 
-        source.avg.pow = cor';
-        source.time    = 1:size(cor,1);
+if doorig % TFR and ERF are 0.2-0.6 
+    % a 10mm also exists, but not listed here
+    corfilename = 'meg_corrmnebf_corVoxvert8mm.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_02-06';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_02-06';
+end
 
-        source3d = mous_mne_2dto3d(subjectname, source, 'resolution', 8); 
-        %% change to match source.inside (MNEs, not TFRs)
-        source3d.inside  = source.inside;  
-        source3d.outside = source.outside; % assuming they are the same as the interpolation target
+%% voxvox
+if docorVoxvox8mm_sdregwordord_bf01mne0306
+    corfilename = 'meg_corrmnebf_corVoxvox8mm_sdregwordord_bf01mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_01';
+%     erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf01';
+end
+    
+if docorVoxvox8mm_sdregwordord_bf02mne0306
+    corfilename = 'meg_corrmnebf_corVoxvox8mm_sdregwordord_bf02mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_02';
+%     erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf02';
+end
 
-        sourcemodel = rmfield(source2, 'avg');
-        clear source source2;
+%% vertvert
+if docorVertvert8mm_sdregwordord_bf01mne0306
+    corfilename = 'meg_corrmnebf_corVertvert8mm_sdregwordord_bf01mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_01';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf01';
+end
+    
+if docorVertvert8mm_sdregwordord_bf02mne0306
+    corfilename = 'meg_corrmnebf_corVertvert8mm_sdregwordord_bf02mne0306.mat';
+    tfrsource   = 'meg_corrmnebf_bfsourcesingletrial8mm_02';
+    erfsource   = 'meg_corrmnebf_mnesingletrial_0306_bf02';
+end
 
-        source3d.corrmat = source3d.avg.pow(source3d.inside,:); % interpolated vertices X voxels
-        source3d.pos     = source3d.pos(source3d.inside,:);
-        source3d.inside  = 1:numel(source3d.inside);
-        source3d.outside = [];
-        source3d         = rmfield(source3d, 'avg');
-end 
+%% VOXVERT: same code for all subject(s) and file type combinations 
+mous_db_getdata(subjectname, corfilename);  % correlation matrix
+mous_db_getdata(subjectname, tfrsource);    % beamforming source locations
+source2 = source; clear source;           
+
+mous_db_getdata(subjectname, erfsource);    % MNE source locations
+
+source.avg.pow = cor';
+source.time    = 1:size(cor,1);
+
+source3d = mous_mne_2dto3d(subjectname, source, 'resolution', 8,'sphereradius', 0.8);  % source changed to source2
+source3d.inside  = source2.inside;
+source3d.outside = source2.outside; % assuming they are the same as the interpolation target
+
+sourcemodel = rmfield(source2, 'avg');
+clear source source2;
+
+source3d.corrmat = source3d.avg.pow(source3d.inside,:); % interpolated vertices X voxels
+source3d.pos     = source3d.pos(source3d.inside,:);
+source3d.inside  = 1:numel(source3d.inside);
+source3d.outside = [];
+source3d         = rmfield(source3d, 'avg');
+
+%                          grid        source
+%mous_connectivitybrowser(sourcemodel,source3d,'parameter','corrmat','method',{'slice','slice'})
+
+%% vertvert
+% mous_db_getdata(subjectname, corfilename);  % correlation matrix
+% %mous_db_getdata(subjectname, tfrsource);    % beamforming source locations
+% source2 = source; clear source;           
+% 
+% mous_db_getdata(subjectname, erfsource);    % MNE source locations
+% 
+% source.avg.pow = corvert';
+% source.time    = 1:size(corvert,1);
+% 
+% % take 8196 x 8196 and fit into 3D: 5782 x 5782 (3d beamformer space)
+% source3d = mous_mne_2dto3d(subjectname, source, 'resolution', 8,'sphereradius', 0.8);  % source changed to source2
+% source3d.inside  = source2.inside;
+% source3d.outside = source2.outside; % assuming they are the same as the interpolation target
+% 
+% sourcemodel = rmfield(source2, 'avg');
+% clear source source2;
+% 
+% source3d.corrmat = source3d.avg.pow(source3d.inside,:); % interpolated vertices X voxels
+% source3d.pos     = source3d.pos(source3d.inside,:);
+% source3d.inside  = 1:numel(source3d.inside);
+% source3d.outside = [];
+% %source3d         = rmfield(source3d, 'avg');
+% 
+% mous_connectivitybrowser(sourcemodel,source3d,'parameter','corrmat','method',{'slice','slice'})
+% 
+% 
+% %% VOXVOX 
+% %%% beamforming source is 3D so I don't think I need MNE source locations or to call mous_mne2dto3d.
+% mous_db_getdata(subjectname, corfilename);  % correlation matrix
+% mous_db_getdata(subjectname, tfrsource);    % beamforming source locations
+%         
+% sourcemodel = rmfield(source,'avg');  %% is this correct for the sourcemodel?
+% source3d = source;
+% 
+% source3d.avg.pow = corvox';
+% source3d.time    = 1:size(corvox,1);
+% 
+% source3d.corrmat = source3d.avg.pow; %(source3d.inside,:); % interpolated vertices X voxels
+% source3d.pos     = source3d.pos; %(source3d.inside,:);
+% source3d.inside  = 1:numel(source3d.inside);
+% source3d.outside = [];
+% source3d         = rmfield(source3d, 'avg');
+% 
+% mous_connectivitybrowser(sourcemodel,source3d,'parameter','corrmat','method',{'slice','slice'})
+% 
+% 
