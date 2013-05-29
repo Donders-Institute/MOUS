@@ -75,17 +75,12 @@ tmp = ft_checkdata(tmp, 'cmbrepresentation', 'sparse');
 tmp = ft_checkdata(tmp, 'cmbrepresentation', 'sparsewithpow');
 
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+%sourcemodel = mous_db_getdata(subjectname, ['meg_anatomy_sourcemodel3D_nonlin',num2str(res),'mm']);
+mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', rootdir);
 
 
 %% commented out because leadfields are assumed to be computed as of May1, 2013
 % compute leadfields
-
-% corrmnebf has different requirements
-if isfield(freq,'calc')  
-    %sourcemodel = mous_db_getdata(subjectname, ['meg_anatomy_sourcemodel3D_nonlin',num2str(res),'mm']);
-    mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', rootdir);
-end 
-
 % cfg = [];
 % cfg.grid = sourcemodel;
 % cfg.vol = headmodel;
