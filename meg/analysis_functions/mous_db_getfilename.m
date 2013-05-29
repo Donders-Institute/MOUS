@@ -102,7 +102,7 @@ end
 
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
-badsubjects = {'V1018';'V1051';'V1056';'V1060';'V1082';'V1043';'V1014'};
+badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1054';'V1056';'V1060';'V1082';'V1091'};
 % V1041 has only 3 min worth of resting state, I'd say this is not a
 % criterion for rejection
 if ismember(subject, badsubjects)
