@@ -1,4 +1,4 @@
-function [cfgout, cfgout2] = mous_artifact_eogb(filename, trl)
+function [cfgout] = mous_artifact_eogb(filename, trl)
 
 % $Id: mous_artifact_eogb.m 44 2012-05-16 10:42:21Z jansch $
 
