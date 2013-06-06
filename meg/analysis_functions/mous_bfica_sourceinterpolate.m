@@ -64,7 +64,8 @@ cfgi.parameter  = 'avg.pow';
 cfgi.downsample = 2;
 
 sourcemodel.avg.pow = zeros(prod(sourcemodel.dim),1);
-mri          = ft_read_mri('/home/language/jansch/matlab/mri/templateMRI.nii');
+tempfname    = fullfile(p(1:end-18),'templates','sourcemodel','templateMRI.nii');
+mri          = ft_read_mri(tempfname);
 tmp          = getsubfield(comp, fieldname);
 if ndims(tmp)==2
   for k = 1:size(tmp,2)
