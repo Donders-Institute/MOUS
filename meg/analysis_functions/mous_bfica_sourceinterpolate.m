@@ -29,7 +29,8 @@ load(fname);
 
 
 if ~isempty(range)
-  comp.(fieldname) = mean(comp.(fieldname)(:,range),2);
+  tmp  = getsubfield(comp, fieldname);
+  comp = setsubfield(comp, mean(tmp(:,range),2), fieldname);
   comp.time        = mean(comp.time(range));
   
   source = mous_bfica_sourceinterpolate(comp, fieldname, inside);
@@ -64,23 +65,24 @@ cfgi.downsample = 2;
 
 sourcemodel.avg.pow = zeros(prod(sourcemodel.dim),1);
 mri          = ft_read_mri('/home/language/jansch/matlab/mri/templateMRI.nii');
-if ndims(comp.(fieldname))==2
-  for k = 1:size(comp.(fieldname),2)
+tmp          = getsubfield(comp, fieldname);
+if ndims(tmp)==2
+  for k = 1:size(tmp,2)
     try
-      sourcemodel.avg.pow(inside) = comp.(fieldname)(:,k);
+      sourcemodel.avg.pow(inside) = tmp(:,k);
     catch
       try
-        sourcemodel.avg.pow(:) = comp.(fieldname)(:,k);
+        sourcemodel.avg.pow(:) = tmp(:,k);
       catch
-        sourcemodel.avg.pow(:) = comp.(fieldname)(:);
+        sourcemodel.avg.pow(:) = tmp(:);
       end
     end
     %sourcemodel.avg.pow(sourcemodel.inside) = comp.corrmap(:,k);
     source(k) = ft_sourceinterpolate(cfgi, sourcemodel, mri);
   end
 else
-  sourcemodel.avg.pow(:) = comp.(fieldname)(:);
+  sourcemodel.avg.pow(:) = tmp(:);
   source          = ft_sourceinterpolate(cfgi, sourcemodel, mri);
 end
-
+source.coordsys = 'spm';
 
