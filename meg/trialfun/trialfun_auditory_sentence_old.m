@@ -25,7 +25,8 @@ function [trl] = trialfun_auditory_sentence(cfg)
 % $Id: trialfun_auditory_sentence.m  | NL 2013
 
 % read in event information
-event = mous_read_event_audio(cfg.dataset);
+hdr   = ft_read_header(cfg.dataset);  % ***remove {1} when done testing within function ***
+event = ft_read_event(cfg.dataset);
 
 % select the UPPT001 events
 type = {event.type};
