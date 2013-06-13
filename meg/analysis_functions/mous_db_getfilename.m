@@ -60,6 +60,9 @@ if nargin<4
   rootdir = [];
 end
 
+% throw a warning for the bad subjects. NOTE: consider making it an
+% explicit error
+badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1082';'V1091';'V1096'};
 if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
   % 'all' is not consistent but kept for backward compatibility
 
@@ -82,7 +85,12 @@ elseif ischar(subject) && strcmp(subject, 'allAV')
   d = cat(1, d, dir('/home/language/annhul/MOUS/meg/A*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
-
+elseif ischar(subject) && strcmp(subject, 'bad')
+  % request all subjects classified as bad, hard coded
+  filename = badsubjects;
+  st   = [];
+  info = [];
+  return;
 end
 
 if iscell(subject)
@@ -102,7 +110,6 @@ end
 
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
-badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1054';'V1056';'V1060';'V1082';'V1091'};
 % V1041 has only 3 min worth of resting state, I'd say this is not a
 % criterion for rejection
 if ismember(subject, badsubjects)
@@ -295,7 +302,7 @@ switch type{2}
       otherwise
         error('unrecognized type requested');    
     end
-  case {'bfica' 'artifact' 'corrmnebf' 'restingstate' 'qualitycheck' 'mne' } %FIXME add the other ones also, so that the 'processed' can be removed
+  case {'bfica' 'artifact' 'corrmnebf' 'restingstate' 'qualitycheck' 'mne' 'preproc' 'other' } %FIXME add the other ones also, so that the 'processed' can be removed
     D = [rootdir filesep subject filesep type{2} filesep];
     switch [type{3}(1) type{end}(end)]
       case '{}'

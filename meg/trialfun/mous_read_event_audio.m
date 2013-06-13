@@ -1,11 +1,20 @@
-function [event] = mous_read_event_audio(subjectname, bits)
+function [event] = mous_read_event_audio(dataset, bits)
+
+% this function tries to deal with triggers recorded in level-mode. The
+% bitsi box can be configured to do so. This function behaves as
+% ft_read_event, but tries to fix the levelmode issue. It works reasonably
+% well, in that the downstream code manages to reconstruct a large part of
+% the trials correctly.
 
 if nargin==1
   bits = [];
 end
 
-dataset = mous_db_getfilename(subjectname, 'meg_raw_task');
-dataset = dataset{1};
+if numel(dataset)<6
+  % assume it's the name of a subject 
+  dataset = mous_db_getfilename(dataset, 'meg_raw_task');
+  dataset = dataset{1};
+end
 
 % ideally we should use ft_read_data here
 cfg            = [];
@@ -20,6 +29,7 @@ for k = 1:numel(bitvalue)
   n(k) = sum(bitand(trigger,bitvalue(k))>0);
 end
 
+% try to guess which bits have been recorded in level-mode
 if any(n>60000)
   % do a double round of zscoring, should detect the bad ones
   tmpn  = (n-mean(n))./std(n);
@@ -77,7 +87,7 @@ for k = 1:numel(bits)
 end
 newtrigger(newtrigger<0) = 0;
 
-
+% the following part is directly copied from ft_read_event
 detectflank = 'up';
 channel     = 'UPPT001';
 event       = [];

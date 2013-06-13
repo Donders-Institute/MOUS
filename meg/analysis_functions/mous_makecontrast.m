@@ -131,11 +131,12 @@ switch contrast
         tlck.trial  = shiftdim(tlck.avg,-1);
         tlck.trial2 = shiftdim(tlck.dof,-1); %!!!! keep track of the dof
       else
-        tlck.trial(k,:,1:size(tmp.avg,2))  = tmp.avg;
+        tlck.trial(uXword(k),:,1:size(tmp.avg,2))  = tmp.avg;
         tlck.time(1:size(tmp.avg,2))       = tmp.time;
-        tlck.trial2(k,:,1:size(tmp.avg,2)) = tmp.dof;
+        tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof;
       end
     end
+    if k<15, tlck.trial((k+1):15,:,:) = nan; tlck.trial2((k+1):15,:,:) = nan; end
     tlck.dimord = 'rpt_chan_time';
       
     tmp       = tlck;
@@ -180,11 +181,12 @@ switch contrast
         tlck.trial  = shiftdim(tlck.avg,-1);
         tlck.trial2 = shiftdim(tlck.dof,-1); %!!!! keep track of the dof
       else
-        tlck.trial(k,:,1:size(tmp.avg,2))  = tmp.avg;
+        tlck.trial(uXword(k),:,1:size(tmp.avg,2))  = tmp.avg;
         tlck.time(1:size(tmp.avg,2))       = tmp.time;
-        tlck.trial2(k,:,1:size(tmp.avg,2)) = tmp.dof;
+        tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof;
       end
     end
+    if k<15, tlck.trial((k+1):15,:,:) = nan; tlck.trial2((k+1):15,:,:) = nan; end
     tlck.dimord = 'rpt_chan_time';
       
     tmp       = tlck;

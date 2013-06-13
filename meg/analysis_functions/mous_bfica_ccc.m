@@ -36,20 +36,22 @@ sel2 = sort(tmp2(1:n));
 
 tmp     = ft_selectdata(freq, 'rpt', [sel1(:)' sel2(:)']);
 tmp     = ft_checkdata(tmp, 'cmbrepresentation', 'fullfast');
-sourcemodel = projectori(sourcemodel, tmp.crsspctrm, lambda);
+%sourcemodel = projectori(sourcemodel, tmp.crsspctrm, lambda);
 
-cfg      = [];
-cfg.fwhm = 'yes';
-sourcemodel = ft_sourcedescriptives(cfg, sourcemodel);
+% cfg      = [];
+% cfg.fwhm = 'yes';
+% sourcemodel = ft_sourcedescriptives(cfg, sourcemodel);
 refindx     = ft_getopt(varargin, 'refindx', 1:numel(sourcemodel.inside),1);
 
 tmp     = ft_selectdata(freq, 'rpt', sel1);
-tmp     = ft_checkdata(tmp, 'cmbrepresentation', 'fullfast');
-cohsent = mous_ccc(sourcemodel, tmp, 'refindx', refindx, 'lambda', lambda);
+%tmp     = ft_checkdata(tmp, 'cmbrepresentation', 'fullfast');
+%cohsent = mous_ccc(sourcemodel, tmp, 'refindx', refindx, 'lambda', lambda);
+cohsent = estimate_nullcoh4x4(sourcemodel, tmp, 'refindx', refindx, 'lambda', lambda);
 
 tmp     = ft_selectdata(freq, 'rpt', sel2);
-tmp     = ft_checkdata(tmp, 'cmbrepresentation', 'fullfast');
-cohseq  = mous_ccc(sourcemodel, tmp, 'refindx', refindx, 'lambda', lambda);
+%tmp     = ft_checkdata(tmp, 'cmbrepresentation', 'fullfast');
+%cohseq  = mous_ccc(sourcemodel, tmp, 'refindx', refindx, 'lambda', lambda);
+cohseq  = estimate_nullcoh4x4(sourcemodel, tmp, 'refindx', refindx, 'lambda', lambda);
 
 cohsent.inside  = sourcemodel.inside;
 cohsent.outside = sourcemodel.outside;
@@ -61,21 +63,31 @@ cohseq.outside = sourcemodel.outside;
 cohseq.dim     = sourcemodel.dim;
 cohseq.dof     = numel(sel2);
 
-cohsent = rmfield(cohsent, 'lf');
-cohsent = rmfield(cohsent, 'w12');
-cohseq  = rmfield(cohseq,  'lf');
-cohseq  = rmfield(cohseq,  'w12');
+try
+  cohsent = rmfield(cohsent, 'lf');
+  cohseq  = rmfield(cohseq,  'lf');
+end
+try
+  cohsent = rmfield(cohsent, 'w12');
+  cohseq  = rmfield(cohseq,  'w12');
+end
+try
+  cohsent = rmfield(cohsent, 'coh0');
+  cohseq  = rmfield(cohseq, 'coh0');
+end
 
 if isfield(sourcemodel, 'fwhm')
   cohsent.fwhm   = sourcemodel.fwhm;
   cohseq.fwhm    = sourcemodel.fwhm;
   
-  krn = compute_kernel(sourcemodel);
-  cohsent.coh = single(krn'*double(abs(cohsent.coh)));%*krn);
+  cohsent.coh = single(abs(cohsent.coh));
+  %krn = compute_kernel(sourcemodel);
+  %cohsent.coh = single(krn'*double(abs(cohsent.coh))*krn);
   %cohsent.w12 = single(krn'*double(abs(cohsent.w12)));%*krn);
   %cohsent     = rmfield(cohsent, 'w12');
   
-  cohseq.coh = single(krn'*double(abs(cohseq.coh)));%*krn);
+  cohseq.coh = single(abs(cohseq.coh));
+  %cohseq.coh = single(krn'*double(abs(cohseq.coh))*krn);
   %cohseq.w12 = single(krn'*double(abs(cohseq.w12)));%*krn);
   %cohseq     = rmfield(cohseq, 'w12');
 end

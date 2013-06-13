@@ -19,7 +19,7 @@ if nargin>2 && ~isempty(toi)
   fprintf('removing %d trials due to nans\n', sum(nans(1,:)));
   tmp.fourierspctrm(nans(:),:) = [];
   tmp.trialinfo(nans(1,:),:)   = [];
-  tmp.cumtapcnt(nans(1,:))     = [];
+  tmp.cumtapcnt(nans(1,:),:)   = [];
   tmp.dimord = 'rpttap_chan_freq';
   
   % identify ~finite trials, i.e. where the selected time slice coincided
@@ -82,7 +82,7 @@ sourcemodel = ft_prepare_leadfield(cfg);
 % compute spatial filters
 cfg = [];
 cfg.method = 'dics';
-cfg.frequency = freq.freq;
+cfg.frequency = freq.freq(1);
 cfg.dics.fixedori = 'yes';
 cfg.dics.realfilter = 'yes';
 cfg.dics.keepfilter = 'yes';
