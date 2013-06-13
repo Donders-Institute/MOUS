@@ -38,13 +38,21 @@ avgcomp   = comp{1};
 avgpre    = comp{2};
 comp      = comp{3};
 
+
+% HACK otherwise crash 
+tmp=~isfinite(comp.grad.tra);
+sel=sum(tmp,1);
+sel2=sum(tmp,2);
+comp.grad.tra(sel2>0,sel>0)=randn(sum(sel2>0),sum(sel>0));
+comp.grad = rmfield(comp.grad,'balance');
+
 cfg          = [];
 cfg.dataset  = dataset{1};
 cfg.trialfun = 'trialfun_visual_sentence';
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 trl(:,2)     = trl(:,1)+1199;
-trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 0.5); % don't do the horizontal EOG
+trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 2 3 4]), 'partial', 0.5); % don't do the horizontal EOG
 
 % trl > 2 second does not make sense, sanity check: FIXME
 nsmp = trl(:,2)-trl(:,1);

@@ -22,13 +22,14 @@ if dofreq,
 %   mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
 %   
 
-% beta frequency
-options = [];
-options.taper = 'hanning';
-options.t_ftimwin = 0.250;
+% generic
+options            = [];
+options.t_ftimwin  = ones(1,numel(frequency))*0.25;%0.4;
+options.taper      = 'hanning';
 options.resamplefs = 300;
 freq = mous_bfica_freq(subjectname, frequency, rootdir, options);
 mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', rootdir);
+
 %
 % % broadband gamma frequency
 % options = [];
@@ -47,12 +48,31 @@ if dofreqmtmfft
   options.toilim     = [0.2 0.6];
   freq = mous_bfica_freq_mtmfft(subjectname, [0 40], rootdir, options);
   mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft', 'freq', rootdir);
-%   options.taper = 'dpss';
-%   options.resamplefs = 600;
-%   options.tapsmofrq  = 7.5;
-%   options.toilim     = [0.2 0.6];
-%   freq = mous_bfica_freq_mtmfft(subjectname, [40 160], rootdir, options);
-%   mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft_high', 'freq', rootdir);
+end
+if dofreqmtmfft_preword
+  options = [];
+  options.taper = 'hanning';
+  options.resamplefs = 300;
+  options.tapsmofrq  = 2.5;
+  options.toilim     = [-0.4 0];
+  freq = mous_bfica_freq_mtmfft(subjectname, [0 40], rootdir, options);
+  mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft_preword', 'freq', rootdir);
+end
+if dofreqmtmfft_contrast
+  mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft_preword', rootdir);
+  freq1 = ft_struct2double(freq);
+  mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft', rootdir);
+  freq2 = ft_struct2double(freq);
+  [sent, seq] = mous_bfica_freq_contrast(freq1, freq2);
+  mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft_sentseq', 'sent', 'seq', rootdir);
+end
+if dofreqmtmfft_contrast_nobaseline
+%   mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft_preword', rootdir);
+%   freq1 = ft_struct2double(freq);
+  mous_db_getdata(subjectname, 'meg_bfica_freq_mtmfft', rootdir);
+  freq2 = ft_struct2double(freq);
+  [sent, seq] = mous_bfica_freq_contrast([], freq2);
+  mous_db_putdata(subjectname, 'meg_bfica_freq_mtmfft_sentseqnobaseline', 'sent', 'seq', rootdir);
 end
 if dofreqbaseline,
   options.taper = 'dpss';
@@ -65,13 +85,8 @@ if dosource,
   [source, trialinfo] = mous_bfica_source(subjectname, freq);
   mous_db_putdata(subjectname, ['meg_bfica_source',suff], 'source', 'trialinfo', rootdir);
 end
-if dosource8mm,
-  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  [source, trialinfo] = mous_bfica_source(subjectname, ft_struct2double(freq), toi, 8, rootdir);
-  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], 'source', 'trialinfo', rootdir, 0);
-end
 if doleadfield8mm,
-  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_freq_medium',suff], rootdir);
   [sourcemodel, newinside, oldinside] = mous_bfica_leadfield(subjectname, ft_struct2double(freq), toi, 8);
   mous_db_putdata(subjectname, 'meg_bfica_leadfield8mm', 'sourcemodel', 'newinside', 'oldinside', rootdir, 0);
 end
@@ -80,12 +95,218 @@ if dosource8mmparcellate,
   sourcemodel = mous_anatomy_sourcemodelparcellate(subjectname, sourcemodel);
   mous_db_putdata(subjectname, 'meg_bfica_sourcemodel3Dparcellated_nonlin8mm', 'sourcemodel', rootdir, 0);
 end
+if dosource8mm,
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
+  [source, trialinfo] = mous_bfica_source(subjectname, ft_struct2double(freq), toi, 8, rootdir);
+  mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], 'source', 'trialinfo', rootdir, 0);
+end
 if dovox,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
   sourcedata = mous_bfica_sourcedata(source, freq, toi);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi),'%03d')], 'sourcedata', rootdir);
 end
+if dosentvsseq,
+  tois = -0.2:0.05:0.8;
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
+  
+  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
+  [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),tois);
+  
+  % match the trials with the trialinfo from the sourcedata file
+  [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
+  % chop until word offset minus half a time window for the spectral analysis
+  % FIXME
+  
+  sourcedata.trialinfo = trialinfonew(ia,:);
+  sourcedata.trial = trial(ia);
+  sourcedata.time = time(ia);
+  [tlcksent, tlckseq,tstat] = mous_makecontrast(sourcedata, 'sent-seq');
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff,'_',num2str(round(1000*toi),'%03d')], 'tlcksent', 'tlckseq', 'tstat', rootdir, 0);
+end
+if dowordsentpar2,
+  tois = -0.2:0.05:0.8;
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
+  
+  %krn = compute_kernel(source);
+  %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
+  [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),tois);
+
+  sourcedata.trialinfo = trialinfonew;
+  sourcedata.trial = trial;
+  sourcedata.time = time;
+  sourcedata.fsample = 1;
+
+  
+  % match the trials with the trialinfo from the sourcedata file
+  [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
+  % chop until word offset minus half a time window for the spectral analysis
+  % FIXME
+  
+  sourcedata.trialinfo = trialinfonew(ia,:);
+  sourcedata.trial = trial(ia);
+  sourcedata.time = time(ia);
+  
+  for k = 1:numel(sourcedata.trial)
+    ix = nearest(sourcedata.time{k}, toi-0.001);
+    iy = nearest(sourcedata.time{k}, toi+0.001);
+    sourcedata.trial{k} = nanmean(sourcedata.trial{k}(:,ix:iy),2);
+    sourcedata.time{k} = nanmean(sourcedata.time{k}(ix:iy),2);
+  end
+  
+  
+  [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordsent_parametric');
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff,'_',num2str(round(1000*toi),'%03d')], 'tlck', 'stat2', 'stat', rootdir, 0);
+end
+if dowordseqpar2,
+  tois = -0.2:0.05:0.8;
+  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
+  
+  %krn = compute_kernel(source);
+  %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
+  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
+  [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),tois);
+
+  sourcedata.trialinfo = trialinfonew;
+  sourcedata.trial = trial;
+  sourcedata.time = time;
+  sourcedata.fsample = 1;
+
+  
+  % match the trials with the trialinfo from the sourcedata file
+  [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
+  % chop until word offset minus half a time window for the spectral analysis
+  % FIXME
+  
+  sourcedata.trialinfo = trialinfonew(ia,:);
+  sourcedata.trial = trial(ia);
+  sourcedata.time = time(ia);
+  
+  for k = 1:numel(sourcedata.trial)
+    ix = nearest(sourcedata.time{k}, toi-0.001);
+    iy = nearest(sourcedata.time{k}, toi+0.001);
+    sourcedata.trial{k} = nanmean(sourcedata.trial{k}(:,ix:iy),2);
+    sourcedata.time{k} = nanmean(sourcedata.time{k}(ix:iy),2);
+  end
+  
+  
+  [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordseq_parametric');
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar',suff,'_',num2str(round(1000*toi),'%03d')], 'tlck', 'stat2', 'stat', rootdir, 0);
+end
+
+if dosource_contrasts,
+  % this is chuncking the individual subsegments above, without saving the intermediate results + looping over toi:
+  % dosource8mm
+  % dovox
+  % dosentvsseq
+  % dowordsentpar2
+  % dowordseqpar2
+  
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
+  freq = ft_struct2double(freq);
+  freq.cumtapcnt = ones(size(freq.fourierspctrm,1),1); % assume hanning taper!!!!  
+  for toilop = 1:numel(toi)
+    %tois = -0.2:0.05:0.8;
+
+    tmpfreq = ft_selectdata(freq, 'foilim', frequency*[1 1]+[-0.1 0.1]);
+    [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8, rootdir);
+    sourcedataorig      = mous_bfica_sourcedata(source, tmpfreq, toi(toilop));
+    
+    sourcedataorig.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
+    [trial,time,trialinfonew]       = trial2words(sourcedataorig.trial{1},sourcedataorig.trialinfo(:,[1 5 7 2:4 6]),toi(toilop));
+  
+    % match the trials with the trialinfo from the sourcedata file
+    [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
+    % chop until word offset minus half a time window for the spectral analysis
+    % FIXME
+  
+    sourcedataorig.trialinfo = trialinfonew(ia,:);
+    sourcedataorig.trial = trial(ia);
+    sourcedataorig.time = time(ia);
+    sourcedataorig.fsample = 1;
+    
+    %% dosentvsseq
+    sourcedata = sourcedataorig;
+    [tlcksent(toilop), tlckseq(toilop),tstat(:,toilop)] = mous_makecontrast(sourcedata, 'sent-seq');
+  
+    %% dowordsentpar2
+    [tlcksentpar(toilop),statsentpar(toilop),stat2sentpar(toilop)] = mous_makecontrast(sourcedata, 'wordsent_parametric');
+    
+    %% dowordseqpar2
+    [tlckseqpar(toilop),statseqpar(toilop),stat2seqpar(toilop)] = mous_makecontrast(sourcedata, 'wordseq_parametric');
+   end
+  
+  % concatenate
+  tlcksent(1).avg = cat(2,tlcksent(:).avg);
+  tlcksent(1).var = cat(2,tlcksent(:).var);
+  tlcksent(1).dof = cat(2,tlcksent(:).dof);
+  tlcksent(1).time = cat(2,tlcksent(:).time);
+  tlcksent         = tlcksent(1);
+  
+  tlckseq(1).avg = cat(2,tlckseq(:).avg);
+  tlckseq(1).var = cat(2,tlckseq(:).var);
+  tlckseq(1).dof = cat(2,tlckseq(:).dof);
+  tlckseq(1).time = cat(2,tlckseq(:).time);
+  tlckseq         = tlckseq(1);
+  
+  tlcksentpar(1).avg = cat(2,tlcksentpar(:).avg);
+  tlcksentpar(1).var = cat(2,tlcksentpar(:).var);
+  tlcksentpar(1).dof = cat(2,tlcksentpar(:).dof);
+  tlcksentpar(1).time = cat(2,tlcksentpar(:).time);
+  tlcksentpar(1).trial = cat(3,tlcksentpar(:).trial);
+  tlcksentpar(1).trial2 = cat(3,tlcksentpar(:).trial2);
+  tlcksentpar           = tlcksentpar(1);
+  
+  tlckseqpar(1).avg = cat(2,tlckseqpar(:).avg);
+  tlckseqpar(1).var = cat(2,tlckseqpar(:).var);
+  tlckseqpar(1).dof = cat(2,tlckseqpar(:).dof);
+  tlckseqpar(1).time = cat(2,tlckseqpar(:).time);
+  tlckseqpar(1).trial = cat(3,tlckseqpar(:).trial);
+  tlckseqpar(1).trial2 = cat(3,tlckseqpar(:).trial2);
+  tlckseqpar           = tlckseqpar(1);
+  
+  statsentpar(1).stat = cat(2,statsentpar(:).stat);
+  statsentpar(1).prob = cat(2,statsentpar(:).prob);
+  statsentpar(1).mask = cat(2,statsentpar(:).mask);
+  statsentpar(1).time = cat(2,statsentpar(:).time);
+  statsentpar(1).cirange = cat(2,statsentpar(:).cirange);
+  statsentpar            = statsentpar(1);
+  
+  stat2sentpar(1).stat = cat(2,stat2sentpar(:).stat);
+  stat2sentpar(1).prob = cat(2,stat2sentpar(:).prob);
+  stat2sentpar(1).mask = cat(2,stat2sentpar(:).mask);
+  stat2sentpar(1).time = cat(2,stat2sentpar(:).time);
+  stat2sentpar(1).cirange = cat(2,stat2sentpar(:).cirange);
+  stat2sentpar            = stat2sentpar(1);
+
+  statseqpar(1).stat = cat(2,statseqpar(:).stat);
+  statseqpar(1).prob = cat(2,statseqpar(:).prob);
+  statseqpar(1).mask = cat(2,statseqpar(:).mask);
+  statseqpar(1).time = cat(2,statseqpar(:).time);
+  statseqpar(1).cirange = cat(2,statseqpar(:).cirange);
+  statseqpar            = statseqpar(1);
+  
+  stat2seqpar(1).stat = cat(2,stat2seqpar(:).stat);
+  stat2seqpar(1).prob = cat(2,stat2seqpar(:).prob);
+  stat2seqpar(1).mask = cat(2,stat2seqpar(:).mask);
+  stat2seqpar(1).time = cat(2,stat2seqpar(:).time);
+  stat2seqpar(1).cirange = cat(2,stat2seqpar(:).cirange);
+  stat2seqpar            = stat2seqpar(1);
+
+  % save the results
+  suff2 = num2str(round(frequency*10));
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff2], 'tlcksentpar', 'stat2sentpar', 'statsentpar', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 0);
+end
+  
+  
+
+
 if dovoxbaseline,
   mous_db_getdata(subjectname, 'meg_bfica_freqbaseline', rootdir);
   mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
@@ -116,40 +337,7 @@ if dosent1vssent2_chan,
   %[fsent, fseq] = mous_makecontrast(ft_struct2double(freq), 'sent-seq', freq.trialinfo(:,2));
   %mous_db_putdata(subjectname, 'meg_bfica_chandatasentseq_high', 'fsent', 'fseq', rootdir,0);
 end
-if dosentvsseq,
-% toi = -0.2:0.05:0.8;
-% sourcedata = mous_db_getdata(subjectname, 'meg_bfica_sourcedata', rootdir);
-% source = mous_db_getdata(subjectname, 'meg_bfica_source', rootdir);
-% krn = compute_kernel(source);
-% [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
-% sourcedata.trialinfo = trialinfo;
-% sourcedata.trial = trial;
-% sourcedata.time = time;
-% [tlcksent, tlckseq] = mous_makecontrast(sourcedata, 'sent-seq');
-% mous_db_putdata(subjectname, 'meg_bfica_sourcedatasentseq', tlcksent, tlckseq, rootdir);
 
-  tois = -0.2:0.05:0.8;
-  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
-  %mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
-  
-  %krn = compute_kernel(source);
-  %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
-  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
-  [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),tois);
-  
-  % match the trials with the trialinfo from the sourcedata file
-  [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
-  % chop until word offset minus half a time window for the spectral analysis
-  % FIXME
-  
-  sourcedata.trialinfo = trialinfonew(ia,:);
-  sourcedata.trial = trial(ia);
-  sourcedata.time = time(ia);
-  [tlcksent, tlckseq,tstat] = mous_makecontrast(sourcedata, 'sent-seq');
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff,'_',num2str(round(1000*toi),'%03d')], 'tlcksent', 'tlckseq', 'tstat', rootdir, 0);
-
-end
 if dosentvsseqTarget,
   toi = -0.2:0.05:0.8;
   mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
@@ -195,73 +383,6 @@ end
 % [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordseq_parametric');
 % mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordseqpar',suff], 'tlck', 'stat', 'stat2', rootdir);
 % end
-if dowordsentpar2,
-  tois = -0.2:0.05:0.8;
-  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
-  
-  %krn = compute_kernel(source);
-  %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
-  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
-  [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),tois);
-
-  sourcedata.trialinfo = trialinfonew;
-  sourcedata.trial = trial;
-  sourcedata.time = time;
-  sourcedata.fsample = 1;
-
-  
-  % match the trials with the trialinfo from the sourcedata file
-  [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
-  % chop until word offset minus half a time window for the spectral analysis
-  % FIXME
-  
-  sourcedata.trialinfo = trialinfonew(ia,:);
-  sourcedata.trial = trial(ia);
-  sourcedata.time = time(ia);
-  
-  for k = 1:numel(sourcedata.trial)
-    ix = nearest(sourcedata.time{k}, toi-0.001);
-    iy = nearest(sourcedata.time{k}, toi+0.001);
-    sourcedata.trial{k} = nanmean(sourcedata.trial{k}(:,ix:iy),2);
-    sourcedata.time{k} = nanmean(sourcedata.time{k}(ix:iy),2);
-  end
-  
-  
-  [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordsent_parametric');
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff,'_',num2str(round(1000*toi),'%03d')], 'tlck', 'stat2', 'stat', rootdir, 0);
-
-end
-if dowordseqpar2,
-  tois = -0.2:0.05:0.8;
-  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff,'_',num2str(round(1000*toi))], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi))], rootdir);
-  
-  %krn = compute_kernel(source);
-  %[trial,time,trialinfonew] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
-  sourcedata.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
-  [trial,time,trialinfonew] = trial2words(sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),tois);
-  
-  toi = -0.2:0.05:0.8;
-  mous_db_getdata(subjectname, ['meg_bfica_sourcedata',suff], rootdir);
-  mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
-  krn = compute_kernel(source);
-  [trial,time,trialinfo] = trial2words(krn'*sourcedata.trial{1},sourcedata.trialinfo(:,[1 5 7 2:4 6]),toi);
-  sourcedata.trialinfo = trialinfo;
-  sourcedata.trial = trial;
-  sourcedata.time = time;
-  sourcedata.fsample = 1;
-
-  for k = 1:numel(sourcedata.trial)
-    ix = nearest(sourcedata.time{k}, 0.3);
-    iy = nearest(sourcedata.time{k}, 0.6);
-    sourcedata.trial{k} = nanmean(sourcedata.trial{k}(:,ix:iy),2);
-    sourcedata.time{k} = nanmean(sourcedata.time{k}(ix:iy),2);
-  end
- 
-  [tlck,stat,stat2] = mous_makecontrast(sourcedata, 'wordseq_parametric');
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatawordseqpar2',suff], 'tlck', 'stat', 'stat2', rootdir);
-end
 
 if sourcedata2avgword
   toi = -0.2:0.05:0.8;
@@ -292,8 +413,9 @@ if doccc,
   mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', rootdir);
   
   freq              = ft_selectdata(freq, 'toilim', toi+[-0.01 0.01]);
+  freq              = ft_selectdata(freq, 'foilim', frequency*[1 1]);
   [cohsent, cohseq] = mous_bfica_ccc(sourcemodel, freq, 'refindx', [], 'lambda', 0.05);
-  mous_db_putdata(subjectname, ['meg_bfica_ccc',suff,'Hz_',num2str(round(1000*toi)),'ms'], 'cohsent', 'cohseq', rootdir);
+  mous_db_putdata(subjectname, ['meg_bfica_ccc_',num2str(round(frequency)),'Hz_',num2str(round(1000*toi)),'ms'], 'cohsent', 'cohseq', rootdir,0);
 end
 if docleanup
   % remove the source8mmF_T and sourcedataF_T

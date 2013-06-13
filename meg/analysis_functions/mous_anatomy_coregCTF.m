@@ -63,8 +63,8 @@ if refineflag==1
   cfg.method    = 'headshape';
   cfg.headshape = pos;
   cfg.weights   = ones(size(pos.pnt,1),1);
-  cfg.weights(pos.pnt(:,1)>9 | pos.pnt(:,1)<-4) = 100;
-  cfg.weights(pos.pnt(:,3)<0 & cfg.weights>1)   = 200;
+  %cfg.weights(pos.pnt(:,1)>9 | pos.pnt(:,1)<-4) = 100;
+  %cfg.weights(pos.pnt(:,3)<0 & cfg.weights>1)   = 200;
   cfg.weights(end-2:end,:) = 1;
   
   mri.coordsys  = 'ctf';
