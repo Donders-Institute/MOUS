@@ -24,6 +24,18 @@ bndinflated.tri = bnd.tri;
 if isfield(bndinflated, 'sulc')
   bndinflated.sulc = bndinflated.sulc(sel,:);
 end
+if isfield(bndinflated, 'curv')
+  bndinflated.curv = bndinflated.curv(sel,:);
+end
+if isfield(bndinflated, 'hemisphere')
+  bndinflated.hemisphere = bndinflated.hemisphere(sel,:);
+end
+if isfield(bndinflated, 'thickness')
+  bndinflated.thickness = bndinflated.thickness(sel,:);
+end
+if isfield(bndinflated, 'area')
+  bndinflated = rmfield(bndinflated, 'area');
+end
 
 bndinflated.pos = bndinflated.pnt;
 bndinflated     = rmfield(bndinflated, 'pnt');
