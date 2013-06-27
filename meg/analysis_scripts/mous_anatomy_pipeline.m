@@ -17,6 +17,7 @@ if ~exist('doskullstrip',     'var'), doskullstrip     = 0;  end
 if ~exist('doheadmodel',      'var'), doheadmodel      = 0;  end
 if ~exist('dosourcemodel2d1',  'var'), dosourcemodel2d1  = 0;  end
 if ~exist('dosourcemodel2d2',  'var'), dosourcemodel2d2  = 0;  end
+if ~exist('dosourcemodel2d_reg', 'var'), dosourcemodel2d_reg = 0; end
 if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = 0;  end
 if ~exist('doqualitycheck',   'var'), doqualitycheck   = 0;  end
 
@@ -166,6 +167,58 @@ if dosourcemodel2d2
   bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
   mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', 'bnd', 0);
+end
+
+if dosourcemodel2d_reg
+  % do the surface-based registration to th fs_average_164k mesh
+  % this results in the nodes being 1-to-1 mapped.
+  % subsequent downsampling to 8196 nodes keeps the nodes in register
+  % this needs an installation of caret and some specific additional scripts
+
+  % create directory that will contain the results
+  subjdirfs   = ['/home/language/annhul/MOUS/meg/',subjectname,'/anatomy/',subjectname];
+  outputdir   = tempname('/tmp'); 
+  mkdir(outputdir);
+  targetdir   = '/home/language/jansch/projects/mous/meg/templates/sourcemodel/fsaverage_LR_164k/';  
+
+  str     = which('freesurfer_to_fs_LR.sh');
+  [p,f,e] = fileparts(str);
+  str     = ([p,'/freesurfer_to_fs_LR.sh ',subjdirfs,' ',targetdir,' ',outputdir]);
+  
+  % run the registration script 
+  system(str);
+  
+  % save some of the relevant surfaces in freesurfer format to allow Matti's code to work on them
+  outputdirsurf = fullfile(outputdir,subjectname,'surf');  
+  mkdir(outputdirsurf);
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.L.midthickness_orig.164k_fs_LR.coord.gii']);
+  triname = fullfile(outputdir,subjectname,[subjectname,'.L.164k_fs_LR.topo.gii']);
+  bnd = ft_read_headshape({tmpname triname});
+  ft_write_headshape(fullfile(outputdirsurf,'lh.white'),bnd,'format','freesurfer');
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.L.sphere.164k_fs_LR.coord.gii']);
+  bnd = ft_read_headshape({tmpname triname});
+  ft_write_headshape(fullfile(outputdirsurf,'lh.sphere'),bnd,'format','freesurfer');
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.R.midthickness_orig.164k_fs_LR.coord.gii']);
+  triname = fullfile(outputdir,subjectname,[subjectname,'.R.164k_fs_LR.topo.gii']);
+  bnd = ft_read_headshape({tmpname triname});
+  ft_write_headshape(fullfile(outputdirsurf,'rh.white'),bnd,'format','freesurfer');
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.R.sphere.164k_fs_LR.coord.gii']);
+  bnd = ft_read_headshape({tmpname triname});
+  ft_write_headshape(fullfile(outputdirsurf,'rh.sphere'),bnd,'format','freesurfer');
+ 
+  % mne call to create dipole grid
+  system([p,'/mnescript.sh ',outputdir,' ',subjectname]);
+
+  % copy the output into the database
+  system(['cp ',fullfile(outputdir,subjectname,'bem',[subjectname,'-oct-6-src.fif']),' ',fullfile('/home/language/annhul/MOUS/meg/',subjectname,'anatomy',subjectname,'bem',[subjectname,'-oct-6-src_reg.fif'])]);
+
+  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
+  
+  fifname = fullfile('/home/language/annhul/MOUS/meg/',subjectname,'anatomy',subjectname,'bem',[subjectname,'-oct-6-src_reg.fif']);
+  bnd  = ft_read_headshape(fifname,'format','mne_source');
+  bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', 'bnd', 0);
 end
 
 %% create a 3D sourcemodel based on the MNI brain
