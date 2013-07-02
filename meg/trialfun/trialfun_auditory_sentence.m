@@ -22,7 +22,15 @@ function [trl] = trialfun_auditory_sentence(cfg)
 %   column 5: trigger corresponding to target word
 %   column 6: sample number of critical word onset, relative to time point 0
 %
+%   7.7.2013 This script was updated to account for issue 1 of 2. 
+%   Issue (1) most triggers are correct i.e. most triggers return to baseline. The issue happens
+%   with some trials where one trigger, usually that of the first word onset, 
+%   has been replaced by a trigger 15
+%   Issue (2) most triggers incorrect, and this requires checking with the
+%   auditory logfiles to give the correct triggers.
+% 
 % $Id: trialfun_auditory_sentence.m  | NL 2013
+
 
 % read in event information
 event = mous_read_event_audio(cfg.dataset);
@@ -55,6 +63,13 @@ for k = 1:numel(selfix)-1
   tmpval = val(sel);
   tmpsmp = smp(sel);
   
+  iendtrig = find(tmpval == 15);  % x2 trigger 15, remove the first one
+  if numel(iendtrig) > 1
+      if tmpval(iendtrig(1)+1) ~= 20  || tmpval(iendtrig(1)+1) ~= 40 || tmpval(iendtrig(1)+1) ~= 10
+      tmpval(iendtrig(1)) = tmpval(iendtrig(1)+1)-1;
+      end
+  end       
+
   % get FIRST WORD onset  
   for kk = 1:numel(tmpval)
     trg1 = tmpval(kk);
