@@ -127,24 +127,3 @@ mous_db_putdata(subjectname, outname, 'senWord_PG', 'seqWord_PG', 'senWord_CPG',
 %  fprintf('Updated number of averages file %s ', txtfile);
 %  cmd = ['chmod g+w ' txtfile];
 %  system(cmd);
-
-% if strcmp(length, 'short')
-%   inputdata = 'meg_processed_{_preProcERFauditory_word_firstWord02-1ds}';
-%   %inputdata = 'meg_processed_{_preprocERFauditory_wordall02-1ds}';
-%   %inputdata = 'meg_processed_{_preProcERFvisual_word_all_02-1ds}';
-%   
-%   %outputdata = 'meg_processed_{_erf_Firstword_02-1ds';
-%   %outputdata = 'meg_processed_{_erf_visual_word_all_02-1ds';
-%   outputdata = 'meg_processed_{_erf_auditory_firstWord_02-1ds';
-%   baseln = -0.2;
-%   
-% elseif strcmp(length,'sentence')
-%   inputdata = 'meg_processed_{_preprocERF_visual_sentence_02-7ds}';
-%   outputdata = 'meg_processed_{_erf_visual_sentence_02-7ds';
-%   baseln = -0.2;
-%   
-% elseif strcmp(length,'long')
-%   inputdata = 'meg_processed_{_preprocERF_targetword_05-3ds}';
-%   outputdata = 'meg_processed_{_erf_targetword_05-3ds';
-%   baseln = -0.5;
-% end
