@@ -1,8 +1,12 @@
 function [trl] = trialfun_auditory_word(cfg)
 
-% [trl] = trialfun_visual_word(cfg) creates the trl-matrix for the 
-% single words
+% [trl] = trialfun_visual_word(cfg) creates the trl-matrix for the single words
+% each row represents the information for the first word or the target word
+% of each sentence/sequence
 % 
+% for a trl where each row represents an entire sentence/sequence, see
+% trialfun_auditory_sentence
+%
 % the cfg needs to contain the following option:
 %   cfg.dataset = string, name of the dataset
 %
@@ -17,13 +21,15 @@ function [trl] = trialfun_auditory_word(cfg)
 %   column 6: sample number of trial relative to the onset of the first word
 %   column 7: number of samples between word on and offset
 %   column 8: wordcount 
+%
+%   2012 | NL
 
 prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.5);
 poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
 
 % read in event information
-hdr   = ft_read_header(cfg.dataset{1});   % if running code locally, change to "cfg.dataset{1}"
-event = ft_read_event(cfg.dataset{1});
+hdr   = ft_read_header(cfg.dataset);   % if running code locally, change to "cfg.dataset{1}"
+event = ft_read_event(cfg.dataset);
 
 % select the UPPT001 events
 type = {event.type};
