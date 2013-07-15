@@ -35,7 +35,8 @@ data = ft_preprocessing(cfg);
 %% Downsample data (to resamplefs = target frequency)
 cfg            = [];
 cfg.resamplefs = resamplefs;
-cfg.detrend    = 'no';  %??
+cfg.detrend    = 'no';  % not good for evoked data
+cfg.demean     = 'yes';
 data = ft_resampledata(cfg, data);
 
 
@@ -47,6 +48,7 @@ if (strcmp(analysisType, 'TFR') > 0)
     
 elseif (strcmp(analysisType, 'ERF') > 0)
     cfg.demean     = 'yes';
+    cfg.detrend    = 'no';
     cfg.baselinewindow  = [baseline 0];
 else
     error('unrecognized type requested');
