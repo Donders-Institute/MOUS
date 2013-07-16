@@ -1,31 +1,27 @@
-function mous_erf_compute(subjectname, length, wordType)
+function mous_erf_compute(subjectname, length, wordType, trialfun)
 % This script performs ERF analyses on preprocessed data for one subject
 % To run across subjects use qsub
 
 % NL, AH 1-6-2012. Mod: 9-17-2012 (NL)
 
 %% Paramters
-% Window length: long/short
-% wordType = target/ allWords
-if strcmp(length, 'short')
-  %inputdata = 'meg_processed_{_preprocERFauditory_wordall02-1ds}';
-  inputdata = 'meg_processed_{_preProcERFvisual_word_all_02-1ds}';
-  
-  
-  %outputdata = 'meg_processed_{_erf_Firstword_02-1ds';
-  outputdata = 'meg_processed_{_erf_visual_word_all_02-1ds';
-  baseln = -0.2;
-elseif strcmp(length,'long')
-  inputdata = 'meg_processed_{_preprocERF_targetword_05-3ds}';
-  outputdata = 'meg_processed_{_erf_targetword_05-3ds';
-  baseln = -0.5;
-end
+% Window length: long/
+% wordType = target/ all/firstWord
+% trialfun = auditory_word 
+% The trial fun is only used to generate the correct input file 
+
+
+inputdata = ['meg_processed_{_preProcERF' trialfun '_' wordType '_' length 'ds}'];
+outputdata = ['meg_processed_{_erf_' trialfun '_' wordType '_' length 'ds'];
+ 
+baseln = -0.2;
+
 
 % get the preprocessed data from the database
 tmp = mous_db_getdata(subjectname, inputdata);
 data = tmp{1};
 clear tmp;
-% data = mous_db_getdata(subjectname, 'meg_processed{rawERF05-3ds}');
+
 
 %% Calculate the ERF
 fprintf('Calculating ERF for subject %s for conditions SenTar and SeqTar\n', subjectname);
@@ -45,10 +41,21 @@ cfgplanar.neighbours   = ft_prepare_neighbours(cfg_neighb, data);
 if strcmp(wordType, 'target')
     sel1 = find(data.trialinfo(:,2)==2 | data.trialinfo(:,2)==6);   % sentences target word
     sel2 = find(data.trialinfo(:,2)==4 | data.trialinfo(:,2)==8);   % sequences target word
-elseif strcmp(wordType,'allWords')  % all words in the sentence
+elseif strcmp(wordType,'all')  % all words in the sentence
     sel1 = find(data.trialinfo(:,2)==1 | data.trialinfo(:,2)==5 | data.trialinfo(:,2)==2 | data.trialinfo(:,2)==6 );  % sentences
     sel2 = find(data.trialinfo(:,2)==3 | data.trialinfo(:,2)==7 | data.trialinfo(:,2)==4 | data.trialinfo(:,2)==8);  % sequences
+
+elseif strcmp(wordType,'sentence')
+    for k = 1:length(data.trialinfo)
+        if data.trialinfo(k,2) == 20 && (data.trialinfo(k+1,2) == 1 || data.trialinfo(k+1,2)==5)
+            sel1(k)= data.trialinfo(k+1,2);
+        elseif data.trialinfo(k,2) == 20 && (data.trialinfo(k+1,2) == 3 || data.trialinfo(k+1,2)==7)
+             sel2(k)= data.trialinfo(k+1,2);
+        end
+    end
+
 end
+
 
 % cfg for condition specific analyses
 cfg1                = [];       %  1 = sentences
