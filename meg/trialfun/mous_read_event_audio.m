@@ -131,18 +131,18 @@ for k = 1:(numel(updown)-2)
   elseif updown(k)==1 && updown(k+1)==0 && updown(k+2)==0
     keep(k) = 1;
     
-    offset = 2;
-    if k>1 && updown(k-1)==0
+   if k>1 && updown(k-1)==0
       % this is needed to fix the 'missing' trigger issue.
       % it seems a perfectly synchronized switching on and off of two
       % triggers, causing an 'incomplete staircase', i.e. a pattern in the
       % updown vector of 0_100_1, rather than 0_1100_1
-      offset = 1;
-    end
-    
-    % adjust the value
-    event(k).value = event(k+offset).value;
-    
+      keep(k+1) = 1;
+      event(k+1).value = event(k+2).value;
+      
+   else    
+      % adjust the value
+      event(k).value = event(k).value;
+    end 
   else
     % don't keep
   end
