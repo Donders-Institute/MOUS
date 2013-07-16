@@ -117,7 +117,7 @@ smp       = [event.sample];
 [srt,sel] = sort(smp);
 event     = event(sel);
 updown    = zeros(1,numel(event));
-updown(strcmp({event.type}, ['UPPT001_up'])) = 1;
+updown(strcmp({event.type}, 'UPPT001_up')) = 1;
 
 % the following tries to deal with overlapping triggers. only works if at
 % most 2 triggers are overlapping
@@ -131,8 +131,17 @@ for k = 1:(numel(updown)-2)
   elseif updown(k)==1 && updown(k+1)==0 && updown(k+2)==0
     keep(k) = 1;
     
+    offset = 2;
+    if k>1 && updown(k-1)==0
+      % this is needed to fix the 'missing' trigger issue.
+      % it seems a perfectly synchronized switching on and off of two
+      % triggers, causing an 'incomplete staircase', i.e. a pattern in the
+      % updown vector of 0_100_1, rather than 0_1100_1
+      offset = 1;
+    end
+    
     % adjust the value
-    event(k).value = event(k+2).value;
+    event(k).value = event(k+offset).value;
     
   else
     % don't keep
