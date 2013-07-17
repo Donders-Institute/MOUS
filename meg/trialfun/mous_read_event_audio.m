@@ -88,7 +88,6 @@ end
 newtrigger(newtrigger<0) = 0;
 
 % the following part is directly copied from ft_read_event
-detectflank = 'up';
 channel     = 'UPPT001';
 event       = [];
 begsample   = 1;
@@ -100,37 +99,62 @@ else
   trigshift = 0;
 end
 
-switch detectflank
-  case 'up'
-    % convert the trigger into an event with a value at a specific sample
-    for j=find(diff([pad newtrigger(:)'])>0)
-      event(end+1).type   = channel;
-      event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
-      event(end  ).value  = newtrigger(j+trigshift);      % assign the trigger value just _after_ going up
-    end
-  case 'down'
-    % convert the trigger into an event with a value at a specific sample
-    for j=find(diff([pad newtrigger(:)'])<0)
-      event(end+1).type   = channel;
-      event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
-      event(end  ).value  = newtrigger(j-1-trigshift);    % assign the trigger value just _before_ going down
-    end
-  case 'both'
-    % convert the trigger into an event with a value at a specific sample
-    for j=find(diff([pad newtrigger(:)'])>0)
-      event(end+1).type   = [channel '_up'];        % distinguish between up and down flank
-      event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
-      event(end  ).value  = newtrigger(j+trigshift);      % assign the trigger value just _after_ going up
-    end
-    % convert the trigger into an event with a value at a specific sample
-    for j=find(diff([pad newtrigger(:)'])<0)
-      event(end+1).type   = [channel '_down'];      % distinguish between up and down flank
-      event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
-      event(end  ).value  = newtrigger(j-1-trigshift);    % assign the trigger value just _before_ going down
-    end
-  otherwise
-    error('incorrect specification of ''detectflank''');
+% convert the trigger into an event with a value at a specific sample
+% getting both the up and downflanks
+for j=find(diff([pad newtrigger(:)'])>0)
+  event(end+1).type   = [channel '_up'];        % distinguish between up and down flank
+  event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
+  event(end  ).value  = newtrigger(j+trigshift);      % assign the trigger value just _after_ going up
 end
+% convert the trigger into an event with a value at a specific sample
+for j=find(diff([pad newtrigger(:)'])<0)
+  event(end+1).type   = [channel '_down'];      % distinguish between up and down flank
+  event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
+  event(end  ).value  = newtrigger(j-1-trigshift);    % assign the trigger value just _before_ going down
+end
+
+smp       = [event.sample];
+[srt,sel] = sort(smp);
+event     = event(sel);
+updown    = zeros(1,numel(event));
+updown(strcmp({event.type}, 'UPPT001_up')) = 1;
+
+% the following tries to deal with overlapping triggers. only works if at
+% most 2 triggers are overlapping
+keep = false(size(updown));
+for k = 1:(numel(updown)-2)
+  if updown(k)==1 && updown(k+1)==0 && updown(k+2)==1
+    keep(k) = 1;
+  elseif updown(k)==1 && updown(k+1)==1 && updown(k+2)==0
+    keep(k) = 1;
+        
+  elseif updown(k)==1 && updown(k+1)==0 && updown(k+2)==0
+    keep(k) = 1;
+    
+   if k>1 && updown(k-1)==0
+      % this is needed to fix the 'missing' trigger issue.
+      % it seems a perfectly synchronized switching on and off of two
+      % triggers, causing an 'incomplete staircase', i.e. a pattern in the
+      % updown vector of 0_100_1, rather than 0_1100_1
+      keep(k+1) = 1;
+      event(k+1).value = event(k+2).value;
+      
+   else    
+      % adjust the value
+      event(k).value = event(k+2).value;
+    end 
+  else
+    % don't keep
+  end
+end
+event = event(keep);
+
+% revert event type to UPPT001
+for k = 1:numel(event)
+  event(k).type = 'UPPT001';
+end
+
+% now deal with potentially overlapping triggers
 
 % event2 = read_logfile_audio(subjectname);
 % 

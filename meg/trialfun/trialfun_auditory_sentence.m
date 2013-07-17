@@ -1,15 +1,17 @@
-function [trl] = trialfun_auditory_sentence(cfg)
+function [trl,val] = trialfun_auditory_sentence(cfg)
 
 % [trl] = trialfun_visual_sentence(cfg) creates the trl-matrix for the 
 % whole sentence: notes onset of trial and target word. For speech onset of
 % first word (and other words) see trialfun_auditory_word
+% time point zero = start of trial (sent/seq) i.e. speech onset of first
+% word
 % 
 % the cfg needs to contain the following option:
 %   cfg.dataset = string, name of the dataset
 %
 % timepoint zero is the speech onset of the first word!
 % 
-% the trl-matrix has 6 columns:
+% the trl-matrix has 7 columns:
 %   column 1: begin sample: speech onset of first word - offset of 1s
 %             this is the auditory version of the begsmp in the visual
 %             version
@@ -19,18 +21,11 @@ function [trl] = trialfun_auditory_sentence(cfg)
 %             fixation cross
 %   column 3: offset of first sample with respect to time point 0
 %   column 4: trial number
-%   column 5: trigger corresponding to target word
-%   column 6: sample number of critical word onset, relative to time point 0
-%
-%   7.7.2013 This script was updated to account for issue 1 of 2. 
-%   Issue (1) most triggers are correct i.e. most triggers return to baseline. The issue happens
-%   with some trials where one trigger, usually that of the first word onset, 
-%   has been replaced by a trigger 15
-%   Issue (2) most triggers incorrect, and this requires checking with the
-%   auditory logfiles to give the correct triggers.
+%   column 5: trigger corresponding to first word
+%   column 6: trigger corresponding to target word
+%   column 7: sample number of critical word onset, relative to time point 0
 % 
 % $Id: trialfun_auditory_sentence.m  | NL 2013
-
 
 % read in event information
 event = mous_read_event_audio(cfg.dataset);
@@ -61,15 +56,8 @@ for k = 1:numel(selfix)-1
     
   % create a sequence of triggers within the trial
   tmpval = val(sel);
-  tmpsmp = smp(sel);
+  tmpsmp = smp(sel);  
   
-  iendtrig = find(tmpval == 15);  % x2 trigger 15, remove the first one
-  if numel(iendtrig) > 1
-      if tmpval(iendtrig(1)+1) ~= 20  || tmpval(iendtrig(1)+1) ~= 40 || tmpval(iendtrig(1)+1) ~= 10
-      tmpval(iendtrig(1)) = tmpval(iendtrig(1)+1)-1;
-      end
-  end       
-
   % get FIRST WORD onset  
   for kk = 1:numel(tmpval)
     trg1 = tmpval(kk);
