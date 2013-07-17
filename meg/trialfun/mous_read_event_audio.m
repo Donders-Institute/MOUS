@@ -141,7 +141,7 @@ for k = 1:(numel(updown)-2)
       
    else    
       % adjust the value
-      event(k).value = event(k).value;
+      event(k).value = event(k+2).value;
     end 
   else
     % don't keep
