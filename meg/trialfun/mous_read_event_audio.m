@@ -64,6 +64,8 @@ pulselength          = mode(dtrigger);
 % deal with the levelmode issue
 newtrigger = trigger;
 if ~isempty(bits)
+  %pulselength = min(pulselength, 15); % make new pulses at most 10 samples wide.
+  
   for k = 1:numel(bits)
     tmp  = bitand(trigger, bits(k));
     
@@ -72,7 +74,8 @@ if ~isempty(bits)
     % it should be detectable as a 'new' upstate.
     allup   = diff([trigger(1) trigger])>0;
     upup  = tmp>0 & allup;
-    tmp([upup(2:end) false]) = 0;
+    %tmp([upup(2:end) false]) = 0;
+    tmp(upup) = 0;
     
     alldown = diff([trigger 0])<0;
     seldown = find(alldown);
@@ -84,8 +87,12 @@ if ~isempty(bits)
     elseif numel(up)<numel(down)
       error('don''t know what to do here');
     end
+      
     for m = 1:numel(down)
       newtrigger((up(m)+pulselength):(down(m)+1)) = newtrigger((up(m)+pulselength):(down(m)+1))-bits(k); %+(1:pulselength)) = -bits(k);
+     if up(m)>0 %&& k==numel(bits),
+        newtrigger(up(m)+(0:9)) = mode(newtrigger(up(m)+(0:9)));
+      end
     end
   end
   newtrigger(newtrigger<0) = 0;
