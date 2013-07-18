@@ -25,8 +25,7 @@ filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
 % get the description of the artifacts
 tmp = mous_db_getdata(subjectname, 'meg_artifact_cfg');
 
-
-%[trl] = mous_defineTrial(filename{1}, prestim, poststim, wordType, trialfun);
+[trl] = mous_defineTrial(filename{1}, prestim, poststim, 'all', trialfun);
 
 [trl] = mous_artifact_remove(trl, filename{1}, tmp);
 %dataStats = mous_samplestats(trl); %FIXME
