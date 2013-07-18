@@ -11,7 +11,7 @@ if nargin==1
 end
 
 if numel(dataset)<6
-  % assume it's the name of a subject 
+  % assume it's the name of a subject
   dataset = mous_db_getfilename(dataset, 'meg_raw_task');
   dataset = dataset{1};
 end
@@ -60,34 +60,41 @@ dtrigger             = diff(find(diff(trigger)));
 dtrigger(dtrigger<5) = []; % triggers less than 5 samples wide probably don't mean anything
 pulselength          = mode(dtrigger);
 
-newtrigger = trigger;
-for k = 1:numel(bits)
-  tmp  = bitand(trigger, bits(k));
-  
-  % all upflanks occurring within the upstate of a bit, are trigger codes
-  % that contain this bit, so for the following part of the code to work,
-  % it should be detectable as a 'new' upstate.
-  allup   = diff([trigger(1) trigger])>0;
-  upup  = tmp>0 & allup;
-  tmp([upup(2:end) false]) = 0;
-  
-  alldown = diff([trigger 0])<0;
-  seldown = find(alldown);
-  
-  down = find(diff([tmp 0])      <0);
-  up   = find(diff([bits(k) tmp])>0);
-  if numel(up)<numel(down) && up(1)>down(1)
-    up = [1-pulselength up];
-  elseif numel(up)<numel(down)
-    error('don''t know what to do here');
-  end
-  for m = 1:numel(down)
-   newtrigger((up(m)+pulselength):(down(m)+1)) = newtrigger((up(m)+pulselength):(down(m)+1))-bits(k); %+(1:pulselength)) = -bits(k);
-  end
-end
-newtrigger(newtrigger<0) = 0;
 
-% the following part is directly copied from ft_read_event
+% deal with the levelmode issue
+newtrigger = trigger;
+if ~isempty(bits)
+  for k = 1:numel(bits)
+    tmp  = bitand(trigger, bits(k));
+    
+    % all upflanks occurring within the upstate of a bit, are trigger codes
+    % that contain this bit, so for the following part of the code to work,
+    % it should be detectable as a 'new' upstate.
+    allup   = diff([trigger(1) trigger])>0;
+    upup  = tmp>0 & allup;
+    tmp([upup(2:end) false]) = 0;
+    
+    alldown = diff([trigger 0])<0;
+    seldown = find(alldown);
+    
+    down = find(diff([tmp 0])      <0);
+    up   = find(diff([bits(k) tmp])>0);
+    if numel(up)<numel(down) && up(1)>down(1)
+      up = [1-pulselength up];
+    elseif numel(up)<numel(down)
+      error('don''t know what to do here');
+    end
+    for m = 1:numel(down)
+      newtrigger((up(m)+pulselength):(down(m)+1)) = newtrigger((up(m)+pulselength):(down(m)+1))-bits(k); %+(1:pulselength)) = -bits(k);
+    end
+  end
+  newtrigger(newtrigger<0) = 0;
+end
+
+% deal with the datasets that have a long pulselength, i.e. on the order of
+% 30 ms or so.
+
+% the following part is modified from ft_read_event
 channel     = 'UPPT001';
 event       = [];
 begsample   = 1;
@@ -99,62 +106,69 @@ else
   trigshift = 0;
 end
 
-% convert the trigger into an event with a value at a specific sample
-% getting both the up and downflanks
-for j=find(diff([pad newtrigger(:)'])>0)
-  event(end+1).type   = [channel '_up'];        % distinguish between up and down flank
-  event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
-  event(end  ).value  = newtrigger(j+trigshift);      % assign the trigger value just _after_ going up
-end
-% convert the trigger into an event with a value at a specific sample
-for j=find(diff([pad newtrigger(:)'])<0)
-  event(end+1).type   = [channel '_down'];      % distinguish between up and down flank
-  event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
-  event(end  ).value  = newtrigger(j-1-trigshift);    % assign the trigger value just _before_ going down
-end
-
-smp       = [event.sample];
-[srt,sel] = sort(smp);
-event     = event(sel);
-updown    = zeros(1,numel(event));
-updown(strcmp({event.type}, 'UPPT001_up')) = 1;
-
-% the following tries to deal with overlapping triggers. only works if at
-% most 2 triggers are overlapping
-keep = false(size(updown));
-for k = 1:(numel(updown)-2)
-  if updown(k)==1 && updown(k+1)==0 && updown(k+2)==1
-    keep(k) = 1;
-  elseif updown(k)==1 && updown(k+1)==1 && updown(k+2)==0
-    keep(k) = 1;
-        
-  elseif updown(k)==1 && updown(k+1)==0 && updown(k+2)==0
-    keep(k) = 1;
-    
-   if k>1 && updown(k-1)==0
-      % this is needed to fix the 'missing' trigger issue.
-      % it seems a perfectly synchronized switching on and off of two
-      % triggers, causing an 'incomplete staircase', i.e. a pattern in the
-      % updown vector of 0_100_1, rather than 0_1100_1
-      keep(k+1) = 1;
-      event(k+1).value = event(k+2).value;
+if pulselength>30
+  
+  % convert the trigger into an event with a value at a specific sample
+  % getting both the up and downflanks
+  for j=find(diff([pad newtrigger(:)'])>0)
+    event(end+1).type   = [channel '_up'];        % distinguish between up and down flank
+    event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
+    event(end  ).value  = newtrigger(j+trigshift);      % assign the trigger value just _after_ going up
+  end
+  % convert the trigger into an event with a value at a specific sample
+  for j=find(diff([pad newtrigger(:)'])<0)
+    event(end+1).type   = [channel '_down'];      % distinguish between up and down flank
+    event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
+    event(end  ).value  = newtrigger(j-1-trigshift);    % assign the trigger value just _before_ going down
+  end
+  
+  smp       = [event.sample];
+  [srt,sel] = sort(smp);
+  event     = event(sel);
+  updown    = zeros(1,numel(event));
+  updown(strcmp({event.type}, 'UPPT001_up')) = 1;
+  
+  % the following tries to deal with overlapping triggers. only works if at
+  % most 2 triggers are overlapping
+  keep = false(size(updown));
+  for k = 1:(numel(updown)-2)
+    if updown(k)==1 && updown(k+1)==0 && updown(k+2)==1
+      keep(k) = 1;
+    elseif updown(k)==1 && updown(k+1)==1 && updown(k+2)==0
+      keep(k) = 1;
       
-   else    
-      % adjust the value
-      event(k).value = event(k+2).value;
-    end 
-  else
-    % don't keep
+    elseif updown(k)==1 && updown(k+1)==0 && updown(k+2)==0
+      keep(k) = 1;
+      
+      if k>1 && updown(k-1)==0
+        % this is needed to fix the 'missing' trigger issue.
+        % it seems a perfectly synchronized switching on and off of two
+        % triggers, causing an 'incomplete staircase', i.e. a pattern in the
+        % updown vector of 0_100_1, rather than 0_1100_1
+        keep(k+1) = 1;
+        event(k+1).value = event(k+2).value;
+        
+      else
+        % adjust the value
+        event(k).value = event(k+2).value;
+      end
+    else
+      % don't keep
+    end
+  end
+  event = event(keep);
+  
+  % revert event type to UPPT001
+  for k = 1:numel(event)
+    event(k).type = 'UPPT001';
+  end
+else
+  for j=find(diff([pad newtrigger(:)'])>0)
+    event(end+1).type   = channel;        % distinguish between up and down flank
+    event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
+    event(end  ).value  = newtrigger(j+trigshift);      % assign the trigger value just _after_ going up
   end
 end
-event = event(keep);
-
-% revert event type to UPPT001
-for k = 1:numel(event)
-  event(k).type = 'UPPT001';
-end
-
-% now deal with potentially overlapping triggers
 
 % event2 = read_logfile_audio(subjectname);
 % 
