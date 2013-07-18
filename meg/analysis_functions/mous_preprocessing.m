@@ -33,22 +33,36 @@ end
 data = ft_preprocessing(cfg);
 
 %% Downsample data (to resamplefs = target frequency)
+
+%   cfg.resamplefs = frequency at which the data will be resampled (default = 256 Hz)
+%   cfg.detrend    = 'no' or 'yes', detrend the data prior to resampling (no default specified, see below)
+%   cfg.demean     = 'no' or 'yes', baseline correct the data prior to resampling (default = 'no')
+%   cfg.feedback   = 'no', 'text', 'textbar', 'gui' (default = 'text')
+%   cfg.trials     = 'all' or a selection given as a 1xN vector (default =
+%   'all')
 cfg            = [];
 cfg.resamplefs = resamplefs;
 cfg.detrend    = 'no';  % not good for evoked data
 cfg.demean     = 'yes';
+cfg.trials     = 'all';
 data = ft_resampledata(cfg, data);
 
 
-%% Do ERF baseline correction and de-trending AFTER downsampling.
+%% Do ERF baseline correction AFTER downsampling.
+%% so that different baselines can be applied.
+
 cfg            = [];
+cfg.dataset    = filename{1};
+cfg.trl        = trl;
+cfg.continuous = 'yes';
+cfg.channel    = {'MEG' 'EEG057' 'EEG058'};
 
 if (strcmp(analysisType, 'TFR') > 0)
     cfg.detrend    = 'yes';
     
 elseif (strcmp(analysisType, 'ERF') > 0)
-    cfg.demean     = 'yes';
     cfg.detrend    = 'no';
+    cfg.demean     = 'yes';
     cfg.baselinewindow  = [baseline 0];
 else
     error('unrecognized type requested');
