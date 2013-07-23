@@ -44,6 +44,8 @@ mous_db_getdata(subjectname, tfrsource);    % beamforming source locations
 source2 = source; clear source;           
 
 mous_db_getdata(subjectname, erfsource);    % MNE source locations
+bnd.inside = 1:8196; bnd.outside = 0;
+source = bnd; clear bnd;
 
 cor = double(cor);   % to prevent issue of multiplying sparse matrix (cor) with other matrices
 source.avg.pow = cor';
