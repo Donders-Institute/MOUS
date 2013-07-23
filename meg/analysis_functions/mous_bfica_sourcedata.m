@@ -6,7 +6,10 @@ warning on;
 
 if nargin==3
   freq =  ft_selectdata(freq, 'toilim', toi+[-0.1 0.1]*mean(diff(freq.time)));
-else
+% below, and "elseif" is implemented instead of an "else" so that the code works for corrmnebf
+% This was this on 18.4.2013 btw JM and NL, but NL didn't push the change
+% the first time but only changed her own local copy
+elseif isfield(freq,'time') 
   freq = mtmconvol2mtmfft(freq, 200);
 end
 
