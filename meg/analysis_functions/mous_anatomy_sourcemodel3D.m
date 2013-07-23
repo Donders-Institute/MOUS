@@ -24,3 +24,4 @@ sourcemodel = ft_prepare_sourcemodel(cfg);
 
 % remove the mri-structure from grid.cfg
 sourcemodel.cfg = rmfield(sourcemodel.cfg, 'mri');
+sourcemodel.cfg = rmfield(sourcemodel.cfg, 'callinfo');
