@@ -7,10 +7,13 @@ function mous_erf_compute(subjectname, length, wordType, trialfun)
 %% Paramters
 % Window length: long/
 % wordType = target/ all/firstWord
-% trialfun = auditory_word 
+% trialfun = auditory_word /visual_word
 % The trial fun is only used to generate the correct input file 
 
 
+% ['meg_processed_{_preProcERF' trialfun '_' length 'ds}'], 'data');
+
+%inputdata = ['meg_processed_{_preProcERF' trialfun '_' length 'ds}'];
 inputdata = ['meg_processed_{_preProcERF' trialfun '_' wordType '_' length 'ds}'];
 outputdata = ['meg_processed_{_erf_' trialfun '_' wordType '_' length 'ds'];
  
@@ -38,9 +41,12 @@ cfgplanar.neighbours   = ft_prepare_neighbours(cfg_neighb, data);
 % implement later in this script (or in a script at an earlier/latter stage
 % to identify specific words e.g., noun only, target + 1)
 
-if strcmp(wordType, 'target')
+if strcmp(wordType, 'target') %&& strcmp(trialfun, 'visual_word')
     sel1 = find(data.trialinfo(:,2)==2 | data.trialinfo(:,2)==6);   % sentences target word
     sel2 = find(data.trialinfo(:,2)==4 | data.trialinfo(:,2)==8);   % sequences target word
+
+%elseif strcmp(wordType,'target') &&  strcmp(trialfun, 'visual_word')
+
 elseif strcmp(wordType,'all')  % all words in the sentence
     sel1 = find(data.trialinfo(:,2)==1 | data.trialinfo(:,2)==5 | data.trialinfo(:,2)==2 | data.trialinfo(:,2)==6 );  % sentences
     sel2 = find(data.trialinfo(:,2)==3 | data.trialinfo(:,2)==7 | data.trialinfo(:,2)==4 | data.trialinfo(:,2)==8);  % sequences
