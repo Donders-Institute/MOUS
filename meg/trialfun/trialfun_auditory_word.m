@@ -24,13 +24,16 @@ function [trl] = trialfun_auditory_word(cfg)
 %   column 8: wordcount 
 %
 %   2012 | NL
-
-prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.5);
-poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
-
+% 
+ prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.5);
+ poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
+ 
+ 
 % read in event information
-hdr   = ft_read_header(cfg.dataset);   % if running code locally, change to "cfg.dataset{1}"
-event = ft_read_event(cfg.dataset);
+ hdr   = ft_read_header(cfg.dataset);   % if running code locally, change to "cfg.dataset{1}"
+% event = ft_read_event(cfg.dataset);
+
+event = mous_read_event_audio(cfg.dataset);  % this line is necessary to fix the trigger problems we have (which applies only after subject A2029, except for A2014).
 
 % select the UPPT001 events
 type = {event.type};
