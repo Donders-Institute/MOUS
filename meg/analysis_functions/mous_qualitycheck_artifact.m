@@ -22,7 +22,7 @@ domusc  = true;
 %% general data need for all artifacts
 % load filename and trial(sent/seq) trl
 filename    = mous_db_getfilename(subjectname, 'meg_raw_task'); 
-trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'all','auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
+trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
 cfgart      = mous_db_getdata(subjectname, 'meg_artifact_cfg');  
 % cfg info for preprocessing trial data
     cfg             = [];
