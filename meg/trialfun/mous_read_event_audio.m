@@ -16,6 +16,12 @@ if numel(dataset)<6
   dataset = dataset{1};
 end
 
+% get logfilename, if scenario was 1-MEG or 3-MEG, then 093.wav exists. 
+% This wave file has an overlap between trigger-14 (audiofile onset) 
+% and trigger-1 (first word onset). This is fixed at line 122.
+logfname = mous_db_getfilename(dataset(32:36),'meg_raw_log');
+scenario = str2num(logfname{1}(48));
+
 % ideally we should use ft_read_data here
 cfg            = [];
 cfg.dataset    = dataset;
@@ -113,7 +119,14 @@ else
   trigshift = 0;
 end
 
-if pulselength>30
+% assign pulselength threshold depending on MEG scenario
+if scenario == 1 || scenario == 3
+    pulselengththreshold = 5;
+else 
+    pulselengththreshold = 30;
+end 
+    
+if pulselength > pulselengththreshold
   
   % convert the trigger into an event with a value at a specific sample
   % getting both the up and downflanks
