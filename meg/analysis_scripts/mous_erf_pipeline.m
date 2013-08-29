@@ -17,17 +17,62 @@
 %     'V1093'    'V1094'    'V1095'    'V1099'    'V1100'    'V1101' ...
 %     'V1102'    'V1103'    'V1104'    'V1106'    'V1107' };
 
+% Use Annika's list if subjectname is not defined in the workspace, else
+% use the defined subjectname: this allows for use with qsub
+if ~exist('subjectname', 'var')
+  load MOUS/meg/subjects_OK_20130613.mat
+elseif ~iscell(subjectname)
+  subj = {subjectname};
+else
+  subj = subjectname;
+end
 
-load MOUS/meg/subjects_OK_20130613.mat
+if ~exist('rootdir', 'var')
+  rootdir = '/home/language/annhul/MOUS/meg';
+end
 
+if ~exist('inputdata', 'var')
+  length   = '02-1'; %means -0.2 to 1 sec
+  wordType = 'all'; 
+  trialfun = 'visual_word';
+  inputdata  = ['meg_processed_{_preProcERF' trialfun '_' wordType '_' length 'ds}'];
+  outputdata = ['meg_processed_{_erf_' trialfun '_' wordType '_' length 'ds'];
+  outname1   = strcat(outputdata, '-ag}');
+  outname2   = strcat(outputdata, '-pg}');
+end
 
+if ~exist('outputdata', 'var')
+  error('you need to specify the name of the file that will contain the output data');
+end
 
-length   = '02-1'; %means -0.2 to 1 sec
-wordType = 'all'; 
-trialfun = 'visual_word';
+if ~exist('outname1', 'var')
+  outname1 = strcat(outputdata, '-ag');
+  outname2 = strcat(outputdata, '-pg');
+end
 
 for k = 1:numel(subj)
+  subjectname = subj{k};
+  
+  % get the preprocessed data from the database
+  tmp  = mous_db_getdata(subjectname, inputdata);
+  if iscell(tmp)
+    data = tmp{1};
+  else
+    data = tmp;
+  end
+  clear tmp;
 
-mous_erf_compute(subj{k}, length, wordType, trialfun)
-
+  % auditory data is apparently used, select whether to use the first
+  % words, or the targets: first words are odd numbered, targets are even
+  % numbered
+  if ~isempty(strfind(inputdata, 'auditory'))
+    % use the first words here
+    sel = find(mod(data.trialinfo(:,2),2)==1);
+    cfg.trials = sel;
+    data = ft_preprocessing(cfg, data);
+  end
+  [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG, stdev] = mous_erf_compute(subjectname, data);
+  
+  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG',rootdir);
+  mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',rootdir);
 end
