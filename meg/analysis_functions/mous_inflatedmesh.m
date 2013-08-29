@@ -1,12 +1,20 @@
-function [bndinflated] = mous_inflatedmesh(subjectname)
+function [bndinflated] = mous_inflatedmesh(subjectname, regflag)
 
 % MOUS_INFLATEDMESH returns the inflated mesh of a named subject.
 %
 % Use as
 %   bndinflated = mous_inflatedmesh(subjectname)
 
+if nargin==1
+  regflag = 0;
+end
+
 fiffile = mous_db_getfilename(subjectname, 'meg_anatomy_sourcemodelfif');
-fiffile = fiffile{1};
+if regflag
+  fiffile = fiffile{2};
+else
+  fiffile = fiffile{1};
+end
 
 % assume p to end with 'bem'
 [p,n,e] = fileparts(fiffile);
