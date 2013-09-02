@@ -1,5 +1,16 @@
 % mous_artifact_pipeline
 % this script contains the sequential steps for the artifact processing pipeline.
+% define the epochs on which the artifacts will be detected
+%%% READ ME: If there are less than 240 trials, check on Big-U site whether
+%%% subject has TWO files for task data (due to the MEG PC crashing halfway).
+%%% If so there are two options:
+% (1) the variable 'filename' will have 2 variables, and you can select the
+% second one by changing <filename{1} to <filename{2}> in the script below
+% and then proceed as usual.
+% (2) variable 'filename' only has 1 variable, but if you manually go to
+% the subject's directory ~annhul/MOUS/meg/A2XX/RAW you see 2 task files,
+% then you should change the actual input to filename e.g.:
+% filename = '......02.ds' changes to filename = '....03.ds'.   
 
 %% Artifact detection (Nietz stuff)
 % create directory that will contain the results
@@ -11,18 +22,6 @@ filename = mous_db_getfilename(subjectname, 'meg_ds_task');
 % replace the below 0 with an actual number, if a local averaging/std
 % computation is required in mous_artifact_muscle
 ntrials = 0;
-
-% define the epochs on which the artifacts will be detected
-%%% READ ME: If there are less than 240 trials, check on Big-U site whether
-%%% subject has TWO files for task data (due to the MEG PC crashing halfway).
-%%% If so there are two options:
-% (1) the variable 'filename' will have 2 variables, and you can select the
-% second one by changing <filename{1} to <filename{2}> in the script below
-% and then proceed as usual.
-% (2) variable 'filename' only has 1 variable, but if you manually go to
-% the subject's directory ~annhul/MOUS/meg/A2XX/RAW you see 2 task files,
-% then you should change the actual input to filename e.g.:
-% filename = '......02.ds' changes to filename = '....03.ds'.
 
 cfg          = [];
 cfg.dataset  = filename{1};
