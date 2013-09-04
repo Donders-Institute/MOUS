@@ -13,8 +13,7 @@ function mous_connectivitybrowser(grid, source, varargin)
 % structure denoting the connectivity metric
 
 parameter = ft_getopt(varargin, 'parameter', '');
-anasc     = ft_getopt(varargin, 'anasc', []);
-cohsc     = ft_getopt(varargin, 'cohsc', []);
+scale     = ft_getopt(varargin, 'scale', {[] []});
 method    = ft_getopt(varargin, 'method', {'ortho' 'slice'});
 
 coh = zeros(prod(grid.dim), 'single')+nan;
@@ -47,21 +46,21 @@ y = 1:siz(2);
 z = 1:siz(3);
 
 % ensure same color scaling for all figures
-if isempty(anasc)
+if isempty(scale{1})
 c1min = min(coh(:));
 c1max = max(coh(:));
 else
-c1min = anasc(1);
-c1max = anasc(2);
+c1min = scale{1}(1);
+c1max = scale{1}(2);
 end
 
 
-if isempty(cohsc)
+if isempty(scale{2})
   c2min = min(coh(:));
   c2max = max(coh(:));
 else
-  c2min = cohsc(1);
-  c2max = cohsc(2);
+  c2min = scale{2}(1);
+  c2max = scale{2}(2);
 end
 
 h = figure;
@@ -75,7 +74,7 @@ set(h, 'windowkeypressfcn',   @cb_keyboard);
 
 clf;
 
-info = getinfo_pos(squeeze(coh(x1i,y1i,z1i,:,:,:)), coh(:,:,:,x1i,y1i,z1i),  [x1i y1i z1i], [x2i y2i z2i]);
+info = getinfo_pos(squeeze(coh(x1i,y1i,z1i,:,:,:)),  [x1i y1i z1i], [x2i y2i z2i]);
 vol1 = squeeze(coh(x1i,y1i,z1i,:,:,:));
 vol2 = coh(:,:,:,x1i,y1i,z1i);
 
@@ -161,6 +160,10 @@ opt.handlescross  = [hc1a(:)';hc1b(:)';hc1c(:)';hc2a(:)';hc2b(:)';hc2c(:)'];
 opt.handlestext   = [ht1 ht2];
 opt.ijk1          = [x1i y1i z1i];
 opt.ijk2          = [x2i y2i z2i];
+opt.ijk1ref       = [x1i y1i z1i];
+opt.ijk2ref       = [x2i y2i z2i];
+opt.ijk1val       = [x1i y1i z1i];
+opt.ijk2val       = [x2i y2i z2i];
 opt.clim1         = [c1min c1max];
 opt.clim2         = [c2min c2max];
 opt.dim           = size(coh);
@@ -181,7 +184,7 @@ delete(h);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SUBFUNCTION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function info = getinfo_pos(dat1, dat2, coord1, coord2)
+function info = getinfo_pos(dat1, coord1, coord2)
 
 x1i = coord1(1);
 y1i = coord1(2);
@@ -205,7 +208,7 @@ ind1 = sub2ind(siz(1:3),x1i,y1i,z1i);
 ind2 = sub2ind(siz(1:3),x2i,y2i,z2i);
 
 val1 = dat1(x1i,y1i,z1i);
-val2 = dat2(x2i,y2i,z2i);
+val2 = dat1(x2i,y2i,z2i);
 
 info.val1 = val1;
 info.val2 = val2;
@@ -314,18 +317,18 @@ opt = getappdata(h, 'opt');
 
 curr_ax = get(h, 'currentaxes');
 
-x1i  = opt.ijk1(1);
-y1i  = opt.ijk1(2);
-z1i  = opt.ijk1(3);
+x1i  = opt.ijk1ref(1);
+y1i  = opt.ijk1ref(2);
+z1i  = opt.ijk1ref(3);
 
-x2i  = opt.ijk2(1);
-y2i  = opt.ijk2(2);
-z2i  = opt.ijk2(3);
+x2i  = opt.ijk2ref(1);
+y2i  = opt.ijk2ref(2);
+z2i  = opt.ijk2ref(3);
 
 vol1 = squeeze(opt.data(x1i,y1i,z1i,:,:,:));
 vol2 = opt.data(:,:,:,x2i,y2i,z2i);
-info2 = getinfo_pos(vol1, vol2, opt.ijk1, opt.ijk2);
-info1 = getinfo_pos(vol2, vol1, opt.ijk2, opt.ijk1);
+info1 = getinfo_pos(vol1, opt.ijk1ref, opt.ijk1val);
+info2 = getinfo_pos(vol2, opt.ijk2ref, opt.ijk2val);
 
 % deal with left part of the figure
 switch opt.method{1}
@@ -370,6 +373,7 @@ end
 
 p1 = opt.pos(info1.ind2,:);
 p2 = opt.pos(info2.ind2,:);
+
 set(opt.handlestext(1), 'string', sprintf('ind1=%6.0f\npos1=[%3.1f %3.1f %3.1f],\nval1=%f', info1.ind2,p1(1),p1(2),p1(3), info1.val2));
 set(opt.handlestext(2), 'string', sprintf('ind2=%6.0f\npos2=[%3.1f %3.1f %3.1f],\nval2=%f', info2.ind2,p2(1),p2(2),p2(3), info2.val2));
 
@@ -394,15 +398,19 @@ seltype = get(h, 'selectiontype');
 switch seltype
   case 'normal'
     % just update to new position, nothing else to be done here
+    opt.ijk1ref = opt.ijk1;
+    opt.ijk1val = opt.ijk1;
+    opt.ijk2ref = opt.ijk2;
+    opt.ijk2val = opt.ijk2;
+    setappdata(h, 'opt', opt);
     cb_redraw(h);
   case 'alt'
-    set(h, 'windowbuttonmotionfcn', @cb_tracemouse);
-    opt = getappdata(h, 'opt');
+    opt.ijk1val = opt.ijk1;
+    opt.ijk2val = opt.ijk2;
+    setappdata(h, 'opt', opt);
     cb_redraw(h);
   otherwise
 end
-
-setappdata(h, 'opt', opt);
 
 uiresume;
 
