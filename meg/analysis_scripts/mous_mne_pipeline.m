@@ -25,8 +25,8 @@ mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D_surfreg');  %having grid 
 % HACK works for JM probably not for all
 % CLEAN THIS UP, i.e. add the stuff to git and load it in a clever way
 load('/home/language/jansch/projects/mous/meg/templates/atlas_conte69_8196reg.mat');
-bnd.inside  = find(atlas.parcellation3==1 & atlas.parcellation2~=1);
-bnd.outside = find(atlas.parcellation3==2 | atlas.parcellation2==1);
+bnd.inside  = find(atlas.parcellation3==1);% & atlas.parcellation2~=1);
+bnd.outside = find(atlas.parcellation3==2);% | atlas.parcellation2==1);
 
 bndorig = bnd;
 
@@ -41,7 +41,16 @@ cfg.grid    = bnd;
 cfg.channel = 'MEG';
 cfg.feedback = 'textbar';
 %cfg.normalize = 'yes';
-bnd         = ft_prepare_leadfield(cfg);  %having grid here and above is confusing
+sourcemodel  = ft_prepare_leadfield(cfg);  %having grid here and above is confusing
+clear bnd;
+
+% for k = 1:numel(sourcemodel.inside)
+%   lf      = sourcemodel.leadfield{sourcemodel.inside(k)};
+%   [u,s,v] = svd(lf,'econ');
+%   sourcemodel.leadfield{sourcemodel.inside(k)} = lf*v(:,1:2);
+%   sourcemodel.v{sourcemodel.inside(k)} = v;
+% end
+
 
 %% Compute MNE for each condition
 data = mous_db_getdata(subjectname,'meg_processed_{_erf_visual_word_all_02-1ds-ag}');
@@ -57,7 +66,7 @@ data2.cov = tlck.cov;
 cfg                = [];
 cfg.method         = 'mne';
 cfg.vol            = vol;
-cfg.grid           = bnd;
+cfg.grid           = sourcemodel;
 cfg.mne.prewhiten  = 'yes';
 cfg.mne.lambda     = 3; % used to be 2
 cfg.mne.scalesourcecov  = 'yes';
@@ -78,26 +87,31 @@ sd_Sent        = ft_sourcedescriptives(cfg, source_sent);
 sd_Seq         = ft_sourcedescriptives(cfg, source_seq);
 
 source         = source_sent;
-source.avg.pow = (source_sent.avg.pow+source_seq.avg.pow)./2;
+% source.avg.pow = (source_sent.avg.pow+source_seq.avg.pow)./2;
+for k = 1:numel(source.inside)
+  mom = (source.avg.mom{source.inside(k)} + source_seq.avg.mom{source.inside(k)})./2;
+  source.avg.mom{source.inside(k)} = mom;
+end
 sd             = ft_sourcedescriptives(cfg, source);
-sd_seq.avg.ori = sd.avg.ori;
-sd_sent.avg.ori = sd.avg.ori;
+sd_Seq.avg.ori = sd.avg.ori;
+sd_Sent.avg.ori = sd.avg.ori;
 % replace the pow with the orientation from the combined data
 for k = 1:numel(sd.inside)
   indx = sd.inside(k);
-  sd_sent.avg.pow(indx,:) = sd.avg.ori{indx}*source_sent.avg.mom{indx};
-  sd_seq.avg.pow(indx,:)  = sd.avg.ori{indx}*source_sent.avg.mom{indx};
+  sd_Sent.avg.pow(indx,:) = abs(sd.avg.ori{indx}*source_sent.avg.mom{indx});
+  sd_Seq.avg.pow(indx,:)  = abs(sd.avg.ori{indx}*source_seq.avg.mom{indx});
 end
-
 
 sd_Sent.tri = bndorig.tri;
 sd_Seq.tri  = bndorig.tri;
 
 % do the normalisation to get a 'dSPM'
 npnt = size(sd_Sent.pos,1);
-sd_Sent.avg.dspm = spdiags(1./sd_Sent.avg.noise,0,npnt,npnt)*sd_Sent.avg.pow;
-sd_Seq.avg.dspm = spdiags(1./sd_Seq.avg.noise,0,npnt,npnt)*sd_Seq.avg.pow;
+sd_Sent.avg.dspm = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Sent.avg.pow;
+sd_Seq.avg.dspm  = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Seq.avg.pow;
 
+sd_Sent.avg = rmfield(sd_Sent.avg, 'mom');
+sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
 
 % save the solution
 source = sd_Seq;
