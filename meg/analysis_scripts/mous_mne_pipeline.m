@@ -12,7 +12,6 @@ cfg.channel      = 'MEG';
 cfg.vartrllength = 2;
 cfg.feedback     = 'textbar';
 cfg.covariance   = 'yes';
-%cfg.covariancewindow = [-inf 1]; %timepoints that are before the zero-time point in the trials 
 cfg.covariancewindow = [-inf 0]; % timepoints that are before the zero-time point in the trials 
 cfg.preproc.demean = 'yes';
 cfg.preproc.baselinewindow = [-inf 0];
@@ -34,11 +33,11 @@ bndorig = bnd;
 mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 
 % Compute the leadfields
-cfg         = [];
-cfg.grad    = tlck.grad;
-cfg.vol     = vol;
-cfg.grid    = bnd;
-cfg.channel = 'MEG';
+cfg          = [];
+cfg.grad     = tlck.grad;
+cfg.vol      = vol;
+cfg.grid     = bnd;
+cfg.channel  = 'MEG';
 cfg.feedback = 'textbar';
 %cfg.normalize = 'yes';
 sourcemodel  = ft_prepare_leadfield(cfg);  %having grid here and above is confusing
@@ -53,27 +52,34 @@ clear bnd;
 
 
 %% Compute MNE for each condition
-data = mous_db_getdata(subjectname,'meg_processed_{_erf_visual_word_all_02-1ds-ag}');
 
-% regularize noise covariance
-%tlck.cov = tlck.cov+0.001*trace(tlck.cov)*eye(size(tlck.cov));
-
-data1     = data{1}; % sentTar_AG
+% this is a bit clunky, but in order to make the pipeline general purpose
+% (i.e. using uniform variable names), it has to try out the possible
+% naming schemes Annika adopted in the preprocessed data files. The if else
+% etc needs to be extended when needed. Now only assume the first case.
+% FIXME, also make the filename configurable, because now it will always
+% work.
+mous_db_getdata(subjectname,'meg_processed_{_erf_visual_word_all_02-1ds-ag}');
+if exist('senWord_AG', 'var')
+  data1 = senWord_AG;
+  data2 = seqWord_AG;
+else
+  error('don''t know which variable to use');
+end
 data1.cov = tlck.cov; % add the covariance computed from both conditions
-data2     = data{2}; % seqTar_AG
 data2.cov = tlck.cov;
 
-cfg                = [];
-cfg.method         = 'mne';
-cfg.vol            = vol;
-cfg.grid           = sourcemodel;
-cfg.mne.prewhiten  = 'yes';
-cfg.mne.lambda     = 3; % used to be 2
+cfg                 = [];
+cfg.method          = 'mne';
+cfg.vol             = vol;
+cfg.grid            = sourcemodel;
+cfg.mne.prewhiten   = 'yes';
+cfg.mne.lambda      = 3; % used to be 2
 cfg.mne.scalesourcecov  = 'yes';
-cfg.mne.keepfilter = 'yes';
+cfg.mne.keepfilter  = 'yes';
 cfg.mne.noiselambda = 0.1*trace(data1.cov)./size(data1.cov,1);
-source_sent        = ft_sourceanalysis(cfg, data1);
-source_seq         = ft_sourceanalysis(cfg, data2);
+source_sent         = ft_sourceanalysis(cfg, data1);
+source_seq          = ft_sourceanalysis(cfg, data2);
 
 cfg            = [];
 cfg.demean     = 'yes';

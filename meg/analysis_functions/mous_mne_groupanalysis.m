@@ -52,8 +52,8 @@ for k = 1:Nsubj
   datsent = datsent+sent{k}.avg.dspm;
   datseq  = datseq+seq{k}.avg.dspm;
 end
-datsent=datsent./Nsubj;
-datseq=datseq./Nsubj;
+datsent = datsent./Nsubj;
+datseq  = datseq./Nsubj;
 
 
 
