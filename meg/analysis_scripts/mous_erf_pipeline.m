@@ -54,20 +54,23 @@ for k = 1:numel(subj)
   subjectname = subj{k};
   
   % get the preprocessed data from the database
-  tmp  = mous_db_getdata(subjectname, inputdata);
-  if iscell(tmp)
-    data = tmp{1};
-  else
-    data = tmp;
-  end
-  clear tmp;
+%   tmp  = mous_db_getdata(subjectname, inputdata);
+%   if iscell(tmp)
+%     data = tmp{1};
+%   else
+%     data = tmp;
+%   end
+%   clear tmp;
+  load(fullfile('/home/language/annhul/MOUS/meg/',subjectname,'erf',[subjectname,inputdata(8:end)]));
+  
 
   % auditory data is apparently used, select whether to use the first
   % words, or the targets: first words are odd numbered, targets are even
   % numbered
   if ~isempty(strfind(inputdata, 'auditory'))
     % use the first words here
-    sel = find(mod(data.trialinfo(:,2),2)==1);
+    %sel = find(mod(data.trialinfo(:,2),2)==1);
+    sel = find(mod(data.trialinfo(:,2),2)==0);
     cfg.trials = sel;
     data = ft_preprocessing(cfg, data);
   end
