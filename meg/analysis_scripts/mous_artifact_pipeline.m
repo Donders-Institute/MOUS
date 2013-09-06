@@ -9,8 +9,10 @@
 % and then proceed as usual.
 % (2) variable 'filename' only has 1 variable, but if you manually go to
 % the subject's directory ~annhul/MOUS/meg/A2XX/RAW you see 2 task files,
-% then you should change the actual input to filename e.g.:
-% filename = '......02.ds' changes to filename = '....03.ds'.   
+% then you should change the actual input to the second file's filename as follows
+% <filename{1} = 'AXXX....ds'>
+% You can then proceed as follow with selecting the code below the line
+% that defines filename.
 
 %% Artifact detection (Nietz stuff)
 % create directory that will contain the results
