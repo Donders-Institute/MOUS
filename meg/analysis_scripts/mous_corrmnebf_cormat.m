@@ -1,13 +1,16 @@
-function mous_corrmnebf_cormat(subjectname,param)
+%function mous_corrmnebf_cormat(subjectname,param)
 
-% param.range       = 'medium';
-% param.foi         = 16;        
-% param.toie        = [0.35 0.45];  % toi for ERFs
-% param.selfq       = [-0.12 -0.08];
-% param.toi         = [];           % toi for TFR % not neded because selfq defines  toi
-% param.suff        = num2str(param.foi);   
-% param.savebf      = regexprep([num2str(mean(param.selfq))],'[.]','');
-% param.savemne     = regexprep([num2str(param.toie(1)) num2str(param.toie(2))],'[.]',''); 
+param.range       = 'medium';
+param.foi         = 16;        
+param.toie        = [0.35 0.45];  % toi for ERFs
+param.selfq       = [-0.12 -0.08];
+param.toi         = [];           % toi for TFR % not neded because selfq defines  toi
+param.suff        = num2str(param.foi);   
+param.savebf      = regexprep([num2str(mean(param.selfq))],'[.]','');
+param.savemne     = regexprep([num2str(param.toie(1)) num2str(param.toie(2))],'[.]',''); 
+
+% CONSIDERME: build in functionality to toggle on/off regressing word order and
+% fisher transformation, and in turn update filenames being saved
 
 doselfreq                   = true;
 doselerf                    = true; 
@@ -50,7 +53,7 @@ if doselerf
 
     % select toi 
     cfg = [];
-    cfg.toilim = [param.toie(1) param.toie(2)];
+    cfg.latency = [param.toie(1) param.toie(2)];  % cfg.latency instead of cfg.toilim
     data       = ft_selectdata(cfg,data);     
 
     % take only trials with full number of samples (no artifacts removed)
@@ -128,9 +131,9 @@ if domnesingle_beam_reg_cor
         sourcedata = mous_bfica_sourcedata(source, freqin{mm});                          % sourecedata is needed to calculate correlation matrix, which is the immediate next step
 
         if mm == 1
-            mous_db_putdata(subjectname, ['meg_corrmnebf_bfsourcesingletrial8mm_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_',param.cdtn,'_sen'],'source','trialinfo');
+            mous_db_putdata(subjectname, ['meg_corrmnebf_bfsourcesingletrial8mm_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_sen'],'source','trialinfo');
         else
-            mous_db_putdata(subjectname, ['meg_corrmnebf_bfsourcesingletrial8mm_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_',param.cdtn,'_seq'],'source','trialinfo');
+            mous_db_putdata(subjectname, ['meg_corrmnebf_bfsourcesingletrial8mm_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_seq'],'source','trialinfo');
         end  
         
         clear source
@@ -148,12 +151,17 @@ if domnesingle_beam_reg_cor
         % create the vertex x channel spatial filter matrix
         mnefilter = zeros(size(sd.pos,1), size(grid.leadfield{1},1));  % 8196 x 273
         for k = 1:size(mnefilter,1)
-            mnefilter(k,:) = sd.avg.ori{k}*sd.avg.filter{k};
+          if ~isempty(sd.avg.ori{k}) 
+            mnefilter(k,:) = sd.avg.ori{k}*sd.avg.filter{k};    
+          else
+            mnefilter(k,:) = nan;  % some sources are on edge of sourcemodel.inside / outside of sourcemodel.inside
+          end
         end
 
         channel   = {'MEG', '-EEG057', '-EEG058'};   % remove unwanted channels
         datin{mm} = ft_selectdata(datin{mm},'channel',channel);
-
+        
+        % timelock all trials to use for leave-one-out estimate
         cfg = [];
         tlck = ft_timelockanalysis(cfg, datin{mm});   % tlck avg of all toi sentences
         mnetlck = mnefilter*tlck.avg;
@@ -161,32 +169,39 @@ if domnesingle_beam_reg_cor
 
         vertM = nan(size(mnefilter,1), numel(datin{mm}.trial)); % MNE filter for jack knife
         for k = 1:numel(datin{mm}.trial)
-            tmp = (mnetlck.*nword-mnefilter*datin{mm}.trial{k})./(nword-1); % (:,toie(1):toie(2));  % [8196*273] * [273 * xx timepoints]
-            %tmp = mnefilter*data.trial{k};
+            tmp = (mnetlck.*nword-mnefilter*datin{mm}.trial{k})./(nword-1); % leave-one-out estimate
             tmp = nanmean(abs(tmp),2);
             vertM(:,k) = tmp;  % Vertices(8196) by Trials (words: number varies depending on artifact rejection and MEG condition)
         end
         
               
         %%%%%%%%%%%%%%% REGRESS WORD ORDER ; CORRELATION MATRIX %%%%%%% 
+        % remove trials with NaNs
         voxM  = sourcedata.trial{1};     
-        idxNan = find(isnan(voxM(1,:))); % Remove column(s) with NaN in TFR sourcedata (and remove same column in MNE data)   
+        idxNan = find(isnan(voxM(1,:))); % which column (trial) has NaN
         if ~isempty(idxNan)
             voxM(:,idxNan) = [];
             vertM(:,idxNan) = [];
         end
+        
+%         idxNan = find(isnan(vertM(:,1))); % which column
+%         if ~isempty(idxNan)
+%             voxM(idxNan,:) = [];
+%             vertM(idxNan,:) = [];
+%         end
 
         % compute leave-one-out etimates for the oscillations (leave-one-out estimates for mne are done within do mnesingle)
         voxMsum = sum(voxM,2);
         voxM    = (voxMsum*ones(1,size(voxM,2)) - voxM)./(size(voxM,2)-1);
  
-        %[cor, corvox, corvert] = mous_corrmnebf_regression(subjectname, voxM, vertM, trialinfo);
-        [cor] = mous_corrmnebf_regression(subjectname, voxM, vertM, trialinfo);
-        
+        [voxM, vertM] = mous_corrmnebf_regression(voxM, vertM);
+                
+        [cor] = mous_corrmnebf_computecormat(voxM, vertM, trialinfo); % check correct trialinfo is given
+
         if mm == 1
-            mous_db_putdata(subjectname,['meg_corrmnebf_corVoxvert8mm_sdregwordord_jack_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_sen',],'cor'); 
+            mous_db_putdata(subjectname,['meg_corrmnebf_corVoxvert8mm_sdregwordord_jack_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_sen'],'cor'); 
         elseif mm == 2
-            mous_db_putdata(subjectname,['meg_corrmnebf_corVoxvert8mm_sdregwordord_jack_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_seq',],'cor'); 
+            mous_db_putdata(subjectname,['meg_corrmnebf_corVoxvert8mm_sdregwordord_jack_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_seq'],'cor'); 
         end 
     end 
 end
