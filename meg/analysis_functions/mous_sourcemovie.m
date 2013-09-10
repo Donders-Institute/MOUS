@@ -1,4 +1,4 @@
-function [cfg, M] = ft_sourcemovie(cfg, source, source2)
+function [cfg, M] = mous_sourcemovie(cfg, source, source2)
 
 % FT_SOURCEMOVIE displays the source reconstruction on a cortical mesh
 % and allows the user to scroll through time with a movie
@@ -414,7 +414,7 @@ end
 if opt.record
   tmp = get(opt.h, 'position');
   opt.frame = opt.frame + 1;
-  opt.movie(opt.frame) = getframe(opt.h,[0 0 tmp(3:4)]);
+  opt.movie(opt.frame) = getframe(opt.h,[1 1 tmp(3:4)-1]);
 end
 setappdata(h, 'opt', opt);
 
