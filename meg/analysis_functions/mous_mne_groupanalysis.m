@@ -1,4 +1,4 @@
-function [stat,sent,seq] = mous_mne_groupanalysis(subj, suffix, rootdir)
+function [stat,sent,seq,datsent,datseq] = mous_mne_groupanalysis(subj, suffix, rootdir)
 
 if nargin==2
   rootdir = '';
