@@ -41,6 +41,14 @@ if 1,
   [cfgmuscle     ] = mous_artifact_muscle(filename{1},     trl, ntrials); % detect muscle artifacts
 
   % put the results back into the database
+  %% ACHTUNG!
+  % IF SUBJECT HAS TWO TASK FILES, YOU MUST SAVE A SEPARATE artifact_cfg FILE FOR EACH TASK:
+  % (1) "VXXX_artifact_cfg_ptI"
+  % (2) "VXXX_artifact_cfg_ptII" 
+  % This means you need to modify the *2ND* input argument given to mous_db_putdata
+  % e.g,.: mous_db_putdata(subjectname, 'meg_artifact_cfg_pt1', ......);
+  % % e.g,.: mous_db_putdata(subjectname, 'meg_artifact_cfg_pt2', ......);
+    
   mous_db_putdata(subjectname, 'meg_artifact_cfg', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle',0); 
 end
 
