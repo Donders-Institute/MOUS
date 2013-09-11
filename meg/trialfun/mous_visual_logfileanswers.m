@@ -17,9 +17,9 @@ for m = 1:size(oritxt,1)
     end 
 end 
 
-idxq  = find(wordpresent == 1);% index of logfile with "QUESTION... hit/incorrect" 
+idx  = find(wordpresent == 1);% index of logfile with "QUESTION... hit/incorrect" 
 %idxr = idq + 1;               % index of responses
-resp  = oritxt(idxq);          % lines in logfile that only contain "QUESTION..." 
+resp  = oritxt(idx);          % lines in logfile that only contain "QUESTION..." 
 
 % checks for a complete number of questions
 % if <48 find out why e.g., subject was only presented 23 blocks / dsq
@@ -27,27 +27,30 @@ resp  = oritxt(idxq);          % lines in logfile that only contain "QUESTION...
 if numel(resp) < 48
     warning('there are less than %d questions in the this logfile',numel(resp));
 
-cor     = zeros(24,1);
-incor   = zerps(24,1);
+logcor    = zeros(size(oritxt));
+logincor  = zeros(size(oritxt));
 for m = 1:size(oritxt,1)
     checkcor = regexp(oritxt{m},'hit');
     checkincor = regexp(oritxt{m},'incorrect');
     if ~isempty(checkcor)
-        checkcor(m) = 1;
+        logcor(m) = 1;
     end
     if ~isempty(checkincor)
-        checkincor(m) = 1;
+        logincor(m) = 1;
     end
 end
-    
+
+%% go thru and check that these are the correct lines in the logfile
+respcor = oritxt(find(logcor == 1));
+respincor = oritxt(find(logincor == 1));
 
 
 %% organise information
 % number & percentage correct
-
+numel(respcor)
 
 % number & percentage incorrect
-
+numel(respincor)
 
 
 end 
