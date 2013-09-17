@@ -60,6 +60,20 @@ if nargin<4
   rootdir = [];
 end
 
+if isempty(rootdir)
+  % try the new location
+  try
+    [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
+    if numel(st)==1 && st==0
+      bla
+    end
+    return;
+  catch
+    [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/home/language/annhul/MOUS/meg');
+    return;
+  end
+end
+
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
 badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1082';'V1091';'V1096'};
