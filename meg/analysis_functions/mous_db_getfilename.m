@@ -70,6 +70,11 @@ if isempty(rootdir)
     return;
   catch
     [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/home/language/annhul/MOUS/meg');
+    if numel(st)==1 && st==0
+      % fall back on the /project directory, because this is where non-existant files should go to
+      [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
+      return
+    end
     return;
   end
 end
