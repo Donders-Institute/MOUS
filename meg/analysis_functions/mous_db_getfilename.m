@@ -60,7 +60,7 @@ if nargin<4
   rootdir = [];
 end
 
-if isempty(rootdir)
+if ~strcmp(rootdir, '/project/3011020.09/MEG')
   % try the new location
   try
     [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
@@ -87,21 +87,21 @@ if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
 
   % request all visual subjects -> convert into cell-array and call function
   % recursively
-  d = dir('/home/language/annhul/MOUS/meg/V*');
+  d = dir([rootdir,'V*']);
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
   return;
 elseif ischar(subject) && strcmp(subject, 'allA')
   % request all visual subjects -> convert into cell-array and call function
   % recursively
-  d = dir('/home/language/annhul/MOUS/meg/A*');
+  d = dir([rootdir,'/A*']);
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
 elseif ischar(subject) && strcmp(subject, 'allAV')
   % request all subjects -> convert into cell-array and call function
   % recursively
-  d = dir('/home/language/annhul/MOUS/meg/V*');
-  d = cat(1, d, dir('/home/language/annhul/MOUS/meg/A*'));
+  d = dir([rootdir,'/V*']);
+  d = cat(1, d, dir([rootdir,'/A*']));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
 elseif ischar(subject) && strcmp(subject, 'bad')
@@ -137,20 +137,18 @@ end
 
 % determine the root directory, i.e. either Annika's or Julia's home-dir
 type = tokenize(type, '_');
-if isempty(rootdir)
-  switch type{1}
-    case 'subjectname'
-      filename = subject;
-      st       = nan;
-      info     = struct([]);
-      return;
-    case 'meg'
-      rootdir = '/home/language/annhul/MOUS/meg';
-    case 'mri'
-      rootdir = '/home/language/juludd/MOUS';
-    otherwise
-      error('unrecognized type requested');
-  end
+switch type{1}
+  case 'subjectname'
+    filename = subject;
+    st       = nan;
+    info     = struct([]);
+    return;
+  case 'meg'
+    % do nothing, the default rootdir should be OK
+  case 'mri'
+    rootdir = '/home/language/juludd/MOUS';
+  otherwise
+    error('unrecognized type requested');
 end
 
 filename = {};
