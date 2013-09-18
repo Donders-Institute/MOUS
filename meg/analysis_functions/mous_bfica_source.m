@@ -1,7 +1,7 @@
 function [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, res, rootdir)
 
 if nargin<5
-  rootdir = '/home/language/jansch/public/mous/';
+  rootdir = '/project/3011020.09/jansch/';
 end
 if nargin<4
   res = 10;
