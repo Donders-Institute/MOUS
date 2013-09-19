@@ -144,9 +144,13 @@ switch type{1}
     info     = struct([]);
     return;
   case 'meg'
-    rootdir = '/project/3011020.09/MEG';
+    if isempty(rootdir)
+      rootdir = '/project/3011020.09/MEG';
+    end
   case 'mri'
-    rootdir = '/home/language/juludd/MOUS';
+    if isempty(rootdir)
+      rootdir = '/home/language/juludd/MOUS';
+    end
   otherwise
     error('unrecognized type requested');
 end
