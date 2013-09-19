@@ -60,24 +60,24 @@ if nargin<4
   rootdir = [];
 end
 
-if ~strcmp(rootdir, '/project/3011020.09/MEG')
-  % try the new location
-  try
-    [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
-    if numel(st)==1 && st==0
-      bla
-    end
-    return;
-  catch
-    [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/home/language/annhul/MOUS/meg');
-    if numel(st)==1 && st==0
-      % fall back on the /project directory, because this is where non-existant files should go to
-      [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
-      return
-    end
-    return;
-  end
-end
+%if ~strcmp(rootdir, '/project/3011020.09/MEG')
+%  % try the new location
+%  try
+%    [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
+%    if numel(st)==1 && st==0
+%      bla
+%    end
+%    return;
+%  catch
+%    [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/home/language/annhul/MOUS/meg');
+%    if numel(st)==1 && st==0
+%      % fall back on the /project directory, because this is where non-existant files should go to
+%      [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
+%      return
+%    end
+%    return;
+%  end
+%end
 
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
@@ -144,7 +144,7 @@ switch type{1}
     info     = struct([]);
     return;
   case 'meg'
-    % do nothing, the default rootdir should be OK
+    rootdir = '/project/3011020.09/MEG';
   case 'mri'
     rootdir = '/home/language/juludd/MOUS';
   otherwise
