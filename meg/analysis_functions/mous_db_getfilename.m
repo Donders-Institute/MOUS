@@ -60,25 +60,6 @@ if nargin<4
   rootdir = [];
 end
 
-%if ~strcmp(rootdir, '/project/3011020.09/MEG')
-%  % try the new location
-%  try
-%    [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
-%    if numel(st)==1 && st==0
-%      bla
-%    end
-%    return;
-%  catch
-%    [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/home/language/annhul/MOUS/meg');
-%    if numel(st)==1 && st==0
-%      % fall back on the /project directory, because this is where non-existant files should go to
-%      [filename, st, info] = mous_db_getfilename(subject,type,infoflag,'/project/3011020.09/MEG');
-%      return
-%    end
-%    return;
-%  end
-%end
-
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
 badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1082';'V1091';'V1096'};
@@ -87,21 +68,21 @@ if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
 
   % request all visual subjects -> convert into cell-array and call function
   % recursively
-  d = dir([rootdir,'V*']);
+  d = dir(fullfile(rootdir,'V*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
   return;
 elseif ischar(subject) && strcmp(subject, 'allA')
   % request all visual subjects -> convert into cell-array and call function
   % recursively
-  d = dir([rootdir,'/A*']);
+  d = dir(fullfile(rootdir,'A*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
 elseif ischar(subject) && strcmp(subject, 'allAV')
   % request all subjects -> convert into cell-array and call function
   % recursively
-  d = dir([rootdir,'/V*']);
-  d = cat(1, d, dir([rootdir,'/A*']));
+  d = dir(fullfile(rootdir,'V*'));
+  d = cat(1, d, dir(fullfile(rootdir,'A*')));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
 elseif ischar(subject) && strcmp(subject, 'bad')
