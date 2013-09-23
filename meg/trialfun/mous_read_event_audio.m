@@ -15,12 +15,20 @@ if numel(dataset)<6
   subjname = dataset;
   dataset = mous_db_getfilename(dataset, 'meg_raw_task');
   dataset = dataset{1};
+else
+  tmp = strfind(dataset, 'V');
+  tmp2 = strfind(dataset, 'A');
+  if ~isempty(tmp)
+    subjname = dataset(tmp(1)+(0:4));
+  else
+    subjname = dataset(tmp2(1)+(0:4));
+  end
 end
 
 % get logfilename, if scenario was 1-MEG or 3-MEG, then 093.wav exists. 
 % This wave file has an overlap between trigger-14 (audiofile onset) 
 % and trigger-1 (first word onset). This is fixed at line 122.
-logfname = mous_db_getfilename(subjname,'meg_raw_log',0,'/home/language/annhul/MOUS/meg');
+logfname = mous_db_getfilename(subjname,'meg_raw_log');
 scenario = str2num(logfname{1}(48));
 
 % ideally we should use ft_read_data here
