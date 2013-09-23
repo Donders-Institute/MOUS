@@ -29,7 +29,7 @@ end
 % This wave file has an overlap between trigger-14 (audiofile onset) 
 % and trigger-1 (first word onset). This is fixed at line 122.
 logfname = mous_db_getfilename(subjname,'meg_raw_log');
-scenario = str2num(logfname{1}(48));
+scenario = str2num(logfname{1}(41));
 
 % ideally we should use ft_read_data here
 cfg            = [];
