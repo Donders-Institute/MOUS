@@ -62,7 +62,7 @@ end
 
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
-badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1082';'V1091';'V1096'};
+badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1067';'V1082';'V1091';'V1096';'V1112'};
 if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
   % 'all' is not consistent but kept for backward compatibility
 
