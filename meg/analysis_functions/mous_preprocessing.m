@@ -21,11 +21,12 @@ elseif (strcmp(analysisType, 'ERF') > 0)
     % ERF-specific parameters
     cfg.lpfilter        = 'yes';   % apply lowpass filter
     cfg.lpfreq          = 40;
-    cfg.hpfilter        = 'yes';
-    cfg.hpfilttype      = 'fir';  %not in Tinekes script
-    cfg.hpfiltord       = 100;    %not in Tinekes script
-    cfg.hpfreq          = 0.5;    %weired number  % tineke has 0.5
-    cfg.padding         = 10;     %big padding for hp to work   
+    %cfg.hpfilter        = 'yes';
+    %cfg.hpfilttype      = 'fir';  %not in Tinekes script
+    %cfg.hpfiltord       = 100;    %not in Tinekes script
+    %cfg.hpfreq          = 0.5;    %weired number  % tineke has 0.5
+    %cfg.padding         = 10;     %big padding for hp to work   
+    cfg.padding = 5;
 else
     error('unrecognized type requested');
 end
@@ -52,9 +53,6 @@ data = ft_resampledata(cfg, data);
 %% so that different baselines can be applied.
 
 cfg            = [];
-cfg.dataset    = filename{1};
-cfg.trl        = trl;
-cfg.continuous = 'yes';
 cfg.channel    = {'MEG' 'EEG057' 'EEG058'};
 
 if (strcmp(analysisType, 'TFR') > 0)
@@ -63,13 +61,13 @@ if (strcmp(analysisType, 'TFR') > 0)
 elseif (strcmp(analysisType, 'ERF') > 0)
     cfg.detrend    = 'no';
     cfg.demean     = 'yes';
-    cfg.baselinewindow  = [baseline 0];
+    cfg.baselinewindow  = [-inf 0];
 else
     error('unrecognized type requested');
     
 end
 
-data = ft_preprocessing(cfg);
+data = ft_preprocessing(cfg, data);
 
 
 
