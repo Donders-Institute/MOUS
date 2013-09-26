@@ -39,6 +39,7 @@ cfg.ivar   = 1;
 cfg.uvar   = 2;
 cfg.numrandomization = 1000;
 cfg.parameter = 'dspm';
+cfg.channel = sent{1}.label(setdiff(1:numel(sent{1}.label),[1 2 44 45]));
 stat = ft_timelockstatistics(cfg,sent{:},seq{:});
 
 datsent = zeros(size(stat.stat));

@@ -61,7 +61,7 @@ for k = 1:numel(subj)
 %     data = tmp;
 %   end
 %   clear tmp;
-  load(fullfile('/home/language/annhul/MOUS/meg/',subjectname,'erf',[subjectname,inputdata(8:end)]));
+  load(fullfile(rootdir,subjectname,'erf',[subjectname,inputdata(4:end)]));
   
 
   % auditory data is apparently used, select whether to use the first
