@@ -17,45 +17,36 @@
 doArtCheck  = true;
 doCompile   = true;
 
-% %% Artifact Quality Check: blinks, saccades, jumps and muscle artifacts
-% artFile = mous_db_getfilename(subjectname, 'meg_artifact_cfg'); 
-% if exist(artFile{1}, 'file')  % only run this script for participants whom have artifacts detected 
-%     if doArtCheck
-%          mous_qualitycheck_artifact(subjectname);
-%     end 
-%     %% File compilation: % make 1 pdf with all artifacts
-%     % If doing pdf for 2nd round use <allfiles(2:end)>
-%     % If 3rd round: <allfiles(3:end)> and so on...
-%     if doCompile
-%         filebase    = mous_db_getfilename(subjectname, 'meg_qualitycheck_{_qc_art}');           
-%         d           = dir([filebase{1}, '*']);
-%         [p,fn,e]    = fileparts(filebase{1});
-%         for q = 1:size(d,1)
-%             allfiles{q} = [p,'/',d(q).name];  % don't preassign space because not all ptps have 240 trials
-%         end 
-%         pdfName     = mous_db_getfilename(subjectname, 'meg_qualitycheck_{_qc_artAll_task}');
-%         mous_makePDF([pdfName{1},'1May2013.pdf'], allfiles); 
-%     end 
-% end 
+%% Artifact Quality Check: blinks, saccades, jumps and muscle artifacts
+fileinart = 'meg_artifact_cfg';  % options: '_pt1' '_pt2' 'meg_artifact_cfg';
+artFile = mous_db_getfilename(subjectname,fileinart);   
 
+% eps file parameter
+whichart = [1 1 1 1]; % corresponds to: blink sacc jump musc
+savesuff = '';        % ''  
+fileindat = [];       % give specific raw data file: 02.ds or 03.ds, or []
 
-artFile = mous_db_getfilename(subjectname, 'meg_artifact_cfg_pt2'); 
+% pdf parameters
+epsin   = 'meg_qualitycheck_{_qc_art*.eps}';
+pdfin   =  'meg_qualitycheck_{_qc_artAll_task}';
+pdfdate = '30Sept2013.pdf';
+
 if exist(artFile{1}, 'file')  % only run this script for participants whom have artifacts detected 
     if doArtCheck
-         mous_qualitycheck_artifact_pt2(subjectname);
+         %                                      artifacts raw data  
+         mous_qualitycheck_artifact(subjectname,fileinart,fileindat,whichart,savesuff);
     end 
     %% File compilation: % make 1 pdf with all artifacts
     % If doing pdf for 2nd round use <allfiles(2:end)>
     % If 3rd round: <allfiles(3:end)> and so on...
     if doCompile
-        filebase    = mous_db_getfilename(subjectname, 'meg_qualitycheck_{_pt2_qc_art}');           
+        filebase    = mous_db_getfilename(subjectname, epsin);           
         d           = dir([filebase{1}, '*']);
         [p,fn,e]    = fileparts(filebase{1});
         for q = 1:size(d,1)
             allfiles{q} = [p,'/',d(q).name];  % don't preassign space because not all ptps have 240 trials
         end 
-        pdfName     = mous_db_getfilename(subjectname, 'meg_qualitycheck_{_pt2_qc_artAll_task}');
-        mous_makePDF([pdfName{1},'3May2013.pdf'], allfiles(2:end)); 
+        pdfName     = mous_db_getfilename(subjectname,pdfin);
+        mous_makePDF([pdfName{1},pdfdate], allfiles); 
     end 
 end 
-
