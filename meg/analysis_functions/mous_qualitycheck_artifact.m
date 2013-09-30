@@ -1,4 +1,4 @@
-function [h1] = mous_qualitycheck_artifact(subjectname)
+function [h1] = mous_qualitycheck_artifact(subjectname,fileinart,fileindat,calcwhich,savesuff)
 % MOUS_ARTIFACT_QUALITYCHECK does a quality control check on the
 % ouput of the artifact pipeline, relying on visual inspection of a
 % number of output figures, generated from the output from the dss artifact identification.
@@ -14,16 +14,33 @@ function [h1] = mous_qualitycheck_artifact(subjectname)
 
 %% Setup
 % default
-doblink = true;
-dosacc  = true;
-dojump  = true;
-domusc  = true; 
+doblink = false;
+dosacc  = false;
+dojump  = false;
+domusc  = false;
+
+if calcwhich(1) == 1
+    doblink = true;
+end
+if calcwhich(2) == 1
+    dosacc  = true;
+end
+if calcwhich(3) == 1
+    dojump  = true;
+end 
+if calcwhich(4) == 1
+    domusc  = true; 
+end
+
 
 %% general data need for all artifacts
 % load filename and trial(sent/seq) trl
 filename    = mous_db_getfilename(subjectname, 'meg_raw_task'); 
+if ~isempty(fileindat)
+    filename{1}(end-3) = fileindat;
+end 
 trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
-cfgart      = mous_db_getdata(subjectname, 'meg_artifact_cfg');  
+cfgart      = mous_db_getdata(subjectname, fileinart);  
 % cfg info for preprocessing trial data
     cfg             = [];
     cfg.dataset     = filename{1};
@@ -188,7 +205,7 @@ function [hdl] = figureParam(currTrial, trialsPerFig, arti,loop)
     height = 11.69;
     left = (papersize(1)- width)/2;
     bottom = (papersize(2)- height)/2;
-    set(hdl, 'PaperPosition', [left bottom width height]);  % middle of page
+    set(hdl, 'PaperPosition', [left bottom width height]);  % middle of page'Lparietal TFR seed to ERF whole head; surf reg; SEN'
     set(gca,'LooseInset',get(gca,'TightInset'));            % remove white space
  % figure axis, background, title
     set(hdl,'color','w');
@@ -253,25 +270,28 @@ function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, l
         for qq = 1:size(artindx,1)
             ft_plot_vector(dataSen.time{q}(artindx(qq,1):artindx(qq,2)), dataSen.trial{q}(:,artindx(qq,1):artindx(qq,2)),'color','r','hpos',hpos,'vpos',vpos,'height',height,'width',width,'hlim',hlim,'vlim',vlim);
         end
- 
+        
         % save file into .eps
-        fpath = '/home/language/annhul/MOUS/meg/';
+        fpath = '/project/3011020.09/MEG/';
+        savefname = [fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif];
+        savefname = [savefname savesuff];  % add '_pt2_', if savesuff = '', then nothing is added.
+                
         if strcmp(artif, 'blink') > 0 || strcmp(artif, 'sacc') > 0
             if q == 60
                 page = 1;
-                saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');
+                saveas(gcf,[savefname,num2str(page)], 'epsc');
                 close gcf
             elseif q == 120
                 page = 2;
-                saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');
+                saveas(gcf,[savefname,num2str(page)], 'epsc');
                 close gcf
             elseif q == 180
                 page = 3;
-                saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');
+                saveas(gcf,[savefname,num2str(page)], 'epsc');
                 close gcf
             elseif q == total 
                 page = 4;
-                saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');
+                saveas(gcf,[savefname,num2str(page)], 'epsc');
                 close gcf
             end    
             
@@ -281,28 +301,28 @@ function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, l
                 if loop == 2
                     page = page+4;
                 end 
-                saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc'); 
+                saveas(gcf,[savefname,num2str(page)], 'epsc'); 
                 %close gcf;                
             elseif q == 60   % 60
                 page = 2;
                 if loop  == 2
                     page = page+4;
                 end 
-                saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');                
+                saveas(gcf,[savefname,num2str(page)], 'epsc');                
                 %close gcf;
             elseif q == 90 % 90
                 page = 3;
                 if loop == 2
                     page = page+4;
                 end 
-                saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');                
+                saveas(gcf,[savefname,num2str(page)], 'epsc');                
                 %close gcf ;
             elseif q == size(trlSen,1)  % 120 
                 page = 4;
                 if loop  == 2
                     page = page+4;
                 end 
-                saveas(gcf,[fpath, subjectname, filesep, 'qualitycheck', filesep, subjectname, '_qc_art', artif, num2str(page)], 'epsc');                
+                saveas(gcf,[savefname,num2str(page)], 'epsc');                
                 %close gcf;
             end 
         end 
