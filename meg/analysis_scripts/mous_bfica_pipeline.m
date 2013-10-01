@@ -22,13 +22,13 @@ if dofreq,
 %   mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
 %   
 
-% generic
-options            = [];
-options.t_ftimwin  = ones(1,numel(frequency))*0.25;%0.4;
-options.taper      = 'hanning';
-options.resamplefs = 300;
-freq = mous_bfica_freq(subjectname, frequency, rootdir, options);
-mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', rootdir);
+% % generic
+% options            = [];
+% options.t_ftimwin  = ones(1,numel(frequency))*0.25;%0.4;
+% options.taper      = 'hanning';
+% options.resamplefs = 300;
+% freq = mous_bfica_freq(subjectname, frequency, rootdir, options);
+% mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', rootdir);
 
 %
 % % broadband gamma frequency
@@ -39,6 +39,22 @@ mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', rootdir);
 % options.resamplefs = 300;
 % freq = mous_bfica_freq(subjectname, 70, rootdir, options);
 % mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
+
+% gamma frequency 30 - 100Hz (Nietz)
+% frequency = 32:4:100;
+% suff = '_high';
+% subjectname = 'V1020';
+
+options = [];
+options.tapsmofrq   = 4;
+options.taper       = 'dpss';
+options.t_ftimwin   = ones(1,numel(frequency))*0.25; % 1/0.25 = 4Hz steps
+options.resamplefs  = 300;
+options.savedir    = '/project/3011020.09/nielam';
+rootdir = '/project/3011020.09/jansch';
+freq = mous_bfica_freq(subjectname,frequency,rootdir,options);
+mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', savedir);
+
 end
 if dofreqmtmfft
   options = [];
