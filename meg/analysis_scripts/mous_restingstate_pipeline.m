@@ -1,9 +1,10 @@
 dopreproc = 0;
 dofreq    = 0;
+dodss     = 1;
 doccc     = 0;
 collectresults = false;
-docardiacconfound = 1;
-rootdir = '/home/language/jansch/public/mous';
+docardiacconfound = 0;
+rootdir = '/project/3011020.09/jansch';
 if dopreproc
   [data, ecg] = mous_restingstate_preprocessing(subjectname);
   mous_db_putdata(subjectname, 'meg_restingstate_data', 'data', 'ecg', rootdir);
@@ -16,6 +17,13 @@ if dofreq
   fd   = ft_freqdescriptives([], freq);
   freq = ft_checkdata(freq, 'cmbrepresentation', 'fullfast');
   mous_db_putdata(subjectname, 'meg_restingstate_freq', 'freq', 'fd', rootdir);
+end
+
+if dodss
+  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
+  data = ft_appenddata([], data, ecg);
+  [comp, avgpre, avgcomp] = mous_restingstate_dss(data);
+  mous_db_putdata(subjectname, 'meg_restingstate_dss', 'comp', 'avgpre', 'avgcomp', rootdir);
 end
 
 if doccc
