@@ -68,19 +68,22 @@ if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
 
   % request all visual subjects -> convert into cell-array and call function
   % recursively
-  d = dir(fullfile(rootdir,'V*'));
+  if isempty(rootdir), rootdir = '/project/3011020.09/MEG'; end
+  d       = dir(fullfile(rootdir,'V*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
   return;
 elseif ischar(subject) && strcmp(subject, 'allA')
   % request all visual subjects -> convert into cell-array and call function
   % recursively
+  if isempty(rootdir), rootdir = '/project/3011020.09/MEG'; end
   d = dir(fullfile(rootdir,'A*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
 elseif ischar(subject) && strcmp(subject, 'allAV')
   % request all subjects -> convert into cell-array and call function
   % recursively
+  if isempty(rootdir), rootdir = '/project/3011020.09/MEG'; end
   d = dir(fullfile(rootdir,'V*'));
   d = cat(1, d, dir(fullfile(rootdir,'A*')));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
@@ -101,9 +104,13 @@ if iscell(subject)
   info     = struct([]);
   for k = 1:numel(subject)
       [tmpf, tmps, tmpi] = mous_db_getfilename(subject{k}, type, infoflag, rootdir);
-      filename = cat(1,filename,tmpf);
-      st       = cat(1,st,      tmps);
-      info     = cat(1,info,    tmpi);
+      if iscell(tmpf)
+        filename = cat(1,filename,tmpf(:));
+      else
+        filename = cat(1,filename,tmpf);
+      end
+      st       = cat(1,st,      tmps(:));
+      info     = cat(1,info,    tmpi(:));
   end
   return;
 end
