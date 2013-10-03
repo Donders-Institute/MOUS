@@ -1,7 +1,7 @@
 function [data, ecg] = mous_restingstate_preprocessing(subjectname, rootdir, options)
 
 if nargin<2
-  rootdir = '/home/language/jansch/public/mous/';
+  rootdir = '/project/3011020.09/MEG/';
 end
 
 if nargin<3
