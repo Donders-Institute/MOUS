@@ -1,6 +1,6 @@
 function [comp, comp2, avgpre, avgcomp, avgpst, sel1, sel2, compsel, fdlow, fdhigh, cohlow, cohhigh, icohlow, icohhigh] = mous_restingstate_cardiacconfound(subjectname)
 
-rootdir     = '/home/language/jansch/public/mous';
+rootdir     = '/project/3011020.09/jansch';
 
 %% load the data
 mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
@@ -26,7 +26,7 @@ v = var(avgcomp,[],2);
 v = v./v(1);
 
 cfg           = [];
-cfg.component = find(v>0.1);
+cfg.component = find(v>0.05);
 data2         = ft_rejectcomponent(cfg, comp, data);
 s.state       = 1;
 params        = comp.cfg.dss.denf.params;

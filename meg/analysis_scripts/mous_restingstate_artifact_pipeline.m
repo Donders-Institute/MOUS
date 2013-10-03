@@ -1,7 +1,7 @@
 % this script contains the sequential steps for the artifact processing pipeline.
 
 % create directory that will contain the results
-mous_db_makesubjdir(subjectname, rootdir);
+%mous_db_makesubjdir(subjectname, rootdir);
 
 % extract the trial definition for the sentences
 filename = mous_db_getfilename(subjectname, 'meg_ds_rest');
