@@ -1,54 +1,67 @@
-%%visual final data set
-%load ~annhul/MOUS/meg/subjects_OK_20130613.mat
-%
-%for k= 1:numel(subj)
-
-%subjectname = subj{k};
+if ~exist('suffix_rawdata', 'var')
+  suffix_rawdata = 'meg_processed_{_preProcERFvisual_word_all_02-1ds}';
+end
+if ~exist('suffix_erfdata', 'var')
+  suffix_erfdata = 'meg_processed_{_erf_visual_word_all_02-1ds-ag}';
+end
+if ~exist('suffix_mnedata', 'var')
+  suffix_mnedata = strrep(suffix_rawdata, 'erf', 'mne');
+end
+if ~exist('rootdir', 'var')
+  rootdir = '/project/3011020.09/MEG';
+end
 
 % compute covariance matrix of the noise
-mous_db_getdata(subjectname, 'meg_processed_{_preProcERFvisual_word_all_02-1ds}');
-cfg              = [];
-cfg.channel      = 'MEG';
-cfg.vartrllength = 2;
-cfg.feedback     = 'textbar';
-cfg.covariance   = 'yes';
+% use an equal amount of sentence and sequence 'baselines' for the cov
+mous_db_getdata(subjectname, suffix_rawdata, rootdir);
+
+data     = ft_selectdata(data, 'toilim', [-inf 0.6]);
+database = ft_selectdata(data, 'toilim', [-inf 0]);
+selsent  = find(ismember(database.trialinfo(:,2),[1 2 5 6]) & database.trialinfo(:,end)==1);
+selseq   = find(ismember(database.trialinfo(:,2),[3 4 7 8]) & database.trialinfo(:,end)==1);
+n        = min(numel(selsent),numel(selseq));
+tmp      = randperm(numel(selsent));selsent=sort(selsent(tmp(1:n)));
+tmp      = randperm(numel(selseq));selseq=sort(selseq(tmp(1:n)));
+
+cfg                  = [];
+cfg.channel          = 'MEG';
+cfg.vartrllength     = 2;
+cfg.feedback         = 'textbar';
+cfg.covariance       = 'yes';
 cfg.covariancewindow = [-inf 0]; % timepoints that are before the zero-time point in the trials 
-cfg.preproc.demean = 'yes';
+cfg.preproc.demean   = 'yes';
 cfg.preproc.baselinewindow = [-inf 0];
-cfg.keeptrials = 'no';
-tlck = ft_timelockanalysis(cfg, data);
+cfg.keeptrials       = 'no';
+cfg.trials           = sort([selsent(:);selseq(:)]);
+tlck = ft_timelockanalysis(cfg, database);
 
-% load the 2D grid
-mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D_surfreg');  %having grid here and below is confusing
+% load the 2D sourcemodel and deal with the midline
+mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D_surfreg'); 
+if exist('bnd', 'var')
+  sourcemodel = bnd; clear bnd;
+end
 
-% HACK works for JM probably not for all
-% CLEAN THIS UP, i.e. add the stuff to git and load it in a clever way
-load('/home/language/jansch/projects/mous/meg/templates/atlas_conte69_8196reg.mat');
-bnd.inside  = find(atlas.parcellation3==1);% & atlas.parcellation2~=1);
-bnd.outside = find(atlas.parcellation3==2);% | atlas.parcellation2==1);
-
-bndorig = bnd;
+load atlas_conte69_8196reg
+sourcemodel.inside  = find(atlas.parcellation3==1);% & atlas.parcellation2~=1);
+sourcemodel.outside = find(atlas.parcellation3==2);% | atlas.parcellation2==1);
+sourcemodelorig     = sourcemodel;
 
 % load the volume conductor model of the head
 mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+if exist('vol', 'var')
+  headmodel = vol; clear vol;
+end
+headmodel = ft_convert_units(headmodel, 'cm');
 
 % Compute the leadfields
 cfg          = [];
 cfg.grad     = tlck.grad;
-cfg.vol      = vol;
-cfg.grid     = bnd;
+cfg.vol      = headmodel;
+cfg.grid     = sourcemodel;
 cfg.channel  = 'MEG';
 cfg.feedback = 'textbar';
 %cfg.normalize = 'yes';
-sourcemodel  = ft_prepare_leadfield(cfg);  %having grid here and above is confusing
-clear bnd;
-
-% for k = 1:numel(sourcemodel.inside)
-%   lf      = sourcemodel.leadfield{sourcemodel.inside(k)};
-%   [u,s,v] = svd(lf,'econ');
-%   sourcemodel.leadfield{sourcemodel.inside(k)} = lf*v(:,1:2);
-%   sourcemodel.v{sourcemodel.inside(k)} = v;
-% end
+sourcemodel  = ft_prepare_leadfield(cfg);
 
 
 %% Compute MNE for each condition
@@ -59,7 +72,7 @@ clear bnd;
 % etc needs to be extended when needed. Now only assume the first case.
 % FIXME, also make the filename configurable, because now it will always
 % work.
-mous_db_getdata(subjectname,'meg_processed_{_erf_visual_word_all_02-1ds-ag}');
+mous_db_getdata(subjectname, suffix_erfdata, rootdir);
 if exist('senWord_AG', 'var')
   data1 = senWord_AG;
   data2 = seqWord_AG;
@@ -69,15 +82,18 @@ end
 data1.cov = tlck.cov; % add the covariance computed from both conditions
 data2.cov = tlck.cov;
 
+data1 = ft_selectdata(data1, 'toilim', [-inf 0.6]);
+data2 = ft_selectdata(data2, 'toilim', [-inf 0.6]);
+
 cfg                 = [];
 cfg.method          = 'mne';
-cfg.vol             = vol;
+cfg.vol             = headmodel;
 cfg.grid            = sourcemodel;
 cfg.mne.prewhiten   = 'yes';
 cfg.mne.lambda      = 3; % used to be 2
 cfg.mne.scalesourcecov  = 'yes';
 cfg.mne.keepfilter  = 'yes';
-cfg.mne.noiselambda = 0.1*trace(data1.cov)./size(data1.cov,1);
+cfg.mne.noiselambda = 0.2*trace(data1.cov)./size(data1.cov,1);
 source_sent         = ft_sourceanalysis(cfg, data1);
 source_seq          = ft_sourceanalysis(cfg, data2);
 
@@ -108,8 +124,8 @@ for k = 1:numel(sd.inside)
   sd_Seq.avg.pow(indx,:)  = abs(sd.avg.ori{indx}*source_seq.avg.mom{indx});
 end
 
-sd_Sent.tri = bndorig.tri;
-sd_Seq.tri  = bndorig.tri;
+sd_Sent.tri = sourcemodelorig.tri;
+sd_Seq.tri  = sourcemodelorig.tri;
 
 % do the normalisation to get a 'dSPM'
 npnt = size(sd_Sent.pos,1);
@@ -121,16 +137,8 @@ sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
 
 % save the solution
 source = sd_Seq;
-%mous_db_putdata(subjectname, 'meg_mne_MNEreg02-1ds_target_Seq',  'source','/home/language/jansch/public/mous');
-%mous_db_putdata(subjectname, 'meg_mne_MNEregnomidline02-1ds_target_Seq',  'source','/home/language/jansch/public/mous');
-%mous_db_putdata(subjectname, 'meg_mne_MNEregnomidlinenormlf02-1ds_target_Seq',  'source','/home/language/jansch/public/mous');
-mous_db_putdata(subjectname, 'meg_mne_MNEregnomidlineregC02-1ds_target_Seq',  'source','/home/language/jansch/public/mous');
+mous_db_putdata(subjectname, [suffix_mnedata,'-seq'],  'source', rootdir);
 
 source = sd_Sent;
-%mous_db_putdata(subjectname, 'meg_mne_MNEreg02-1ds_target_Sent', 'source','/home/language/jansch/public/mous');
-%mous_db_putdata(subjectname, 'meg_mne_MNEregnomidline02-1ds_target_Sent',  'source','/home/language/jansch/public/mous');
-%mous_db_putdata(subjectname, 'meg_mne_MNEregnomidlinenormlf02-1ds_target_Sent',  'source','/home/language/jansch/public/mous');
-mous_db_putdata(subjectname, 'meg_mne_MNEregnomidlineregC02-1ds_target_Sent',  'source','/home/language/jansch/public/mous');
+mous_db_putdata(subjectname, [suffix_mnedata,'-sent'], 'source', rootdir);
 
-%end
-  
