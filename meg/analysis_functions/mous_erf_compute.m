@@ -41,7 +41,9 @@ end
 sel1 = find(data.trialinfo(:,2)==1 | data.trialinfo(:,2)==5 | data.trialinfo(:,2)==2 | data.trialinfo(:,2)==6 );  % sentences
 sel2 = find(data.trialinfo(:,2)==3 | data.trialinfo(:,2)==7 | data.trialinfo(:,2)==4 | data.trialinfo(:,2)==8);  % sequences
 
-
+n    = min(numel(sel1),numel(sel2));
+tmp  = randperm(numel(sel1)); sel1 = sort(sel1(tmp(1:n)));
+tmp  = randperm(numel(sel2)); sel2 = sort(sel2(tmp(1:n)));
 
 %% Calculate the ERF
 fprintf('Calculating ERF for subject %s for conditions SenTar and SeqTar\n', subjectname);

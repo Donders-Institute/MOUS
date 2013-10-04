@@ -16,7 +16,7 @@ close;
 polarity = str2double(s1);
 threshold = str2double(s2);
 for k = 1:numel(ecg.trial)
-  p{k} = peakdetect2(polarity*ecg.trial{k},threshold,1);
+  p{k} = peakdetect2(polarity*ecg.trial{k},threshold,100);
 end
 paramscell.tr = p;
 paramscell.pre = 0.25*ecg.fsample;
