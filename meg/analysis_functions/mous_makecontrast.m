@@ -111,7 +111,7 @@ switch contrast
       otherwise
     end
     
-  case 'wordsent_parametric'
+  case {'wordsent_parametric' 'wordsent_parametric_blc'}
     Xcond = data.trialinfo(:,3);
     sel   = find(ismember(Xcond,[1 2 5 6]));
   
@@ -120,6 +120,10 @@ switch contrast
     
     cfg              = [];
     cfg.vartrllength = 2;
+    if strcmp(contrast, 'wordsent_parametric_blc')
+      cfg.preproc.baselinewindow = [-inf 0];
+      cfg.preproc.demean         = 'yes';
+    end
     
     uXword = unique(Xword);
     for k = 1:numel(uXword)
@@ -139,9 +143,13 @@ switch contrast
     if k<15, tlck.trial((k+1):15,:,:) = nan; tlck.trial2((k+1):15,:,:) = nan; end
     tlck.dimord = 'rpt_chan_time';
       
-    tmp       = tlck;
+    if ft_senstype(tlck, 'ctf275_planar')
+      tmp = ft_combineplanar([], tlck);
+    else
+      tmp = tlck;
+    end
     tmp.trial = tmp.trial(2:10,:,:); % use only the first 10 words
-      
+        
     % fit glm
     cfg                 = [];
     cfg.design          = -4:4; % zero mean
@@ -154,14 +162,14 @@ switch contrast
     stat                = ft_timelockstatistics(cfg, tmp);
     
     tmp.trial = nanmean(tmp.trial,3);
-    tmp.time  = mean(tmp.time);
+    tmp.time  = nanmean(tmp.time);
     stat2     = ft_timelockstatistics(cfg, tmp);
     
     varargout{1} = tlck;
     varargout{2} = stat;
     varargout{3} = stat2;
 
-  case 'wordseq_parametric'
+  case {'wordseq_parametric' 'wordseq_parametric_blc'}
     Xcond = data.trialinfo(:,3);
     sel   = find(ismember(Xcond,[3 4 7 8]));
   
@@ -170,6 +178,10 @@ switch contrast
     
     cfg              = [];
     cfg.vartrllength = 2;
+    if strcmp(contrast, 'wordseq_parametric_blc')
+      cfg.preproc.baselinewindow = [-inf 0];
+      cfg.preproc.demean         = 'yes';
+    end
     
     uXword = unique(Xword);
     for k = 1:numel(uXword)
@@ -188,8 +200,12 @@ switch contrast
     end
     if k<15, tlck.trial((k+1):15,:,:) = nan; tlck.trial2((k+1):15,:,:) = nan; end
     tlck.dimord = 'rpt_chan_time';
-      
-    tmp       = tlck;
+    
+    if ft_senstype(tlck, 'ctf275_planar')
+      tmp = ft_combineplanar([], tlck);
+    else
+      tmp = tlck;
+    end
     tmp.trial = tmp.trial(2:10,:,:); % use only the first 10 words
       
     % fit glm

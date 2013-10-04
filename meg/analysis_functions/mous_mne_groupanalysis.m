@@ -6,7 +6,7 @@ end
 
 % load in the data
 for k = 1:numel(subj)
-  mous_db_getdata(subj{k}, ['meg_mne_',suffix,'_Sent'], rootdir);
+  mous_db_getdata(subj{k}, ['meg_mne_',suffix,'-sent'], rootdir);
   
   if k==1
     tmp.pos  = source.pos;
@@ -22,7 +22,7 @@ for k = 1:numel(subj)
   tmp.avg.dspm = tmp.avg.dspm(:,1:4:end);
   sent{k} = tmp;
   
-  mous_db_getdata(subj{k}, ['meg_mne_',suffix,'_Seq'], rootdir);
+  mous_db_getdata(subj{k}, ['meg_mne_',suffix,'-seq'], rootdir);
   tmp.avg.pow = ft_preproc_smooth(source.avg.pow,4);
   tmp.avg.pow = tmp.avg.pow(:,1:4:end);
   tmp.avg.dspm = ft_preproc_smooth(source.avg.dspm,4);
@@ -38,19 +38,19 @@ end
 
 cfg = [];
 cfg.method = 'montecarlo';
-cfg.statistic = 'depsamplesT';
+cfg.statistic = 'difference';
 cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
 cfg.ivar   = 1;
 cfg.uvar   = 2;
 cfg.numrandomization = 10;
-cfg.parameter = 'avg.dspm';
+cfg.parameter = 'avg.pow';
 stat = ft_sourcestatistics(cfg,sent{:},seq{:});
 
 datsent = zeros(size(stat.stat));
 datseq  = zeros(size(stat.stat));
 for k = 1:Nsubj
-  datsent = datsent+sent{k}.avg.dspm;
-  datseq  = datseq+seq{k}.avg.dspm;
+  datsent = datsent+sent{k}.avg.pow;
+  datseq  = datseq+seq{k}.avg.pow;
 end
 datsent = datsent./Nsubj;
 datseq  = datseq./Nsubj;
