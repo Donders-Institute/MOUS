@@ -224,7 +224,8 @@ if dosource_contrasts,
   
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   freq = ft_struct2double(freq);
-  freq.cumtapcnt = ones(size(freq.fourierspctrm,1),1); % assume hanning taper!!!!  
+  ntap = 1; % assume hanning taper, change it if you have multi tapers
+  freq.cumtapcnt = ones(size(freq.fourierspctrm,1)./ntap,1)*ntap;  
   for toilop = 1:numel(toi)
     %tois = -0.2:0.05:0.8;
 
