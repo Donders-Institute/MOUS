@@ -178,7 +178,7 @@ switch contrast
     
     cfg              = [];
     cfg.vartrllength = 2;
-    if strcmp(contrast, 'wordseq_parametric_blc')
+    if strcmp(contrast, 'wordsent_parametric_blc')
       cfg.preproc.baselinewindow = [-inf 0];
       cfg.preproc.demean         = 'yes';
     end
@@ -200,17 +200,17 @@ switch contrast
     end
     if k<15, tlck.trial((k+1):15,:,:) = nan; tlck.trial2((k+1):15,:,:) = nan; end
     tlck.dimord = 'rpt_chan_time';
-    
+      
     if ft_senstype(tlck, 'ctf275_planar')
       tmp = ft_combineplanar([], tlck);
     else
       tmp = tlck;
     end
     tmp.trial = tmp.trial(2:10,:,:); % use only the first 10 words
-      
+        
     % fit glm
     cfg                 = [];
-    cfg.design          = 2:10;
+    cfg.design          = -4:4; % zero mean
     cfg.statistic       = 'glm';
     cfg.glm.statistic   = 'beta';
     cfg.glm.standardise = 0;
@@ -220,7 +220,7 @@ switch contrast
     stat                = ft_timelockstatistics(cfg, tmp);
     
     tmp.trial = nanmean(tmp.trial,3);
-    tmp.time  = mean(tmp.time);
+    tmp.time  = nanmean(tmp.time);
     stat2     = ft_timelockstatistics(cfg, tmp);
     
     varargout{1} = tlck;
