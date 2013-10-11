@@ -14,9 +14,12 @@
 % You can then proceed as follow with selecting the code below the line
 % that defines filename.
 
-%% Artifact detection (Nietz stuff)
+%% Artifact detection 
 % create directory that will contain the results
 mous_db_makesubjdir(subjectname);
+
+% save the preliminary artifact in your folder of the project structure
+rootdir = '/project/3011020.09/username'; %change the username to your username!!
 
 % extract the trial definition for the sentences
 filename = mous_db_getfilename(subjectname, 'meg_ds_task');
@@ -49,7 +52,7 @@ if 1,
   % e.g,.: mous_db_putdata(subjectname, 'meg_artifact_cfg_pt1', ......);
   % % e.g,.: mous_db_putdata(subjectname, 'meg_artifact_cfg_pt2', ......);
     
-  mous_db_putdata(subjectname, 'meg_artifact_cfg', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle',0); 
+  mous_db_putdata(subjectname, 'meg_artifact_cfg', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle',rootdir,0); 
 end
 
 %% Artifact detection for Jan-Mathijs' stuff 
