@@ -15,11 +15,13 @@
 % that defines filename.
 
 %% Artifact detection 
-% create directory that will contain the results
-mous_db_makesubjdir(subjectname);
 
 % save the preliminary artifact in your folder of the project structure
 rootdir = '/project/3011020.09/username'; %change the username to your username!!
+
+% create directory that will contain the results
+mous_db_makesubjdir(subjectname, rootdir);
+
 
 % extract the trial definition for the sentences
 filename = mous_db_getfilename(subjectname, 'meg_ds_task');
@@ -46,7 +48,7 @@ if 1,
   % put the results back into the database
   %% ACHTUNG!
   % IF SUBJECT HAS TWO TASK FILES, YOU MUST SAVE A SEPARATE artifact_cfg FILE FOR EACH TASK:
-  % (1) "VXXX_artifact_cfg_ptI"
+  % (1) "VXXX_artifact_cfg_ptI" 
   % (2) "VXXX_artifact_cfg_ptII" 
   % This means you need to modify the *2ND* input argument given to mous_db_putdata
   % e.g,.: mous_db_putdata(subjectname, 'meg_artifact_cfg_pt1', ......);
