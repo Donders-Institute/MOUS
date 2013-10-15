@@ -17,15 +17,22 @@ function [newtext] = read_logfile_visual(subjectname)
     % finaltext{101} = Xxx
     % finaltext{360} = X xx.  (end of sentence)
 
-    idx = strfind(alltxt(:)', subjectname); % skip over the line of logfile that codes the extra 'empty word' 
-    if isempty(idx)
-       subjectnameL = lower(subjectname);  % for some subjects, the logfile has 'v1XXX' instead of 'V1XXX'
-       idx = strfind(alltxt(:)', subjectnameL);
-    end 
-    add = idx(end)+80;  
+    if strcmp(subjectname,'A2009') % specific to this subject because all lines in logfile begin with '2009'
+        idx = regexp(alltxt(:)',subjectname(2:end));
+    else 
+        idx = strfind(alltxt(:)', subjectname); % skip over the line of logfile that codes the extra 'empty word' 
+                                                % only index the lines that
+                                                % begin with 'V1XXX' or 'v1XXX'
+        if isempty(idx)
+           subjectnameL = lower(subjectname);  % for some subjects, the logfile has 'v1XXX' instead of 'V1XXX'
+           idx = strfind(alltxt(:)', subjectnameL);
+        end 
+    end
+    add = idx(end)+80;   % make sure get all information from logfile because 'idx' only gets the first position of the line of interest in the logfile
     idx = [idx add];
+    
     alltxt = alltxt';
-    newtext = cell(numel(idx)-1,1);
+    newtext = cell(numel(idx)-1,1);  %regroup alltxt to represent each line of interest in the logfile
     for k = 1:numel(idx)-1
         newtext{k} = alltxt(idx(k):idx(k+1)-1);  % easier to find relevant entry lines in txtfile
     end
