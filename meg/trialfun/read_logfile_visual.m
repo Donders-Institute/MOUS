@@ -17,17 +17,18 @@ function [newtext] = read_logfile_visual(subjectname)
     % finaltext{101} = Xxx
     % finaltext{360} = X xx.  (end of sentence)
 
-    if strcmp(subjectname,'A2009') % specific to this subject because all lines in logfile begin with '2009'
-        idx = regexp(alltxt(:)',subjectname(2:end));
-    else 
-        idx = strfind(alltxt(:)', subjectname); % skip over the line of logfile that codes the extra 'empty word' 
-                                                % only index the lines that
-                                                % begin with 'V1XXX' or 'v1XXX'
-        if isempty(idx)
-           subjectnameL = lower(subjectname);  % for some subjects, the logfile has 'v1XXX' instead of 'V1XXX'
-           idx = strfind(alltxt(:)', subjectnameL);
-        end 
+
+    idx = strfind(alltxt(:)', subjectname); % skip over the line of logfile that codes the extra 'empty word' 
+                                            % only index the lines that
+                                            % begin with 'V1XXX' or 'v1XXX'
+    if isempty(idx)
+       subjectnameL = lower(subjectname);  % for some subjects, the logfile has 'v1XXX' instead of 'V1XXX'
+       idx = strfind(alltxt(:)', subjectnameL);
     end
+    if isempty(idx)
+        idx = regexp(alltxt(:)',subjectname(2:end)); % for A2009 (and incase there are others) whose logfile lines begin without the 'A' (or 'V')
+    end 
+    
     add = idx(end)+80;   % make sure get all information from logfile because 'idx' only gets the first position of the line of interest in the logfile
     idx = [idx add];
     
