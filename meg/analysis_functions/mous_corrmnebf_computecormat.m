@@ -1,15 +1,14 @@
 function [cor, corvox, corvert] = mous_corrmnebf_computecormat(voxM, vertM, trialinfo)
 % this function computes the correlation matrix between a beamforming
 % solution and an MNE solution
-% to be able to visualise the results, the correlation matrix must first
-% be interpolated. See mous_connectivity_browser and
-% mous_corrmnebf_visualise for more information.
 % NL 2013
 
-
-% mean subtraction
-voxM  = voxM - repmat(mean(voxM,2),[1 size(voxM,2)]);
-vertM = vertM - repmat(mean(vertM,2),[1 size(vertM,2)]);
+% mean subtraction: subtract mean value (avgacrosstrials) from each trial
+% only if size(voxM,2) > 1 i.e. not averaging across trials has been done
+if size(voxM,2) > 1 
+    voxM  = voxM - repmat(mean(voxM,2),[1 size(voxM,2)]);
+    vertM = vertM - repmat(mean(vertM,2),[1 size(vertM,2)]);
+end 
     
 % within-measure variance     
 varVox      = sum(voxM.^2,2);  
