@@ -17,7 +17,7 @@ function [trl] = trialfun_visual_word(cfg)
 % 3) poststim: duration from time point 0 until (a) next trial begins or 
 %              (b) end of poststim value (as defined in cfg.poststim)
 % 
-%%  The trl-matrix has 6 columns:
+%%  The trl-matrix has 8 columns:
 %   column 1: begin sample: word onset trigger - 500 ms.
 %   column 2: end sample, onset of word + 800 ms, or next word onset
 %             trigger, whichever occurs first.
@@ -88,7 +88,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       wordcount = wordcount + 1;
 
       %         1         2         3       4 5          6                   7
-           tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
+      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
       tmptrl = cat(1,tmptrl,tmp);
     end
   end
