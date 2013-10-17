@@ -16,8 +16,12 @@
 
 %% Artifact detection 
 
-% save the preliminary artifact in your folder of the project structure
-rootdir = '/project/3011020.09/username'; %change the username to your username!!
+% Always save the data in 'MEG' directory, it is not necessary to save it
+% in your own directory (your username e.g., nielam) for artifacts because
+% most first round detections are perfect (and time is then wasted in
+% moving data, and NL has to look up the directory for the artifacts which
+% may differ for each subject).
+rootdir = '/project/3011020.09/MEG'; 
 
 % create directory that will contain the results
 mous_db_makesubjdir(subjectname, rootdir);
