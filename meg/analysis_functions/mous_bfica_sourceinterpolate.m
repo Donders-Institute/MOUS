@@ -24,14 +24,15 @@ end
 
 %load('/home/language/jansch/matlab/fieldtrip/template/sourcemodel/standard_sourcemodel3d10mm');
 [p,f,e] = fileparts(which('mous_anatomy_sourcemodel3D'));
-fname   = fullfile(p(1:end-18), 'templates', 'sourcemodel', ['standard_sourcemodel3d',num2str(resolution),'mm.mat']);
+fname = fullfile(p(1:end-18), 'templates', 'sourcemodel', ['standard_sourcemodel3d',num2str(resolution),'mm.mat']);
 load(fname);
 
 
 if ~isempty(range)
-  tmp  = getsubfield(comp, fieldname);
-  comp = setsubfield(comp, mean(tmp(:,range),2), fieldname);
-  comp.time        = mean(comp.time(range));
+  tmp = getsubfield(comp, fieldname);
+  % comp = setsubfield(comp,mean(tmp(:,range),2),fieldname); % inarg in wrong order
+  comp = setsubfield(comp, fieldname, mean(tmp(:,range),2));
+  comp.time = mean(comp.time(range));
   
   source = mous_bfica_sourceinterpolate(comp, fieldname, inside);
   return;
@@ -39,34 +40,33 @@ end
 
 
 % % demean
-% dat  = cat(2,data.trial{:});
+% dat = cat(2,data.trial{:});
 % mdat = mean(dat,2);
 % for k = 1:size(dat,2)
-%   dat(:,k) = dat(:,k) - mdat;
+% dat(:,k) = dat(:,k) - mdat;
 % end
 % vdat = sum(dat.^2,2);
-% 
+%
 % % create correlation maps
 % C = zeros(size(comp.topo));
 % for k = 1:Ncomp
-%   cdat = comp.unmixing(k,:)*dat;
-%   cdat = cdat - mean(cdat);
-%   cdat = cdat./norm(cdat);
-%   C(:,k) = (dat*cdat')./sqrt(vdat);
+% cdat = comp.unmixing(k,:)*dat;
+% cdat = cdat - mean(cdat);
+% cdat = cdat./norm(cdat);
+% C(:,k) = (dat*cdat')./sqrt(vdat);
 % end
 
 if isempty(inside)
-  inside = sourcemodel.inside;
+  inside = sourcemodel.inside;      
 end
 
 cfgi = [];
-cfgi.parameter  = 'avg.pow';
+cfgi.parameter = 'avg.pow';
 cfgi.downsample = 2;
 
 sourcemodel.avg.pow = zeros(prod(sourcemodel.dim),1);
-tempfname    = fullfile(p(1:end-18),'templates','sourcemodel','templateMRI.nii');
-mri          = ft_read_mri(tempfname);
-tmp          = getsubfield(comp, fieldname);
+mri = ft_read_mri(which('templateMRI.nii'));
+tmp = getsubfield(comp, fieldname);
 if ndims(tmp)==2
   for k = 1:size(tmp,2)
     try
@@ -83,7 +83,6 @@ if ndims(tmp)==2
   end
 else
   sourcemodel.avg.pow(:) = tmp(:);
-  source          = ft_sourceinterpolate(cfgi, sourcemodel, mri);
+  source = ft_sourceinterpolate(cfgi, sourcemodel, mri);
 end
-source.coordsys = 'spm';
-
+%source.coordsys = 'spm';
