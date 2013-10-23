@@ -40,6 +40,10 @@ mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D_surfreg');
 if exist('bnd', 'var')
   sourcemodel = bnd; clear bnd;
 end
+if ~isfield(sourcemodel, 'pos') && isfield(sourcemodel, 'pnt')
+  sourcmodel.pos = sourcemodel.pnt;
+  sourcemodel    = rmfield(sourcemodel, 'pnt');
+end
 
 load atlas_conte69_8196reg
 sourcemodel.inside  = find(atlas.parcellation3==1);% & atlas.parcellation2~=1);
@@ -85,6 +89,45 @@ data2.cov = tlck.cov;
 data1 = ft_selectdata(data1, 'toilim', [-inf 0.6]);
 data2 = ft_selectdata(data2, 'toilim', [-inf 0.6]);
 
+if 1,
+  % this part computes the area per triangle and uses the squared area as a
+  % prior on the source covariance matrix. This is equivalent to how it's
+  % done in brainstorm
+  
+  % the areas need to be defined per vertex, not per triangle
+  % take hs1
+  vertex_area = zeros(size(sourcemodelorig.pos,1),1);
+  for k = 1:size(sourcemodelorig.pos,1)
+    sel = find(sum(sourcemodelorig.tri==k,2));
+    vertex_area(k,1) = sum(sourcemodelorig.area(sel))./numel(sel);
+  end
+
+  weightlim = 5;
+  weightexp = 0.5;
+  
+
+  % this part computes the sum of squares of the leadfields, and uses the
+  % inverse of it for depth weighting.
+  Lss = zeros(8193,1)+nan;
+  for k = 1:numel(sourcemodel.inside)
+    indx = sourcemodel.inside(k);
+    lf   = sourcemodel.leadfield{indx};
+    Lss(indx,:) = sum(sum(lf.^2));
+  end
+  Lss    = (1./Lss)';
+  minLss = min(Lss(sourcemodelorig.inside));
+  Lss(Lss>minLss.*weightlim.^2) = minLss.*weightlim.^2;
+  
+  A = ((vertex_area(:).^2).*Lss(:)).^weightexp;
+  A = repmat(A(sourcemodel.inside),[1 3])';
+  
+  % create a source covariance matrix that is equivalent to the area(^2)
+  % times the 1./leadfield-sum-of-square to the power of weightexp
+  % weighting in bst_wmne
+  S = spdiags(A(:),0,speye(numel(A)));
+
+end
+
 cfg                 = [];
 cfg.method          = 'mne';
 cfg.vol             = headmodel;
@@ -94,6 +137,7 @@ cfg.mne.lambda      = 3; % used to be 2
 cfg.mne.scalesourcecov  = 'yes';
 cfg.mne.keepfilter  = 'yes';
 cfg.mne.noiselambda = 0.2*trace(data1.cov)./size(data1.cov,1);
+cfg.mne.sourcecov   = S;
 source_sent         = ft_sourceanalysis(cfg, data1);
 source_seq          = ft_sourceanalysis(cfg, data2);
 
@@ -137,8 +181,8 @@ sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
 
 % save the solution
 source = sd_Seq;
-mous_db_putdata(subjectname, [suffix_mnedata,'-seq'],  'source', rootdir);
+mous_db_putdata(subjectname, [suffix_mnedata,'-seq_currentdensity_weighted'],  'source', rootdir);
 
 source = sd_Sent;
-mous_db_putdata(subjectname, [suffix_mnedata,'-sent'], 'source', rootdir);
+mous_db_putdata(subjectname, [suffix_mnedata,'-sent_currentdensity_weighted'], 'source', rootdir);
 
