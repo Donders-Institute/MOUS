@@ -1,4 +1,4 @@
-function [h1,h2,h3,h4,h5,h6,h7,h8] = mous_anatomy_qualitycheck(subjectname, varargin)
+function [h1,h2,h3,h4,h5,h6,h7,h8] = mous_anatomy_qualitycheck(subjectname, rootdir, varargin)
 
 % MOUS_ANATOMY_QUALITYCHECK does a number of quality control checks on the
 % ouput of the anatomy pipeline, mainly relying on visual inspection of a
@@ -16,12 +16,12 @@ visible = ft_getopt(varargin, 'visible', 'on');
 
 close all
 
-headmodel     = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+headmodel     = mous_db_getdata(subjectname, 'meg_anatomy_headmodel', rootdir);
 headmodel     = ft_datatype_headmodel(headmodel); % due to change in type naming convention: nolte->singleshell
-sourcemodel2d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D');
-sourcemodel3d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
-mri           = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
-mous_db_getdata(subjectname, 'meg_anatomy_coreginfo');
+sourcemodel2d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D', rootdir);
+sourcemodel3d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', rootdir);
+mri           = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
+mous_db_getdata(subjectname, 'meg_anatomy_coreginfo', rootdir);
   
 
 % [p, f, x] = fileparts(filename);
@@ -118,14 +118,14 @@ subplot(2,2,3);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;f
 plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k');
 subplot(2,2,4);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([180 0]);
    
-mous_db_putdata(subjectname, 'meg_anatomy_figure_headmodel',           h1);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel3d',       h2);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2d',       h3);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice1', h4);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice2', h5);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice3', h6);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg',               h7);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg2',              h8);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_headmodel',           h1, rootdir);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel3d',       h2, rootdir);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2d',       h3, rootdir);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice1', h4, rootdir);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice2', h5, rootdir);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice3', h6, rootdir);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg',               h7, rootdir);
+mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg2',              h8, rootdir);
 
 [f1,s1]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice1');
 [f2,s2]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice2');
