@@ -9,6 +9,8 @@ ft_default.checksize = inf;
 %% Set subject, input & output dirs
 %mous_db_makesubjdir(subjectname);
 
+if ~exist('rootdir', 'var'), rootdir = '/project/3011020.09/MEG'; end
+
 if ~exist('docoregistration1', 'var'), docoregistration1 = 0; end
 if ~exist('docoregistration2', 'var'), docoregistration2 = 0; end
 if ~exist('docoregistration3', 'var'), docoregistration3 = 0; end
@@ -37,7 +39,7 @@ if docoregistration1
   end
 
   [mri, T] = mous_anatomy_coregMNI(mri);
-  mous_db_putdata(subjectname, 'meg_anatomy_coregMNI', mri); % creates a V1024coregMNI.nii file
+  mous_db_putdata(subjectname, 'meg_anatomy_coregMNI', mri, rootdir); % creates a V1024coregMNI.nii file
 end
 
 %% Coregister to CTF coordinate system
@@ -52,65 +54,57 @@ if docoregistration2
       title(filename3{k});
     end
   end
-  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
+  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI', rootdir);
   pos = mous_db_getdata(subjectname, 'meg_raw_pos');
   mri = mous_anatomy_coregCTF(mri, pos);
-  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);
+  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri, rootdir);
 end
 
 %% Coregister in a second step to the polhemus point-cloud
 if docoregistration3
-  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
   pos = mous_db_getdata(subjectname, 'meg_raw_pos');
   [mri, shape, shapemri] = mous_anatomy_coregCTF(mri, pos, 0, refineflag);
   %icp = struct(mri.cfg.icp);
-  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);
-  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri');%'icp', 0);
+  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri, rootdir);
+  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri', rootdir);%'icp', 0);
 end
 
 %% Coregister in a third step to the coils rather than the lpa/rpa
 if docoregistration4
-  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
   pos = mous_db_getdata(subjectname, 'meg_raw_pos');
-  mous_db_getdata(subjectname, 'meg_anatomy_coreginfo');
+  mous_db_getdata(subjectname, 'meg_anatomy_coreginfo', rootdir);
   [mri, shape, shapemri] = mous_anatomy_coregCTF(mri, pos, shape, shapemri, 1);
   %icp = struct(mri.cfg.icp);
-  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri);
-  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri', 0);%'icp', 0);
+  mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri, rootdir);
+  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri', rootdir, 0);%'icp', 0);
 end
-
-% next step is not necessary anymore when using the converted nifties
-%
-% % reslice
-% mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
-% mri.coordsys = 'mni';
-% mri = mous_anatomy_reslice(mri);
-% mous_db_putdata(subjectname, 'meg_anatomy_coregMNIresliced', mri);
 
 %% Skull strip
 if doskullstrip
-  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
+  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI', rootdir);
   mri.coordsys = 'mni';
   threshold    = 0.5;
   T            = inv(mri.transform);
   center       = round(T(1:3,4))';
-  [seg, mask]  = mous_anatomy_skullstrip(subjectname, threshold, center); % threshold is a configurable parameter that determines the skullstrip behavior
-  mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip',      seg); % creates a V1025coregMNIskullstrip.nii file
-  mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstripmask', mask);
+  [seg, mask]  = mous_anatomy_skullstrip(subjectname, threshold, center, rootdir); % threshold is a configurable parameter that determines the skullstrip behavior
+  mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstrip',      seg, rootdir); % creates a V1025coregMNIskullstrip.nii file
+  mous_db_putdata(subjectname, 'meg_anatomy_coregMNIskullstripmask', mask, rootdir);
 end
 
 %% Create singleshell volume conductor model of the head
 if doheadmodel
-  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
   mri.coordsys = 'ctf';
   vol = mous_anatomy_headmodel(mri, thr_headmodel);
-  mous_db_putdata(subjectname, 'meg_anatomy_headmodel', 'vol', 0);
+  mous_db_putdata(subjectname, 'meg_anatomy_headmodel', 'vol', rootdir, 0);
 end
 
 %% Freesurfer pipeline
 if dosourcemodel2d1
   % create directory that will contain the results
-  subjdirfs   = ['/home/language/annhul/MOUS/meg/',subjectname,'/anatomy'];
+  subjdirfs   = fullfile(rootdir,subjectname,'/anatomy');
 
   str     = which('freesurferscript1.sh');
   [p,f,e] = fileparts(str);
@@ -162,11 +156,11 @@ if dosourcemodel2d2
   % create the 2D sourcemodel based on the freesurfer mesh
   % extract the dipole grid from the *.fif-file and coregister it to CTF
   % coordinate system
-  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
-  mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
-  bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif');
+  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
+  mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI', rootdir);
+  bnd  = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodelfif', rootdir);
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', 'bnd', 0);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D', 'bnd', rootdir, 0);
 end
 
 if dosourcemodel2d_reg
@@ -176,7 +170,7 @@ if dosourcemodel2d_reg
   % this needs an installation of caret and some specific additional scripts
 
   % create directory that will contain the results
-  subjdirfs   = ['/home/language/annhul/MOUS/meg/',subjectname,'/anatomy/',subjectname];
+  subjdirfs   = [rootdir,filesep,subjectname,'/anatomy/',subjectname];
   outputdir   = tempname('/tmp'); 
   mkdir(outputdir);
   targetdir   = '/home/language/jansch/projects/mous/meg/templates/sourcemodel/fsaverage_LR_164k/';  
@@ -210,28 +204,28 @@ if dosourcemodel2d_reg
   system([p,'/mnescript.sh ',outputdir,' ',subjectname]);
 
   % copy the output into the database
-  system(['cp ',fullfile(outputdir,subjectname,'bem',[subjectname,'-oct-6-src.fif']),' ',fullfile('/home/language/annhul/MOUS/meg/',subjectname,'anatomy',subjectname,'bem',[subjectname,'-oct-6-src_reg.fif'])]);
+  system(['cp ',fullfile(outputdir,subjectname,'bem',[subjectname,'-oct-6-src.fif']),' ',fullfile(rootdir,subjectname,'anatomy',subjectname,'bem',[subjectname,'-oct-6-src_reg.fif'])]);
 
-  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
-  mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
+  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
+  mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI', rootdir);
   
-  fifname = fullfile('/home/language/annhul/MOUS/meg/',subjectname,'anatomy',subjectname,'bem',[subjectname,'-oct-6-src_reg.fif']);
+  fifname = fullfile(rootdir,subjectname,'anatomy',subjectname,'bem',[subjectname,'-oct-6-src_reg.fif']);
   bnd  = ft_read_headshape(fifname,'format','mne_source');
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', 'bnd', 0);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', 'bnd', rootdir, 0);
 end
 
 %% create a 3D sourcemodel based on the MNI brain
 if dosourcemodel3d
-  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
   mri1.coordsys = 'ctf';
   sourcemodel = mous_anatomy_sourcemodel3D(mri1, 8);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',0); 
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', 'sourcemodel',rootdir,0); 
   sourcemodel = mous_anatomy_sourcemodel3D(mri1, 10);
-  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',0);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin10mm', 'sourcemodel',rootdir,0);
 end
 
 %% do quality check
 if doqualitycheck
-  mous_anatomy_qualitycheck(subjectname);
+  mous_anatomy_qualitycheck(subjectname, rootdir);
 end
