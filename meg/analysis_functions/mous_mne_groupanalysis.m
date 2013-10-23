@@ -6,7 +6,7 @@ end
 
 % load in the data
 for k = 1:numel(subj)
-  mous_db_getdata(subj{k}, ['meg_mne_',suffix,'-sent'], rootdir);
+  mous_db_getdata(subj{k}, suffix, rootdir);
   
   if k==1
     tmp.pos  = source.pos;
@@ -22,7 +22,7 @@ for k = 1:numel(subj)
   tmp.avg.dspm = tmp.avg.dspm(:,1:4:end);
   sent{k} = tmp;
   
-  mous_db_getdata(subj{k}, ['meg_mne_',suffix,'-seq'], rootdir);
+  mous_db_getdata(subj{k}, strrep(suffix,'sent','seq'), rootdir);
   tmp.avg.pow = ft_preproc_smooth(source.avg.pow,4);
   tmp.avg.pow = tmp.avg.pow(:,1:4:end);
   tmp.avg.dspm = ft_preproc_smooth(source.avg.dspm,4);
@@ -38,7 +38,9 @@ end
 
 cfg = [];
 cfg.method = 'montecarlo';
-cfg.statistic = 'difference';
+cfg.statistic = 'depsamplesT';
+%cfg.statistic = 'statfun_yuent';
+%cfg.yuent.type = 'depsamples';
 cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
 cfg.ivar   = 1;
 cfg.uvar   = 2;
