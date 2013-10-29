@@ -1,4 +1,4 @@
-function varargout = mous_makecontrast(data, contrast, trialinfo)
+function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 
 % data.trialinfo:
 %  column 1: sentence index
@@ -111,10 +111,14 @@ switch contrast
       otherwise
     end
     
-  case {'wordsent_parametric' 'wordsent_parametric_blc'}
+  case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc'}
     Xcond = data.trialinfo(:,3);
-    sel   = find(ismember(Xcond,[1 2 5 6]));
-  
+    if strcmp(contrast(1:7), 'wordsen')
+      sel   = find(ismember(Xcond,[1 2 5 6]));
+    else
+      sel   = find(ismember(Xcond,[3 4 7 8]));  
+    end
+    
     data  = ft_selectdata(data, 'rpt', sel);
     Xword = data.trialinfo(:,2);
     
@@ -133,11 +137,11 @@ switch contrast
       if k==1
         tlck = tmp;
         tlck.trial  = shiftdim(tlck.avg,-1);
-        tlck.trial2 = shiftdim(tlck.dof,-1); %!!!! keep track of the dof
+        tlck.trial2 = shiftdim(tlck.dof(1,:),-1); %!!!! keep track of the dof
       else
         tlck.trial(uXword(k),:,1:size(tmp.avg,2))  = tmp.avg;
         tlck.time(1:size(tmp.avg,2))       = tmp.time;
-        tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof;
+        tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof(1,:);
       end
     end
     if k<15, tlck.trial((k+1):15,:,:) = nan; tlck.trial2((k+1):15,:,:) = nan; end
@@ -149,7 +153,22 @@ switch contrast
       tmp = tlck;
     end
     tmp.trial = tmp.trial(2:10,:,:); % use only the first 10 words
-        
+    
+    if exist('M', 'var')
+      % M is assumed to be a projection matrix, e.g. a spatial filter
+      selchan = match_str(tmp.label, ft_channelselection('MEG', tmp.label));
+      siz     = size(tmp.trial);
+      tmpdat  = reshape(permute(tmp.trial, [2 1 3]), [siz(2) siz(1)*siz(3)]);
+      tmpdat  = M*tmpdat(selchan,:);
+      tmpdat  = ipermute(reshape(tmpdat, [size(M,1) siz(1) siz(3)]), [2 1 3]);
+      tmp.trial = abs(tmpdat);
+      
+      tmp.label = cell(size(M,1),1);
+      for k = 1:size(M,1)
+        tmp.label{k} = ['chan',num2str(k,'%04d')];
+      end
+    end
+    
     % fit glm
     cfg                 = [];
     cfg.design          = -4:4; % zero mean
@@ -169,63 +188,5 @@ switch contrast
     varargout{2} = stat;
     varargout{3} = stat2;
 
-  case {'wordseq_parametric' 'wordseq_parametric_blc'}
-    Xcond = data.trialinfo(:,3);
-    sel   = find(ismember(Xcond,[3 4 7 8]));
-  
-    data  = ft_selectdata(data, 'rpt', sel);
-    Xword = data.trialinfo(:,2);
-    
-    cfg              = [];
-    cfg.vartrllength = 2;
-    if strcmp(contrast, 'wordsent_parametric_blc')
-      cfg.preproc.baselinewindow = [-inf 0];
-      cfg.preproc.demean         = 'yes';
-    end
-    
-    uXword = unique(Xword);
-    for k = 1:numel(uXword)
-      sel = find(Xword==uXword(k));
-      cfg.trials   = sel;
-      tmp          = ft_timelockanalysis(cfg, data);
-      if k==1
-        tlck = tmp;
-        tlck.trial  = shiftdim(tlck.avg,-1);
-        tlck.trial2 = shiftdim(tlck.dof,-1); %!!!! keep track of the dof
-      else
-        tlck.trial(uXword(k),:,1:size(tmp.avg,2))  = tmp.avg;
-        tlck.time(1:size(tmp.avg,2))       = tmp.time;
-        tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof;
-      end
-    end
-    if k<15, tlck.trial((k+1):15,:,:) = nan; tlck.trial2((k+1):15,:,:) = nan; end
-    tlck.dimord = 'rpt_chan_time';
-      
-    if ft_senstype(tlck, 'ctf275_planar')
-      tmp = ft_combineplanar([], tlck);
-    else
-      tmp = tlck;
-    end
-    tmp.trial = tmp.trial(2:10,:,:); % use only the first 10 words
-        
-    % fit glm
-    cfg                 = [];
-    cfg.design          = -4:4; % zero mean
-    cfg.statistic       = 'glm';
-    cfg.glm.statistic   = 'beta';
-    cfg.glm.standardise = 0;
-    cfg.glm.demean      = 1;
-    cfg.method          = 'montecarlo';
-    cfg.numrandomization = 0;
-    stat                = ft_timelockstatistics(cfg, tmp);
-    
-    tmp.trial = nanmean(tmp.trial,3);
-    tmp.time  = nanmean(tmp.time);
-    stat2     = ft_timelockstatistics(cfg, tmp);
-    
-    varargout{1} = tlck;
-    varargout{2} = stat;
-    varargout{3} = stat2;
-    
   otherwise
 end
