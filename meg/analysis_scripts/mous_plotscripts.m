@@ -32,6 +32,28 @@ figure; ft_multiplotER(cfg,SentTar, SeqTar);
 cfg.channel = 'MLT37';
 figure; ft_topoplotER(cfg, TFRHann_Diff_PG);
 
+
+%% MNE movie
+% 
+% Load data file 
+% if you want inflated load  
+load matlab/MOUS/meg/templates/cortex_inflated_8196reg.mat
+ % and change the pos field to the ont field in the source model 
+      source.pos = sourcemodel.pnt;
+       figure
+       cfg = [];
+       cfg.funparameter = 'avg.dspm';
+       mous_sourcemovie(cfg,sd_Sent, sd_Seq);
+       
+% to save the movie 
+ [cfg, mov] = ft_sourcemovie(cfg,sd_Sent, sd_Seq);
+ %save movie as avi
+ movie2avi(mov, 'ga_mne_visTarget_20131023b-lh')
+ 
+% % %  
+
+
+
 %% sensor clusters (channels)
 
 %% Layout 2
