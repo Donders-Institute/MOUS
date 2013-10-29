@@ -1,33 +1,49 @@
-function [stat,sent,seq,datsent,datseq] = mous_mne_groupanalysis(subj, suffix, rootdir)
+function [stat,sent,seq,datsent,datseq] = mous_mne_groupanalysis(subj, suffix, rootdir, varargin)
 
 if nargin==2
   rootdir = '';
 end
 
+param = ft_getopt(varargin, 'parameter', 'avg.pow');
+
 % load in the data
 for k = 1:numel(subj)
   mous_db_getdata(subj{k}, suffix, rootdir);
+  if ~exist('source', 'var')
+    %HACK
+    source = stat;
+  end
   
   if k==1
+    if ~isfield(source, 'pos')
+      load('cortex_inflated_8196reg');
+      source.pos = sourcemodel.pnt;
+      source.tri = sourcemodel.tri;
+      clear sourcemodel;
+    end
+    
     tmp.pos  = source.pos;
-    tmp.time = source.time(1:4:end);
+    endtim   = nearest(source.time, 0.6);
+    tmp.time = source.time(1:4:endtim);
     tmp.tri  = source.tri;
-    tmp.inside  = source.inside;
-    tmp.outside = source.outside;
+    tmp.inside = sum(stat.stat==0,2)~=size(stat.stat,2);
+    tmp.outside = sum(stat.stat==0,2)==size(stat.stat,2);
     tmp.method  = 'average';
   end
-  tmp.avg.pow = ft_preproc_smooth(source.avg.pow,4);
-  tmp.avg.pow = tmp.avg.pow(:,1:4:end);
-  tmp.avg.dspm = ft_preproc_smooth(source.avg.dspm,4);
-  tmp.avg.dspm = tmp.avg.dspm(:,1:4:end);
+  tmptmp = ft_preproc_smooth(getsubfield(source, param), 4);
+  tmp    = setsubfield(tmp, param, tmptmp(:,1:4:endtim));
   sent{k} = tmp;
+  clear source;
   
   mous_db_getdata(subj{k}, strrep(suffix,'sent','seq'), rootdir);
-  tmp.avg.pow = ft_preproc_smooth(source.avg.pow,4);
-  tmp.avg.pow = tmp.avg.pow(:,1:4:end);
-  tmp.avg.dspm = ft_preproc_smooth(source.avg.dspm,4);
-  tmp.avg.dspm = tmp.avg.dspm(:,1:4:end);
+  if ~exist('source', 'var')
+    %HACK
+    source = stat;
+  end
+  tmptmp = ft_preproc_smooth(getsubfield(source, param), 4);
+  tmp    = setsubfield(tmp, param, tmptmp(:,1:4:endtim));
   seq{k} = tmp;
+  clear source
 end
 
 Nsubj = numel(sent);
@@ -45,14 +61,14 @@ cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
 cfg.ivar   = 1;
 cfg.uvar   = 2;
 cfg.numrandomization = 10;
-cfg.parameter = 'avg.pow';
+cfg.parameter = param;
 stat = ft_sourcestatistics(cfg,sent{:},seq{:});
 
 datsent = zeros(size(stat.stat));
 datseq  = zeros(size(stat.stat));
 for k = 1:Nsubj
-  datsent = datsent+sent{k}.avg.pow;
-  datseq  = datseq+seq{k}.avg.pow;
+  datsent = datsent+getsubfield(sent{k},param);
+  datseq  = datseq+getsubfield(seq{k},param);
 end
 datsent = datsent./Nsubj;
 datseq  = datseq./Nsubj;
