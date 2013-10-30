@@ -1,4 +1,4 @@
-function mous_db_makesubjdir(subjectname, rootdir)
+function mous_db_makesubjdir(subjectname, rootdir, subdir)
 
 % MOUS_DB_MAKESUBJDIR creates a directory (with subdirectories) for a particular 
 % named subject. 
@@ -15,6 +15,18 @@ if nargin<2
   rootdir = '/home/language/annhul/MOUS/meg';
 end
 
+if nargin<3
+  subdir = {};
+end
+
+if isempty(subdir)
+  subdir = {'anatomy';'erf';'tfr';'corrmnebf';'mne';'bfica';'RAW';'artifact';'test';'other';'qualitycheck';'headposition';'restingstate'};
+end
+
+if ischar(subdir)
+  subdir = {subdir};
+end
+
 % create main level directory
 existdir = ~isempty(dir([rootdir,filesep,subjectname]));
 subjdir  = [rootdir,filesep,subjectname];
@@ -25,7 +37,6 @@ if ~existdir
   system(cmd);
 end
 
-subdir = {'anatomy';'erf';'tfr';'corrmnebf';'mne';'bfica';'RAW';'artifact';'test';'other';'qualitycheck';'headposition';'restingstate'};
 
 % create sub directories
 for k = 1:numel(subdir)

@@ -72,6 +72,7 @@ if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
   if isempty(rootdir), rootdir = '/project/3011020.09/MEG'; end
   d       = dir(fullfile(rootdir,'V*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
+  subject = setdiff(subject, badsubjects);
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
   return;
 elseif ischar(subject) && strcmp(subject, 'allA')
@@ -80,6 +81,7 @@ elseif ischar(subject) && strcmp(subject, 'allA')
   if isempty(rootdir), rootdir = '/project/3011020.09/MEG'; end
   d = dir(fullfile(rootdir,'A*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
+  subject = setdiff(subject, badsubjects);
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
 elseif ischar(subject) && strcmp(subject, 'allAV')
   % request all subjects -> convert into cell-array and call function
@@ -88,6 +90,7 @@ elseif ischar(subject) && strcmp(subject, 'allAV')
   d = dir(fullfile(rootdir,'V*'));
   d = cat(1, d, dir(fullfile(rootdir,'A*')));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
+  subject = setdiff(subject, badsubjects);
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
 elseif ischar(subject) && strcmp(subject, 'bad')
   % request all subjects classified as bad, hard coded
