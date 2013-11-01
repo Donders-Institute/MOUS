@@ -120,3 +120,68 @@ roi(2).channel  = {'MLF56','MLF65','MLF66','MLF67','MLT12','MLT13','MLT14','MLT2
 roi(5).label    = 'Rtemp';
 roi(5).channel  = {'MRF56','MRF65','MRF66','MRF67','MRT12','MRT13','MRT14','MRT22','MRT23','MRT24','MRT25','MRT26','MRT32','MRT33','MRT34','MRT35','MRT36','MRT37','MRT41','MRT42','MRT43','MRT44','MRT45','MRT46','MRT47' 'MRT51','MRT52','MRT53','MRT54','MRT55','MRT56','MRT57'};
 
+%% MNE parcellated 
+% plot selected roi sent vs seq
+
+find(strcmp(stat.label(:), 'L_6_B05'))
+
+roi = [33 25 15 21 13 12 18 ];% LH
+%roi = [74 66 56 62 54 53 59];% RH
+
+
+figure(1) 
+
+for r = 1:length(roi)
+    %sig = find(stat.prob(roi(r),:) < 0.05);
+    sig = find(stat.prob(roi(r),:) < 0.95);
+    subplot(2,4,r);hold on 
+    
+       for s = 1:length(sig)
+        line([stat.time(sig(s)) stat.time(sig(s))],[0 0.7], 'color', [0.9 0.9 0.9]);hold on
+       end
+    plot(stat.time, datsent(roi(r), :)); 
+    plot(stat.time, datseq(roi(r), :),'r');
+    title(stat.label(roi(r)),'Interpreter','none')
+    axis([-0.1 0.6 0 0.7])
+    sig =  []; 
+end
+
+
+%Plot all parcels and their significance
+f= 0;
+%stat.time = stat.time(1,:)-0.04;
+for r = 1:size(stat.prob,1)
+    sig = find(stat.prob(r,:) < 0.95);
+    if(f==8)
+        figure
+        f = 1;
+    else
+        f = f+1;
+    end
+    subplot(2,4, f);hold on
+    for s = 1:length(sig)
+        line([stat.time(sig(s)) stat.time(sig(s))],[0 1], 'color', [0.9 0.9 0.9]);hold on
+    end
+    plot(stat.time, datsent(r, :)); hold on
+    plot(stat.time, datseq(r, :), 'r'); hold on
+    title(stat.label(r),'Interpreter','none')
+    clear sig
+end
+
+%plot time courses of selected rois on top of eachother
+find(strcmp(stat.label(:), 'L_6_B05'))
+
+roi = [33 25 15 21 13 12 18 ];% LH
+%roi = [74 66 56 62 54 53 59];% RH
+
+
+
+col = {'b' 'g' 'r' 'm' 'k' 'c'};
+for r = 1:length(roi)
+    plot(stat.time, datsent(roi(r), :), col{r}); hold on;
+    leg(r) = stat.label(roi(r));
+end
+legend(leg,'Interpreter','none')
+title('LEFT time course for selected ROI')
+
+
