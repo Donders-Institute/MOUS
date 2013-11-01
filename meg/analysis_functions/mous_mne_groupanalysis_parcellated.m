@@ -1,14 +1,30 @@
-function [stat,sent,seq,datsent,datseq] = mous_mne_groupanalysis_parcellated(subj, suffix, rootdir, varargin)
+function [stat,sent,seq,datsent,datseq,cntsent,cntseq] = mous_mne_groupanalysis_parcellated(subj, suffix, rootdir, varargin)
 
 if nargin==2
   rootdir = '';
 end
 
-param = ft_getopt(varargin, 'parameter', 'avg.pow');
+param              = ft_getopt(varargin, 'parameter', 'pow');
+parcellationmethod = ft_getopt(varargin, 'parcellationmethod', 'median');
 
 cfg              = [];
 cfg.parameter    = param;
-cfg.method       = 'median';
+cfg.method       = parcellationmethod;
+cfg.feedback     = 'none';
+if strcmp(parcellationmethod, 'mean_thresholded')
+  thresholdmethod = ft_getopt(varargin, 'thresholdmethod', 'baseline_zscore');
+  threshold       = ft_getopt(varargin, 'threshold', 20);
+  if ~strcmp(thresholdmethod, 'baseline_zscore')
+    error('only baseline_zscore is implemented as thresholding scheme at the moment');
+  end
+  if ~strcmp(param, 'pow')
+    error('only ''pow'' is supported at the moment when specifying the parcellation method to be ''mean_thresholded''');
+  end
+  
+  % assign the threshold per voxel: this is data dependent and will be done
+  % later on
+end
+
 cfg.parcellation = 'parcellation2';
 
 [p,f,e] = fileparts('mous_mne_groupanalysis_parcellated');
@@ -33,10 +49,14 @@ for k = 1:numel(subj)
       source = rmfield(source, 'label');
       source.dimord = 'pos_time';
     end
-    source.inside = 1:8196;
+    source.inside  = 1:8196;
     source.outside = [];
   end
   
+  if strcmp(parcellationmethod, 'mean_thresholded')
+    % assign a threshold per vertex
+    cfg.mean.threshold = threshold.*nanmean(source.avg.pow(:,1:nearest(source.time,0)),2);
+  end
   sourcep          = ft_sourceparcellate(cfg, source, atlas);
   sent{k}          = sourcep;
   clear source;
@@ -59,7 +79,12 @@ for k = 1:numel(subj)
     source.inside = 1:8196;
     source.outside = [];
   end
-  sourcep          = ft_sourceparcellate(cfg, source, atlas);
+  
+  if strcmp(parcellationmethod, 'mean_thresholded')
+    % assign a threshold per vertex
+    cfg.mean.threshold = threshold.*nanmean(source.avg.pow(:,1:nearest(source.time,0)),2);
+  end
+  sourcep         = ft_sourceparcellate(cfg, source, atlas);
   seq{k}          = sourcep;
   clear source;
 end
@@ -89,11 +114,22 @@ cfg.neighbours = neighbours;
 cfg.channel = sent{1}.label(setdiff(1:numel(sent{1}.label),[1 2 44 45])); % remove ??? and MEDIAL.WALL
 stat = ft_timelockstatistics(cfg,sent{:},seq{:});
 
-datsent = zeros(size(sent{1}.dspm));
-datseq  = zeros(size(sent{1}.dspm));
+datsent = zeros(size(sent{1}.(param)));
+cntsent = zeros(1,size(datsent,2));
+datseq  = zeros(size(sent{1}.(param)));
+cntseq  = zeros(1,size(datseq,2));
 for k = 1:Nsubj
-  datsent = datsent+sent{k}.dspm;
-  datseq  = datseq+seq{k}.dspm;
+  tmpsent = sent{k}.(param);
+  tmpseq  = seq{k}.(param);
+  
+  cntsent = cntsent + double(isfinite(tmpsent(:,1)));
+  cntseq  = cntseq  + double(isfinite(tmpsent(:,1)));
+  
+  tmpsent(~isfinite(tmpsent(:,1)),:) = 0;
+  tmpseq(~isfinite(tmpseq(:,1)),:)   = 0;
+  
+  datsent = datsent + tmpsent;
+  datseq  = datseq  + tmpseq;
 end
-datsent = datsent./Nsubj;
-datseq  = datseq./Nsubj;
+datsent = diag(1./cntsent)*datsent;
+datseq  = diag(1./cntseq)*datseq;
