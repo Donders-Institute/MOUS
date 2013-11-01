@@ -151,7 +151,7 @@ end
 f= 0;
 %stat.time = stat.time(1,:)-0.04;
 for r = 1:size(stat.prob,1)
-    sig = find(stat.prob(r,:) < 0.95);
+    sig = find(stat.prob(r,:) < 0.05);
     if(f==8)
         figure
         f = 1;
@@ -160,10 +160,11 @@ for r = 1:size(stat.prob,1)
     end
     subplot(2,4, f);hold on
     for s = 1:length(sig)
-        line([stat.time(sig(s)) stat.time(sig(s))],[0 1], 'color', [0.9 0.9 0.9]);hold on
+        line([stat.time(sig(s)) stat.time(sig(s))],[0 0.7], 'color', [0.9 0.9 0.9]);hold on
     end
     plot(stat.time, datsent(r, :)); hold on
     plot(stat.time, datseq(r, :), 'r'); hold on
+    axis([-0.1 0.6 0 0.7])
     title(stat.label(r),'Interpreter','none')
     clear sig
 end
