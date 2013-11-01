@@ -11,17 +11,27 @@ ft_default.checksize = inf;
 
 if ~exist('rootdir', 'var'), rootdir = '/project/3011020.09/MEG'; end
 
+% these parts rely on a correct MNI coregistration
 if ~exist('docoregistration1', 'var'), docoregistration1 = 0; end
+if ~exist('doskullstrip',     'var'),  doskullstrip      = 0;  end
+if ~exist('dosourcemodel2d1',  'var'), dosourcemodel2d1  = 0;  end
+if ~exist('dosourcemodel2d2',  'var'), dosourcemodel2d2  = 0;  end
+if ~exist('dosourcemodel2d3',  'var'), dosourcemodel2d3  = 0;  end
+
+% these parts rely on a correct CTF coregistration
 if ~exist('docoregistration2', 'var'), docoregistration2 = 0; end
 if ~exist('docoregistration3', 'var'), docoregistration3 = 0; end
 if ~exist('docoregistration4', 'var'), docoregistration4 = 0; end
-if ~exist('doskullstrip',     'var'), doskullstrip     = 0;  end
-if ~exist('doheadmodel',      'var'), doheadmodel      = 0;  end
-if ~exist('dosourcemodel2d1',  'var'), dosourcemodel2d1  = 0;  end
-if ~exist('dosourcemodel2d2',  'var'), dosourcemodel2d2  = 0;  end
+if ~exist('doheadmodel',      'var'),  doheadmodel       = 0;  end
+if ~exist('dosourcemodel3d',  'var'),  dosourcemodel3d   = 0;  end
+
+% these parts rely on a correct CTF coregistration and a correct MNI
+% coregistration
+if ~exist('dosourcemodel2d4',  'var'), dosourcemodel2d4  = 0;  end
 if ~exist('dosourcemodel2d_reg', 'var'), dosourcemodel2d_reg = 0; end
-if ~exist('dosourcemodel3d',  'var'), dosourcemodel3d  = 0;  end
-if ~exist('doqualitycheck',   'var'), doqualitycheck   = 0;  end
+
+
+if ~exist('doqualitycheck',   'var'),  doqualitycheck    = 0;  end
 
 if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.5; end % influences behavior of headmodel creation step
 if ~exist('refineflag',    'var'), refineflag    = 1; end % influences behavior of coregistration to polhemus point cloud
@@ -111,7 +121,14 @@ if dosourcemodel2d1
   
   % run the first part of the freesurfer pipeline
   system([p,'/freesurferscript1.sh ',subjdirfs,' ',subjectname]);
-   
+end
+
+if dosourcemodel2d2
+  subjdirfs   = fullfile(rootdir,subjectname,'/anatomy');
+
+  str     = which('freesurferscript1.sh');
+  [p,f,e] = fileparts(str);
+  
   % At this stage have a look at the wm.mgz in matlab to see whether
   % it is a problematic one. Most problems arise downstream in the analysis
   % pipeline when large slabs of dura have not been removed.
@@ -122,11 +139,11 @@ if dosourcemodel2d1
   % check wm.mgz
   wm = ft_read_mri(fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm.mgz'));
   
-  cfg             = [];
-  cfg.interactive = 'yes';
-  figure;ft_sourceplot(cfg, wm);
-  
-  doedit = 0; % change this to 1 if needed
+%   cfg             = [];
+%   cfg.interactive = 'yes';
+%   figure;ft_sourceplot(cfg, wm);
+%   
+  doedit = 1; % change this to 1 if needed
   if doedit
     wmfilename    = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'wm.mgz');
     T1filename    = fullfile(subjdirfs,filesep,subjectname,filesep,'mri',filesep,'T1.mgz');
@@ -144,7 +161,14 @@ if dosourcemodel2d1
     cfg.filename  = wmfilename;
     ft_volumewrite(cfg, wm);
   end
-  
+end
+
+if dosourcemodel2d3
+  subjdirfs   = fullfile(rootdir,subjectname,'/anatomy');
+
+  str     = which('freesurferscript1.sh');
+  [p,f,e] = fileparts(str);
+ 
   % run the second part of the freesurfer pipeline
   system([p,'/freesurferscript2.sh ',subjdirfs,' ',subjectname]);
   
@@ -152,7 +176,7 @@ if dosourcemodel2d1
   system([p,'/mnescript.sh ',subjdirfs,' ',subjectname]);
 end
 
-if dosourcemodel2d2
+if dosourcemodel2d4
   % create the 2D sourcemodel based on the freesurfer mesh
   % extract the dipole grid from the *.fif-file and coregister it to CTF
   % coordinate system
