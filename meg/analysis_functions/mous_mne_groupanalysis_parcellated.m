@@ -115,9 +115,9 @@ cfg.channel = sent{1}.label(setdiff(1:numel(sent{1}.label),[1 2 44 45])); % remo
 stat = ft_timelockstatistics(cfg,sent{:},seq{:});
 
 datsent = zeros(size(sent{1}.(param)));
-cntsent = zeros(size(datsent,2),1);
+cntsent = zeros(1,size(datsent,2));
 datseq  = zeros(size(sent{1}.(param)));
-cntseq  = zeros(size(datseq,2),1);
+cntseq  = zeros(1,size(datseq,2));
 for k = 1:Nsubj
   tmpsent = sent{k}.(param);
   tmpseq  = seq{k}.(param);
