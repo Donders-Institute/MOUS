@@ -1,5 +1,5 @@
-dopreproc = 0;
-dofreq    = 0;
+dopreproc = 1;
+dofreq    = 1;
 dodss     = 1;
 doccc     = 0;
 collectresults = false;
