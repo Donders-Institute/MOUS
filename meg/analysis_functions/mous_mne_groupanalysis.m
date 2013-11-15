@@ -5,7 +5,11 @@ if nargin==2
 end
 
 param = ft_getopt(varargin, 'parameter', 'avg.pow');
+sent  = ft_getopt(varargin, 'sent');
+seq   = ft_getopt(varargin, 'seq');
 
+if isempty(sent) || isempty(seq)
+  
 % load in the data
 for k = 1:numel(subj)
   mous_db_getdata(subj{k}, suffix, rootdir);
@@ -45,6 +49,8 @@ for k = 1:numel(subj)
   seq{k} = tmp;
   clear source
 end
+end
+
 
 Nsubj = numel(sent);
 for k = 1:Nsubj
@@ -52,9 +58,12 @@ for k = 1:Nsubj
   seq{k}.dim  = [8196 1 1];
 end
 
+load('cortex_inflated_8196reg');
+
 cfg = [];
 cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
+%cfg.statistic = 'ft_statfun_diff';
 %cfg.statistic = 'statfun_yuent';
 %cfg.yuent.type = 'depsamples';
 cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
@@ -62,6 +71,9 @@ cfg.ivar   = 1;
 cfg.uvar   = 2;
 cfg.numrandomization = 10;
 cfg.parameter = param;
+cfg.correctm = 'cluster';
+cfg.clusterthreshold = 'nonparametric_common';
+cfg.tri = sourcemodel.tri;
 stat = ft_sourcestatistics(cfg,sent{:},seq{:});
 
 datsent = zeros(size(stat.stat));
