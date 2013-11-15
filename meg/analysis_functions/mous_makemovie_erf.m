@@ -1,5 +1,26 @@
 function frames = mous_makemovie_erf(data, filename, varargin)
 
+% MOUS_MAKEMOVIE_ERF creates a movie (.avi) for a specified channel level
+% spatiotemporal data matrix.
+%
+% Use as:
+%  mous_makemovie_erf(data, filename, key1, value1, ...)
+%
+% Input arguments:
+%  data     = FieldTrip data structure with 'chan_time' dimord
+%  filename = filename of the movie.
+%
+% Optional arguments come in key-value pairs:
+%  parameter = string, fieldname of the parameter to be used for plotting
+%  zlim      = [lower upper], array that determines the color limits
+%  xlim      = 1xN array that determines the temporal windows that are used
+%               per 'snapshot'.
+%  demean    = 'yes', or 'no' (default 'yes'), specifies whether baseline
+%               subtraction is performed
+%  baselinewindow = [begin end] (in combination with demean='yes'),
+%               specifies the begin and end of the baseline window
+%  maskparameter
+
 parameter = ft_getopt(varargin, 'parameter', 'avg');
 zlim      = ft_getopt(varargin, 'zlim', []);
 xlim      = ft_getopt(varargin, 'xlim', []);
