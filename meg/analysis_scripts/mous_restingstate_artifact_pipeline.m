@@ -24,7 +24,7 @@ if 1,
   [cfgmuscle       ] = mous_artifact_muscle(filename{1},     trl, ntrials); % detect muscle artifacts
 
   % put the results back into the database
-  mous_db_putdata(subjectname, 'meg_artifact_cfg_restingstate', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle',rootdir); 
+  mous_db_putdata(subjectname, 'meg_artifact_cfg_restingstate', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle'); 
 end
 
 if 0,
