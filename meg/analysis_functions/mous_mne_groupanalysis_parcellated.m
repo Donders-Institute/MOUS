@@ -64,6 +64,11 @@ for k = 1:numel(subj)
   %mous_db_getdata(subj{k}, ['meg_mne_',suffix,'_Seq'], rootdir);
   mous_db_getdata(subj{k}, strrep(suffix,'sent','seq'), rootdir);
   if ~exist('source', 'var')
+    ixbeg = nearest(stat.time,-0.1);
+    ixend = nearest(stat.time,0.6);
+    stat.(param) = stat.(param)(:,ixbeg:ixend);
+    stat.time    = stat.time(ixbeg:ixend);
+    
     %HACK
     source = stat;
     if ~isfield(source, 'pos')
