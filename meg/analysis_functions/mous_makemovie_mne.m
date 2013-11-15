@@ -34,10 +34,13 @@ demean    = ft_getopt(varargin, 'demean', 'yes');
 demean    = ft_getopt(varargin, 'baselinecorrect', demean);
 baselinewindow = ft_getopt(varargin, 'baselinewindow', [-inf 0]);
 maskparameter  = ft_getopt(varargin, 'maskparameter',  []);
+opacitylim     = ft_getopt(varargin, 'opacitylim', 'zeromax');
+opacitymap     = ft_getopt(varargin, 'opacitymap', 'auto');
 parcellation   = ft_getopt(varargin, 'parcellation', []);
 hemimode       = ft_getopt(varargin, 'hemisphere', 'both');
 viewmode       = ft_getopt(varargin, 'viewmode',   'both');
 textstring     = ft_getopt(varargin, 'textstring', 'time = ');
+
 %% deal with xlim and zlim
 if isempty(xlim)
   dtime  = mean(diff(source.time));
@@ -52,9 +55,21 @@ end
 %% get the functional data
 if ~isempty(parcellation)
   data = unparcellate(source, parcellation, parameter);
+  if ~isempty(maskparameter)
+    mask = unparcellate(source, parcellation, maskparameter);
+  else
+    mask = [];
+  end
 else
   data = getsubfield(source, parameter);
+  if ~isempty(maskparameter)
+    mask = getsubfield(source, maskparameter);
+  else
+    mask = [];
+  end
 end
+[mask, opacitylim, opacitymap] = handle_mask(mask, opacitylim, opacitymap); 
+if isempty(mask), mask = zeros(size(data))+0.5; end
 
 % baseline normalise
 if istrue(demean)
@@ -123,6 +138,7 @@ s.tri  = [s.tri;s.tri + 8196];
 
 % this is needed when presenting both medial and lateral views
 data = repmat(data,[2 1]);
+mask = repmat(mask,[2 1]);
 
 usepnt = true(size(data,1),1);
 usetri = true(size(s.tri,1),1);
@@ -158,6 +174,7 @@ switch viewmode
 end
 
 data = data(usepnt,:);
+mask = mask(usepnt,:);
 s.pnt = s.pnt(usepnt,:);
 s.tri = tri_reindex(s.tri(usetri,:));
 s.sulc = s.sulc(usepnt);
@@ -170,11 +187,13 @@ htxt = text(xpos_text,0,ypos_text,textstring);
 set(htxt, 'color', 'w');
 set(htxt, 'fontsize', 15);
 
-hfun1 = ft_plot_mesh(s, 'edgecolor', 'none', 'vertexcolor', data(:,1), 'facealpha', 0.6);%data(:,1));
-%set(hfun1, 'FaceVertexAlphaData', 0.5*ones(size(data,1),1));
-%set(hfun1, 'alphadatamapping', 'scaled');
-%set(hfun1, 'FaceAlpha', 'flat');
+hfun1 = ft_plot_mesh(s, 'edgecolor', 'none', 'vertexcolor', data(:,1));
 
+alphamap(opacitymap);
+set(hfun1, 'FaceVertexAlphaData', 0.5*ones(size(data,1),1));
+set(hfun1, 'FaceAlpha',        'interp');
+set(hfun1, 'alphadatamapping', 'scaled');
+alim(gca, opacitylim);
 caxis(zlim);
 
 % Prepare the new file.
@@ -187,12 +206,9 @@ for k = 1:numel(xlim)-1
   ix(1) = nearest(source.time, xlim(k)+eps*100);
   ix(2) = nearest(source.time, xlim(k+1));
   dat   = nanmean(data(:,ix(1):ix(2)),2);
+  msk   = nanmean(mask(:,ix(1):ix(2)),2);
   set(hfun1, 'FaceVertexCData',     dat(:));
-  %alphadat = abs(dat(:));%-min(data(:));%./(cmax);
-  %alphadat(alphadat>0.3) = 0.3;
-  %alphadat(alphadat<0.15) = 0;
-  %alphadat(~isfinite(alphadat))=0;
-  %set(hfun1, 'FaceVertexAlphaData', alphadat);
+  set(hfun1, 'FaceVertexAlphaData', msk(:));
   textstring = ['time = ',num2str(mean(source.time(ix)),'%1.2f')];
   set(htxt, 'string', textstring);
 
@@ -226,3 +242,67 @@ newtri       = tri;
 [srt, indx]  = sort(tri(:));
 tmp          = cumsum(double(diff([0;srt])>0));
 newtri(indx) = tmp;
+
+function [msk, opacitylim, opacitymap] = handle_mask(msk, opacitylim, opacitymap)
+
+if islogical(msk)
+  msk = double(msk);
+end
+
+if ~isempty(msk)
+  % determine scaling and opacitymap
+  mskmin = min(msk(:));
+  mskmax = max(msk(:));
+  % determine the opacity limits and the opacity map
+  % smart lims: make from auto other string, or equal to funcolorlim if funparameter == maskparameter
+  if isequal(opacitylim,'auto')
+    if sign(mskmin)>-1 && sign(mskmax)>-1
+      opacitylim = 'zeromax';
+    elseif sign(mskmin)<1 && sign(mskmax)<1
+      opacitylim = 'minzero';
+    else
+      opacitylim = 'maxabs';
+    end
+  end
+  
+  if ischar(opacitylim)
+    % limits are given as string
+    switch opacitylim
+      case 'zeromax'
+        opacmin = 0;
+        opacmax = mskmax;
+        if isequal(opacitymap,'auto'), opacitymap = 'rampup'; end;
+      case 'minzero'
+        opacmin = mskmin;
+        opacmax = 0;
+        if isequal(opacitymap,'auto'), opacitymap = 'rampdown'; end;
+      case 'maxabs'
+        opacmin = -max(abs([mskmin, mskmax]));
+        opacmax =  max(abs([mskmin, mskmax]));
+        if isequal(opacitymap,'auto'), opacitymap = 'vdown'; end;
+      otherwise
+        error('incorrect specification of cfg.opacitylim');
+    end % switch opacitylim
+  else
+    % limits are numeric
+    opacmin = opacitylim(1);
+    opacmax = opacitylim(2);
+    if isequal(opacitymap,'auto')
+      if sign(opacmin)>-1 && sign(opacmax)>-1
+        opacitymap = 'rampup';
+      elseif sign(opacmin)<1 && sign(opacmax)<1
+        opacitymap = 'rampdown';
+      else
+        opacitymap = 'vdown';
+      end
+    end
+  end % handling opacitylim and opacitymap
+  clear mskmin mskmax;
+else
+  opacitymap = 'rampup';
+  opacmin = 0;
+  opacmax = 1;
+  % make intelligent mask
+end
+
+opacitylim = [opacmin opacmax];
