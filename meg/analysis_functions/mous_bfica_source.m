@@ -11,11 +11,14 @@ end
 % selection only took place after balancing for trials, and there was no
 % check for NaN trials. This has been corrected as of Feb27, 2013. FIXME:
 % notify Izabela, who is using an old version of this code
+
+% code below identifies ~finite trials i.e. where the selected time slice
+% coincided with an artifact in the original data
 if nargin>2 && ~isempty(toi)
   % toi exist
   tmp = ft_selectdata(freq, 'toilim', toi+[-0.1 0.1]*mean(diff(freq.time)));
   tmp = rmfield(tmp, 'time');
-  nans = ~isfinite(tmp.fourierspctrm(:,1));
+  nans = ~isfinite(tmp.fourierspctrm(:,1));  % index rows which are nonfinite i.e. NaN
   ntap = tmp.cumtapcnt(1);
   if ~all(tmp.cumtapcnt==ntap), error('different number of tapers per trial not supported here');end
   nans = reshape(nans,ntap,[]);
@@ -24,10 +27,6 @@ if nargin>2 && ~isempty(toi)
   tmp.trialinfo(nans(1,:),:)   = [];
   tmp.cumtapcnt(nans(1,:),:)   = [];
   tmp.dimord = 'rpttap_chan_freq';
-  
-  % identify ~finite trials, i.e. where the selected time slice coincided
-  % with an artifact in the original data
-  
 else
   % concatenate all tois
   if isfield(freq, 'time'),
