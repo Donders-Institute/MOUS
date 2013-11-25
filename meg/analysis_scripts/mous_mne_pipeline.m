@@ -24,7 +24,9 @@ if domne_main,
   % compute covariance matrix of the noise
   % use an equal amount of sentence and sequence 'baselines' for the cov
   mous_db_getdata(subjectname, suffix_rawdata, rootdir);
-  
+  data.grad = ft_convert_units(data.grad, 'm'); % this is related to an FT issue with the units
+  % if all is explicitly set to 'm' it should be OK. 
+ 
   data     = ft_selectdata(data, 'toilim', [-inf 0.6]);
   database = ft_selectdata(data, 'toilim', [-inf 0]);
   selsent  = find(ismember(database.trialinfo(:,2),[1 2 5 6]) & database.trialinfo(:,end)==1);
@@ -54,7 +56,12 @@ if domne_main,
     sourcmodel.pos = sourcemodel.pnt;
     sourcemodel    = rmfield(sourcemodel, 'pnt');
   end
-  
+  sourcemodel = ft_convert_units(sourcemodel, 'm'); % due to an FT issue related to units
+  % explicit conversion to 'm'. This should be OK  
+  % NOTE: the areas of the triangles are not updated, I think that this is not a problem
+  % because the area weighting is relative, i.e. the scale of the numbers shouldn't matter.
+  % Yet, I am not 100% sure. FIXME
+ 
   load atlas_conte69_8196reg
   sourcemodel.inside  = find(atlas.parcellation3==1);% & atlas.parcellation2~=1);
   sourcemodel.outside = find(atlas.parcellation3==2);% | atlas.parcellation2==1);
@@ -65,7 +72,8 @@ if domne_main,
   if exist('vol', 'var')
     headmodel = vol; clear vol;
   end
-  headmodel = ft_convert_units(headmodel, 'cm');
+  %headmodel = ft_convert_units(headmodel, 'cm');
+  headmodel = ft_convert_units(headmodel, 'm');
   
   % Compute the leadfields
   cfg          = [];
@@ -205,7 +213,7 @@ if domne_parametric
   if ~exist('suffix', 'var')
     error('you need to specify the file suffix for the preprocessed data');
   end
-  mous_db_getdata(subjectname, suffix, rootdir);
+  mous_db_getdata(subjectname, suffix);%, rootdir);
   
   if ~exist('suffix_mne', 'var')
     error('you need to specify the file suffix for the mne data');
@@ -220,20 +228,33 @@ if domne_parametric
     F(source.inside(k),:) = source.avg.ori{source.inside(k)}*source.avg.filter{source.inside(k)};
   end
  
+  % make the number of trials per condition equal
+  sel1 = find(ismember(data.trialinfo(:,2),[1 2 5 6]));
+  sel2 = find(ismember(data.trialinfo(:,2),[3 4 7 8]));
+  
+  n1 = numel(sel1); sel1 = sel1(randperm(n1));
+  n2 = numel(sel2); sel2 = sel2(randperm(n2));
+  n  = min(n1,n2);
+  sel1 = sort(sel1(1:n));
+  sel2 = sort(sel2(1:n));
+  data = ft_selectdata(data, 'rpt', [sel1(:);sel2(:)]);
+  
   % move around the columns in the trialinfo field so that the condition
   % trigger ends up in the third column and the word ordinal indicator in
   % the second
   % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
   data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
   
-  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
-  [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
+  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
+  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
   
   tlck = tlck_sent;
   stat = stat_sent;
-  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', rootdir);
+  mu   = mu_sent;
+  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir);
   tlck = tlck_seq;
   stat = stat_seq;
-  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', rootdir);
+  mu   = mu_seq;
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir);
   
 end
