@@ -1,4 +1,4 @@
-function [stat, i1, Nsubj, avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics(subj, suffix, baselineflag, cfg,rootdir)
+function [stat, i1, Nsubj, avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics(subj, suffix, baselineflag, cfg, rootdir)
 
 if nargin<3
   baselineflag = 0;
@@ -16,6 +16,10 @@ if strcmp(cfg.correctm, 'cluster')
 end
 
 Nsubj   = numel(subj);
+
+if nargin<5
+    rootdir = '/project/3011020.09/jansch/';
+end 
 %rootdir = '/home/language/jansch/public/mous';
 [p,n,e] = fileparts(which('mous_anatomy_sourcemodel3D'))
 load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
