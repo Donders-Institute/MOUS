@@ -1,11 +1,11 @@
-function [freq dataStats] = mous_bfica_freq(subjectname, frequency, rootdir, options)
+function [freq] = mous_bfica_freq(subjectname, frequency, rootdir, options)
 
 if nargin==1
   frequency = 20;
 end
 
 if nargin<3
-  rootdir = '/home/language/jansch/public/mous/';
+  rootdir = '/project/3011020.09/MEG/jansch';
 end
 
 if nargin<4
@@ -20,23 +20,39 @@ dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 if numel(dataset)>1
   for k = 1:numel(dataset)
     tmpdataset   = dataset{k};
-    tmpartfctcfg = mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);
-    tmpcomp      = mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);   
-    tmpdata      = compute_data(tmpdataset, tmpartfctcfg, tmpcomp);
+    tmpartfctcfg = mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);  % separate artifact cfg for each task file
+    tmpcomp      = mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);           % one *combined) file for ecg components - see mous_bfica_dss.
+    tmpdata      = compute_data(tmpdataset, tmpartfctcfg, tmpcomp, options);
     if k==1,
-      data = tmpdata;
+      grad1 = tmpdata.grad;
+      data  = tmpdata;
     else
-      data = ft_appenddata([], data, tmpdata);
-    end
+      grad2 = tmpdata.grad; % assumes max. 2 datasets
+      data  = ft_appenddata([], data, tmpdata);
+      if strcmp(subjectname,'V1006')
+          % dataset1: 177 trials vs. dataset2: 58 trials i.e. 3:1
+          tmpsens(1) = grad1;
+          tmpsens(2) = grad1;
+          tmpsens(3) = grad1;
+          tmpsens(4) = grad2;
+          data.grad = ft_average_sens(tmpsens);
+      elseif strcmp(subjectname,'V1090')
+          % dataset1: 150 trials vs. dataset2: 88 trials i.e. 2:1
+          tmpsens(1) = grad1;
+          tmpsens(2) = grad1;
+          tmpsens(3) = grad2; 
+          data.grad = ft_average_sens(tmpsens);
+      end
+    end       
   end
 else
   artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
   comp      = mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);
-  data      = compute_data(dataset{1}, artfctcfg, comp);
+  data      = compute_data(dataset{1}, artfctcfg, comp, options);
 end
-freq = compute_freq(data, options);
+freq = compute_freq(data, options, frequency);
 
-function data = compute_data(dataset, artfctcfg, comp)
+function data = compute_data(dataset, artfctcfg, comp, options)
 
 avgcomp   = comp{1};
 avgpre    = comp{2};
@@ -53,7 +69,7 @@ cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 %trl          = mous_artifact_remove(trl, dataset, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
 trl          = mous_artifact_remove(trl, dataset, artfctcfg([1 2 3 4]), 'partial', 1); % don't do the horizontal EOG
-dataStats    = mous_samplestats(trl);
+%dataStats    = mous_samplestats(trl);
 
 % trl > 2 second does not make sense, sanity check: FIXME
 nsmp = trl(:,2)-trl(:,1);
@@ -71,7 +87,7 @@ data           = ft_preprocessing(cfg);
 cfg            = [];
 cfg.demean     = 'yes';
 cfg.detrend    = 'no';
-cfg.resamplefs = resamplefs;
+cfg.resamplefs = options.resamplefs;
 data           = ft_resampledata(cfg, data);
 
 % reject cardiac components
@@ -83,17 +99,18 @@ comp.trial = comp.time;
 
 % NOTE: this avoids a crash later on, but not sure which grad structure is
 % used in ft_rejectcomponent.
-comp = rmfield(comp, 'grad');
+if isfield(comp,'grad')
+    comp = rmfield(comp, 'grad');
+end 
 
 cfg           = [];
 cfg.component = find(v>0.1);
 data          = ft_rejectcomponent(cfg, comp, data);
 
-function freq = compute_freq(data, options)
+function freq = compute_freq(data, options, frequency)
 
 tapsmofrq  = ft_getopt(options, 'tapsmofrq', 8);
 t_ftimwin  = ft_getopt(options, 't_ftimwin', 0.250);
-resamplefs = ft_getopt(options, 'resamplefs', 200);
 taper      = ft_getopt(options, 'taper', 'dpss');
 
 cfg        = [];
