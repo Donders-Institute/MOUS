@@ -1,4 +1,4 @@
-function [stat, i1, Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix)
+function [stat, i1, Nsubj] = mous_bfica_sourcestatistics_sentseqpar(subj, suffix)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% compute statistics (source level and save results) no log10 transform
