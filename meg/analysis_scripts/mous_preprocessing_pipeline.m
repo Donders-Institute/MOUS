@@ -28,17 +28,29 @@ mous_db_makesubjdir(subjectname)
 % get the filename of the raw data
 filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
 
-% get the description of the artifacts
-tmp = mous_db_getdata(subjectname, 'meg_artifact_cfg');
-
-[trl] = mous_defineTrial(filename{1}, prestim, poststim, 'all', trialfun);
-
-[trl] = mous_artifact_remove(trl, filename{1}, tmp);
+for k = 1:numel(filename)
+  if numel(filename)==1
+    % get the description of the artifacts
+    tmp = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+  else
+    tmp = mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);
+  end
+  
+  [trl] = mous_defineTrial(filename{k}, prestim, poststim, 'all', trialfun);
+  [trl] = mous_artifact_remove(trl, filename{k}, tmp);
+  tmp   = mous_preprocessing(filename{k}, trl, resamplefs, analysisType, prestim);
+  if k==1
+    data = tmp;
+  end
+  
+  if k>1
+    data = ft_appenddata([], data, tmp);
+  end
+  clear tmp;
+end
 %dataStats = mous_samplestats(trl); %FIXME
-
-data = mous_preprocessing(filename{1}, trl, resamplefs, analysisType, prestim);
 
 length = [num2str(prestim*10,'%02d'),'-',num2str(poststim*10,'%02d')];
 
 %mous_db_putdata(subjectname, ['meg_processed_{_preProcERF' trialfun '_' length 'ds}'], 'data');
-mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data', '/project/3011020.09/jansch');
+mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',1);
