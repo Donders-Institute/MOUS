@@ -124,7 +124,7 @@ switch contrast
     
     cfg              = [];
     cfg.vartrllength = 2;
-    if strcmp(contrast, 'wordsent_parametric_blc')
+    if strcmp(contrast, 'wordsent_parametric_blc') || strcmp(contrast, 'wordseq_parametric_blc')
       cfg.preproc.baselinewindow = [-inf 0];
       cfg.preproc.demean         = 'yes';
     end
@@ -167,6 +167,12 @@ switch contrast
       for k = 1:size(M,1)
         tmp.label{k} = ['chan',num2str(k,'%04d')];
       end
+      
+      % do a baseline correction (again) if requested
+      if strcmp(contrast, 'wordsent_parametric_blc') || strcmp(contrast, 'wordseq_parametric_blc')
+        sel = nearest(tmp.time, 0);
+        tmp.trial = tmp.trial - repmat(mean(tmp.trial(:,:,1:sel),3),[1 1 size(tmp.trial,3)]);
+      end
     end
     
     % fit glm
@@ -180,6 +186,10 @@ switch contrast
     cfg.numrandomization = 0;
     stat                = ft_timelockstatistics(cfg, tmp);
     
+    % added 20131122: also output the average across words, this allows to
+    % model the word-specific response later on
+    mu = squeeze(nanmean(tmp.trial));
+    
     tmp.trial = nanmean(tmp.trial,3);
     tmp.time  = nanmean(tmp.time);
     stat2     = ft_timelockstatistics(cfg, tmp);
@@ -187,6 +197,6 @@ switch contrast
     varargout{1} = tlck;
     varargout{2} = stat;
     varargout{3} = stat2;
-
+    varargout{4} = mu;
   otherwise
 end
