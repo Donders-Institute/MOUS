@@ -29,7 +29,7 @@ for k = 1:Nsubj
   clear tlcksent tlckseq
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix], rootdir);
   if k==1
-    mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
+    mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', '/project/3011020.09/jansch/');
     sourcemodel = rmfield(sourcemodel, 'leadfield');
     if isfield(sourcemodel, 'cfg')
       sourcemodel = rmfield(sourcemodel, 'cfg');
