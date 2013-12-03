@@ -16,7 +16,7 @@ function mous_qualitycheck_artifact_pipeline(subjectname)
 
 %% Artifact Quality Check: blinks, saccades, jumps and muscle artifacts
 
-whichart     = [0 0 0 1];  % which artifacts to detect (blink sacc jump musc]
+whichart     = [1 1 1 1];  % which artifacts to detect (blink sacc jump musc]
 datafilename = mous_db_getfilename(subjectname,'meg_raw_task');
 
 % determine number of datasets
