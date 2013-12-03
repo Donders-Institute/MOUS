@@ -129,7 +129,9 @@ else
 end
 
 % assign pulselength threshold depending on MEG scenario
-if scenario == 1 || scenario == 3
+% there are sound files specific to scenario 1 and 3 where the onset
+% between the auditory soundfile and first word are extremely close
+if scenario == 1 || scenario == 3 || scenario == 2 && strcmp(subjname,'A2080')
     pulselengththreshold = 5;
 else 
     pulselengththreshold = 30;
