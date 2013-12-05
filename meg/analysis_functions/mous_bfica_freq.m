@@ -54,6 +54,9 @@ freq = compute_freq(data, options, frequency);
 
 function data = compute_data(dataset, artfctcfg, comp, options)
 
+options.dftfilter = ft_getopt(options.dftfilter, 'no');
+options.padding   = ft_getopt(options.padding, 0);
+
 avgcomp   = comp{1};
 avgpre    = comp{2};
 comp      = comp{3};
@@ -81,6 +84,8 @@ cfg.trl        = trl;
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
+cfg.dftfilter  = options.dftfilter;
+cfg.padding    = options.padding;
 data           = ft_preprocessing(cfg);
 
 % downsample
