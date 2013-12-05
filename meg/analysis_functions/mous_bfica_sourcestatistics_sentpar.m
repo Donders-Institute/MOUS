@@ -1,19 +1,36 @@
-function [stat, i1, Nsubj] = mous_bfica_sourcestatistics_sentpar(subj, suffix, baselineflag)
+function [stat, i1, Nsubj] = mous_bfica_sourcestatistics_sentpar(subj, suffix, baselineflag,cfg,rootdir)
 
 if nargin<3
   baselineflag = 0;
 end
 
-Nsubj   = numel(subj);
-rootdir = '/home/language/jansch/public/mous';
+if nargin<=3
+  cfg = [];
+end
+cfg.correctm         = ft_getopt(cfg, 'correctm', 'cluster');
+cfg.numrandomization = ft_getopt(cfg, 'numrandomization', 1000);
 
-load('/home/language/jansch/projects/mous/meg/templates/sourcemodel/standard_sourcemodel3d8mm');
+if strcmp(cfg.correctm, 'cluster')
+  cfg.clusteralpha     = ft_getopt(cfg, 'clusteralpha', 0.005);
+  cfg.clusterthreshold = ft_getopt(cfg, 'clusterthreshold', 'nonparametric_individual');
+end
+
+Nsubj   = numel(subj);
+if nargin<4
+    rootdir = '/project/3011020.09/jansch/';
+end
+
+[p,n,e] = fileparts(which('standard_sourcemodel3d8mm.mat'));
+load([p,'/',n,e]);
 sourcemodeltemplate = sourcemodel;
+
+% load('/home/language/jansch/projects/mous/meg/templates/sourcemodel/standard_sourcemodel3d8mm');
+% sourcemodeltemplate = sourcemodel;
 
 for k = 1:Nsubj
   clear tlcksentpar statsentpar stat2sentpar
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix], rootdir);
-  mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
+  mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', '/project/3011020.09/jansch/');
   
   sourcemodel.time = statsentpar.time;
   sourcemodel = rmfield(sourcemodel, 'leadfield');
