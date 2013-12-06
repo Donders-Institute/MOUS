@@ -44,6 +44,8 @@ for k = 1:numel(filename)
   end
   
   if k>1
+    % update the sentence counter in the trialinfo
+    tmp.trialinfo(:,1) = tmp.trialinfo(:,1) + data.trialinfo(end,1);
     data = ft_appenddata([], data, tmp);
   end
   clear tmp;
