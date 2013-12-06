@@ -28,6 +28,12 @@ if numel(dataset)>1
       data  = tmpdata;
     else
       grad2 = tmpdata.grad; % assumes max. 2 datasets
+      % FIXME! make it more generic, i.e. don't rely on only 2 datasets, 
+      % and don't hard code subject names.     
+ 
+      % update the sentence counter
+      tmpdata.trialinfo(:,1) = tmpdata.trialinfo(:,1) + data.trialinfo(end,1);
+
       data  = ft_appenddata([], data, tmpdata);
       if strcmp(subjectname,'V1006')
           % dataset1: 177 trials vs. dataset2: 58 trials i.e. 3:1
@@ -41,7 +47,7 @@ if numel(dataset)>1
           tmpsens(1) = grad1;
           tmpsens(2) = grad1;
           tmpsens(3) = grad2; 
-          data.grad = ft_average_sens(tmpsens);
+          data.grad = ft_average_sens(tmpsens); %FIXME: perhaps it's best to do the averaging outside the loop (is cleaner, and allows for > 2 datasets.
       end
     end       
   end
