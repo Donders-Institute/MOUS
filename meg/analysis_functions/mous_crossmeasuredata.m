@@ -7,15 +7,16 @@ function mous_crossmeasuredata(subjectname, rootdir)
 file = ['/home/language/juludd/MOUS/ffxstats/' subjectname '-ffxStats/beta_0001.img'];
 mri = ft_read_mri(file);
 
+% This section is no longer needed as T is redefined futher below?? 
 % Load the tranfomation matricies 
- mri1=mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
- mri2=mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
- 
-T1 = mri1.transform; % from voxels indices to CTF coordinates
-T2 = mri2.transform; % from voxels indices to MNI coordinates
-% we want to go from CTF to MNI 
-% this one transform from CTF to MNI
-T = T2/T1;
+%  mri1=mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+%  mri2=mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
+%  
+% T1 = mri1.transform; % from voxels indices to CTF coordinates
+% T2 = mri2.transform; % from voxels indices to MNI coordinates
+% % we want to go from CTF to MNI 
+% % this one transform from CTF to MNI
+% T = T2/T1;
 
 
 cfg = [];
