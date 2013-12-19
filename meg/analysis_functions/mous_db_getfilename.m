@@ -225,15 +225,18 @@ switch type{2}
         if isempty(d)
           d(1).name = [subject 'coregCTFresliced'];
         end
-      case 'coreginfo_fiducials'
-        d = dir([D subject 'coreginfo_fiducials.mat']);
-        if isempty(d)
-          d(1).name = [subject 'coreginfo_fiducials'];
-        end
       case 'coreginfo'
-        d = dir([D subject 'coreginfo.mat']);
+        if numel(type)>3
+          d = dir([D subject 'coreginfo_',type{4},'.mat']);
+        else
+          d = dir([D subject 'coreginfo.mat']);
+        end
         if isempty(d)
-          d(1).name = [subject 'coreginfo'];
+          if numel(type)>3
+            d(1).name = [subject 'coreginfo_' type{4}];
+          else
+            d(1).name = [subject 'coreginfo'];
+          end
         end
       case 'coregMNI'
         d = dir([D subject 'coregMNI.nii']);
