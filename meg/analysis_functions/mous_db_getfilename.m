@@ -225,6 +225,11 @@ switch type{2}
         if isempty(d)
           d(1).name = [subject 'coregCTFresliced'];
         end
+      case 'coreginfo_fiducials'
+        d = dir([D subject 'coreginfo_fiducials.mat']);
+        if isempty(d)
+          d(1).name = [subject 'coreginfo_fiducials'];
+        end
       case 'coreginfo'
         d = dir([D subject 'coreginfo.mat']);
         if isempty(d)
