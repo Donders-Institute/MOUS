@@ -226,9 +226,17 @@ switch type{2}
           d(1).name = [subject 'coregCTFresliced'];
         end
       case 'coreginfo'
-        d = dir([D subject 'coreginfo.mat']);
+        if numel(type)>3
+          d = dir([D subject 'coreginfo_',type{4},'.mat']);
+        else
+          d = dir([D subject 'coreginfo.mat']);
+        end
         if isempty(d)
-          d(1).name = [subject 'coreginfo'];
+          if numel(type)>3
+            d(1).name = [subject 'coreginfo_' type{4}];
+          else
+            d(1).name = [subject 'coreginfo'];
+          end
         end
       case 'coregMNI'
         d = dir([D subject 'coregMNI.nii']);
@@ -259,7 +267,7 @@ switch type{2}
         end
       case 'sourcemodelfif'
         D = [D subject filesep 'bem' filesep];
-        d = dir([D '*.fif']);
+        d = dir([D '*src.fif']);
       case 'sourcemodel2D'
         if numel(type)==3, type{4} = ''; end
         d = dir([D subject 'sourcemodel2D' type{4} '.mat']);
