@@ -77,14 +77,14 @@ if docoregistration3
   [mri, shape, shapemri] = mous_anatomy_coregCTF(mri, pos, 0, refineflag);
   %icp = struct(mri.cfg.icp);
   mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri, rootdir);
-  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo', 'shape', 'shapemri', rootdir);%'icp', 0);
+  mous_db_putdata(subjectname, 'meg_anatomy_coreginfo_fiducials', 'shape', 'shapemri', rootdir);%'icp', 0);
 end
 
 %% Coregister in a third step to the coils rather than the lpa/rpa
 if docoregistration4
   mri = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
   pos = mous_db_getdata(subjectname, 'meg_raw_pos');
-  mous_db_getdata(subjectname, 'meg_anatomy_coreginfo', rootdir);
+  mous_db_getdata(subjectname, 'meg_anatomy_coreginfo_fiducials', rootdir);
   [mri, shape, shapemri] = mous_anatomy_coregCTF(mri, pos, shape, shapemri, 1);
   %icp = struct(mri.cfg.icp);
   mous_db_putdata(subjectname, 'meg_anatomy_coregCTF', mri, rootdir);
