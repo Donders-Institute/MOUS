@@ -1,53 +1,53 @@
 function mous_crossmeasuredata(subjectname, rootdir)
 
-%load mri
-%/home/language/juludd/MOUS/RFX_VIS_102_Ttests/SentVsIBI
+if nargin<2 
+  rootdir = '/project/3011020.09/MEG';
+end
 
-
+% get the functional MRI data
 file = ['/home/language/juludd/MOUS/ffxstats/' subjectname '-ffxStats/beta_0001.img'];
-mri = ft_read_mri(file);
+mri  = ft_read_mri(file, 'format', 'analyze_img');
+mri.inside = isfinite(mri.anatomy); % ensure that voxels without data will not be used in the interpolation
 
-% This section is no longer needed as T is redefined futher below?? 
-% Load the tranfomation matricies 
-%  mri1=mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
-%  mri2=mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
-%  
-% T1 = mri1.transform; % from voxels indices to CTF coordinates
-% T2 = mri2.transform; % from voxels indices to MNI coordinates
-% % we want to go from CTF to MNI 
-% % this one transform from CTF to MNI
-% T = T2/T1;
+% Load the original mri from which the sourcemodels were computed
+mri1=mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
 
+cfg           = [];
+cfg.nonlinear = 'no';
+cfg.coordsys  = 'ctf';
+mri1n         = ft_volumenormalise(cfg, mri1);
 
-cfg = [];
-cfg.nonlinear='no';
-cfg.coordsys = 'ctf';
-mri = ft_volumenormalise(cfg, mri);
+T = mri1n.initial;
 
-T = mri.initial;
-
-transfile = ['/home/language/juludd/MOUS/preprocdata/' subjectname '/Structural/' subjectname 'coregMNI_sn.mat'];
-P = load(transfile);
+%transfile = ['/home/language/juludd/MOUS/preprocdata/' subjectname '/Structural/' subjectname 'coregMNI_sn.mat'];
+%P = load(transfile);
 
 % Load meg data
-file = 'meg_mne_{_mne_allwords_01-10-sent_currentdensity_weighted}';
-meg = mous_db_getdata(subjectname,file, rootdir);
+mous_db_getdata(subjectname,'meg_mne_allwords_01-10-sent_currentdensity_weighted', rootdir);
+meg = ft_convert_units(source, 'mm'); clear source;
+
+% Load a 3D sourcemodel for a sanity check
+mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm');
+sourcemodel = ft_convert_units(sourcemodel, 'mm');
+P = sourcemodel.params;
 
 % first warp the positions in the cortical sheet to the correct starting positions (after converting to mm)
-meg = ft_convert_units(meg, 'mm');
-pos = ft_warp_apply(T,meg.pos);
+pos2d = ft_warp_apply(T,meg.pos);
+pos3d = ft_warp_apply(T,sourcemodel.pos);
 
 % Transform the meg matrix from individual space to nomralized mni space
 % then warp from the 'starting positions', using the sn file
-pos2 = ft_warp_apply(P, pos, 'individual2sn');
+pos2d_sn = ft_warp_apply(P, pos2d, 'individual2sn');
+pos3d_sn = ft_warp_apply(P, pos3d, 'individual2sn');
 
+% pos3d_sn can be used as a sanity check, these positions should be on a
+% regular grid. pos2d_sn of course will not end up on a regular grid.
+meg.pos = pos2d_sn;
 
-% Do inverse distance weighting of the mri anatomy to get the mri and meg
-% grids to the same space
-
+% Interpolate the fMRI data onto the MEG cortical sheet, using inverse distance weighting
 outname = mous_db_getfilename(subjectname,'meg_mne_{_mri_sentVSibi_interpol}',0,'/project/3011020.09/annhul');
 cfg = [];
-cfg.parameter = 'anatomy'; % ?
+cfg.parameter    = 'anatomy'; % ?
 cfg.interpmethod =  'sphere_weighteddistance';
 cfg.sphereradius = 20; 
 cfg.outputfile =  outname{1}; 

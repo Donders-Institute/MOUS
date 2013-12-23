@@ -283,6 +283,9 @@ switch type{2}
       case 'sourcemodelfif'
         D = [D subject filesep 'bem' filesep];
         d = dir([D '*src.fif']);
+      case 'sourcemodelfifreg'
+        D = [D subject filesep 'bem' filesep];
+        d = dir([D '*src_reg.fif']);
       case 'sourcemodel2D'
         if numel(type)==3, type{4} = ''; end
         d = dir([D subject 'sourcemodel2D' type{4} '.mat']);
