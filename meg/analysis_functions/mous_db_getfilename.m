@@ -64,6 +64,17 @@ end
 % explicit error
 badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1067';'V1082';'V1091';'V1096';'V1112';...
                'A2022';'A2043';'A2044';'A2045' ;'A2054' ; 'A2081' ; 'A2082'};
+           
+           
+% subjects with more than one dataset because MEG acquisition PC crashed           
+% 'V1006';'V1090';'A2011';'A2036';'A2062';'A2063';'A2076';'A2084'
+% in the above list are 2 subjects who's file are too small to be
+% considered as a task dataset by the heuristic. Therefore they are hard
+% coded 
+cannotdetectdatasetsubjects = {'A2062';'A2063'};
+
+
+          
 if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
   % 'all' is not consistent but kept for backward compatibility
 
@@ -168,9 +179,13 @@ switch type{2}
       % crashed
       switch type{3}
         case 'task'
-          % heuristic: totalbytes > 1e9
-          [m,ix] = find(totalbytes>1e9);
-          d = d(ix);
+          if any(ismember(subject, cannotdetectdatasetsubjects))
+            d = datasets_exceptions(subject,D2);
+          else
+            % heuristic: totalbytes > 1e9
+            [m,ix] = find(totalbytes>1e9);
+            d = d(ix);         
+          end
         case 'rest'
           % heuristic: totalbytes > .1e9 and <.7e9, does not work for V1012
           [m,ix] = find(totalbytes>0.1e9 & totalbytes<0.7e9);
