@@ -4,7 +4,7 @@ function [polarity, threshold, p] = mous_bfica_ecg(subjectname)
 
 % get data and apply artifact rejection
 dataset   = mous_db_getfilename(subjectname, 'meg_ds_task');
-artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+mous_db_getdata(subjectname, 'meg_artifact_cfg');
 
 cfg          = [];
 cfg.dataset  = dataset{1};
@@ -14,7 +14,7 @@ cfg.trialfun = 'trialfun_visual_sentence';
 %cfg.trialdef.poststim = 0.8;
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
-trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
+trl          = mous_artifact_remove(trl, dataset{1}, {cfgeog1 cfgjump cfgmuscle}, 'partial', 1); % don't do the horizontal EOG
 
 cfg            = [];
 cfg.dataset    = dataset{1};
