@@ -40,7 +40,8 @@ if ~isempty(fileindat)
     filename{1}(end-3) = fileindat;
 end 
 trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
-cfgart      = mous_db_getdata(subjectname, fileinart);  
+mous_db_getdata(subjectname, fileinart);  
+cfgart = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
 % cfg info for preprocessing trial data
     cfg             = [];
     cfg.dataset     = filename{1};
