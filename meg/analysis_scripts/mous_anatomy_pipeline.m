@@ -33,7 +33,7 @@ if ~exist('dosourcemodel2d_reg', 'var'), dosourcemodel2d_reg = 0; end
 
 if ~exist('doqualitycheck',   'var'),  doqualitycheck    = 0;  end
 
-if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.5; end % influences behavior of headmodel creation step
+if ~exist('thr_headmodel', 'var'), thr_headmodel = 0.3; end % influences behavior of headmodel creation step
 if ~exist('refineflag',    'var'), refineflag    = 1; end % influences behavior of coregistration to polhemus point cloud
 
 %% Coregister to MNI coordinate system
