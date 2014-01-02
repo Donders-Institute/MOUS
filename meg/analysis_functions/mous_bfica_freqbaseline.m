@@ -32,12 +32,8 @@ else
 end
 % get data and apply artifact rejection
 dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
-artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
-comp      = mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);
-avgcomp   = comp{1};
-avgpre    = comp{2};
-comp      = comp{3};
-
+mous_db_getdata(subjectname, 'meg_artifact_cfg');
+mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);
 
 % HACK otherwise crash 
 tmp=~isfinite(comp.grad.tra);
@@ -52,7 +48,7 @@ cfg.trialfun = 'trialfun_visual_sentence';
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 trl(:,2)     = trl(:,1)+1199;
-trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 2 3 4]), 'partial', 0.5); % don't do the horizontal EOG
+trl          = mous_artifact_remove(trl, dataset{1}, {cfgeog1 cfgeog2 cfgjump cfgmuscle}, 'partial', 0.5);
 
 % trl > 2 second does not make sense, sanity check: FIXME
 nsmp = trl(:,2)-trl(:,1);
