@@ -19,10 +19,11 @@ if iscell(subjectname)
   return;
 end
 
-dat   = mous_db_getdata(subjectname, 'meg_artifactcfg');
-match = zeros(1,numel(dat));
-for k = 1:numel(dat)
-  sel        = strfind(dat{k}.datafile, 'V1');
-  match(1,k) = strcmp(subjectname, dat{k}.datafile(sel(1):sel(1)+4)); 
+dat   = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+fn    = fieldnames(dat);
+match = zeros(1,numel(fn));
+for k = 1:numel(fn)
+  sel        = strfind(dat.(fn{k}).datafile, 'V1');
+  match(1,k) = strcmp(subjectname, dat.(fn{k}).datafile(sel(1):sel(1)+4)); 
 end
 
