@@ -3,12 +3,8 @@ function [sourcemodelout] = mous_anatomy_sourcemodelparcellate(subjectname, sour
 % MOUS_ANATOMY_SOURCEMODELPARCELLATE parcellates a 3D sourcemodel using the
 % automatic segmentation from freesurfer
 
-% assume that the mri and atlas are in the same voxel space! THIS IS NOT
-% GUARANTEED!!!!!
 filename_mri   = ft_getopt(varargin, 'filename_mri',   fullfile('/project/3011020.09/MEG/',subjectname,'anatomy',subjectname,'mri','orig.mgz'));
 filename_atlas = ft_getopt(varargin, 'filename_atlas', fullfile('/project/3011020.09/MEG/',subjectname,'anatomy',subjectname,'mri','aparc+aseg.mgz'));
-parcelparam    = ft_getopt(varargin, 'parcelparam',    'aparc');
-
 % ensure mm units
 sourcemodelin = ft_convert_units(sourcemodelin, 'mm');
 
@@ -29,29 +25,28 @@ voxpos  = ft_warp_apply(vox2vox, voxpos);
 
 % read in the atlas
 atlas    = ft_read_atlas(filename_atlas);
-for k = 1:numel(atlas.([parcelparam,'label']))
+for k = 1:numel(atlas.aparclabel)
   % replace dashes by underscores
-  tmp = atlas.([parcelparam,'label']){k};
+  tmp = atlas.aparclabel{k};
   tmp = strrep(tmp, '-', '_');
-  tmp = strrep(tmp, ' ', '_');
   tmp = strrep(tmp, '3', 'thir');
   tmp = strrep(tmp, '4', 'four');
   tmp = strrep(tmp, '5', 'fif');
-  atlas.([parcelparam,'label']){k} = tmp;
+  atlas.aparclabel{k} = tmp;
 end
 
 % label the points in the sourcemodel according to the closest atlas point.
 sourcemodelout = sourcemodelin;
 mask           = false(size(sourcemodelout.pos,1),1);
-for k = 1:numel(atlas.([parcelparam,'label']))
-  sourcemodelout.(atlas.([parcelparam,'label']){k}) = mask;
+for k = 1:numel(atlas.aparclabel)
+  sourcemodelout.(atlas.aparclabel{k}) = mask;
 end
 
 dim      = atlas.dim;
 [x,y,z]  = ndgrid(1:dim(1),1:dim(2),1:dim(3));
 voxatlas = [x(:) y(:) z(:)];
-voxatlas(atlas.(parcelparam)==0,:)  = [];
-atlas.(parcelparam)(atlas.(parcelparam)==0) = [];
+voxatlas(atlas.aparc==0,:)  = [];
+atlas.aparc(atlas.aparc==0) = [];
 clear x y z;
 for k = 1:size(voxpos,1)
   if any(sourcemodelin.inside==k)
@@ -63,11 +58,44 @@ for k = 1:size(voxpos,1)
     id = d<=15;
     
     % identify the label values
-    val = setdiff(unique(atlas.(parcelparam)(id)),0);
+    val = setdiff(unique(atlas.aparc(id)),0);
     for m = 1:numel(val)
-      sourcemodelout.(atlas.([parcelparam,'label']){val(m)})(k) = true;
+      sourcemodelout.(atlas.aparclabel{val(m)})(k) = true;
     end
   else
     continue;
   end
 end
+
+
+
+% sourcemodelout.aparc = zeros(size(sourcemodelout.pos,1),1);
+% sourcemodelout.label = {};
+% 
+% dim      = atlas.dim;
+% [x,y,z]  = ndgrid(1:dim(1),1:dim(2),1:dim(3));
+% voxatlas = [x(:) y(:) z(:)];
+% voxatlas(atlas.aparc==0,:)  = [];
+% atlas.aparc(atlas.aparc==0) = [];
+% clear x y z;
+% for k = 1:size(voxpos,1)
+%   if any(sourcemodelin.inside==k)
+%     d = (voxatlas(:,1)-voxpos(k,1)).^2 + ...
+%         (voxatlas(:,2)-voxpos(k,2)).^2 + ...
+%         (voxatlas(:,3)-voxpos(k,3)).^2;
+%     [md, id] = min(d);
+%     sourcemodelout.aparc(k) = atlas.aparc(id);
+%   else
+%     continue;
+%   end
+% end
+% val = unique(sourcemodelout.aparc);
+% val = setdiff(val, 0);
+% aparc = sourcemodelout.aparc;
+% for k = 1:numel(val)
+%   % reindex the aparc values to run from 1 until the number of unique
+%   % parcels
+%   aparc(sourcemodelout.aparc==val(k)) = k;
+% end
+% sourcemodelout.aparc      = aparc;
+% sourcemodelout.aparclabel = atlas.aparclabel(val);

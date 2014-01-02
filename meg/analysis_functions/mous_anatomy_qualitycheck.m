@@ -18,7 +18,7 @@ close all
 
 headmodel     = mous_db_getdata(subjectname, 'meg_anatomy_headmodel', rootdir);
 headmodel     = ft_datatype_headmodel(headmodel); % due to change in type naming convention: nolte->singleshell
-sourcemodel2d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D', rootdir);
+sourcemodel2d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', rootdir);
 sourcemodel3d = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel3D_nonlin8mm', rootdir);
 mri           = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
 mous_db_getdata(subjectname, 'meg_anatomy_coreginfo', rootdir);
@@ -109,15 +109,16 @@ subplot(2,2,1);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; f
 subplot(2,2,2);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(sourcemodel2d); view([0 90]);
 subplot(2,2,3);hold on;ft_plot_vol(headmodel, 'edgecolor', 'none'); alpha 0.5; ft_plot_mesh(sourcemodel2d); view([90 0]);
 
-h8 = figure('visible',visible);
-subplot(2,2,1);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape);
-plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k');
-subplot(2,2,2);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([0 0]);
-plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k'); 
-subplot(2,2,3);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([90 0]);
-plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k');
-subplot(2,2,4);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([180 0]);
-   
+% h8 = figure('visible',visible);
+% subplot(2,2,1);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape);
+% plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k');
+% subplot(2,2,2);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([0 0]);
+% plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k'); 
+% subplot(2,2,3);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([90 0]);
+% plot3([-100 100],[0 0],[0 0],'k');plot3([0 0],[-80 80],[0 0],'k');plot3([0 0],[0 0],[-80 150],'k');
+% subplot(2,2,4);ft_plot_mesh(shapemri.bnd,'edgecolor','none');alpha 0.5;hold on;ft_plot_headshape(shape); view([180 0]);
+mous_anatomy_qualitycheck_coregistration(subjectname, rootdir);
+
 mous_db_putdata(subjectname, 'meg_anatomy_figure_headmodel',           h1, rootdir);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel3d',       h2, rootdir);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2d',       h3, rootdir);
@@ -125,7 +126,7 @@ mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice1', h4, rootd
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice2', h5, rootdir);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_sourcemodel2dslice3', h6, rootdir);
 mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg',               h7, rootdir);
-mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg2',              h8, rootdir);
+%mous_db_putdata(subjectname, 'meg_anatomy_figure_coreg2',              h8, rootdir);
 
 [f1,s1]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice1');
 [f2,s2]=mous_db_getfilename(subjectname,'meg_anatomy_figure_sourcemodel2dslice2');
