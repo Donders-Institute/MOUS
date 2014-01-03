@@ -17,6 +17,7 @@ else
 end
 
 [p,n,ext] = fileparts(filename{1});
+s = [];
 switch lower(ext)
   case {'.ima' '.mgz' '.nii' '.img'}
     data = ft_read_mri(filename{1});
@@ -33,14 +34,15 @@ switch lower(ext)
       data = tmp.(s.name);
     else
       data = tmp;
-      clear tmp;
     end    
   case {'.png'}
     system(['eog ' filename{1} ' &']); %open figure in the background
   otherwise
 end 
 
-if nargout==1
+if nargout==1 && numel(s)==1 && isstruct(tmp.(s.name))
+  varargout{1} = tmp.(s.name);
+elseif nargout==1
   varargout{1} = data;
 elseif nargout>1
   warning('mous_db_getdata has been changed to work more like ''load''. calling it with more than one output argument may lead to unexpected behavior');
