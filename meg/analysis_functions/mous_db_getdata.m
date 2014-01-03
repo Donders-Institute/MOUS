@@ -29,7 +29,7 @@ switch lower(ext)
   case {'.mat'}
     s = whos('-file', filename{1});
     tmp  = load(filename{1});
-    if numel(s)==1
+    if numel(s)==1 && ~isstruct(tmp.(s.name));
       data = tmp.(s.name);
     else
       data = tmp;
