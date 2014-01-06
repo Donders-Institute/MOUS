@@ -31,13 +31,13 @@ filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
 for k = 1:numel(filename)
   if numel(filename)==1
     % get the description of the artifacts
-    tmp = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+    mous_db_getdata(subjectname, 'meg_artifact_cfg');
   else
-    tmp = mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);
-  end
-  
+    mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);
+  end 
+ 
   [trl] = mous_defineTrial(filename{k}, prestim, poststim, 'all', trialfun);
-  [trl] = mous_artifact_remove(trl, filename{k}, tmp);
+  [trl] = mous_artifact_remove(trl, filename{k}, {cfgeog1 cfgeog2 cfgjump cfgmuscle});
   tmp   = mous_preprocessing(filename{k}, trl, resamplefs, analysisType, prestim);
   if k==1
     data = tmp;

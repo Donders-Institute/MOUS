@@ -107,9 +107,9 @@ if repositionflag && ~isempty(pos)
   
   % convert the fiducials to voxels
   cfg = [];
-  cfg.fiducial.nas = warp_apply(inv(T), nas);
-  cfg.fiducial.lpa = warp_apply(inv(T), lcoil);
-  cfg.fiducial.rpa = warp_apply(inv(T), rcoil);
+  cfg.fiducial.nas = ft_warp_apply(inv(T), nas);
+  cfg.fiducial.lpa = ft_warp_apply(inv(T), lcoil);
+  cfg.fiducial.rpa = ft_warp_apply(inv(T), rcoil);
   
   % realign
   mri   = ft_volumerealign(cfg, mri);
