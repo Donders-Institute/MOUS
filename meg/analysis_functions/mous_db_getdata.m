@@ -17,6 +17,7 @@ else
 end
 
 [p,n,ext] = fileparts(filename{1});
+s = [];
 switch lower(ext)
   case {'.ima' '.mgz' '.nii' '.img'}
     data = ft_read_mri(filename{1});
@@ -29,39 +30,30 @@ switch lower(ext)
   case {'.mat'}
     s = whos('-file', filename{1});
     tmp  = load(filename{1});
-    for k = 1:numel(s)
-      data{k} = tmp.(s(k).name);
-      if isstruct(data{k})
-        data{k}.varname = s(k).name;
-      end
-      varname{k}      = s(k).name;
-    end
+    if numel(s)==1 && ~isstruct(tmp.(s.name));
+      data = tmp.(s.name);
+    else
+      data = tmp;
+    end    
   case {'.png'}
     system(['eog ' filename{1} ' &']); %open figure in the background
   otherwise
 end 
 
-if ~iscell(data)
-  data = {data};
-end
-
-if nargout
-  if numel(data)==1
-    data = data{1};
-  end
+if nargout==1 && numel(s)==1 && isstruct(tmp.(s.name))
+  varargout{1} = tmp.(s.name);
+elseif nargout==1
   varargout{1} = data;
+elseif nargout>1
+  warning('mous_db_getdata has been changed to work more like ''load''. calling it with more than one output argument may lead to unexpected behavior');
+  fnames = fieldnames(data);
+  for m = 1:nargout
+    varargout{m} = data.(fnames{m});
+  end
 else
-  % evaluate the variables in the caller's workspace
-  %if numel(data)==1 && ~isfield(data{1}, 'varname')
-  %else
-    for k = 1:numel(data)
-      if isstruct(data{k}) && isfield(data{k}, 'varname'),
-        tmp = rmfield(data{k}, 'varname');
-      else
-        tmp = data{k};
-      end
-      assignin('caller', varname{k}, tmp);
-    end
-  %end
+  fnames = fieldnames(data);
+  for m = 1:numel(fnames)
+    assignin('caller', fnames{m}, data.(fnames{m}));
+  end
 end
-  
+ 
