@@ -20,40 +20,30 @@ dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 if numel(dataset)>1
   for k = 1:numel(dataset)
     tmpdataset   = dataset{k};
-    tmpartfctcfg = mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);  % separate artifact cfg for each task file
-    tmpcomp      = mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);           % one *combined) file for ecg components - see mous_bfica_dss.
+    mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);  % separate artifact cfg for each task file
+    tmpartfctcfg = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
+    mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);           % one *combined) file for ecg components - see mous_bfica_dss.
+    tmpcomp      = {avgcomp avgpre comp};
     tmpdata      = compute_data(tmpdataset, tmpartfctcfg, tmpcomp, options);
+    
     if k==1,
-      grad1 = tmpdata.grad;
-      data  = tmpdata;
+      tmpsens(k) = tmpdata.grad;
+      weights(k) = numel(tmpdata.trial);
+      data       = tmpdata;
     else
-      grad2 = tmpdata.grad; % assumes max. 2 datasets
-      % FIXME! make it more generic, i.e. don't rely on only 2 datasets, 
-      % and don't hard code subject names.     
- 
       % update the sentence counter
       tmpdata.trialinfo(:,1) = tmpdata.trialinfo(:,1) + data.trialinfo(end,1);
-
-      data  = ft_appenddata([], data, tmpdata);
-      if strcmp(subjectname,'V1006')
-          % dataset1: 177 trials vs. dataset2: 58 trials i.e. 3:1
-          tmpsens(1) = grad1;
-          tmpsens(2) = grad1;
-          tmpsens(3) = grad1;
-          tmpsens(4) = grad2;
-          data.grad = ft_average_sens(tmpsens);
-      elseif strcmp(subjectname,'V1090')
-          % dataset1: 150 trials vs. dataset2: 88 trials i.e. 2:1
-          tmpsens(1) = grad1;
-          tmpsens(2) = grad1;
-          tmpsens(3) = grad2; 
-          data.grad = ft_average_sens(tmpsens); %FIXME: perhaps it's best to do the averaging outside the loop (is cleaner, and allows for > 2 datasets.
-      end
-    end       
+      tmpsens(k)             = tmpdata.grad;
+      weights(k)             = numel(tmpdata.trial);
+      data                   = ft_appenddata([], data, tmpdata);
+    end
   end
+  data.grad = ft_average_sens(tmpsens, 'weights', weights);     
 else
-  artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
-  comp      = mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);
+  mous_db_getdata(subjectname, 'meg_artifact_cfg');
+  artfctcfg = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
+  mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);
+  comp      = {avgcomp avgpre comp};
   data      = compute_data(dataset{1}, artfctcfg, comp, options);
 end
 freq = compute_freq(data, options, frequency);
@@ -136,4 +126,3 @@ cfg.pad    = 4;
 freq       = ft_freqanalysis(cfg, data);
 warning off;
 freq = ft_struct2single(freq);
-
