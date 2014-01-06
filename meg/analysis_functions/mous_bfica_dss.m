@@ -6,7 +6,8 @@ dataset   = mous_db_getfilename(subjectname, 'meg_ds_task');
 if numel(dataset)>1
     for k = 1:numel(dataset)
         tmpdataset          = dataset{k};
-        tmpartfctcfg        = mous_db_getdata(subjectname,['meg_artifact_cfg_pt',num2str(k)]);
+        mous_db_getdata(subjectname,['meg_artifact_cfg_pt',num2str(k)]);
+        tmpartfctcfg        = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
         [tmpdata, tmpecg]   = compute_data(tmpdataset, tmpartfctcfg, subjectname);
         if k == 1
             data = tmpdata;
@@ -17,7 +18,8 @@ if numel(dataset)>1
         end
     end
 else
-    artfctcfg   = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+    mous_db_getdata(subjectname, 'meg_artifact_cfg');
+    artfctcfg   = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
     [data, ecg] = compute_data(dataset{1}, artfctcfg, subjectname);
 end 
 

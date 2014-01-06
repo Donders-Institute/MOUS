@@ -39,12 +39,18 @@ filename    = mous_db_getfilename(subjectname, 'meg_raw_task');
 if ~isempty(fileindat)
     filename{1}(end-3) = fileindat;
 end 
+<<<<<<< HEAD
 if strcmp(subjectname(1),'A')
  trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
 else strcmp(subjectname(1),'V')
  trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'visual_sentence');  % entire sentence, with prestim and poststim = 0.5s 
 end
 cfgart      = mous_db_getdata(subjectname, fileinart);  
+=======
+trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
+mous_db_getdata(subjectname, fileinart);  
+cfgart = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
+>>>>>>> 66c1e2c19c2b50aaa15953f6a00312cbbc301d0a
 % cfg info for preprocessing trial data
     cfg             = [];
     cfg.dataset     = filename{1};

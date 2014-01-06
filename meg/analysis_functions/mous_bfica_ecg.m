@@ -3,6 +3,7 @@ function [polarity, threshold, p] = mous_bfica_ecg(subjectname)
 
 % get data and apply artifact rejection
 dataset   = mous_db_getfilename(subjectname, 'meg_ds_task');
+<<<<<<< HEAD
 if numel(dataset)>1
     for k = 1:numel(dataset)
         tmpdataset      = dataset{k};
@@ -34,6 +35,9 @@ threshold = str2double(s2);
 for k = 1:numel(ecg.trial)
   p{k} = peakdetect2(polarity*ecg.trial{k},threshold,100);
 end
+=======
+mous_db_getdata(subjectname, 'meg_artifact_cfg');
+>>>>>>> 66c1e2c19c2b50aaa15953f6a00312cbbc301d0a
 
 
 function [ecg] = rmartifact(dataset, artfctcfg,subjectname)  % remove artifacts from ecg
@@ -49,7 +53,11 @@ end
 %cfg.trialdef.poststim = 0.8;
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
+<<<<<<< HEAD
 trl          = mous_artifact_remove(trl, dataset, artfctcfg([1 2 3 4]), 'partial', 1); % don't do the horizontal EOG
+=======
+trl          = mous_artifact_remove(trl, dataset{1}, {cfgeog1 cfgjump cfgmuscle}, 'partial', 1); % don't do the horizontal EOG
+>>>>>>> 66c1e2c19c2b50aaa15953f6a00312cbbc301d0a
 
 cfg            = [];
 cfg.dataset    = dataset;
