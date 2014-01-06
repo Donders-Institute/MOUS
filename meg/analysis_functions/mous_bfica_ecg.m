@@ -1,38 +1,23 @@
 function [polarity, threshold, p] = mous_bfica_ecg(subjectname)
-
 % helper function to extract the polarity, threshold and ECG peaks. 
 
 % get data and apply artifact rejection
 dataset   = mous_db_getfilename(subjectname, 'meg_ds_task');
-artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
-
-cfg          = [];
-cfg.dataset  = dataset{1};
-cfg.trialfun = 'trialfun_visual_sentence';
-%cfg.trialfun = 'trialfun_visual_word';
-%cfg.trialdef.prestim  = 0;
-%cfg.trialdef.poststim = 0.8;
-cfg          = ft_definetrial(cfg);
-trl          = cfg.trl;
-trl          = mous_artifact_remove(trl, dataset{1}, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
-
-cfg            = [];
-cfg.dataset    = dataset{1};
-cfg.trl        = trl;
-cfg.continuous = 'yes';
-cfg.demean     = 'yes';
-cfg.padding    = 1.5;
-cfg.hpfilter   = 'yes';
-cfg.hpfreq     = 4;
-cfg.channel    = 'EEG059';
-ecg            = ft_preprocessing(cfg);
-
-% downsample
-cfg            = [];
-cfg.demean     = 'yes';
-cfg.detrend    = 'no';
-cfg.resamplefs = 200;
-ecg            = ft_resampledata(cfg, ecg);
+if numel(dataset)>1
+    for k = 1:numel(dataset)
+        tmpdataset      = dataset{k};
+        tmpartfctcfg    = mous_db_getdata(subjectname,['meg_artifact_cfg_pt',num2str(k)]);
+        tmpecg          = rmartifact(tmpdataset,tmpartfctcfg,subjectname);
+        if k == 1
+           ecg = tmpecg;
+        else
+           ecg = ft_appenddata([],ecg,tmpecg);
+        end
+    end
+else
+    artfctcfg = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+    ecg     = rmartifact(dataset{1}, artfctcfg, subjectname);
+end 
 
 % compute peak times for ecg
 ecg = ft_channelnormalise([], ecg);
@@ -49,3 +34,37 @@ threshold = str2double(s2);
 for k = 1:numel(ecg.trial)
   p{k} = peakdetect2(polarity*ecg.trial{k},threshold,100);
 end
+
+
+function [ecg] = rmartifact(dataset, artfctcfg,subjectname)  % remove artifacts from ecg
+cfg          = [];
+cfg.dataset  = dataset;
+if strcmp(subjectname(1),'V')
+    cfg.trialfun = 'trialfun_visual_sentence';
+elseif strcmp(subjectname(1),'A')
+    cfg.trialfun = 'trialfun_auditory_sentence';
+end 
+%cfg.trialfun = 'trialfun_visual_word';
+%cfg.trialdef.prestim  = 0;
+%cfg.trialdef.poststim = 0.8;
+cfg          = ft_definetrial(cfg);
+trl          = cfg.trl;
+trl          = mous_artifact_remove(trl, dataset, artfctcfg([1 2 3 4]), 'partial', 1); % don't do the horizontal EOG
+
+cfg            = [];
+cfg.dataset    = dataset;
+cfg.trl        = trl;
+cfg.continuous = 'yes';
+cfg.demean     = 'yes';
+cfg.padding    = 1.5;
+cfg.hpfilter   = 'yes';
+cfg.hpfreq     = 4;
+cfg.channel    = 'EEG059';
+ecg            = ft_preprocessing(cfg);
+
+% downsample
+cfg            = [];
+cfg.demean     = 'yes';
+cfg.detrend    = 'no';
+cfg.resamplefs = 200;
+ecg            = ft_resampledata(cfg, ecg);
