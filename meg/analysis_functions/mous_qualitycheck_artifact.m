@@ -39,18 +39,18 @@ filename    = mous_db_getfilename(subjectname, 'meg_raw_task');
 if ~isempty(fileindat)
     filename{1}(end-3) = fileindat;
 end 
-<<<<<<< HEAD
+
 if strcmp(subjectname(1),'A')
  trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
 else strcmp(subjectname(1),'V')
  trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'visual_sentence');  % entire sentence, with prestim and poststim = 0.5s 
 end
-cfgart      = mous_db_getdata(subjectname, fileinart);  
-=======
-trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
-mous_db_getdata(subjectname, fileinart);  
-cfgart = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
->>>>>>> 66c1e2c19c2b50aaa15953f6a00312cbbc301d0a
+%cfgart      = mous_db_getdata(subjectname, fileinart);  
+
+cfgart = mous_db_getdata(subjectname, fileinart);  
+
+trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s
+
 % cfg info for preprocessing trial data
     cfg             = [];
     cfg.dataset     = filename{1};
@@ -67,7 +67,7 @@ if doblink
     figH            = 0.9;                  % figure height
     loop            = 1;                    % redundant for blinks and sacc, but necessary for jump/musc to prevent memory error
 
-    [diagnostics]   = getDiagnostics(cfgart, trlDat, artType);
+    [diagnostics]   = getDiagnostics(cfgart.cfgeog1, trlDat);
     [dataSen, vlim] = preprocData(cfg);
     superimpose(diagnostics,vlim,dataSen,plotPerPage, artifactName, figH, trlDat, loop);
 end %doblink
@@ -82,7 +82,7 @@ if dosacc
     figH            = 0.9;
     loop            = 1;
     
-    [diagnostics]   = getDiagnostics(cfgart, trlDat, artType);
+    [diagnostics]   = getDiagnostics(cfgart.cfgeog2, trlDat);
     [dataSen, vlim] = preprocData(cfg);
     superimpose(diagnostics,vlim,dataSen, plotPerPage, artifactName, figH, trlDat, loop);
 end % dosacc
@@ -107,7 +107,7 @@ if dojump
             cfg.trl = trlDat(half+1:full,:);
             loop    = i;
         end 
-        [diagnostics]   = getDiagnostics(cfgart, cfg.trl, artType);
+        [diagnostics]   = getDiagnostics(cfgart.cfgjump, cfg.trl);
         [dataSen, vlim] = preprocData(cfg);
         superimpose(diagnostics, vlim, dataSen, plotPerPage, artifactName, figH, cfg.trl, loop);
     end % loop through first and second half of data set
@@ -137,7 +137,7 @@ if domusc
             cfg.trl = trlDat(half+1:full,:);
             loop    = i;
         end 
-        [diagnostics]   = getDiagnostics(cfgart, cfg.trl, artType);
+        [diagnostics]   = getDiagnostics(cfgart.cfgmuscle, cfg.trl);
         [dataSen, vlim] = preprocData(cfg);
         superimpose(diagnostics, vlim, dataSen, plotPerPage, artifactName, figH, cfg.trl, loop);
     end
@@ -146,10 +146,10 @@ end  % end domusc
 
 %% get diagnostics
 %%%%%%%%%% Subfunction %%%%%%%%%%%%%%%%%
-function [diagnostics] = getDiagnostics(cfgart, trlSen, artType)
+function [diagnostics] = getDiagnostics(cfgart, trlSen)
 
     % trl for artifacts
-    trlArt  = cfgart{artType}.artfctdef.zvalue.artifact;
+    trlArt  = cfgart.artfctdef.zvalue.artifact;
     artvec  = zeros(1,max(trlSen(:,2)));   % zero vector: each element is a sample within trial data
 
     % artifact specification for each trial
