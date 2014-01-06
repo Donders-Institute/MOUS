@@ -1,4 +1,4 @@
-function mous_corrmnebf_4mnesurfreg_grpstat_roi2whole(subjectnames)
+function mous_corrmnebf_4mnesurfreg_grpstat_roi2whole(subjectnames,param)
 
 % This function performs group-level statistics on the mne-bf matrix 
 % Interpolation is not necessary because we are using surface registered
@@ -14,15 +14,18 @@ dostats = true;
 dodesc  = false;
 
 % define parameters for analyses
-  param.foi         = 5;        
-  param.toie        = [0.35 0.45];  % toi for ERFs
-  param.selfq       = [-0.12 -0.08];
-  param.suff        = num2str(param.foi);
-  param.savebf      = regexprep(num2str(mean(param.selfq(:))),'[.]','');
-  param.savemne     = regexprep([num2str(param.toie(1)) num2str(param.toie(2))],'[.]','');  
-  param.cdtn        = 'sen';  
-  param.cdtn2       = 'seq'; 
+%   param.foi         = 5;        
+%   param.toie        = [0.35 0.45];  % toi for ERFs
+%   param.selfq       = [-0.12 -0.08];
+%   param.suff        = num2str(param.foi);
+%   param.savebf      = regexprep(num2str(mean(param.selfq(:))),'[.]','');
+%   param.savemne     = regexprep([num2str(param.toie(1)) num2str(param.toie(2))],'[.]','');  
+%   param.cdtn        = 'sen';  
+%   param.cdtn2       = 'seq'; 
+%   param.subjspec    = '_good'; % note if subjects are good (performed well in question), bad, subset of some sort..etc
   rootdir = '/project/3011020.09/nielam/'; 
+  singlesubjdataSEN = ['meg_corrmnebf_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_sen'];
+  singlesubjdataSEQ = ['meg_corrmnebf_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_seq'];
 
 
 %% randomly pick half the subjects for discovery  (other half for replication)
@@ -70,33 +73,33 @@ if dostats
         roi(5).area = 'LIFG2';
 
     elseif param.foi == 5
-        roi(1).x = 8;    
-        roi(1).y = 6;
-        roi(1).z = 14;
+        roi(1).x = 7;    
+        roi(1).y = 7;
+        roi(1).z = 16;
         roi(1).seed = 'TFRseed';
         roi(1).cdtn = param.cdtn;
-        roi(1).area = 'Lparietal5Hz';
+        roi(1).area = 'Lsupparlobule5Hz';
 
         roi(2).x = 14;   
-        roi(2).y = 4;
-        roi(2).z = 13;
+        roi(2).y = 5;
+        roi(2).z = 16;
         roi(2).seed = 'TFRseed';
         roi(2).cdtn = param.cdtn;
-        roi(2).area = 'Rparietal5Hz';
+        roi(2).area = 'Rprecuneus5Hz';
 
-        roi(3).x = 7; 
-        roi(3).y = 17;
-        roi(3).z = 13;
+        roi(3).x = 4; 
+        roi(3).y = 7;
+        roi(3).z = 12;
         roi(3).seed = 'TFRseed';
         roi(3).cdtn = param.cdtn;
-        roi(3).area = 'Lfrontal5Hz';
-
-        roi(4).x = 5; 
-        roi(4).y = 18;
-        roi(4).z = 12;
-        roi(4).seed = 'ERFseed';
+        roi(3).area = 'Lmtgstg5Hz';
+        
+        roi(4).x = 4; 
+        roi(4).y = 10;
+        roi(4).z = 11;
+        roi(4).seed = 'TFRseed';
         roi(4).cdtn = param.cdtn;
-        roi(4).area = 'LIFG2';
+        roi(4).area = 'Lstg5Hz';
     end 
 
        
@@ -134,19 +137,19 @@ if dostats
         load /home/language/nielam/MOUS_AnalysisNotes/corrmnebf/corrmnebf_wholeheadcoord_5Hz.mat
     end 
         
-    % get subject contribution for each voxel (dof); same for both cdtns
-    % mous_db_getdata('groupresults',['meg_corrmnebf_grpavg_corVoxvert8mm_mnesurfreg_jack_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_sen_',num2str(Nsubj)]);
-    tmp = mous_db_getdata('groupresults',['meg_corrmnebf_grpavg_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_sen_101'],rootdir);
-    dof = tmp{3};
-    clear tmp;
+    % get subject contribution for each voxel (dof); same for either condition (Sent or Seq)
+    % tmp = mous_db_getdata('groupresults',['meg_corrmnebf_grpavg_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_sen_101'],rootdir);
+    mous_db_getdata('groupresults',param.doffile,rootdir);
+    clear data dataAvg
+   
         
      
     %% load data for each individual subject and select ROI 
     Nsubj = numel(subjectnames);
     
     for scnt = 1:Nsubj      
-        corsen = mous_db_getdata(subjectnames{scnt},['meg_corrmnebf_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_sen'],rootdir);
-        corseq = mous_db_getdata(subjectnames{scnt},['meg_corrmnebf_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_seq'],rootdir); 
+        corsen = mous_db_getdata(subjectnames{scnt},singlesubjdataSEN,rootdir);
+        corseq = mous_db_getdata(subjectnames{scnt},singlesubjdataSEQ,rootdir); 
                
         for rcnt = 1:numel(roi)
             % select necessary data for stats for each ROI        
@@ -226,13 +229,14 @@ if dostats
     
 %% montecarlo permutation statistics 
     totalcomp = numel(roi)*3;
+    genname   = 'meg_corrmnebf_grpstats_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf_withcluster';
     
     for qq = 1:totalcomp  % 3 comparisons (svs, sen v. 0, seq v. 0) for each ROI
 
         if qq < numel(roi)+1                              % svs comparison 
           sdat1 = allsdata(qq).cdtnone;
           sdat2 = allsdata(qq).cdtntwo;
-          statsavename = ['meg_corrmnebf_grpstats_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_',roi(qq).area,'_',roi(qq).seed,'_svs_',num2str(Nsubj)];
+          statsavename = [genname,param.savebf,'mne',param.savemne,'_',param.suff,'Hz_',roi(qq).area,'_',roi(qq).seed,'_svs_',num2str(Nsubj),param.subjspec];
         elseif qq > numel(roi) && qq < (numel(roi)*2)+1   % sent vs. 0
           sdat1 = allsdata(qq-numel(roi)).cdtnone;
           if mod(qq,numel(roi)) == 0
@@ -240,7 +244,7 @@ if dostats
           else
               sdat2 = dumdata;
           end 
-          statsavename = ['meg_corrmnebf_grpstats_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_',roi(qq-numel(roi)).area,'_',roi(qq-numel(roi)).seed,'_sen_',num2str(Nsubj)];
+          statsavename = [genname,param.savebf,'mne',param.savemne,'_',param.suff,'Hz_',roi(qq-numel(roi)).area,'_',roi(qq-numel(roi)).seed,'_sen_',num2str(Nsubj),param.subjspec];
         elseif qq > numel(roi)*2                                    % seq vs. 0
           sdat1 = allsdata(qq-numel(roi)*2).cdtntwo;
           if mod(qq,numel(roi)) == 0
@@ -248,7 +252,7 @@ if dostats
           else
               sdat2 = dumdata;
           end 
-          statsavename = ['meg_corrmnebf_grpstats_corVoxvert8mm_mnesurfreg_jack_indregword_fisher_bf',param.savebf,'mne',param.savemne,'_',param.suff,'Hz_',roi(qq-numel(roi)*2).area,'_',roi(qq-numel(roi)*2).seed,'_seq_',num2str(Nsubj)];
+          statsavename = [genname,param.savebf,'mne',param.savemne,'_',param.suff,'Hz_',roi(qq-numel(roi)*2).area,'_',roi(qq-numel(roi)*2).seed,'_seq_',num2str(Nsubj),param.subjspec];
         end       
 
         % do stats       
@@ -260,10 +264,10 @@ if dostats
         cfg.uvar = 2;
         cfg.numrandomization = 2000;  % with 72 subjects, can do at least 2000 permutations
         cfg.parameter = 'avg.pow';
-        cfg.correctm  = 'no';  % 'max' - compare with maximum statistic (max. of cluster-level statistic)
+        cfg.correctm  = 'cluster';  % 'max' - compare with maximum statistic (max. of cluster-level statistic)
         cfg.clusteralpha = 0.05;
         %cfg.clusteralpha = 0.005;
-        cfg.clusterthreshold = 'nonparametric_individual'; % is "nonpar_common" determined across all subjects?
+        cfg.clusterthreshold = 'nonparametric_individual'; % 
         stat2 = ft_sourcestatistics(cfg, sdat1{:}, sdat2{:}); 
         
         mous_db_putdata('groupresults',statsavename,'stat2',rootdir);
@@ -276,19 +280,45 @@ if dodesc % plot results
     % get 2D sourcemodel: defines source positions (same across all subjects)
     sourcemodel2d = load('/home/language/nielam/MOUS/meg/templates/cortex_midthickness_8196reg');
     sourcemodel2d = sourcemodel2d.sourcemodel;
-   
+
     dat = sourcemodel2d;
     dat.avg.pow = zeros(1,8196);
-    %dat.avg.pow = stat2.prob;
-    tmp = -log10(stat2.prob);
-    %idx = find(tmp > 0.005);
-    %tmp(idx) = NaN;
-    dat.avg.pow = tmp;
-    %figure; ft_plot_mesh(dat, 'edgecolor','none','vertexcolor',dat.avg.pow);
+%     tmp = stat2.prob;
+%     tmp(tmp(:) > -log10(0.05));
+        
+    % T-VALUES
+    dat.avg.pow = stat2.stat;
     figure; ft_plot_mesh(dat, 'edgecolor','none','vertexcolor',dat.avg.pow);
-    clear title;
-    title('Rparietal2 TFR seed to ERF whole head; surf reg; SEN')
-    colorbar; caxis([0 0.005]);
+    colorbar; caxis([-8 8]);
+    
+    % Inverse P-VAL
+    tmp = -log10(stat2.prob);
+    dat.avg.pow = tmp;
+    figure; ft_plot_mesh(dat, 'edgecolor','none','vertexcolor',dat.avg.pow);
+    colorbar;  caxis([0 1.8]);
+
+    % P-VAL
+    dat.avg.pow = stat2.prob;
+    figure; ft_plot_mesh(dat, 'edgecolor','none','vertexcolor',dat.avg.pow);
+    colorbar; caxis([0.01 1]);
+    
+    pval = zeros(1,2); tval = pval;
+    tval(1,1) = min(stat2.stat);
+    tval(1,2) = max(stat2.stat)
+    pval(1,1) = min(stat2.prob);
+    pval(1,2) = max(stat2.prob)
+    
+    tmp = stat2.prob;
+    idx = find(tmp < 0.1);
+    tmp(idx) = NaN;
+    figure; ft_plot_mesh(tmp,'edgecolor','none','vertexcolor',dat.avg.pow);
+    
+    % light
+    % delete(findall(gcf,'Type','light'))
+    
+    %   clear title;
+    % title('Rparietal 5Hz TFR seed to ERF whole head; surf reg; Seq; no clustering'); 
+     % caxis([0 0.005]);
     %title('Lfrontal2 TFR seed to ERF whole head; surf reg; svs')
     
     %% plotting for ERF seed (i.e. looking at TFRs, using 3D sourcemodel)
@@ -304,12 +334,13 @@ if dodesc % plot results
     %imask = mous_bfica_sourceinterpolate(stat3, 'mask', stat2.inside);
     
     cfg = [];
-    cfg.method      = 'slice';  %ortho
-    cfg.funparameter = 'pow';
-    cfg.funcolorlim = [-5 5];
+    cfg.method         = 'surface';  %ortho
+    cfg.funparameter   = 'pow';
+    cfg.funcolorlim    = 'maxabs';
     % superimpose ROIs onto afni brain atlas
     % cfg.atlas='/home/common/matlab/fieldtrip/template/atlas/afni/TTatlas+tlrc.BRIK';
-    ft_sourceplot(cfg,i1);
+    %cfg.maskparameter  = [];
+    figure; ft_sourceplot(cfg,iprob);
     
     row = max(length(stat2.posclusters),length(stat2.negclusters));
     statval = zeros(row,4);
