@@ -39,7 +39,11 @@ filename    = mous_db_getfilename(subjectname, 'meg_raw_task');
 if ~isempty(fileindat)
     filename{1}(end-3) = fileindat;
 end 
-trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
+if strcmp(subjectname(1),'A')
+ trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'auditory_sentence');  % entire sentence, with prestim and poststim = 0.5s 
+else strcmp(subjectname(1),'V')
+ trlDat      = mous_defineTrial(filename{1}, 0.5, 0.5, 'visual_sentence');  % entire sentence, with prestim and poststim = 0.5s 
+end
 cfgart      = mous_db_getdata(subjectname, fileinart);  
 % cfg info for preprocessing trial data
     cfg             = [];
@@ -261,7 +265,7 @@ function superimpose(diagnostics,vlim,dataSen,trialsPerPage, artif, h, trlSen, l
         if loop == 1
             ft_plot_text(hpos+0.09, vpos, num2str(q), 'color','b');  
         elseif loop == 2
-            newq = q+120;
+            newq = q+size(trlSen,1); % don't hard code "q+120" because this doesn't work if MEGACQ crashed
             ft_plot_text(hpos+0.09, vpos, num2str(newq), 'color','b');
         end 
         artindx     = diagnostics(q).artifact;
