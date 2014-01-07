@@ -14,48 +14,55 @@ if dodss,
   mous_db_putdata(subjectname, 'meg_bfica_comp', 'comp', 'avgcomp', 'avgpre', rootdir);
 end
 if dofreq,
-%   options = [];
-%   options.taper = 'hanning';
-%   options.t_ftimwin = 0.4;
-%   options.resamplefs = 300;
-%   freq = mous_bfica_freq(subjectname, 5, rootdir, options);
-%   mous_db_putdata(subjectname, 'meg_bfica_freq5', 'freq', rootdir);
-%   
+    if strcmp(suff,'_low')
+        
+        options = [];
+        options.taper      = 'hanning';
+        options.resamplefs = 300;
+        options.t_ftimwin  = ones(1,numel(frequency))*0.4;
+        freqlowtest = mous_bfica_freq(subjectname, frequency, rootdir, options);
+        mous_db_putdata(subjectname, ['meg_bfica_freq' suff], 'freq', rootdir);
 
-% % generic
-% options            = [];
-% options.t_ftimwin  = ones(1,numel(frequency))*0.25;%0.4;
-% options.taper      = 'hanning';
-% options.resamplefs = 300;
-% freq = mous_bfica_freq(subjectname, frequency, rootdir, options);
-% mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', rootdir);
+    elseif strcmp(suff,'_medium')
 
-%
-% % broadband gamma frequency
-% options = [];
-% options.tapsmofrq = 30;
-% options.taper = 'dpss';
-% options.t_ftimwin = 0.1;
-% options.resamplefs = 300;
-% freq = mous_bfica_freq(subjectname, 70, rootdir, options);
-% mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
+        options            = [];
+        options.t_ftimwin  = ones(1,numel(frequency))*0.25; 
+        options.taper      = 'hanning';
+        options.resamplefs = 300;
+        freq = mous_bfica_freq(subjectname, frequency, rootdir, options);
+        mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', rootdir);
+        
+    elseif strcmp(suff,'_high')
+        % *** gamma with DFT FILTER ***
+        options = [];
+        options.tapsmofrq   = 8;
+        options.taper       = 'dpss';
+        options.t_ftimwin   = ones(1,numel(frequency))*0.25; % 1/0.25 = 4Hz steps
+        options.resamplefs  = 300;
+        options.dftfilter   = 'yes';
+        options.padding     = 4;
+        % settings below are needed for bfica-visualsubj because inarg are in JMs dir
+        % options.savedir     = '/project/3011020.09/nielam/';
+        % rootdir = '/project/3011020.09/jansch';
+        % freq = mous_bfica_freq(subjectname,frequency,options.savedir,options);
+        freq = mous_bfica_freq(subjectname,frequency,rootdir,options);
 
-% gamma frequency 30 - 100Hz (Nietz)
-% frequency = 32:4:100;
-% suff = '_high';
-% subjectname = 'V1020';
+        mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', rootdir);
+        % use manual save if calculating bfica for all words 
+        % savename = [options.savedir,subjectname,filesep,'bfica',filesep,subjectname,'_bfica_freq_dft_high'];
+        % save(savename,'freq','-v7.3');
 
-options = [];
-options.tapsmofrq   = 4;
-options.taper       = 'dpss';
-options.t_ftimwin   = ones(1,numel(frequency))*0.25; % 1/0.25 = 4Hz steps
-options.resamplefs  = 300;
-options.savedir    = '/project/3011020.09/nielam';
-rootdir = '/project/3011020.09/jansch';
-freq = mous_bfica_freq(subjectname,frequency,rootdir,options);
-mous_db_putdata(subjectname, ['meg_bfica_freq',suff], 'freq', savedir);
-
+%         % broadband gamma frequency
+%         options = [];
+%         options.tapsmofrq = 30;
+%         options.taper = 'dpss';
+%         options.t_ftimwin = 0.1;
+%         options.resamplefs = 300;
+%         freq = mous_bfica_freq(subjectname, 70, rootdir, options);
+%         mous_db_putdata(subjectname, 'meg_bfica_freq70', 'freq', rootdir);
+    end
 end
+
 if dofreqmtmfft
   options = [];
   options.taper = 'hanning';
@@ -102,7 +109,7 @@ if dosource,
   mous_db_putdata(subjectname, ['meg_bfica_source',suff], 'source', 'trialinfo', rootdir);
 end
 if doleadfield8mm,
-  mous_db_getdata(subjectname, ['meg_bfica_freq_medium',suff], rootdir);
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   [sourcemodel, newinside, oldinside] = mous_bfica_leadfield(subjectname, ft_struct2double(freq), toi, 8);
   mous_db_putdata(subjectname, 'meg_bfica_leadfield8mm', 'sourcemodel', 'newinside', 'oldinside', rootdir, 0);
 end
@@ -116,7 +123,7 @@ if dosource8mm,
   [source, trialinfo] = mous_bfica_source(subjectname, ft_struct2double(freq), toi, 8, rootdir);
   mous_db_putdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], 'source', 'trialinfo', rootdir, 0);
 end
-if dovox,
+if dovox,   
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   mous_db_getdata(subjectname, ['meg_bfica_source8mm',suff,'_',num2str(round(1000*toi),'%03d')], rootdir);
   sourcedata = mous_bfica_sourcedata(source, freq, toi);
@@ -224,13 +231,15 @@ if dosource_contrasts,
   
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   freq = ft_struct2double(freq);
-  ntap = 1; % assume hanning taper, change it if you have multi tapers
+  % ntap = 1; % assume hanning taper, change it if you have multi tapers;
+  % implement ntap when calling mous_bfica_pipeline in batch processing
+  
   freq.cumtapcnt = ones(size(freq.fourierspctrm,1)./ntap,1)*ntap;  
   for toilop = 1:numel(toi)
     %tois = -0.2:0.05:0.8;
 
     tmpfreq = ft_selectdata(freq, 'foilim', frequency*[1 1]+[-0.1 0.1]);
-    [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8, rootdir);
+    [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8,rootdir);  % default directory is jansch in order to get leadfield
     sourcedataorig      = mous_bfica_sourcedata(source, tmpfreq, toi(toilop));
     
     sourcedataorig.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
@@ -255,7 +264,7 @@ if dosource_contrasts,
     
     %% dowordseqpar2
     [tlckseqpar(toilop),statseqpar(toilop),stat2seqpar(toilop)] = mous_makecontrast(sourcedata, 'wordseq_parametric');
-   end
+  end
   
   % concatenate
   tlcksent(1).avg = cat(2,tlcksent(:).avg);
