@@ -44,11 +44,11 @@ else
   artfctcfg = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
   mous_db_getdata(subjectname, 'meg_bfica_comp', rootdir);
   comp      = {avgcomp avgpre comp};
-  data      = compute_data(dataset{1}, artfctcfg, comp, options);
+  data      = compute_data(dataset{1}, artfctcfg, comp, options,subjectname);
 end
 freq = compute_freq(data, options, frequency);
 
-function data = compute_data(dataset, artfctcfg, comp, options)
+function data = compute_data(dataset, artfctcfg, comp, options,subjectname)
 
 options.dftfilter = ft_getopt(options, 'dftfilter', 'no');
 options.padding   = ft_getopt(options, 'padding', 0);
