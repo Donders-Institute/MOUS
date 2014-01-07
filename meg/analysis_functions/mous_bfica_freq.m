@@ -50,8 +50,8 @@ freq = compute_freq(data, options, frequency);
 
 function data = compute_data(dataset, artfctcfg, comp, options)
 
-options.dftfilter = ft_getopt(options.dftfilter, 'no');
-options.padding   = ft_getopt(options.padding, 0);
+options.dftfilter = ft_getopt(options, 'dftfilter', 'no');
+options.padding   = ft_getopt(options, 'padding', 0);
 
 avgcomp   = comp{1};
 avgpre    = comp{2};
@@ -61,9 +61,14 @@ comp      = comp{3};
 cfg          = [];
 cfg.dataset  = dataset;
 %cfg.trialfun = 'trialfun_visual_sentence';
-cfg.trialfun = 'trialfun_visual_word';
-cfg.trialdef.prestim  = 0.3;
-cfg.trialdef.poststim = 'nextword';
+if strcmp(subjectname(1),'V')
+    cfg.trialfun = 'trialfun_visual_word';
+    cfg.trialdef.prestim = 0.3; 
+elseif strcmp(subjectname(1),'A')
+    cfg.trialfun = 'trialfun_auditory_word';
+    cfg.trialdef.prestim = 0.5;  % if use 0.3, timepoint -0.15s (because of f_timwin = 0.4) will be NaNs!!
+end
+cfg.trialdef.poststim = 'nextword'; 
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 %trl          = mous_artifact_remove(trl, dataset, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
