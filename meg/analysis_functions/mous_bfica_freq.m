@@ -64,11 +64,12 @@ cfg.dataset  = dataset;
 if strcmp(subjectname(1),'V')
     cfg.trialfun = 'trialfun_visual_word';
     cfg.trialdef.prestim = 0.3; 
+    cfg.trialdef.poststim = 'nextword'; 
 elseif strcmp(subjectname(1),'A')
     cfg.trialfun = 'trialfun_auditory_word';
     cfg.trialdef.prestim = 0.5;  % if use 0.3, timepoint -0.15s (because of f_timwin = 0.4) will be NaNs!!
+    cfg.trialdef.poststim = 0.8;
 end
-cfg.trialdef.poststim = 'nextword'; 
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 %trl          = mous_artifact_remove(trl, dataset, artfctcfg([1 3 4]), 'partial', 1); % don't do the horizontal EOG
