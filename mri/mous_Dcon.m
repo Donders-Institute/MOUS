@@ -1,14 +1,14 @@
-function [] = mous_Dcon()
+function [] = kmpDcon()
 %==========================================================================
-% Author(s):    kmp, Julia
-% Update:       05/07/2012
+% Author(s):    kmp
+% Update:       19/10/2008
 % Date:         19/09/2008
 % © Karl Magnus Petersson
 %--------------------------------------------------------------------------
 clc; cwd=pwd; warning('off');
 % addpath('C:\spm5');
 spm_defaults;
-InfoDcon;  % cf., infoDcon.m
+infoDcon;   %cf., infoDcon.m
 %--------------------------------------------------------------------------
 jobType='none';
 if strcmp(info.todo,'Dcon')
@@ -28,7 +28,7 @@ end
 jobType=copyType;
 %--------------------------------------------------------------------------
 outDir=info.outdir;
-if exist(outDir,'dir')~=7; mkdir(outDir); end
+if exist(outDir,'dir')~=6; mkdir(outDir); end
 %--------------------------------------------------------------------------
 % LOOP OVER SUBJECTS
 % LOAD TEMPLATE BATCH, EXPAND TO FULL JOB STRUCTURE, AND SAVE
@@ -51,6 +51,7 @@ for k=1:length(info.sf)
   if strcmp(info.sf{k},'s')
     clear('jobs');
     if strcmp(jobType,'Dcon');
+        
       load(info.jobDcon);
     else
       fprintf('-------------------------------------------------\n');
@@ -64,7 +65,7 @@ for k=1:length(info.sf)
       jobDir=fullfile(sbjDir,info.strdir);
       if exist(jobDir,'dir')~=7; mkdir(jobDir); end
       dcmDir=fullfile(dcmDir1,info.strdir);
-      save(fullfile(dcmDir,jobname),'jobs');
+      save(fullfile(dcmDir,jobname),'jobs'); % here lies the problem I guess 
       fprintf('Saved: %s\n',fullfile(dcmDir,jobname));
     catch
       fprintf('Could not expand job for %s/%s\n', ...

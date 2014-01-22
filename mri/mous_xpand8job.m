@@ -1,4 +1,4 @@
-function []=mous_xpand8job()
+function []=xpand8job()
 
 
 %%%%UNDER CONSTRUCTION%%%%%%%%%%%%%%%%%%%%%%
@@ -31,9 +31,7 @@ function []=mous_xpand8job()
 % addpath('/home/common/matlab/spm8/');
 
 clear all;
-
 InfoPreproc;
-
 
 %--------------------------------------------------------------------------
 % LOOP OVER SUBJECTS, EXPAND JOB STRUCTURE, AND SAVE EXPANDED JOB
@@ -45,7 +43,7 @@ for sbjnr=1:dimSubjects(1)
   load(fullfile(info.rootdir,info.job));
   %some renaming because of SPM8:
   jobs=matlabbatch;
-  jobs=mous_xpandjobs(jobs,info,sbjnr);
+  jobs=xpandjobs(jobs,info,sbjnr);
   jobname=strcat(info.subjects{sbjnr,1},'_xpanded8job');
   matlabbatch=jobs;
   save(fullfile(info.rootdir,info.subjects{sbjnr,1}, ...
@@ -61,6 +59,7 @@ for sbjnr=1:dimSubjects(1)
   jobname=strcat(info.subjects{sbjnr,1},'_xpanded8job');
   load(fullfile(info.rootdir,info.subjects{sbjnr,1}, ...
     jobname));
+  disp(info.subjects{sbjnr,1});
   spm_jobman('run',matlabbatch);
 end
 cd(cwd);
