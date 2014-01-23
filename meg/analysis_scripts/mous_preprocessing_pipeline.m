@@ -40,19 +40,26 @@ for k = 1:numel(filename)
   [trl] = mous_artifact_remove(trl, filename{k}, {cfgeog1 cfgeog2 cfgjump cfgmuscle});
   tmp   = mous_preprocessing(filename{k}, trl, resamplefs, analysisType, prestim);
   if k==1
-    data = tmp;
+    data       = tmp;
+    tmpsens(k) = tmp.grad;
+    weights(k) = numel(tmp.trial);
   end
   
   if k>1
     % update the sentence counter in the trialinfo
     tmp.trialinfo(:,1) = tmp.trialinfo(:,1) + data.trialinfo(end,1);
-    data = ft_appenddata([], data, tmp);
+    
+    data       = ft_appenddata([], data, tmp);
+    tmpsens(k) = tmp.grad;
+    weights(k) = numel(tmp.trial);
   end
   clear tmp;
 end
-%dataStats = mous_samplestats(trl); %FIXME
+
+% create a weighted average of the gradiometers
+if numel(filename)>1
+  data.grad = ft_average_sens(tmpsens, 'weights', weights);     
+end
 
 length = [num2str(prestim*10,'%02d'),'-',num2str(poststim*10,'%02d')];
-
-%mous_db_putdata(subjectname, ['meg_processed_{_preProcERF' trialfun '_' length 'ds}'], 'data');
 mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',1);
