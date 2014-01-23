@@ -95,7 +95,7 @@ end
 % the coordinate system in the polhemus-file and thus by construction on
 % the previously computed data objects, with the lcoil and rcoil (defining
 % the coordinate system used during acquisition of MEG data.
-if repositionflag && ~isempty(pos)
+if repositionflag==1 && ~isempty(pos)
   T   = mri.transform;
   pos = ft_convert_units(pos, 'mm');
   
@@ -119,5 +119,43 @@ if repositionflag && ~isempty(pos)
     shape    = ft_transform_geometry(mri.transform/T, shape);
     shapemri = ft_transform_geometry(mri.transform/T, shapemri);
   end
+elseif repositionflag==2 && ~isempty(pos)
+  % transform back from a coil-based (i.e. ear canal) to a fiducial-based
+  % coordinate system. Don't use this unless you know what you're doing
+  T   = mri.transform;
+  pos = ft_convert_units(pos, 'mm');
+  
+  % get the fiducial info
+  if ~isempty(shape)
+    fidu  = shape.fid;
+  else
+    error('going back to a coil based coordinate system requires a shape variable');
+  end
+  nas   = fidu.pnt(strcmp(fidu.label,'nas'),:);
+  lcoil = fidu.pnt(strcmp(fidu.label,'Lcoil'),:);
+  rcoil = fidu.pnt(strcmp(fidu.label,'Rcoil'),:);
+  lpa   = fidu.pnt(strcmp(fidu.label,'lpa'),:);
+  rpa   = fidu.pnt(strcmp(fidu.label,'rpa'),:);
+  zpoint = [0 0 100];
+  
+  nas_vox = ft_warp_apply(inv(T), nas);
+  lcoil_vox = ft_warp_apply(inv(T), lcoil);
+  rcoil_vox = ft_warp_apply(inv(T), rcoil);
+  lpa_vox = ft_warp_apply(inv(T), lpa);
+  rpa_vox = ft_warp_apply(inv(T), rpa);
+  zpoint_vox = ft_warp_apply(inv(T), zpoint);
+  
+  T_vox2coil = ft_headcoordinates(nas_vox, lcoil_vox, rcoil_vox, zpoint_vox, 'ctf');
+  T_vox2fid  = ft_headcoordinates(nas_vox, lpa_vox, rpa_vox, zpoint_vox, 'ctf');
+  
+  % realign
+  mri.transform = T_vox2fid;
+  
+  % also realign the shape and the shapemri
+  if ~isempty(shape)
+    shape    = ft_transform_geometry(mri.transform/T, shape);
+    shapemri = ft_transform_geometry(mri.transform/T, shapemri);
+  end
+  
 end
 
