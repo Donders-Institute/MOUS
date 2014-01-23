@@ -37,9 +37,14 @@ maskparameter  = ft_getopt(varargin, 'maskparameter',  []);
 opacitylim     = ft_getopt(varargin, 'opacitylim', 'zeromax');
 opacitymap     = ft_getopt(varargin, 'opacitymap', 'auto');
 parcellation   = ft_getopt(varargin, 'parcellation', []);
+parcelparameter = ft_getopt(varargin, 'parcellationparameter', 'parcellation');     
 hemimode       = ft_getopt(varargin, 'hemisphere', 'both');
 viewmode       = ft_getopt(varargin, 'viewmode',   'both');
-textstring     = ft_getopt(varargin, 'textstring', 'time = ');
+textstringbase = ft_getopt(varargin, 'textstring', 'time = ');
+textstringparameter = ft_getopt(varargin, 'textstringparameter', 'time');
+makecolorbar = ft_getopt(varargin, 'colorbar', 0);
+
+makecolorbar = istrue(makecolorbar);
 
 %% deal with xlim and zlim
 if isempty(xlim)
@@ -54,9 +59,10 @@ end
 
 %% get the functional data
 if ~isempty(parcellation)
-  data = unparcellate(source, parcellation, parameter);
+  data = unparcellate(source, parcellation, parameter, parcelparameter);
+  data = data(1:max(parcellation.tri(:)),:);
   if ~isempty(maskparameter)
-    mask = unparcellate(source, parcellation, maskparameter);
+    mask = unparcellate(source, parcellation, maskparameter, parcelparameter);
   else
     mask = [];
   end
@@ -162,15 +168,15 @@ end
 
 ypos_text = -200;
 switch viewmode
-    case 'lateral'
-      usepnt([indxl;indxr]+8196) = false;
-      usetri((1:16384)+16384)    = false;
-      ypos_text                  = -20;
-    case 'medial'
-      usepnt([indxl;indxr]) = false;
-      usetri(1:16384)       = false;
-    case 'both'
-      % do nothing
+  case 'lateral'
+    usepnt([indxl;indxr]+8196) = false;
+    usetri((1:16384)+16384)    = false;
+    ypos_text                  = -20;
+  case 'medial'
+    usepnt([indxl;indxr]) = false;
+    usetri(1:16384)       = false;
+  case 'both'
+    % do nothing
 end
 
 data = data(usepnt,:);
@@ -182,7 +188,11 @@ s.curv = s.curv(usepnt);
 
 h = figure; view([0 0]); hold on; set(h, 'color', 'k');
 ft_plot_mesh(s, 'edgecolor', 'none', 'vertexcolor', repmat(s.sulc, [1 3]));
-textstring = [textstring,num2str(source.time(1),'%1.2f')];
+if isnumeric(source.(textstringparameter))
+  textstring = [textstringbase,num2str(mean(source.(textstringparameter)(1)),'%1.2f')];
+else
+  textstring = [textstringbase,source.(textstringparameter){1}];
+end
 htxt = text(xpos_text,0,ypos_text,textstring);
 set(htxt, 'color', 'w');
 set(htxt, 'fontsize', 15);
@@ -195,6 +205,10 @@ set(hfun1, 'FaceAlpha',        'interp');
 set(hfun1, 'alphadatamapping', 'scaled');
 alim(gca, opacitylim);
 caxis(zlim);
+if makecolorbar
+  hcol = colorbar;
+  set(hcol,'position',[0.9 0.2 0.03 0.25]);
+end
 
 % Prepare the new file.
 vidObj = VideoWriter(filename);
@@ -209,7 +223,11 @@ for k = 1:numel(xlim)-1
   msk   = nanmean(mask(:,ix(1):ix(2)),2);
   set(hfun1, 'FaceVertexCData',     dat(:));
   set(hfun1, 'FaceVertexAlphaData', msk(:));
-  textstring = ['time = ',num2str(mean(source.time(ix)),'%1.2f')];
+  if isnumeric(source.(textstringparameter))
+    textstring = [textstringbase,num2str(mean(source.(textstringparameter)(ix)),'%1.2f')];
+  else
+    textstring = [textstringbase,source.(textstringparameter){ix(1)}];
+  end
   set(htxt, 'string', textstring);
 
   currFrame   = getframe(gcf,[1 1 abc(3:4)-1]);
@@ -222,17 +240,17 @@ close(vidObj);
 
 close all;
 
-function fun = unparcellate(data, parcellation, parameter)
-
-tmp = getsubfield(data, parameter);
-fun = zeros(size(parcellation.pos, 1), size(tmp, 2));
-for k = 1:numel(data.label)
-  sel = match_str(parcellation.parcellationlabel, data.label{k});
-  if ~isempty(sel)
-    sel = parcellation.parcellation==sel;
-    fun(sel,:) = repmat(tmp(k,:), [sum(sel) 1]);
-  end
-end
+% function fun = unparcellate(data, parcellation, parameter)
+% 
+% tmp = getsubfield(data, parameter);
+% fun = zeros(size(parcellation.pos, 1), size(tmp, 2));
+% for k = 1:numel(data.label)
+%   sel = match_str(parcellation.parcellationlabel, data.label{k});
+%   if ~isempty(sel)
+%     sel = parcellation.parcellation==sel;
+%     fun(sel,:) = repmat(tmp(k,:), [sum(sel) 1]);
+%   end
+% end
 
 function [newtri] = tri_reindex(tri)
 
