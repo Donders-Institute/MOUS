@@ -92,7 +92,13 @@ if ft_datatype(data, 'volume')
   
 elseif ishandle(data)
  if exist(filename,'file'), system(['rm -rf ',filename]); end
- print(data, '-dpng', filename, '-r500');
+ %print(data, '-dpng', filename, '-r500');
+ [p,f,e] = fileparts(filename);
+ if isempty(e)
+   filename = [filename '.png'];
+ end
+ x = getframe(data);
+ savepng(x.cdata, filename);
 else
   % save as a mat-file
   
