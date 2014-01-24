@@ -1,56 +1,50 @@
-function mous_db_makesubjdir(subject)
+function mous_db_makesubjdir(subjectname, rootdir, subdir)
 
-% function to create a directory (with subdirectories) for the Processed
-% data for a particular named subject. If not already existing, the
-% directory will be created in ~annhul/MOUS/Processed/
+% MOUS_DB_MAKESUBJDIR creates a directory (with subdirectories) for a particular 
+% named subject. 
 %
-% $Id: mous_db_makesubjdir.m 43 2012-05-16 10:40:37Z jansch $
+% Use as 
+%   mous_db_makesubjdir(subjectname, rootdir)
+%
+% Input arguments:
+%   subjectname = string, name of the subject
+%   rootdir     = string (optional) directory in which the directory will
+%                 be created. Default = '/home/language/annhul/MOUS/meg/'.
 
-existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject]));
-subjdir  = ['/home/language/annhul/MOUS/Processed/',subject];
+if nargin<2
+  rootdir = '/home/language/annhul/MOUS/meg';
+end
+
+if nargin<3
+  subdir = {};
+end
+
+if isempty(subdir)
+  subdir = {'anatomy';'erf';'tfr';'corrmnebf';'mne';'bfica';'RAW';'artifact';'test';'other';'qualitycheck';'headposition';'restingstate'};
+end
+
+if ischar(subdir)
+  subdir = {subdir};
+end
+
+% create main level directory
+existdir = ~isempty(dir([rootdir,filesep,subjectname]));
+subjdir  = [rootdir,filesep,subjectname];
 if ~existdir
-  fprintf(['creating subject specific directory: ', subjdir,'\n']);
+  fprintf(['creating subjectname specific directory: ', subjdir,'\n']);
   mkdir(subjdir);
   cmd = ['chmod g+w ' subjdir];
   system(cmd);
 end
 
-existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/meg_anatomy']));
-if ~existdir
-  fprintf(['creating subject specific subdirectory: ', subjdir, '/meg_anatomy\n']);
-  mkdir([subjdir, '/meg_anatomy']);
-  cmd = ['chmod g+w ' subjdir];
-  system(cmd);
-end
 
-existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/other']));
-if ~existdir
-  fprintf(['creating subject specific subdirectory: ', subjdir, '/other\n']);
-  mkdir([subjdir, '/other']);
-  cmd = ['chmod g+w ' subjdir '/other'];
-  system(cmd);
-end
-
-existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/TFR']));
-if ~existdir
-  fprintf(['creating subject specific subdirectory: ', subjdir, '/TFR\n']);
-  mkdir([subjdir, '/TFR']);
-  cmd = ['chmod g+w ' subjdir '/TFR'];
-  system(cmd);
-end
-
-existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/ERF']));
-if ~existdir
-  fprintf(['creating subject specific subdirectory: ', subjdir, '/ERF\n']);
-  mkdir([subjdir, '/ERF']);
-  cmd = ['chmod g+w ' subjdir '/ERF'];
-  system(cmd);
-end
-
-existdir = ~isempty(dir(['/home/language/annhul/MOUS/Processed/',subject,'/MNE']));
-if ~existdir
-  fprintf(['creating subject specific subdirectory: ', subjdir, '/MNE\n']);
-  mkdir([subjdir, '/MNE']);
-  cmd = ['chmod g+w ' subjdir '/MNE'];
-  system(cmd);
+% create sub directories
+for k = 1:numel(subdir)
+  existdir = ~isempty(dir([rootdir,filesep,subjectname,filesep,subdir{k}]));
+  if ~existdir
+    fprintf(['creating subjectname specific subdirectory: ',subjdir,filesep,subdir{k},'\n']);
+    mkdir([subjdir,filesep,subdir{k}]);
+    cmd = ['chmod g+w ' subjdir,filesep,subdir{k}];
+    system(cmd);
+  end
 end

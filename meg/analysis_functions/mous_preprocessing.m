@@ -1,39 +1,73 @@
 function [data] = mous_preprocessing(filename, trl, resamplefs, analysisType, baseline)
 
+%% Preprocess data
 % Created by AH, NL. 31-5-2012
 
-%% preprocess data
+%% Do filtering BEFORE down sampling
 % define filter parameters common to TFR and ERFs
 cfg            = [];
 cfg.dataset    = filename;
 cfg.trl        = trl;
 cfg.continuous = 'yes';
-cfg.channel    = {'MEG' 'EEG057' 'EEG058'}; 
+cfg.channel    = {'MEG' 'EEG057' 'EEG058'};
 
-%% TFR-specific parameters 
+
 if (strcmp(analysisType, 'TFR') > 0)
-  cfg.detrend    = 'yes';
-  cfg.dftfilter  = 'yes';
-  cfg.padding    = 5;
-%% ERF-specific parameters
+    %TFR-specific parameters
+    cfg.dftfilter  = 'yes';
+    cfg.padding    = 5;
+    
 elseif (strcmp(analysisType, 'ERF') > 0)
-  cfg.baselinewindow  = [baseline 0];
-  cfg.lpfilter        = 'yes';   % apply lowpass filter
-  cfg.lpfreq          = 40;
-  cfg.hpfilter        = 'yes';
-  cfg.hpfilttype      = 'fir';  %not in Tinekes script
-  cfg.hpfiltord       = 100;   %not in Tinekes script
-  cfg.hpfreq          = 0.5; %wired number  % tineke has 0.5
-  cfg.padding         = 10; %big padding for hp to work 
+    % ERF-specific parameters
+    cfg.lpfilter        = 'yes';   % apply lowpass filter
+    cfg.lpfreq          = 40;
+    %cfg.hpfilter        = 'yes';
+    %cfg.hpfilttype      = 'fir';  %not in Tinekes script
+    %cfg.hpfiltord       = 100;    %not in Tinekes script
+    %cfg.hpfreq          = 0.5;    %weired number  % tineke has 0.5
+    %cfg.padding         = 10;     %big padding for hp to work   
+    cfg.padding = 5;
 else
-  error('unrecognized type requested');
+    error('unrecognized type requested');
 end
 
 data = ft_preprocessing(cfg);
 
-%% downsample data (to resamplefs = target frequency)
+%% Downsample data (to resamplefs = target frequency)
+
+%   cfg.resamplefs = frequency at which the data will be resampled (default = 256 Hz)
+%   cfg.detrend    = 'no' or 'yes', detrend the data prior to resampling (no default specified, see below)
+%   cfg.demean     = 'no' or 'yes', baseline correct the data prior to resampling (default = 'no')
+%   cfg.feedback   = 'no', 'text', 'textbar', 'gui' (default = 'text')
+%   cfg.trials     = 'all' or a selection given as a 1xN vector (default =
+%   'all')
 cfg            = [];
 cfg.resamplefs = resamplefs;
+cfg.detrend    = 'no';  % not good for evoked data
 cfg.demean     = 'yes';
-cfg.detrend    = 'no';
+cfg.trials     = 'all';
 data = ft_resampledata(cfg, data);
+
+
+%% Do ERF baseline correction AFTER downsampling.
+%% so that different baselines can be applied.
+
+cfg            = [];
+cfg.channel    = {'MEG' 'EEG057' 'EEG058'};
+
+if (strcmp(analysisType, 'TFR') > 0)
+    cfg.detrend    = 'yes';
+    
+elseif (strcmp(analysisType, 'ERF') > 0)
+    cfg.detrend    = 'no';
+    cfg.demean     = 'yes';
+    cfg.baselinewindow  = [-inf 0];
+else
+    error('unrecognized type requested');
+    
+end
+
+data = ft_preprocessing(cfg, data);
+
+
+

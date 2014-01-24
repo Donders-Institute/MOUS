@@ -50,7 +50,12 @@ for k = 1:numel(selfix)-1
   tmpsmp = smp(sel);
   
   % get the target word on/off sequence
-  for kk = 1:numel(tmpval)
+  % The following assumes there is always a even-numbered (<=8) trigger directly
+  % followed by a '15'. This is not the case e.g. in one of the sentences
+  % of subject V1047 (sentence 43). 
+  condition = [];
+  critsmp   = [];
+  for kk = 1:numel(tmpval)-1
     trg1 = tmpval(kk);
     trg2 = tmpval(kk+1);
     if trg1<=8 && mod(trg1,2)==0 && trg2==15
@@ -59,13 +64,17 @@ for k = 1:numel(selfix)-1
       break;
     end
   end
+  if isempty(condition)
+    warning('the condition of sentence %d could not be determined due to an issue with the trigger sequences: skipping trial\n', k);
+    continue;
+  end
   
   % get the first word on/off sequence
   for kk = 1:numel(tmpval)
     trg1 = tmpval(kk);
     trg2 = tmpval(kk+1);
     if trg1<=8 && trg2==15
-      offset = tmpsmp(kk);
+      offset = min(1200,tmpsmp(kk)-fixsmp);
       break;    
     end    
   end
@@ -91,7 +100,7 @@ for k = 1:numel(selfix)-1
     end
   end
   
-  tmp = [fixsmp endsmp fixsmp-offset k condition critsmp-offset];
+  tmp = [fixsmp endsmp -offset k condition critsmp-offset-fixsmp];
   trl = cat(1,trl,tmp);
 
 end
