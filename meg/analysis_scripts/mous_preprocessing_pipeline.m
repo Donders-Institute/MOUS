@@ -1,98 +1,58 @@
-% Pipeline to run all preprocessing stages for the TFR and ERFs
-% Annika 1.6 2012 | edited 2.7.2012 NL
 
-% addpath('/home/common/matlab/fieldtrip/qsub');
-% clear all
+if ~exist('subjectname', 'var')
+  error('you should specify a subjectname when running mous_preprocessing_pipeline');
+end
 
-function mous_preprocessing_pipeline(subjectname)
+if ~exist('prestim',      'var'), prestim      = 0.2; end
+if ~exist('poststim',     'var'), poststim     = 1.0; end
+if ~exist('resamplefs',   'var'), resamplefs   = 300; end
+if ~exist('analysisType', 'var'), analysisType = 'ERF'; end % can be 'TFR'
+if ~exist('trialfun',     'var'), 
+  if strcmp(subjectname(1),'V')
+    trialfun = 'visual_word';
+  else
+    trialfun = 'auditory_word';
+  end
+end
 
-%subjlist = {'V1010' 'V1011' 'V1012' 'V1013' 'V1014'};
+%trialfun =  'auditory_word';   
+%            'auditory_sentence' 
+%            'auditory_word';     % onset of speech for first word and target word
+%            'visual_word';       % onset of each word (but not fixation cross)
+%            'visual_sentence';   % onset of fixation cross until offset of last word (marks target word type; can also retrieve first word info but not in default trl)
 
-%for n = 1:length(subjlist)         %  comment out when running qsub
-  
-  
-    % subjectname = subjlist{n};    %  comment out when running qsub
-    fprintf('Preprocessing subject %s  \n', subjectname);
-    mous_db_makesubjdir(subjectname)
 
-    % get the filename of the raw data
-    filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
+fprintf('Preprocessing subject %s  \n', subjectname);
+mous_db_makesubjdir(subjectname)
 
+% get the filename of the raw data
+filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
+
+for k = 1:numel(filename)
+  if numel(filename)==1
     % get the description of the artifacts
-    tmp = mous_db_getdata(subjectname, 'meg_artifactcfg');
-    
-    % define the word being analysed: 
-    % 4th argument in mous_defineTrial determines whether:
-    % the target word,
-    % 1st word after target (tarplusOne) 
-    % 2nd word after target
-    % (tarplusTwo) is being defined.
-    
-    % wordType = 'target'; 
-    wordType = 'tarplusOne';
-    % wordType = 'tarplusTwo';
-    
-    %% TFR %%%%%%%%%%%%%%%%%%%%%
-     
-    % define trial window (includes pre -500ms and post 3s)
-    
-    [trl] = mous_defineTrial(filename{1}, 0.5, 3.0, wordType); 
+    mous_db_getdata(subjectname, 'meg_artifact_cfg');
+  else
+    mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);
+  end 
+ 
+  [trl] = mous_defineTrial(filename{k}, prestim, poststim, 'all', trialfun);
+  [trl] = mous_artifact_remove(trl, filename{k}, {cfgeog1 cfgeog2 cfgjump cfgmuscle});
+  tmp   = mous_preprocessing(filename{k}, trl, resamplefs, analysisType, prestim);
+  if k==1
+    data = tmp;
+  end
+  
+  if k>1
+    % update the sentence counter in the trialinfo
+    tmp.trialinfo(:,1) = tmp.trialinfo(:,1) + data.trialinfo(end,1);
+    data = ft_appenddata([], data, tmp);
+  end
+  clear tmp;
+end
+%dataStats = mous_samplestats(trl); %FIXME
 
-    % remove the artifacts that have been defined/detected
-    [trl] = mous_artifact_remove(trl, filename{1}, tmp);
-       
-    % PREPROCESS data 
-    % (filename = subject, trl = data, 300 = downsample target frequency,
-    % filters specific to analysis type)
-%     data = mous_preprocessing(filename{1}, trl, 300, 'TFR');
-%     
-%     % save preprocessed data
-%     % mous_db_putdata(subjectname, 'meg_processed_{rawTFR05-3ds}', data);
-%     if (strcmp(wordType,'target') > 0) 
-%         mous_db_putdata(subjectname, 'meg_processed_{rawTFR_targetword_05-3ds}', data);
-%     elseif (strcmp(wordType,'tarplusOne') > 0) 
-%         mous_db_putdata(subjectname, 'meg_processed_{rawTFR_tarplusOne_05-3ds}', data);  
-%     elseif (strcmp(wordType,'tarplusTwo') > 0) 
-%         mous_db_putdata(subjectname, 'meg_processed_{rawTFR_tarplusTwo_05-3ds}', data);
-%     end
-       
-    % go to TFR pipeline: "mous_tfr_pipline" 
+length = [num2str(prestim*10,'%02d'),'-',num2str(poststim*10,'%02d')];
 
-    %% ERF %%%%%%%%%%%%%%%%%%%%
-
-    %% long time window
-
-    % preprocess data 
-    % (filename = subject, trl = data, 300 = downsample target frequency,
-    % filters specific to analysis type)
-    data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.5);
-    
-    % save preprocessed data
-    if (strcmp(wordType,'target') > 0) 
-        mous_db_putdata(subjectname, 'meg_processed_{rawERF_targetword_05-3ds}', data);
-    elseif (strcmp(wordType,'tarplusOne') > 0) 
-        mous_db_putdata(subjectname, 'meg_processed_{rawERF_tarplusOne_05-3ds}', data);  
-    elseif (strcmp(wordType,'tarplusTwo') > 0) 
-        mous_db_putdata(subjectname, 'meg_processed_{rawERF_tarplusTwo_05-3ds}', data);
-    end
-
-    %% short time window
-
-    % define trial window (includes pre -500ms and post 3s)
-    [trl] = mous_defineTrial(filename{1}, 0.2, 1.0, wordType); 
-
-    % remove the artifacts that have been defined/detected
-    [trl] = mous_artifact_remove(trl, filename{1}, tmp);
-
-    data = mous_preprocessing(filename{1}, trl, 300, 'ERF', -0.2);
-    
-    % save preprocessed data  
-    if (strcmp(wordType,'target') > 0) 
-        mous_db_putdata(subjectname, 'meg_processed_{rawERF_targetword_02-1ds}', data);
-    elseif (strcmp(wordType,'tarplusOne') > 0) 
-        mous_db_putdata(subjectname, 'meg_processed_{rawERF_tarplusOne_02-1ds}', data);  
-    elseif (strcmp(wordType,'tarplusTwo') > 0) 
-        mous_db_putdata(subjectname, 'meg_processed_{rawERF_tarplusTwo_02-1ds}', data);
-    end
-
-% end % comment out when running qsub
+%mous_db_putdata(subjectname, ['meg_processed_{_preProcERF' trialfun '_' length 'ds}'], 'data');
+mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',1);

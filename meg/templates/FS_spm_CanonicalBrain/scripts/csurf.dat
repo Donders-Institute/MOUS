@@ -1,0 +1,31 @@
+#!csurf0.9datfile
+csurf arrayname: convparms
+aligntype noalign
+csurf arrayname: stripskullparms
+seed,k none surf 0 thresh default seed,i none algo {} preflood default seed,j none more 0 less 0
+csurf arrayname: normalizeparms
+intensgradlim default manualcontrol 0 normsteps default
+csurf arrayname: wmfilterparms
+wm_hi default wm_low default keepedits 0 gray_hi default
+csurf arrayname: wmfillparms
+callx 0.0 ponsx 0.0 cally 0.0 ponsy 0.0 max_same_neigh 1 ccmask 1 callz 0.0 callpnt 0 ponsz 0.0 ponspnt 0
+csurf arrayname: inflateparms
+metric2smooth 0.1 smoothcycles 10 inflatecycles 10
+csurf arrayname: finalparms
+
+csurf arrayname: flattenparms
+sampledist_mm_full 7 vertices_per_full 12 sampledist_mm_patch 20 vertices_per_patch 12 write_per_iters 0
+csurf arrayname: sphereparms
+write_per_iters 0 sampledist_mm 7 vertices_per 8
+csurf arrayname: structscanlists
+def,regdat register.dat def,xres -unset- def,extraopts {} def,slices -unset- def,flipx x def,flipy y def,modelimage -unset- def,flipz z def,inplane -unset- def,imtype -unset- def,firstslice -unset- def,type -unset- def,yres -unset- def,imagepatt -unset- def,thickness -unset-
+csurf arrayname: sessionscanlists
+def,type functscan
+csurf arrayname: alignscanparms
+thickness -unset- imtype -unset- imagepatt -unset- modelimage -unset- brightness 1.0 xres -unset- regdat register.dat inplane -unset- yres -unset- slices -unset-
+csurf arrayname: functscanlists
+def,extstatfunctims 0 def,smoothstepsfs 50 def,renderflag 0 def,sigoperation phaseaverage def,rh,wfile unset-rh.w def,sigtoavgdirs { -unset- } def,inplane 2.5 def,lh,dwfile unset-lh.w def,paradigmdir unset def,eccendir -unset- def,extstatfile -unset- def,sdiffflag 0 def,fourflag 0 def,bfloatpattinf unset{}_%03d.bfloat def,lofreqwin 3 def,surftoavgbigstems { -unset- } def,rh,dwfile unset-rh.w def,reps 128 def,uniqconds unset def,nskip 1 def,statformat spm99 def,surfavgflag 0 def,imtype brik def,smoothstepsin 0 def,aligndir -unset- def,phasetype eccen def,thickness 5.0 def,polardir -unset- def,stimnotes {some stim prog} def,randflag 0 def,regdat register.dat def,condnames unset def,xres 64 def,paradigmfile unset def,smoothsteps3d 0 def,paintext orig def,conds2difflist unset def,TR 2 def,lh,wfile unset-lh.w def,stimcycles 4 def,brightness 0.1 def,surfoperation phaseavg-pol def,bfloatpatt unset_%03d.bfloat def,slices 10 def,modelimage unset_001.bshort def,rawtoavgdirs { -unset- } def,stattype real def,rawavgflag 0 def,yres 64 def,sigavgflag 0 def,imagepatt unset_%03d.bshort
+csurf arrayname: renderscanlists
+def,dor 0 def,complexvalflag 0 def,rh,customxrot 0 def,med 0 def,rh,revphaseflag 0 def,colscale 1 def,truncphaseflag 0 def,rh,customzrot 0 def,fmid 4.0 def,do_interpolate 0 def,viewstcl twocond-views.tcl def,lh,customyrot 0 def,ven 0 def,bfloatstem -unset- def,fslope 0.5 def,angle_cycles 1.0 def,patchflag 0 def,flattcl twocond-flat.tcl def,rh,customytrans 0 def,smoothstepsrend 5 def,lh,customxtrans 0 def,overlay_frame 0 def,lh,customscalepercent 100 def,colscalebarflag 1 def,lh,angle_offset 0.15 def,flat 1 def,rh,customyrot 0 def,cust 0 def,scalebarflag 1 def,polarstem -unset- def,eccenstem -unset- def,samestem 0 def,lh,customxrot 0 def,lh,revphaseflag 0 def,rh,customxtrans 0 def,lat 1 def,lh,customzrot 0 def,rh,customscalepercent 100 def,pos 0 def,rh,angle_offset 0.15 def,do_overlay 1 def,lh,customytrans 0 def,rgbname -unset- def,fthresh 2.0
+csurf arrayname: postclparms
+lh_occip_scale 1.3 lh_occip_xtrans 0.0 rh_full_zrot 90 rh_full_scale 0.7 rh_full_ytrans 0.0 lh_full_xtrans 0.0 rh_occip_scale 1.3 rh_occip_xtrans 0.0 lh_occip_zrot 90 lh_occip_ytrans 0.0 rh_full_xtrans 0.0 lh_full_zrot 90 lh_full_scale 0.7 rh_occip_zrot 90 lh_full_ytrans 0.0 rh_occip_ytrans 0.0

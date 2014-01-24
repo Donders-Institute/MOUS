@@ -1,26 +1,72 @@
+% mous_artifact_pipeline
 % this script contains the sequential steps for the artifact processing pipeline.
-%
-% $Id: mous_artifact_pipeline.m 42 2012-05-16 10:38:10Z jansch $
+% define the epochs on which the artifacts will be detected
+%%% READ ME: If there are less than 240 trials, check on Big-U site whether
+%%% subject has TWO files for task data (due to the MEG PC crashing halfway).
+%%% If so there are two options:
+% (1) the variable 'filename' will have 2 variables, and you can select the
+% second one by changing <filename{1} to <filename{2}> in the script below
+% and then proceed as usual.
+% (2) variable 'filename' only has 1 variable, but if you manually go to
+% the subject's directory ~annhul/MOUS/meg/A2XX/RAW you see 2 task files,
+% then you should change the actual input to the second file's filename as follows
+% <filename{1} = 'AXXX....ds'>
+% You can then proceed as follow with selecting the code below the line
+% that defines filename.
+
+%% Artifact detection 
+
+% Always save the data in 'MEG' directory, it is not necessary to save it
+% in your own directory (your username e.g., nielam) for artifacts because
+% most first round detections are perfect (and time is then wasted in
+% moving data, and NL has to look up the directory for the artifacts which
+% may differ for each subject).
+rootdir = '/project/3011020.09/MEG'; 
 
 % create directory that will contain the results
-mous_db_makesubjdir(subjectname);
+mous_db_makesubjdir(subjectname, rootdir);
+
 
 % extract the trial definition for the sentences
 filename = mous_db_getfilename(subjectname, 'meg_ds_task');
 
-cfg = [];
+% replace the below 0 with an actual number, if a local averaging/std
+% computation is required in mous_artifact_muscle
+ntrials = 0;
+
+cfg          = [];
 cfg.dataset  = filename{1};
-cfg.trialfun = 'visual_sentence';
-cfg = ft_definetrial(cfg);
-trl = cfg.trl;
+%cfg.trialfun = 'visual_sentence';
+cfg.trialfun = 'auditory_sentence';
+cfg          = ft_definetrial(cfg);
+trl          = cfg.trl;
+trl(:,1) = trl(:,1) - 0.2*1200;
+trl(:,2) = trl(:,2) + 0.1*1200;
 
-% detect eog artifacts
-[cfgeog1, cfgeog2] = mous_artifact_eog(filename{1}, trl);
+if 1,
+  [cfgeog1       ] = mous_artifact_eogb(filename{1},        trl); % detect blinks
+  [cfgeog2       ] = mous_artifact_eogs(filename{1},        trl); % detect saccades
+  [cfgjump       ] = mous_artifact_squidjumps(filename{1}, trl); % detect squid jumps
+  [cfgmuscle     ] = mous_artifact_muscle(filename{1},     trl, ntrials); % detect muscle artifacts
 
-% detect squid jumps
-[cfgjump]       = mous_artifact_squidjumps(filename{1}, trl);
+  % put the results back into the database
+  %% ACHTUNG!
+  % IF SUBJECT HAS TWO TASK FILES, YOU MUST SAVE A SEPARATE artifact_cfg FILE FOR EACH TASK:
+  % (1) "VXXX_artifact_cfg_ptI" 
+  % (2) "VXXX_artifact_cfg_ptII" 
+  % This means you need to modify the *2ND* input argument given to mous_db_putdata
+  % e.g,.: mous_db_putdata(subjectname, 'meg_artifact_cfg_pt1', ......);
+  % % e.g,.: mous_db_putdata(subjectname, 'meg_artifact_cfg_pt2', ......);
+    
+  mous_db_putdata(subjectname, 'meg_artifact_cfg', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle',rootdir,0); 
+end
 
-% detect muscle artifacts
-[cfgmuscle]       = mous_artifact_muscle(filename{1}, trl);
+%% Artifact detection for Jan-Mathijs' stuff 
+if 0,
+  [comp, avgcomp, avgpre, avgeog] = mous_artifact_eog_dss_blinks(filename{1},   trl);
+  mous_db_putdata(subjectname, 'meg_artifact_dssblinks', 'comp', 'avgcomp', 'avgpre', 'avgeog');
+  
+  %[comp, avgcomp, avgpre, avgeog] = mous_artifact_eog_dss_saccades(filename{1}, trl);
+  %mous_db_putdata(subjectname, 'meg_artifactdsssaccades', comp, avgcomp, avgpre, avgeog);
+end
 
-mous_db_putdata(subjectname, 'meg_artifactcfg', cfgeog1, cfgeog2, cfgjump, cfgmuscle); 
