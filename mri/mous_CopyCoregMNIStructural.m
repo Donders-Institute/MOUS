@@ -18,9 +18,9 @@ for sbjnr=1:length(info.subjects);
     
 %--------------------------------------------------------------------------
 subject=char(info.subjects(sbjnr));
-oldSubjectPath=fullfile('/home/language/annhul/MOUS/Processed',subject);
+oldSubjectPath=fullfile('/home/language/annhul/MOUS/meg/',subject);
 newSubjectPath=fullfile(info.rootdir,subject,'Structural');
-sourcePath=fullfile(oldSubjectPath,'meg_anatomy');
+sourcePath=fullfile(oldSubjectPath,'anatomy');
 copyPath=fullfile(newSubjectPath);
       if exist(copyPath,'dir')~=7; mkdir(copyPath); end
       fileNames=strcat(subject,'coregMNI.nii');
