@@ -1,7 +1,7 @@
 
 %==========================================================================
 function [subjectPath,fctPath, ...
-  fct_images,structPath,struct_image]= mous_selectimages(info,sbjnr);
+  fct_images,structPath,struct_image]= selectimages(info,sbjnr);
 %==========================================================================
 % FORMAT: [subjectPath,experimentPaths,sessionPaths, ...
 %   fct_images,structPath,struct_image]= selectimages(info,sbjnr);
@@ -33,6 +33,7 @@ fct_images=cellstr(spm_select('List',fctPath,info.fct));
 %--------------------------------------------------------------------------
 structPath=fullfile(subjectPath,info.structdir);
 subject=char(info.subjects(sbjnr));
-struct_image=strcat(structPath,filesep,subject,'coregMNI.nii');
+struct_image=strcat(structPath,filesep,'str-',subject,'-001.nii');
+%struct_image=strcat(structPath,filesep,subject,'coregMNI.nii');
 %spm_select('List',structPath,info.str);
 %End of selectimages-------------------------------------------------------

@@ -1,6 +1,6 @@
 
 %==========================================================================
-function [files]=mous_take5(prefix,fctPath,fct_images);
+function [files]=take5(prefix,fctPath,fct_images);
 %==========================================================================
 % FORMAT: [files]=take5(prefixstatus,prefix,sessionPath,fct_images,flax);
 % INPUT: prefix - {''|'r'|'ar'|'war'|'swar'} - determines which files to
