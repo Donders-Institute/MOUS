@@ -26,28 +26,30 @@ load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
 sourcemodeltemplate = sourcemodel;
 
 for k = 1:Nsubj
-  clear tlcksent tlckseq
+  clear freqsent freqseq
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix], rootdir);
   if k==1
-    mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', '/project/3011020.09/jansch/');
+    mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
     sourcemodel = rmfield(sourcemodel, 'leadfield');
     if isfield(sourcemodel, 'cfg')
       sourcemodel = rmfield(sourcemodel, 'cfg');
     end
   end
   
-  sourcemodel.time = tlckseq.time;
+  %sourcemodel.time = tlckseq.time;  
+  sourcemodel.time  = freqseq.time; % freqseq is a matrix containing all
+  %tlckseq from all frequencies it has dimord source_freq_time 
   
   % no log transform
-  sourcemodel.avg.pow = (tlckseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
-  tmp                 = zeros(prod(sourcemodel.dim), numel(sourcemodel.time));
-  tmp(newinside,:)    = sourcemodel.avg.pow;
+  sourcemodel.avg.pow = (freqseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
+  tmp                 = zeros(prod(sourcemodel.dim),16,numel(sourcemodel.time));
+  tmp(newinside,:)    = sourcemodel.avg.pow; % 'newinside' is a variable that loads along with the leadfield.
   sourcemodel.avg.pow = tmp;
   
   seq{k}         = sourcemodel;
   seq{k}.pos     = sourcemodeltemplate.pos;
   
-  sourcemodel.avg.pow = (tlcksent.avg);% ./ repmat(Bsent, [1 numel(tlcksent.time)]);
+  sourcemodel.avg.pow = (freqsent.avg);% ./ repmat(Bsent, [1 numel(tlcksent.time)]);
   tmp                 = zeros(prod(sourcemodel.dim), numel(sourcemodel.time));
   tmp(newinside,:)    = sourcemodel.avg.pow;
   sourcemodel.avg.pow = tmp;
@@ -58,7 +60,7 @@ end
 
 % do a baseline subtraction
 if baselineflag
-  ix = find(sent{k}.time<=0.1);
+  ix = find(sent{k}.time<=-0.1);
   for k = 1:numel(sent)
     tmp = sent{k}.avg.pow;
     sent{k}.avg.pow = tmp - nanmean(tmp(:,ix),2)*ones(1,size(tmp,2));
