@@ -21,7 +21,7 @@ if nargin<5
     rootdir = '/project/3011020.09/jansch/';
 end 
 %rootdir = '/home/language/jansch/public/mous';
-[p,n,e] = fileparts(which('mous_anatomy_sourcemodel3D'))
+[p,n,e] = fileparts(which('mous_anatomy_sourcemodel3D'));
 load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
 sourcemodeltemplate = sourcemodel;
 
@@ -38,6 +38,12 @@ for k = 1:Nsubj
   
   %sourcemodel.time = tlckseq.time;  
   sourcemodel.time  = freqseq.time; % freqseq is a matrix containing all
+  if isfield(freqseq, 'freq')
+    sourcemodel.freq  = freqseq.freq;
+    sourcemodel.dimord = 'pos_freq_time';
+  else
+    sourcemodel.dimord = 'pos_time';
+  end
   %tlckseq from all frequencies it has dimord source_freq_time 
   
   % no log transform
