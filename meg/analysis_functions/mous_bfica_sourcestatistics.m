@@ -26,7 +26,7 @@ load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
 sourcemodeltemplate = sourcemodel;
 
 for k = 1:Nsubj
-  clear freqsent freqseq
+  clear tlcksent tlckseq
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix], rootdir);
   if k==1
     mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
@@ -36,59 +36,64 @@ for k = 1:Nsubj
     end
   end
   
-  %sourcemodel.time = tlckseq.time;  
-  sourcemodel.time  = freqseq.time; % freqseq is a matrix containing all
-  if isfield(freqseq, 'freq')
-    sourcemodel.freq  = freqseq.freq;
+  sourcemodel.time = tlckseq.time;  
+  if isfield(tlckseq, 'freq')
+    sourcemodel.freq  = tlckseq.freq;
     sourcemodel.dimord = 'pos_freq_time';
   else
     sourcemodel.dimord = 'pos_time';
   end
-  %tlckseq from all frequencies it has dimord source_freq_time 
-  
+   
   % no log transform
-  sourcemodel.avg.pow = (freqseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
-  tmp                 = zeros(prod(sourcemodel.dim),16,numel(sourcemodel.time));
+  % sequences 
+  sourcemodel.avg.pow = (tlckseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
+  if isfield(tlckseq,'freq')
+    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
+  else 
+    tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+  end 
   tmp(newinside,:,:)    = sourcemodel.avg.pow; % 'newinside' is a variable that loads along with the leadfield.
   sourcemodel.avg.pow = tmp;
-  
   seq{k}         = sourcemodel;
   seq{k}.pos     = sourcemodeltemplate.pos;
-  
-  sourcemodel.avg.pow = (freqsent.avg);% ./ repmat(Bsent, [1 numel(tlcksent.time)]);
-  tmp                 = zeros(prod(sourcemodel.dim), 16,numel(sourcemodel.time));
+ 
+  % sentences
+  sourcemodel.avg.pow = (tlcksent.avg); 
+  if isfield(tlckseq,'freq')
+    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
+  else 
+    tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+  end
   tmp(newinside,:,:)    = sourcemodel.avg.pow;
   sourcemodel.avg.pow = tmp;
-  
   sent{k}        = sourcemodel;
   sent{k}.pos    = sourcemodeltemplate.pos;
 end
 
 % do a baseline subtraction
-% % for 2D matrix %%
-% if baselineflag
-%   ix = find(sent{k}.time<=-0.1);
-%   for k = 1:numel(sent)
-%     tmp = sent{k}.avg.pow;
-%     sent{k}.avg.pow = tmp - nanmean(tmp(:,ix),2)*ones(1,size(tmp,2));
-%     tmp = seq{k}.avg.pow;
-%     seq{k}.avg.pow = tmp - nanmean(tmp(:,ix),2)*ones(1,size(tmp,2));
-%   end
-% end
-
-% for 3D matrix (chan_freq_time; where chan = sources))
 if baselineflag
-  ix = find(sent{k}.time<=-0.1);
-  for k = 1:numel(sent)
-    tmp = sent{k}.avg.pow;
-    bsl = nanmean(tmp(:,:,ix),3);
-    sent{k}.avg.pow = tmp - repmat(bsl,[1,1,size(tmp,3)]); % calculate average, then replicate across time points (could have used repmat)
+  if isfield(tlckseq,'freq') % for 3D matrix (chan_freq_time; where chan = sources))
+      ix = find(sent{k}.time<=-0.1);
+      for k = 1:numel(sent)
+        tmp = sent{k}.avg.pow;
+        bsl = nanmean(tmp(:,:,ix),3);
+        sent{k}.avg.pow = tmp - repmat(bsl,[1,1,size(tmp,3)]); % subtract baseline (repmat)
 
-    tmp = seq{k}.avg.pow;
-    bsl = nanmean(tmp(:,:,ix),3);
-    seq{k}.avg.pow = tmp - repmat(bsl,[1,1,size(tmp,3)]);
+        tmp = seq{k}.avg.pow;
+        bsl = nanmean(tmp(:,:,ix),3);
+        seq{k}.avg.pow = tmp - repmat(bsl,[1,1,size(tmp,3)]);
+      end
+  else % for 2D matrix %%
+      ix = find(sent{k}.time<=-0.1);
+      for k = 1:numel(sent)
+        tmp = sent{k}.avg.pow;
+        sent{k}.avg.pow = tmp - nanmean(tmp(:,ix),2)*ones(1,size(tmp,2));
+        tmp = seq{k}.avg.pow;
+        seq{k}.avg.pow = tmp - nanmean(tmp(:,ix),2)*ones(1,size(tmp,2));
+      end
   end
 end
+
   
 % compute cumulative sum and ssq + determine the inside for all
 for k = 1:Nsubj
@@ -130,7 +135,6 @@ cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
 cfg.ivar = 1;
 cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
-%FIXME: 3d structure doesn't seem to be correct as statistics tilts.
 stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
 if ndims(stat.stat)>2 %i.e. being a 3d matrix, rather than space x something else
   stat.stat=stat.stat(:);
