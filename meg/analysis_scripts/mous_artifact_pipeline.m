@@ -36,8 +36,13 @@ ntrials = 0;
 
 cfg          = [];
 cfg.dataset  = filename{1};
-%cfg.trialfun = 'visual_sentence';
-cfg.trialfun = 'auditory_sentence';
+if strcmp(subjectname(1), 'V')
+  cfg.trialfun = 'visual_sentence';
+elseif strcmp(subjectname(1),'A')
+  cfg.trialfun = 'auditory_sentence';
+else
+  error('subjectname not recognised. it should be a string e.g., V1001 or A2089');
+end 
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 trl(:,1) = trl(:,1) - 0.2*1200;
