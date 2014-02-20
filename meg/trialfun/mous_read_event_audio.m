@@ -29,7 +29,8 @@ end
 % This wave file has an overlap between trigger-14 (audiofile onset) 
 % and trigger-1 (first word onset). This is fixed at line 122.
 logfname = mous_db_getfilename(subjname,'meg_raw_log');
-scenario = str2num(logfname{1}(41));
+eventlog = read_logfile_audio(subjname);
+scenario = str2double(logfname{1}(41));
 
 % ideally we should use ft_read_data here
 cfg            = [];
@@ -131,7 +132,8 @@ end
 % assign pulselength threshold depending on MEG scenario
 % there are sound files specific to scenario 1 and 3 where the onset
 % between the auditory soundfile and first word are extremely close
-if scenario == 1 || scenario == 3 || scenario == 2 && strcmp(subjname,'A2080') || scenario == 2 && strcmp(subjname,'A2086')
+subjval = str2double(subjname(2:end));
+if scenario == 1 || scenario == 3 || scenario == 2 && subjval >= 2080 %A2080, A2086, A2092, A2098, A2102, A2106
     pulselengththreshold = 5;
 else 
     pulselengththreshold = 30;
@@ -200,6 +202,46 @@ else
     event(end  ).value  = newtrigger(j+trigshift);      % assign the trigger value just _after_ going up
   end
 end
+
+% now try to map the events from the logfile onto the events from the
+% datafile, expressed in datafile-samples.
+% issues:
+% -datafile sample unit is 1/1200 second
+% -logfile sample unit is 1/10000 second
+% -offset logfile versus datafile is unknown
+% -when presentation was paused, the logfile clock stopped ticking
+%
+% for now first solve the case where each of the event structures contains
+% all trials, i.e. 240
+%
+% the thing we will do, is to extract from each sequence of triggers in
+% the logfile, the identity of the wavfile, and add this as an extra event,
+% where the sample is identical to the onset of the audio file, but the
+% type reflects the identity of the wavfile.
+
+sel1     = find(strcmp({event.type}', 'UPPT001'));
+tmpevent = event(sel1);
+fixdat   = find([tmpevent.value]==20);
+fixlog   = find(strcmp({eventlog.type}', 'fixation'));
+
+fixdatsmp = [tmpevent(fixdat).sample];
+fixlogsmp = [eventlog(fixlog).sample];
+
+if numel(fixdatsmp)==numel(fixlogsmp) && numel(fixdatsmp)==240
+  % this is the easy case
+  wavfiles = {eventlog(fixlog+1).type}';
+  for k = 1:numel(wavfiles)
+    event(end+1).type   = wavfiles{k};
+    event(end  ).sample = event(fixdat(k)).sample;
+    event(end  ).value  = 14;
+  end
+  smp = [event.sample];
+  [srt,ix] = sort(smp);
+  event = event(ix);
+else
+  warning('did not manage to merge event information from log file with the event information from the triggers, returning only triggers'); 
+end
+
 
 % event2 = read_logfile_audio(subjectname);
 % 
