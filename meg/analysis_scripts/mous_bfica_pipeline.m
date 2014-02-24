@@ -1,5 +1,6 @@
 % execute script that sets some variables if they have not been specified
 mous_bfica_pipelineoptions;
+
 if doecg,
   [polarity, threshold, p] = mous_bfica_ecg(subjectname);
   mous_db_putdata(subjectname, 'meg_bfica_ecg', 'polarity', 'threshold', 'p', rootdir);
@@ -20,7 +21,7 @@ if dofreq,
         options.taper      = 'hanning';
         options.resamplefs = 300;
         options.t_ftimwin  = ones(1,numel(frequency))*0.4;
-        freqlowtest = mous_bfica_freq(subjectname, frequency, rootdir, options);
+        freq= mous_bfica_freq(subjectname, frequency, rootdir, options);
         mous_db_putdata(subjectname, ['meg_bfica_freq' suff], 'freq', rootdir);
 
     elseif strcmp(suff,'_medium')
@@ -231,9 +232,17 @@ if dosource_contrasts,
   
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   freq = ft_struct2double(freq);
+
+  % option to choose to only analyse target words
+  if strcmp(seltar,'yes')  
+    seltar = find(ismember(freq.trialinfo(:,2),[2 4 6 8]));
+    cfgsel = [];
+    cfgsel.trials = seltar;
+    freq = ft_selectdata_new(cfgsel,freq);
+  end 
+  
   % ntap = 1; % assume hanning taper, change it if you have multi tapers;
   % implement ntap when calling mous_bfica_pipeline in batch processing
-  
   freq.cumtapcnt = ones(size(freq.fourierspctrm,1)./ntap,1)*ntap;  
   for toilop = 1:numel(toi)
     %tois = -0.2:0.05:0.8;
@@ -266,7 +275,7 @@ if dosource_contrasts,
     [tlckseqpar(toilop),statseqpar(toilop),stat2seqpar(toilop)] = mous_makecontrast(sourcedata, 'wordseq_parametric');
   end
   
-  % concatenate
+  % concatenate 
   tlcksent(1).avg = cat(2,tlcksent(:).avg);
   tlcksent(1).var = cat(2,tlcksent(:).var);
   tlcksent(1).dof = cat(2,tlcksent(:).dof);
@@ -325,14 +334,15 @@ if dosource_contrasts,
 
   % save the results
   suff2 = num2str(round(frequency*10));
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 0);
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff2], 'tlcksentpar', 'stat2sentpar', 'statsentpar', rootdir, 0);
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2,suff3], 'tlcksent',    'tlckseq',      'tstat', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff2,suff3], 'tlcksentpar', 'stat2sentpar', 'statsentpar', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2,suff3], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 0);
 end
   
+if docombinefreq,
+  mous_bfica_sourcedata_combinefreq(subjectname, prefix, freqs, savesuffix);
+end
   
-
-
 if dovoxbaseline,
   mous_db_getdata(subjectname, 'meg_bfica_freqbaseline', rootdir);
   mous_db_getdata(subjectname, ['meg_bfica_source',suff], rootdir);
