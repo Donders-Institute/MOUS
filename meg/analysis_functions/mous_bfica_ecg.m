@@ -24,7 +24,7 @@ ecg = ft_channelnormalise([], ecg);
 tmp = cat(2, ecg.trial{:});
 %polarity = 2*(double(sum(tmp>4)>sum(tmp<-4))-0.5);
 figure;plot(tmp);
-[polarity, threshold, p]s1 = input('polarity?','s');
+s1 = input('polarity?','s');
 s2 = input('threshold?','s');
 close;
 
