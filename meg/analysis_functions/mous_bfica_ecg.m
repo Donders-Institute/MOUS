@@ -6,8 +6,8 @@ dataset   = mous_db_getfilename(subjectname, 'meg_ds_task');
 if numel(dataset)>1
     for k = 1:numel(dataset)
         tmpdataset      = dataset{k};
-        mous_db_getdata(subjectname,['meg_artifact_cfg_pt',num2str(k)]);
-        tmpecg          = rmartifact(tmpdataset,subjectname);
+        artfct = mous_db_getdata(subjectname,['meg_artifact_cfg_pt',num2str(k)]);
+        tmpecg          = rmartifact(tmpdataset, artfct, subjectname);
         if k == 1
            ecg = tmpecg;
         else
@@ -15,8 +15,8 @@ if numel(dataset)>1
         end
     end
 else
-    mous_db_getdata(subjectname, 'meg_artifact_cfg');
-    ecg     = rmartifact(dataset{1}, subjectname);
+    artfct = mous_db_getdata(subjectname, 'meg_artifact_cfg');
+    ecg     = rmartifact(dataset{1},artfct, subjectname);
 end 
 
 % compute peak times for ecg
@@ -24,7 +24,7 @@ ecg = ft_channelnormalise([], ecg);
 tmp = cat(2, ecg.trial{:});
 %polarity = 2*(double(sum(tmp>4)>sum(tmp<-4))-0.5);
 figure;plot(tmp);
-s1 = input('polarity?','s');
+[polarity, threshold, p]s1 = input('polarity?','s');
 s2 = input('threshold?','s');
 close;
 
@@ -37,7 +37,7 @@ end
 
 
 
-function [ecg] = rmartifact(dataset, subjectname)  % remove artifacts from ecg
+function [ecg] = rmartifact(dataset, artfct, subjectname)  % remove artifacts from ecg
 cfg          = [];
 cfg.dataset  = dataset;
 if strcmp(subjectname(1),'V')
@@ -50,7 +50,7 @@ end
 %cfg.trialdef.poststim = 0.8;
 cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
-trl          = mous_artifact_remove(trl, dataset{1}, {cfgeog1 cfgeog2 cfgjump cfgmuscle}, 'partial', 1); % don't do the horizontal EOG
+trl          = mous_artifact_remove(trl, dataset, {artfct.cfgeog1 artfct.cfgeog2 artfct.cfgjump artfct.cfgmuscle}, 'partial', 1); % don't do the horizontal EOG
 
 
 cfg            = [];
