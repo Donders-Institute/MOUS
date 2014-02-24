@@ -13,7 +13,7 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 % sequence trigger values: 3 4 7 8
 
 switch contrast
-  case {'sent-seq', 'sent-seqTarget', 'sent1-sent2'}
+  case {'sent-seq', 'sent-seqTarget', 'sent1-sent2','sent-seqTarget_presentence_blc'}
     if nargin<3
       T = data.trialinfo(:,3);
     else 
@@ -29,6 +29,12 @@ switch contrast
     elseif strcmp(contrast, 'sent-seqTarget')
       sel1 = find(ismember(T,[2 6]));
       sel2 = find(ismember(T,[4 8]));      
+    elseif strcmp(contrast, 'sent-seqTarget_presentence_blc')
+      sel1  = find(ismember(T,[2 6]));
+      sel2  = find(ismember(T,[4 8]));      
+      sel1b = find(ismember(T,[1 5]));
+      sel2b = find(ismember(T,[3 7])) % but include the selection of the first word, look into another column of the trialinfo!;      
+      
     elseif strcmp(contrast, 'sent1-sent2')
       sel1 = find(ismember(T,[1 2]));
       sel2 = find(ismember(T,[5 6]));
@@ -57,10 +63,24 @@ switch contrast
 %     end
     switch ft_datatype(data)
       case 'raw'
-        cfg.trials = sel1
+        cfg.trials = sel1;
         tlck1      = ft_timelockanalysis(cfg, data);
         cfg.trials = sel2;
         tlck2      = ft_timelockanalysis(cfg, data);
+      
+        if strcmp(contrast, 'sent-seqTarget_presentence_blc')
+          % do a subtraction of the pre-sentence baseline
+          cfg.trials = sel1b;
+          tlck1b     = ft_timelockanalysis(cfg, data);
+          cfg.trials = sel2b;
+          tlck2b     = ft_timelockanalysis(cfg, data);
+          
+          b1 = % the average in the baseline for tlck1b;
+          b2 = 
+          
+          % subtract these from the tlck1 and tlck2....
+          
+        end
         
         varargout{1} = tlck1;
         varargout{2} = tlck2;
@@ -105,6 +125,10 @@ switch contrast
         % combine planar
         freq1 = ft_combineplanar([],freq1);
         freq2 = ft_combineplanar([],freq2);
+        
+        if strcmp(contrast, 'sent-seqTarget_presentence_blc')
+          error('not yet implemented');
+        end
         
         varargout{1} = freq1;
         varargout{2} = freq2;
