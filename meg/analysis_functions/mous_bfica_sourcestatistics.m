@@ -1,4 +1,4 @@
-function [stat, i1, Nsubj, avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics(subj, suffix, baselineflag, cfg, rootdir)
+function [stat, Nsubj, avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics(subj, suffix, baselineflag, cfg, rootdir)
 
 if nargin<3
   baselineflag = 0;
@@ -128,7 +128,7 @@ avgseq  = sumseq./Nsubj;
 varseq  = (ssqseq - sumseq.^2./Nsubj)./(Nsubj-1);
 semseq  = sqrt(varseq./Nsubj);
 
-%cfg = [];
+% cfg = [];  % keep cfg from inarg
 cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
 cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
@@ -136,16 +136,21 @@ cfg.ivar = 1;
 cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
 stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
-if ndims(stat.stat)>2 %i.e. being a 3d matrix, rather than space x something else
-  stat.stat=stat.stat(:);
-  stat.prob=stat.prob(:);
-  stat.mask=stat.mask(:);
-end
-i1    = mous_bfica_sourceinterpolate(stat, 'stat', stat.inside);
-iprob = mous_bfica_sourceinterpolate(stat, 'prob', stat.inside);
-imask = mous_bfica_sourceinterpolate(stat, 'mask', stat.inside);
-for k = 1:numel(i1)
-  i1(k).coordsys = 'spm';
-  i1(k).mask = imask(k).avg.pow;
-  i1(k).prob = iprob(k).avg.pow;
-end
+
+
+% Commented out because this functions wasn't written to take into account
+% source_freq_time (e.g., 11000 x 16 x 13)
+% if ndims(stat.stat)>2 && ~isfield(stat,'freq') 
+% if source_freq_time dont make into 2D
+%   stat.stat=stat.stat(:);
+%   stat.prob=stat.prob(:);
+%   stat.mask=stat.mask(:);
+% end
+% i1    = mous_bfica_sourceinterpolate(stat, 'stat', stat.inside);
+% iprob = mous_bfica_sourceinterpolate(stat, 'prob', stat.inside);
+% imask = mous_bfica_sourceinterpolate(stat, 'mask', stat.inside);
+% for k = 1:numel(i1)
+%   i1(k).coordsys = 'spm';
+%   i1(k).mask = imask(k).avg.pow;
+%   i1(k).prob = iprob(k).avg.pow;
+% end
