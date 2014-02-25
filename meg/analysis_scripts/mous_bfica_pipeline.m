@@ -232,15 +232,7 @@ if dosource_contrasts,
   
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
   freq = ft_struct2double(freq);
-
-  % option to choose to only analyse target words
-  if strcmp(seltar,'yes')  
-    seltar = find(ismember(freq.trialinfo(:,2),[2 4 6 8]));
-    cfgsel = [];
-    cfgsel.trials = seltar;
-    freq = ft_selectdata_new(cfgsel,freq);
-  end 
-  
+ 
   % ntap = 1; % assume hanning taper, change it if you have multi tapers;
   % implement ntap when calling mous_bfica_pipeline in batch processing
   freq.cumtapcnt = ones(size(freq.fourierspctrm,1)./ntap,1)*ntap;  
@@ -266,8 +258,15 @@ if dosource_contrasts,
     
     %% dosentvsseq
     sourcedata = sourcedataorig;
-    [tlcksent(toilop), tlckseq(toilop),tstat(:,toilop)] = mous_makecontrast(sourcedata, 'sent-seq');
-  
+    [tlcksent(toilop), tlckseq(toilop),tstat(:,toilop)] = mous_makecontrast(sourcedata,'sent-seq');
+    
+    % FIXME:% stop computing this contrast for toi's > 0 as we only want
+    % the baseline, if we take the whole first word, then we can call it
+    % 'sent-seqFirstword'
+    if toi < 0  
+      [tlcksentpsblc(toilop),tlckseqpsblc(toilop),tstatpsblc(:,toilop)] = mous_makecontrast(sourcedata,'sent-seq_presentenceblc'); 
+    end
+    
     %% dowordsentpar2
     [tlcksentpar(toilop),statsentpar(toilop),stat2sentpar(toilop)] = mous_makecontrast(sourcedata, 'wordsent_parametric');
     
@@ -287,6 +286,18 @@ if dosource_contrasts,
   tlckseq(1).dof = cat(2,tlckseq(:).dof);
   tlckseq(1).time = cat(2,tlckseq(:).time);
   tlckseq         = tlckseq(1);
+  
+  tlcksentfirst(1).avg = cat(2,tlcksentfirst(:).avg);
+  tlcksentfirst(1).var = cat(2,tlcksentfirst(:).var);
+  tlcksentfirst(1).dof = cat(2,tlcksentfirst(:).dof);
+  tlcksentfirst(1).time = cat(2,tlcksentfirst(:).time);
+  tlcksentfirst         = tlcksentfirst(1);
+  
+  tlckseqfirst(1).avg = cat(2,tlckseqfirst(:).avg);
+  tlckseqfirst(1).var = cat(2,tlckseqfirst(:).var);
+  tlckseqfirst(1).dof = cat(2,tlckseqfirst(:).dof);
+  tlckseqfirst(1).time = cat(2,tlckseqfirst(:).time);
+  tlckseqfirst         = tlckseqfirst(1);
   
   tlcksentpar(1).avg = cat(2,tlcksentpar(:).avg);
   tlcksentpar(1).var = cat(2,tlcksentpar(:).var);
@@ -335,9 +346,122 @@ if dosource_contrasts,
   % save the results
   suff2 = num2str(round(frequency*10));
   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2,suff3], 'tlcksent',    'tlckseq',      'tstat', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq_presentenceblc',suff2,suff3], 'tlcksentpsblc',    'tlckseqpsblc',  'tstatpsblc', rootdir, 0);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff2,suff3], 'tlcksentpar', 'stat2sentpar', 'statsentpar', rootdir, 0);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2,suff3], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 0);
 end
+
+if dosource_contrasts_targetonly
+  % this is chuncking the individual subsegments above, without saving the intermediate results + looping over toi:
+  % dosource8mm
+  % dovox
+  % dosentvsseq
+  % dowordsentpar2
+  % dowordseqpar2
+  
+  mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
+  freq = ft_struct2double(freq);
+
+  % ntap = 1; % assume hanning taper, change it if you have multi tapers;
+  % implement ntap when calling mous_bfica_pipeline in batch processing
+  freq.cumtapcnt = ones(size(freq.fourierspctrm,1)./ntap,1)*ntap;  
+  for toilop = 1:numel(toi)
+
+    tmpfreq = ft_selectdata(freq, 'foilim', frequency*[1 1]+[-0.1 0.1]);
+    [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8,rootdir);  % default directory is jansch in order to get leadfield
+    sourcedataorig      = mous_bfica_sourcedata(source, tmpfreq, toi(toilop));
+    
+    sourcedataorig.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
+    [trial,time,trialinfonew]       = trial2words(sourcedataorig.trial{1},sourcedataorig.trialinfo(:,[1 5 7 2:4 6]),toi(toilop));
+  
+    % match the trials with the trialinfo from the sourcedata file
+    [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
+    % chop until word offset minus half a time window for the spectral analysis
+    % FIXME
+  
+    sourcedataorig.trialinfo = trialinfonew(ia,:);
+    sourcedataorig.trial = trial(ia);
+    sourcedataorig.time = time(ia);
+    sourcedataorig.fsample = 1;
+    
+    %% dosentvsseqtarget
+    sourcedata = sourcedataorig;
+
+    [tlcksenttar(toilop), tlckseqtar(toilop),tstattar(:,toilop)] = mous_makecontrast(sourcedata,'sent-seqTarget');
+   
+    % FIXME: until logfile info added to trialfun_auditory_word, there's no point doing parametric analyses 
+    if strcmp(subjectname,'V') 
+      % target word parametric (sent)
+      [tlcksentpartar(toilop),statsentpartar(toilop),stat2sentpartar(toilop)] = mous_makecontrast(sourcedata,'wordsenttar_parametric'); % _blc option available
+    
+      % target word parametric (seq)
+      [tlckseqpartar(toilop),statseqpartar(toilop),stat2seqpartar(toilop)] = mous_makecontrast(sourcedata,'wordseqtar_parametric'); % _blc option available
+    end
+  end
+  
+  % concatenate 
+  tlcksenttar(1).avg = cat(2,tlcksenttar(:).avg);
+  tlcksenttar(1).var = cat(2,tlcksenttar(:).var);
+  tlcksenttar(1).dof = cat(2,tlcksenttar(:).dof);
+  tlcksenttar(1).time = cat(2,tlcksenttar(:).time);
+  tlcksenttar         = tlcksenttar(1);
+  
+  tlckseqtar(1).avg = cat(2,tlckseqtar(:).avg);
+  tlckseqtar(1).var = cat(2,tlckseqtar(:).var);
+  tlckseqtar(1).dof = cat(2,tlckseqtar(:).dof);
+  tlckseqtar(1).time = cat(2,tlckseqtar(:).time);
+  tlckseqtar         = tlckseqtar(1); 
+  
+  tlcksentpartar(1).avg = cat(2,tlcksentpartar(:).avg);
+  tlcksentpartar(1).var = cat(2,tlcksentpartar(:).var);
+  tlcksentpartar(1).dof = cat(2,tlcksentpartar(:).dof);
+  tlcksentpartar(1).time = cat(2,tlcksentpartar(:).time);
+  tlcksentpartar(1).trial = cat(3,tlcksentpartar(:).trial);
+  tlcksentpartar(1).trial2 = cat(3,tlcksentpartar(:).trial2);
+  tlcksentpartar           = tlcksentpartar(1);
+  
+  tlckseqpartar(1).avg = cat(2,tlckseqpartar(:).avg);
+  tlckseqpartar(1).var = cat(2,tlckseqpartar(:).var);
+  tlckseqpartar(1).dof = cat(2,tlckseqpartar(:).dof);
+  tlckseqpartar(1).time = cat(2,tlckseqpartar(:).time);
+  tlckseqpartar(1).trial = cat(3,tlckseqpartar(:).trial);
+  tlckseqpartar(1).trial2 = cat(3,tlckseqpartar(:).trial2);
+  tlckseqpartar           = tlckseqpartar(1);
+  
+  statsentpartar(1).stat = cat(2,statsentpartar(:).stat);
+  statsentpartar(1).prob = cat(2,statsentpartar(:).prob);
+  statsentpartar(1).mask = cat(2,statsentpartar(:).mask);
+  statsentpartar(1).time = cat(2,statsentpartar(:).time);
+  statsentpartar(1).cirange = cat(2,statsentpartar(:).cirange);
+  statsentpartar            = statsentpartar(1);
+  
+  stat2sentpartar(1).stat = cat(2,stat2sentpartar(:).stat);
+  stat2sentpartar(1).prob = cat(2,stat2sentpartar(:).prob);
+  stat2sentpartar(1).mask = cat(2,stat2sentpartar(:).mask);
+  stat2sentpartar(1).time = cat(2,stat2sentpartar(:).time);
+  stat2sentpartar(1).cirange = cat(2,stat2sentpartar(:).cirange);
+  stat2sentpartar            = stat2sentpartar(1);
+
+  statseqpartar(1).stat = cat(2,statseqpartar(:).stat);
+  statseqpartar(1).prob = cat(2,statseqpartar(:).prob);
+  statseqpartar(1).mask = cat(2,statseqpartar(:).mask);
+  statseqpartar(1).time = cat(2,statseqpartar(:).time);
+  statseqpartar(1).cirange = cat(2,statseqpartar(:).cirange);
+  statseqpartar            = statseqpartar(1);
+  
+  stat2seqpartar(1).stat = cat(2,stat2seqpartar(:).stat);
+  stat2seqpartar(1).prob = cat(2,stat2seqpartar(:).prob);
+  stat2seqpartar(1).mask = cat(2,stat2seqpartar(:).mask);
+  stat2seqpartar(1).time = cat(2,stat2seqpartar(:).time);
+  stat2seqpartar(1).cirange = cat(2,stat2seqpartar(:).cirange);
+  stat2seqpartar            = stat2seqpartar(1);
+
+  % save the results
+  suff2 = num2str(round(frequency*10));
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqtar',suff2,suff3], 'tlcksenttar',    'tlckseqtar',      'tstattar', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpartar',suff2,suff3], 'tlcksentpartar', 'stat2sentpartar', 'statsentpartar', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpartar', suff2,suff3], 'tlckseqpartar',  'stat2seqpartar',  'statseqpartar', rootdir, 0);
+end % dosource_contrasts_targetonly
   
 if docombinefreq,
   mous_bfica_sourcedata_combinefreq(subjectname, prefix, freqs, savesuffix);
