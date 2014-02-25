@@ -62,16 +62,19 @@ end
 
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
+% these reflect subjects in which there was problem with the MEG data, but
+% does not consider issue in the MRI (whereby MEG data was still fine)
 badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1067';'V1082';'V1091';'V1096';'V1112';...
-               'A2022';'A2043';'A2044';'A2045' ;'A2054' ; 'A2081' ; 'A2082'};
+               'A2022';'A2043';'A2044';'A2045';'A2054';'A2074';'A2081';'A2093'};
            
            
 % subjects with more than one dataset because MEG acquisition PC crashed           
 % 'V1006';'V1090';'A2011';'A2036';'A2062';'A2063';'A2076';'A2084'
 % in the above list are 2 subjects who's file are too small to be
-% considered as a task dataset by the heuristic. Therefore they are hard
-% coded 
-cannotdetectdatasetsubjects = {'A2062';'A2063'};
+% considered as a task dataset by the heuristic. Therefore they are hard coded 
+% A2052 is an exception, no crash happened, but the first recording was
+% very bad so we started again.
+cannotdetectdatasetsubjects = {'A2052';'A2062';'A2063'};
 
 
           
@@ -166,19 +169,20 @@ switch type{2}
     % MEG .ds directory
     D = [rootdir filesep subject filesep 'RAW' filesep];
     d = dir([D, '*.ds']);
-    if numel(type)>2
+    % FIXME:  crashes if there are no files in RAW directory, need to
+    % circumvent this
+    if numel(type)>2 
       % some additional specification has been made
       for k = 1:numel(d)
         D2 = [rootdir filesep subject filesep 'RAW' filesep d(k).name];
         d2 = dir(D2);
-        
         totalbytes(k) = sum([d2.bytes]);
       end
       % make the distinction of task versus rest based on the number of
-      % bytes in the directory -> FIXME not foolproof if acquisition
-      % crashed
+      % bytes in the directory 
       switch type{3}
         case 'task'
+          % exception cases where MEG acquisition crashed
           if any(ismember(subject, cannotdetectdatasetsubjects))
             d = datasets_exceptions(subject,D2);
           else
