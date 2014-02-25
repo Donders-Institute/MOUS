@@ -29,6 +29,8 @@ if ~exist('dowordsentpar2',         'var'), dowordsentpar2         = 0; end
 if ~exist('dowordseqpar2',          'var'), dowordseqpar2          = 0; end
 if ~exist('docleanup',              'var'), docleanup              = 0; end
 if ~exist('dosource_contrasts',     'var'), dosource_contrasts     = 0; end
+if ~exist('dosource_contrasts_targetonly',     'var'), dosource_contrasts     = 0; end
+if ~exist('docombinefreq',          'var'), docombinefreq          = 0; end
 
 % set the rootdir variable
 if ~exist('rootdir', 'var'), rootdir = '/home/language/jansch/public/mous/'; end 
