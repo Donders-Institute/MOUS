@@ -13,8 +13,13 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 % sequence trigger values: 3 4 7 8
 
 switch contrast
-  case {'sent-seq', 'sent-seqTarget', 'sent1-sent2','sent-seqTarget_presentence_blc'}
-    if nargin<3
+  case {'sent-seq', 'sent-seqTarget', 'sent1-sent2','sent-seq_presentenceblc'}
+    %if  nargin<3  
+    % need extra input arguments to differentiate between VIS and AUD
+    % could try to infer from trialinfo i.e. VIS has all words present but
+    % AUD doesn't (given triggers). However, we may soon update the
+    % trialinfo with info from logfile, so subjectname is most reliable
+    if nargin<4
       T = data.trialinfo(:,3);
     else 
       T = trialinfo(:,1);
@@ -29,18 +34,15 @@ switch contrast
     elseif strcmp(contrast, 'sent-seqTarget')
       sel1 = find(ismember(T,[2 6]));
       sel2 = find(ismember(T,[4 8]));      
-    elseif strcmp(contrast, 'sent-seqTarget_presentence_blc')
-      sel1  = find(ismember(T,[2 6]));
-      sel2  = find(ismember(T,[4 8]));      
-      sel1b = find(ismember(T,[1 5]));
-      sel2b = find(ismember(T,[3 7])) % but include the selection of the first word, look into another column of the trialinfo!;      
-      
+    elseif strcmp(contrast, 'sent-seq_presentenceblc')
+      sel1 = find(ismember(T,[1 5]) & data.trialinfo(:,2) == 1); 
+      sel2 = find(ismember(T,[3 7]) & data.trialinfo(:,2) == 1);   
     elseif strcmp(contrast, 'sent1-sent2')
       sel1 = find(ismember(T,[1 2]));
       sel2 = find(ismember(T,[5 6]));
     end
     
-    if numel(sel1)~=numel(sel2)
+    if numel(sel1)~=numel(sel2) % balance numtrials btw sent and seq
       n1=numel(sel1);
       n2=numel(sel2);
       n=min(n1,n2);
@@ -66,22 +68,7 @@ switch contrast
         cfg.trials = sel1;
         tlck1      = ft_timelockanalysis(cfg, data);
         cfg.trials = sel2;
-        tlck2      = ft_timelockanalysis(cfg, data);
-      
-        if strcmp(contrast, 'sent-seqTarget_presentence_blc')
-          % do a subtraction of the pre-sentence baseline
-          cfg.trials = sel1b;
-          tlck1b     = ft_timelockanalysis(cfg, data);
-          cfg.trials = sel2b;
-          tlck2b     = ft_timelockanalysis(cfg, data);
-          
-          b1 = % the average in the baseline for tlck1b;
-          b2 = 
-          
-          % subtract these from the tlck1 and tlck2....
-          
-        end
-        
+        tlck2      = ft_timelockanalysis(cfg, data);       
         varargout{1} = tlck1;
         varargout{2} = tlck2;
         
@@ -125,22 +112,23 @@ switch contrast
         % combine planar
         freq1 = ft_combineplanar([],freq1);
         freq2 = ft_combineplanar([],freq2);
-        
-        if strcmp(contrast, 'sent-seqTarget_presentence_blc')
-          error('not yet implemented');
-        end
-        
+      
         varargout{1} = freq1;
         varargout{2} = freq2;
       otherwise
     end
     
-  case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc'}
+  %case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc'}
+  case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc','wordsenttar_parametric','wordseqtar_parametric','wordsenttar_parametric_blc','wordseqtar_parametric_blc',}
     Xcond = data.trialinfo(:,3);
-    if strcmp(contrast(1:7), 'wordsen')
-      sel   = find(ismember(Xcond,[1 2 5 6]));
-    else
+    if regexp(contrast,    'wordsent_para')  % regexp = parametric(_blc)
+      sel   = find(ismember(Xcond,[1 2 5 6]));  
+    elseif regexp(contrast,'wordseq_para')   
       sel   = find(ismember(Xcond,[3 4 7 8]));  
+    elseif regexp(contrast,'wordsenttar_para')  
+      sel   = find(ismember(Xcond,[2 6]));
+    elseif regexp(contrast,'wordseqtar_para')
+      sel   = find(ismember(Xcond,[4 8]));
     end
     
     data  = ft_selectdata(data, 'rpt', sel);
@@ -148,7 +136,8 @@ switch contrast
     
     cfg              = [];
     cfg.vartrllength = 2;
-    if strcmp(contrast, 'wordsent_parametric_blc') || strcmp(contrast, 'wordseq_parametric_blc')
+    %if strcmp(contrast, 'wordsent_parametric_blc') || strcmp(contrast, 'wordseq_parametric_blc')
+    if regexp(contrast, 'blc') || strcmp(contrast, 'blc')  % generalised for any kind of baseline subtraction
       cfg.preproc.baselinewindow = [-inf 0];
       cfg.preproc.demean         = 'yes';
     end
