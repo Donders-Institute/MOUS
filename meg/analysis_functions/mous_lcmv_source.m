@@ -23,16 +23,17 @@ cfg = [];
 cfg.covariance   = 'yes';
 cfg.channel      = 'MEG';
 tlck = ft_timelockanalysis(cfg, data);
+tlck.grad = ft_convert_units(tlck.grad, 'm');
 
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', rootdir);
 
 % compute leadfields
 cfg         = [];
-cfg.grid    = sourcemodel;
-cfg.vol     = headmodel;
+cfg.grid    = ft_convert_units(sourcemodel, 'm');
+cfg.vol     = ft_convert_units(headmodel, 'm'); % better safe than sorry
 cfg.channel = 'MEG';
-cfg.grad    = data.grad;
+cfg.grad    = ft_convert_units(data.grad, 'm');
 cfg.backproject = 'no';
 sourcemodel = ft_prepare_leadfield(cfg);
 
@@ -42,7 +43,7 @@ cfg.method          = 'lcmv';
 cfg.lcmv.fixedori   = 'no';
 cfg.lcmv.keepfilter = 'yes';
 cfg.lcmv.lambda     = '5%';
-cfg.vol             = headmodel;
+cfg.vol             = ft_convert_units(headmodel, 'm');
 cfg.grid            = sourcemodel;
 %cfg.keepleadfield   = 'yes';
 cfg.lcmv.projectnoise = 'yes';
