@@ -72,18 +72,16 @@ end
 
 % do a baseline subtraction
 if baselineflag == 2            % pre-sentence baseline 
-    [bslsen bslseq] = mous_make_presentencebsl(subj,suff.oscband,rootdir);
+    [bslsen bslseq] = mous_make_presentencebsl(subj,suffix.oscband,rootdir);
     if isfield(tlckseq,'freq')  % for 3D data matrix
-      % FIXME: implement ix = find(sent{k}.time<=-0.1 here or in
-      % mous_make_presentencebsl?
-      % also, <= -0.1 is an exclusive OR.   Should we not take advantage of
-      % using both -0.15 and -0.1 (especially for higher frequencies?)
       for k = 1:numel(sent)
         tmp = sent{k}.avg.pow;
-        sent{k}.avg.pow = tmp - repmat(bslsen{k}.avg.pow,[1,1,size(tmp,3)]);
+        %sent{k}.avg.pow = tmp - repmat(bslsen{k}.avg.pow,[1,1,size(tmp,3)]);
+        sent{k}.avg.pow  = tmp - repmat(bslsen,[1,1,size(tmp,3)]);
 
         tmp = seq{k}.avg.pow;
-        seq{k}.avg.pow = tmp - repmat(bslseq{k}.avg.pow,[1,1,size(tmp,3)]);
+        %seq{k}.avg.pow = tmp - repmat(bslseq{k}.avg.pow,[1,1,size(tmp,3)]);
+        sent{k}.avg.pow  = tmp - repmat(bslseq,[1,1,size(tmp,3)]);
       end
     else   % FIXME:  for 2D data matrix
       for k = 1:numel(sent)
