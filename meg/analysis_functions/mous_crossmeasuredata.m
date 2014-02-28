@@ -1,11 +1,16 @@
-function mous_crossmeasuredata(subjectname, rootdir)
+function mous_crossmeasuredata(subjectname, param)
 
-if nargin<2 
-  rootdir = '/project/3011020.09/MEG';
-end
+
+%ffxinput, fmrioutput, outdir)
+% 
+% if nargin<2 
+%   rootdir = '/project/3011020.09/MEG';
+% end
 
 % get the functional MRI data
-file = ['/home/language/juludd/MOUS/ffxstats/' subjectname '-ffxStats/beta_0001.img'];
+file = [param.ffxpath subjectname param.ffxinput]; 
+
+
 mri  = ft_read_mri(file, 'format', 'analyze_img');
 mri.inside = isfinite(mri.anatomy); % ensure that voxels without data will not be used in the interpolation
 
@@ -23,7 +28,7 @@ T = mri1n.initial;
 %P = load(transfile);
 
 % Load meg data
-mous_db_getdata(subjectname,'meg_mne_allwords_01-10-sent_currentdensity_weighted', rootdir);
+mous_db_getdata(subjectname,'meg_mne_allwords_01-10-sent_currentdensity_weighted'); %, rootdir);
 meg = ft_convert_units(source, 'mm'); clear source;
 
 % Load a 3D sourcemodel for a sanity check
@@ -45,7 +50,7 @@ pos3d_sn = ft_warp_apply(P, pos3d, 'individual2sn');
 meg.pos = pos2d_sn;
 
 % Interpolate the fMRI data onto the MEG cortical sheet, using inverse distance weighting
-outname = mous_db_getfilename(subjectname,'meg_mne_{_mri_sentVSibi_interpol}',0,'/project/3011020.09/annhul');
+outname = mous_db_getfilename(subjectname,param.fmrioutput,0,param.outdir);
 cfg = [];
 cfg.parameter    = 'anatomy'; % ?
 cfg.interpmethod =  'sphere_weighteddistance';
