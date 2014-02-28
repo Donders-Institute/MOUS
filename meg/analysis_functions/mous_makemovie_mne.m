@@ -43,14 +43,21 @@ viewmode       = ft_getopt(varargin, 'viewmode',   'both');
 textstringbase = ft_getopt(varargin, 'textstring', 'time = ');
 textstringparameter = ft_getopt(varargin, 'textstringparameter', 'time');
 makecolorbar = ft_getopt(varargin, 'colorbar', 0);
+xparam       = ft_getopt(varargin, 'xparam', 'time');
 
 makecolorbar = istrue(makecolorbar);
 
+if ~isfield(source, xparam)
+  if strcmp(xparam, 'time')
+    xparam = 'freq';
+  end
+end
+
 %% deal with xlim and zlim
 if isempty(xlim)
-  dtime  = mean(diff(source.time));
-  xlim   = source.time - dtime/2;
-  xlim(end+1) = source.time(end) + dtime/2;
+  dtime  = mean(diff(source.(xparam)));
+  xlim   = source.(xparam) - dtime/2;
+  xlim(end+1) = source.(xparam)(end) + dtime/2;
 end
 
 if isempty(zlim)
@@ -217,8 +224,8 @@ vidObj.FrameRate = 15;
 open(vidObj);
 abc = get(gcf, 'position');
 for k = 1:numel(xlim)-1
-  ix(1) = nearest(source.time, xlim(k)+eps*100);
-  ix(2) = nearest(source.time, xlim(k+1));
+  ix(1) = nearest(source.(xparam), xlim(k)+eps*100);
+  ix(2) = nearest(source.(xparam), xlim(k+1));
   dat   = nanmean(data(:,ix(1):ix(2)),2);
   msk   = nanmean(mask(:,ix(1):ix(2)),2);
   set(hfun1, 'FaceVertexCData',     dat(:));

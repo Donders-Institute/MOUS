@@ -5,8 +5,13 @@ cfg.channel = 'EEG059';
 ecg = ft_preprocessing(cfg, data);
 
 % compute peak times for ecg
+cfg = [];
+cfg.detrend = 'yes'; % to account for drifts 
+ecg = ft_preprocessing(cfg, ecg);
 ecg = ft_channelnormalise([], ecg);
 tmp = cat(2, ecg.trial{:});
+
+
 %polarity = 2*(double(sum(tmp>3.5)>sum(tmp<-3.5))-0.5);
 figure;plot(tmp);
 s1 = input('polarity?','s');
