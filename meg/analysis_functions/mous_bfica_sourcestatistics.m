@@ -27,7 +27,7 @@ sourcemodeltemplate = sourcemodel;
 
 for k = 1:Nsubj
   clear tlcksent tlckseq
-  mous_db_getdata(subj{k}, ['meg_bfica_',suffix], rootdir);
+  mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype, suffix.oscband], rootdir);
   if k==1
     mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
     sourcemodel = rmfield(sourcemodel, 'leadfield');
@@ -71,9 +71,33 @@ for k = 1:Nsubj
 end
 
 % do a baseline subtraction
-if baselineflag
-  if isfield(tlckseq,'freq') % for 3D matrix (chan_freq_time; where chan = sources))
-      ix = find(sent{k}.time<=-0.1);
+if baselineflag == 2            % pre-sentence baseline 
+    [bslsen bslseq] = mous_make_presentencebsl(subj,suff.oscband,rootdir);
+    if isfield(tlckseq,'freq')  % for 3D data matrix
+      % FIXME: implement ix = find(sent{k}.time<=-0.1 here or in
+      % mous_make_presentencebsl?
+      % also, <= -0.1 is an exclusive OR.   Should we not take advantage of
+      % using both -0.15 and -0.1 (especially for higher frequencies?)
+      for k = 1:numel(sent)
+        tmp = sent{k}.avg.pow;
+        sent{k}.avg.pow = tmp - repmat(bslsen{k}.avg.pow,[1,1,size(tmp,3)]);
+
+        tmp = seq{k}.avg.pow;
+        seq{k}.avg.pow = tmp - repmat(bslseq{k}.avg.pow,[1,1,size(tmp,3)]);
+      end
+    else   % FIXME:  for 2D data matrix
+      for k = 1:numel(sent)
+        tmp = sent{k}.avg.pow;
+        sent{k}.avg.pow = tmp - bslsen{k}.avg.pow*ones(1,size(tmp,2));
+        
+        tmp = seq{k}.avg.pow;
+        seq{k}.avg.pow = tmp -  bslseq{k}.avg.pow*ones(1,size(tmp,2));
+      end
+    end
+end
+if baselineflag  == 1
+  if isfield(tlckseq,'freq')        % for 3D matrix: chan_freq_time (where chan = source)
+      ix = find(sent{k}.time<=-0.1);  % loop through each bsl timepoint ?!?
       for k = 1:numel(sent)
         tmp = sent{k}.avg.pow;
         bsl = nanmean(tmp(:,:,ix),3);
@@ -83,7 +107,7 @@ if baselineflag
         bsl = nanmean(tmp(:,:,ix),3);
         seq{k}.avg.pow = tmp - repmat(bsl,[1,1,size(tmp,3)]);
       end
-  else % for 2D matrix %%
+  else                          % for 2D matrix: chan_time  (single freq)
       ix = find(sent{k}.time<=-0.1);
       for k = 1:numel(sent)
         tmp = sent{k}.avg.pow;
