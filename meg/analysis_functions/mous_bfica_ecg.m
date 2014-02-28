@@ -52,7 +52,6 @@ cfg          = ft_definetrial(cfg);
 trl          = cfg.trl;
 trl          = mous_artifact_remove(trl, dataset, {artfct.cfgeog1 artfct.cfgeog2 artfct.cfgjump artfct.cfgmuscle}, 'partial', 1); % don't do the horizontal EOG
 
-
 cfg            = [];
 cfg.dataset    = dataset;
 cfg.trl        = trl;
