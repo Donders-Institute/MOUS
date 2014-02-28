@@ -35,25 +35,28 @@ for k = 1:Nsubj
   elseif strcmp(osband,'medium') || strcmp(oscband,'high');
     cfgt.latency = [-0.15 -0.1];
   end
-  tlcksentfirst = ft_selectdata_new(cfgt, tlcksentfirst);
-  tlckseqfirst = ft_selectdata_new(cfgt, tlckseqfirst);
+  cfgt.avgovertime = 'yes';  % leads to removal of 'time' field
+  tlcksentfirst= ft_selectdata(cfgt, tlcksentfirst);
+  tlckseqfirst = ft_selectdata(cfgt, tlckseqfirst);
  
     
   % Adjust sourcemodel dimensions according to input data
-  % This time field is most important when submitting bsl as a condition to sourcestatistics
-  sourcemodel.time = tlckseqfirst.time;  
-  if isfield(tlckseqfirst, 'freq')
+  if isfield(tlckseqfirst, 'freq')      % but most likely will be 3D matrix
     sourcemodel.freq  = tlckseqfirst.freq;
-    sourcemodel.dimord = 'pos_freq_time';
+    sourcemodel.dimord = 'pos_freq';    % time dimension removed (averaged)
+    %sourcemodel.dimord = 'pos_freq_time';  
+    % FIXME: consider keeping timefield so that we can run statistics for act vs. bsl
   else
-    sourcemodel.dimord = 'pos_time';
+    sourcemodel.time = 'pos_time';      % for default 2D matrix
   end
      
   % no log transform
   % sequences 
-  sourcemodel.avg.pow = (tlckseqfirst.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
+  sourcemodel.avg.pow = (tlckseqfirst.avg);
   if isfield(tlckseqfirst,'freq')
-    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
+    % CHECKME please
+    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
+    %tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
   end 
@@ -65,7 +68,8 @@ for k = 1:Nsubj
   % sentences
   sourcemodel.avg.pow = (tlcksentfirst.avg); 
   if isfield(tlcksentfirst,'freq')
-    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
+    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
+    %tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
   end
@@ -73,6 +77,14 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = tmp;
   sent{k}        = sourcemodel;
   sent{k}.pos    = sourcemodeltemplate.pos;
+end
+
+% array: each element is the baseline matrix for one subject
+% each cell:  % [number of sources X number of frequency bands] 
+% [source x freq] 
+for k = 1:numel(subj)
+  sent{k} = sent{k}.avg.pow;
+  seq{k}  = seq{k}.avg.pow;
 end
 
 
