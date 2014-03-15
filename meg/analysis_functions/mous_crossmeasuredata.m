@@ -51,10 +51,13 @@ meg.pos = pos2d_sn;
 
 % Interpolate the fMRI data onto the MEG cortical sheet, using inverse distance weighting
 outname = mous_db_getfilename(subjectname,param.fmrioutput,0,param.outdir);
+
+
+
 cfg = [];
 cfg.parameter    = 'anatomy'; % ?
 cfg.interpmethod =  'sphere_weighteddistance';
-cfg.sphereradius = 20; 
+cfg.sphereradius = 8; 
 cfg.outputfile =  outname{1}; 
 ft_sourceinterpolate(cfg, mri, meg);  %change to pos2 when the ft_warp_apply is fixed
 
