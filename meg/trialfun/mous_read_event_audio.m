@@ -30,6 +30,11 @@ end
 % and trigger-1 (first word onset). This is fixed at line 122.
 logfname = mous_db_getfilename(subjname,'meg_raw_log');
 eventlog = read_logfile_audio(subjname);
+if numel(eventlog) == 1;
+  eventlog = eventlog{1};
+else
+  error('eventlog has >1 element because subject has >1 logfile and this problem has not been fixed yet');
+end
 scenario = str2double(logfname{1}(41));
 
 % ideally we should use ft_read_data here
