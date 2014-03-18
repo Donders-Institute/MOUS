@@ -90,38 +90,16 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       end
       
       wavfileid = str2double(type{selfix(k)+1}(1:3)); % get soundfile filename of current trial
-     
+      tmpwav = wavfileid;
       wordcount = wordcount + 1;
-      
-      % get target position (based on logfile, not triggers)
-      if wordcount ~= 1  
-      % if trial = sequence, find matching sentence (that shares same
-      % target location) because tarloc only holds sentence filenames
-        if wavfileid > 409
-            wavfileid2 = wavfileid - 500;  % create second wavfileid2 so as not to overwrite the real one
-        end 
-          idxwav = find(tarloc(:,1) == wavfileid2);
-          wordcount = tarloc(idxwav,2);          
-      end 
-      
+
       %         1         2         3       4 5          6                    7                      8         9
       tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount wavfileid];
       
       tmptrl = cat(1,tmptrl,tmp);
     end  
   end
-
-  
-%   % for each sentence/sequence truncate the epochs' length of words 
-%   % so that they do not go beyond the end of a
-%   % sentence/sequence, taking into account that the last word on/off
-%   % trigger pair did not actually contain a visually presented word.
-%   % i.e. the end of the last actual word is here marked by the onset of the
-%   % last word.
-%   smplast     = tmptrl(end,1)+offset;
-%   tmptrl(:,2) = min(tmptrl(:,2), smplast);
-%   tmptrl      = tmptrl(1:end-1,:);
-%   
+   
    trl = cat(1, trl, tmptrl);
 end
 
@@ -130,12 +108,4 @@ end
 % if strcmp(subjectname,'A2013')
 %     trl(459,:) = [];
 % end
-% 
-% % account for not having data for the first 20 trials for A2002
-% if strcmp(subjectname,'A2002')
-%     diff = 240-(size(selfix,2)-1);
-%     tarloc = tarloc(diff+1:end,:);
-%     firstloc = ones(numel(selfix)-1,1);
-% end
-
 
