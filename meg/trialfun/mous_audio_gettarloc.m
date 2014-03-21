@@ -37,9 +37,11 @@ end
 % cross reference: get target location of audiofile
 if strcmp(subjectname,'A2002') % exception case: A2002 does not have first 20 trials.
     tarloc = zeros(220,2);
+    wavorder = wavorder{1};
 
 elseif numel(lgf) == 1 && ~strcmp(subjectname,'A2002')
   tarloc = zeros(size(wavorder{1},1),2);
+  wavorder = wavorder{1};
       
 elseif numel(lgf) > 1  % e.g., A2036 has 2 logfiles
   for mm = 1:numel(lgf)
@@ -50,9 +52,9 @@ elseif numel(lgf) > 1  % e.g., A2036 has 2 logfiles
       tmp = tmp + size(wavorder{mm},1);
       tmp2 = [tmp2; wavorder{mm}];
     end
+  end
   tarloc = zeros(tmp,2);
   wavorder = tmp2;
-  end
 end
 
 tarloc(:,1) = wavorder(:,2);
