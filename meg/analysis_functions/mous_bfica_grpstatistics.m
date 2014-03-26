@@ -57,11 +57,11 @@ switch suffix.wordtype
   case {'sourcedatasentvbsl' , 'sourcedataseqvbsl'}
      
     if strcmp(subjectnames{1}(1),'A')     
-      [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics_cdtnVbsl(subjectnames, suffix, bslflag, cfg, savedir);   %
+      [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, savedir);   %
       save([savedir,'/groupresults/bfica/auditory/',suffix.wordtype,suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');  
     
     elseif strcmp(subjectnames{1}(1),'V') 
-      [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics_cdtnVbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
+      [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
       save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');    
     end
 end
