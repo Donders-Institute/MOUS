@@ -27,6 +27,8 @@ elseif (strcmp(analysisType, 'ERF') > 0)
     %cfg.hpfreq          = 0.5;    %weired number  % tineke has 0.5
     %cfg.padding         = 10;     %big padding for hp to work   
     cfg.padding = 5;
+    cfg.custom.funhandle = @ft_preproc_highpass_box;
+    cfg.custom.varargin  = 1200;
 else
     error('unrecognized type requested');
 end
