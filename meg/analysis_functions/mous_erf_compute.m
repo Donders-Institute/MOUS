@@ -45,7 +45,7 @@ n    = min(numel(sel1),numel(sel2));
 tmp  = randperm(numel(sel1)); sel1 = sort(sel1(tmp(1:n)));
 tmp  = randperm(numel(sel2)); sel2 = sort(sel2(tmp(1:n)));
 
-%% Calculate the ERF
+% Calculate the ERF
 fprintf('Calculating ERF for subject %s for conditions SenTar and SeqTar\n', subjectname);
 
 % Create configurations for steps in analysis -----------------------------
@@ -116,31 +116,3 @@ seqWord_PG = ft_timelockbaseline(cfgbaseline, seqWord_PG);
 senWord_CPG = ft_combineplanar([], senWord_PG);
 seqWord_CPG = ft_combineplanar([], seqWord_PG);
 
-
-%% SAVE the data: note that this should not be done within a function: the 
-% function returns some data, the data is saved in the pipeline script.
-
-% outname = strcat(outputdata, '-ag}');
-% mous_db_putdata(subjectname, outname, 'senWord_AG', 'seqWord_AG');
-% outname = strcat(outputdata, '-pg}');
-% mous_db_putdata(subjectname, outname, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG');
- 
-% %% Write number of accepted trials into text file
-% This no longer is usefull as we need to compare the number of samples
-% between the conditions and not the trials (as trials can be partially
-% rejected). Use mous_samplestats to compare samples.
-
-% % <<<<<<< HEAD
-%  txtfile = sprintf('/home/language/annhul/MOUS/meg/%s/MeanNumAvgTrials%s_%s.txt',subjectname, outputdata(16:23), date);
-% % =======
-%  txtfile = sprintf('/home/language/annhul/MOUS/MeanNumAvgTrials_%s_%s.txt',outputdata(16:22), date);
-% % >>>>>>> 9c7d59defffa7fcef05830edcefb91819553d461
-%  fid = fopen(txtfile, 'a');
-% % 
-%  fprintf(fid, '%s %s SenWord mean:\t%d\t SD:\t%1.1f \tSeqWord mean:\t%d\t SD:\t%1.1f \n', ...
-%                datestr(now), subjectname, round(mean(senWord_AG.dof(1:end))), std(senWord_AG.dof(1:end)),round(mean(seqWord_AG.dof(1:end))), std(seqWord_AG.dof(1:end)));          
-%  fclose(fid);
-% % 
-%  fprintf('Updated number of averages file %s ', txtfile);
-%  cmd = ['chmod g+w ' txtfile];
-%  system(cmd);

@@ -61,7 +61,7 @@ if doerf_main
       outname2 = strcat(inputdata,'-target',planar);
     otherwise 'all'
       outname1 = strcat(inputdata,'-allwords',axial);  % erf_allwords_02-10-allwords-pg
-      outname1 = strcat(inputdata,'-allwords',planar); % 1st allwords = word for preprocessing, 2nd = word for tlck.
+      outname2 = strcat(inputdata,'-allwords',planar); % 1st allwords = word for preprocessing, 2nd = word for tlck.
   end
   data = ft_preprocessing(cfg2, data);
 
