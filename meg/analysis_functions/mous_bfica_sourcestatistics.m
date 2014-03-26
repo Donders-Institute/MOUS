@@ -26,8 +26,18 @@ load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
 sourcemodeltemplate = sourcemodel;
 
 for k = 1:Nsubj
-  clear tlcksent tlckseq
+  clear -regexp tlcksent tlckseq  % can be used for tlcksent or tlcksenttar!
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype, suffix.oscband], rootdir);
+  
+  % rename variables
+  % When analysing target words (tlcksenttar, tlckseqtar) this avoids
+  % having to create 2 scripts with identical function but diff varname.
+  if exist('tlcksenttar','var')
+    tlcksent = tlcksenttar;
+    tlckseq  = tlckseqtar;
+    clear -vars tlcksenttar tlckseqtar
+  end 
+  
   if k==1
     mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
     sourcemodel = rmfield(sourcemodel, 'leadfield');
@@ -76,12 +86,10 @@ if baselineflag == 2            % pre-sentence baseline
     if isfield(tlckseq,'freq')  % for 3D data matrix
       for k = 1:numel(sent)
         tmp = sent{k}.avg.pow;
-        %sent{k}.avg.pow = tmp - repmat(bslsen{k}.avg.pow,[1,1,size(tmp,3)]);
-        sent{k}.avg.pow  = tmp - repmat(bslsen,[1,1,size(tmp,3)]);
+        sent{k}.avg.pow  = tmp - repmat(bslsen{k},[1,1,size(tmp,3)]);
 
         tmp = seq{k}.avg.pow;
-        %seq{k}.avg.pow = tmp - repmat(bslseq{k}.avg.pow,[1,1,size(tmp,3)]);
-        sent{k}.avg.pow  = tmp - repmat(bslseq,[1,1,size(tmp,3)]);
+        seq{k}.avg.pow  = tmp - repmat(bslseq{k},[1,1,size(tmp,3)]);
       end
     else   % FIXME:  for 2D data matrix
       for k = 1:numel(sent)
@@ -150,7 +158,7 @@ avgseq  = sumseq./Nsubj;
 varseq  = (ssqseq - sumseq.^2./Nsubj)./(Nsubj-1);
 semseq  = sqrt(varseq./Nsubj);
 
-% cfg = [];  % keep cfg from inarg
+% cfg = [ ];  % keep cfg from inarg
 cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
 cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
