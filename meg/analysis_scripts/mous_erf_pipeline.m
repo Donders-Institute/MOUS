@@ -2,9 +2,9 @@
 %  NL - major changes on 17 March 2014
 % For this script, specify the following:
 % 1. rootdir
-% 2. doerf_main = 1?
-% 3. doerf_parametric = 1?
-% 4. wordtype = 'tar', 'first', 'all
+% 2. doerf_main = 0 (or 1)
+% 3. doerf_parametric = 0 (or 1)
+% 4. wordtype = 'tar', 'first', 'all'
 % 5. condition = 'mix','rc'; OR don't specify anything (that's also okay)
 
 
@@ -13,17 +13,19 @@
 %                  ERF data is in /project/3011020.09/annhul/'
 % AUDITORY SUBJS:  both are both in /project/3011020.09/annhul/'
 
-if ~exist('rootdir', 'var')           rootdir = '/project/3011020.09/MEG/';  end
-if ~exist('doerf_main', 'var')        doerf_main = 0;                       end
-if ~exist('doerf_parametric', 'var')  doerf_parametric = 0;                 end
-if ~exist('length','var')             length = '02-10';                     end
+if ~exist('rootdir',          'var'), rootdir          = '/project/3011020.09/MEG/';  end
+if ~exist('doerf_main',       'var'), doerf_main       = 0;                           end
+if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                           end
+if ~exist('length',           'var'), length           = '02-10';                     end
+if ~exist('condition',        'var'), condition        = '';                          end
+if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
 
 % define parameters used for both doerf_main and doerf_parametric
 % N.B.Neither wordtype / trialfunreflected in inputname therefore removed
   
 inputdata  = ['meg_erf_allwords_' length];
-axial = '-ag';
-planar = '-pg';
+axial      = '-ag';
+planar     = '-pg';
   
 if doerf_main
   % files for input/output are divided between MEG and annhul
@@ -33,20 +35,17 @@ if doerf_main
     mous_db_getdata(subjectname,inputdata,rootdir);
   end
   
-  if exist('condition','var')
-    cfg = [];
-    switch condition
-      case 'mix'
-        sel = find(ismember(data.trialinfo(:,2),[1 2 3 4]));
-        cfg.trials = sel;
-      case 'rc'
-        sel = find(ismember(data.trialinfo(:,2),[5 6 7 8]));
-        cfg.trials = sel;
-    end
-    data = ft_selectdata(cfg,data);
+  cfg = [];
+  switch condition
+    case 'mix'
+      sel = find(ismember(data.trialinfo(:,2),[1 2 3 4]));
+      cfg.trials = sel;
+    case 'rc'
+      sel = find(ismember(data.trialinfo(:,2),[5 6 7 8]));
+      cfg.trials = sel;
   end
+  data = ft_selectdata(cfg,data);
   
-
   cfg2 = [];
   switch wordtype
     case 'first'
@@ -59,20 +58,23 @@ if doerf_main
       cfg2.trials  = sel;
       outname1 = strcat(inputdata,'-target',axial);
       outname2 = strcat(inputdata,'-target',planar);
-    otherwise 'all'
+    case 'all'
       outname1 = strcat(inputdata,'-allwords',axial);  % erf_allwords_02-10-allwords-pg
       outname2 = strcat(inputdata,'-allwords',planar); % 1st allwords = word for preprocessing, 2nd = word for tlck.
+    otherwise
+      error('unknown wordtype specified');
   end
   data = ft_preprocessing(cfg2, data);
 
   [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG, stdev] = mous_erf_compute(subjectname, data);
   
-  if exist('condition','var') % update outputdata filename
+  % update outputdata filename
+  if ~isempty(condition)
     outname1 = strcat(outname1(1:end-2),condition,axial);
     outname2 = strcat(outname2(1:end-2),condition,planar);
-  end 
-    
-  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG',rootdir);
+  end
+  
+  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', rootdir);
   mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',rootdir);
 end  % end doerf_main
 
@@ -97,10 +99,11 @@ if doerf_parametric
   mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc'], 'tlck', 'stat', rootdir);
  
   % convert to planar
-  cfg = [];
+  cfg        = [];
   cfg.method = 'distance';
   neighbours = ft_prepare_neighbours(cfg, data);
-  cfg = [];
+  
+  cfg              = [];
   cfg.planarmethod = 'sincos';
   cfg.neighbours   = neighbours;
   data             = ft_megplanar(cfg, data);
