@@ -13,6 +13,8 @@ file = [param.ffxpath subjectname param.ffxinput];
 
 mri  = ft_read_mri(file, 'format', 'analyze_img');
 mri.inside = isfinite(mri.anatomy); % ensure that voxels without data will not be used in the interpolation
+mri.pow    = mri.anatomy; % for one reason or another it does not work if I keep using anatomy for the correct interpolation of NaNs
+mri = rmfield(mri, 'anatomy');
 
 % Load the original mri from which the sourcemodels were computed
 mri1=mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
@@ -54,11 +56,15 @@ outname = mous_db_getfilename(subjectname,param.fmrioutput,0,param.outdir);
 
 
 
-cfg = [];
-cfg.parameter    = 'anatomy'; % ?
+cfg              = [];
+cfg.parameter    = 'pow'; % yes indeed
+cfg.interpmethod = 'nearest';
+tmp              = ft_sourceinterpolate(cfg, mri, meg); % with the nearest interpolation, we get nans where no fMRI data is available
+outside          = ~isfinite(tmp.pow);
+
 cfg.interpmethod =  'sphere_weighteddistance';
 cfg.sphereradius = 8; 
-cfg.outputfile =  outname{1}; 
+cfg.outputfile   = outname{1}; 
 ft_sourceinterpolate(cfg, mri, meg);  %change to pos2 when the ft_warp_apply is fixed
 
 end
