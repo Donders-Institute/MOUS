@@ -138,7 +138,7 @@ end
 % there are sound files specific to scenario 1 and 3 where the onset
 % between the auditory soundfile and first word are extremely close
 subjval = str2double(subjname(2:end));
-if scenario == 1 || scenario == 3 || scenario == 2 && subjval >= 2080 %A2080, A2086, A2092, A2098, A2102, A2106
+if scenario == 1 || scenario == 3 || (scenario == 2 && subjval >= 2080) %A2080, A2086, A2092, A2098, A2102, A2106
     pulselengththreshold = 5;
 else 
     pulselengththreshold = 30;
