@@ -1,4 +1,4 @@
-function [stat, Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix, baselineflag, cfg, rootdir)
+function [avgdat, avgdat2, semdat, semdat2, Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix, baselineflag, cfg, rootdir)
 
 if nargin<3
   baselineflag = 0;
@@ -24,12 +24,21 @@ end
 load([p,'/',n,e]);
 sourcemodeltemplate = sourcemodel;
 
-% load('/home/language/jansch/projects/mous/meg/templates/sourcemodel/standard_sourcemodel3d8mm');
-% sourcemodeltemplate = sourcemodel;
-
 for k = 1:Nsubj
-  clear tlcksentpar statsentpar stat2sentpar
+  clear -regexp tlcksentpar statsentpar stat2sentpar  % for target/allword variables
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix{1}], rootdir);
+  
+  % rename variables
+  % When analysing target words (tlcksentpartar, tlckseqpartar) this avoids
+  % having to create 2 scripts with identical function but diff varname.
+  if exist('tlcksentpartar','var')
+    tlcksentpar   = tlcksentpartar;
+    statsentpar   = statsentpartar;
+    stat2sentpar  = stat2sentpartar;
+    clear -vars tlcksentpartar statsentpartar stat2sentpartar
+  end 
+  
+  
   if k==1
     mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
     sourcemodel = rmfield(sourcemodel, 'leadfield');
@@ -59,8 +68,17 @@ for k = 1:Nsubj
   dat{k}.pos     = sourcemodeltemplate.pos;
   
   
-  clear tlckseqpar statseqpar stat2seqpar
+  clear -regexp tlckseqpar statseqpar stat2seqpar
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix{2}], rootdir);
+  
+  if exist('tlcksentpartar','var')
+    tlckseqpar   = tlckseqpartar;
+    statseqpar   = statseqpartar;
+    stat2seqpar  = stat2seqpartar;
+    clear -vars tlcksentpartar statsentpartar stat2sentpartar
+  end 
+  
+  
   sourcemodel.time = tlckseqpar.time;
 
   % no log transform
@@ -102,7 +120,7 @@ if baselineflag
   end
 end
 
-% cfg = []; % keep cfg from inarg
+cfg = []; % keep cfg from inarg
 cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
 cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
@@ -110,6 +128,39 @@ cfg.ivar = 1;
 cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
 stat = ft_sourcestatistics(cfg, dat{:}, dat2{:});  % sent = dat;  seq = dat2;
+
+% for k = 1:Nsubj
+%   if k==1
+%     sumdat = dat{k}.avg.pow;
+%     sumdat2 = dat2{k}.avg.pow;
+%     ssqdat = dat{k}.avg.pow.^2;
+%     ssqdat2  = dat2{k}.avg.pow.^2;
+%     allinside = dat2{k}.inside;
+%   else
+%     sumdat = sumdat + dat{k}.avg.pow;
+%     sumdat2  = sumdat2 + dat2{k}.avg.pow;
+%     ssqdat = ssqdat + dat{k}.avg.pow.^2;
+%     ssqdat2  = ssqdat2  + dat2{k}.avg.pow.^2;
+%     allinside = intersect(allinside, dat{k}.inside);
+%   end  
+% end
+% alloutside = setdiff(1:size(dat{1}.pos,1), allinside);
+% for k = 1:Nsubj
+%   dat{k}.inside = allinside(:)';
+%   dat{k}.outside = alloutside(:)';
+%   dat2{k}.inside  = allinside(:)';
+%   dat2{k}.outside = alloutside(:)';
+% end
+% 
+% % compute mean per condition and sem
+% avgdat = sumdat./Nsubj;
+% vardat = (ssqdat - sumdat.^2./Nsubj)./(Nsubj-1);
+% semdat = sqrt(vardat./Nsubj);
+% 
+% avgdat2  = sumdat2./Nsubj;
+% vardat2  = (ssqdat2 - sumdat2.^2./Nsubj)./(Nsubj-1);
+% semdat2  = sqrt(vardat2./Nsubj);
+
 
 % Commented out because this functions wasn't written to take into account
 % source_freq_time (e.g., 11000 x 16 x 13)
