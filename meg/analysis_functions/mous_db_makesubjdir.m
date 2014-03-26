@@ -9,10 +9,10 @@ function mous_db_makesubjdir(subjectname, rootdir, subdir)
 % Input arguments:
 %   subjectname = string, name of the subject
 %   rootdir     = string (optional) directory in which the directory will
-%                 be created. Default = '/home/language/annhul/MOUS/meg/'.
+%                 be created. Default = '/project/3011020.09/MEG'.
 
 if nargin<2
-  rootdir = '/home/language/annhul/MOUS/meg';
+  rootdir = '/project/3011020.09/MEG';
 end
 
 if nargin<3
