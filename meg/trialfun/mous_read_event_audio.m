@@ -32,7 +32,10 @@ logfname = mous_db_getfilename(subjname,'meg_raw_log');
 eventlog = read_logfile_audio(subjname);
 if numel(eventlog) == 1;
   eventlog = eventlog{1};
-else
+elseif numel(eventlog) == 2 && isequal(eventlog{1}, eventlog{2})
+  % this is OK, take either one of them
+  eventlog = eventlog{1};
+elseif numel(eventlog) >= 2
   error('eventlog has >1 element because subject has >1 logfile and this problem has not been fixed yet');
 end
 [p,f,e]  = fileparts(logfname{1});
@@ -263,53 +266,3 @@ elseif numel(fixdatsmp)<numel(fixlogsmp)
 else
   warning('did not manage to merge event information from log file with the event information from the triggers, returning only triggers'); 
 end
-
-
-% event2 = read_logfile_audio(subjectname);
-% 
-% % now match event and event2 (convert the presentation timing values into
-% % approximate sample values for the MEG -> fit a linear model only to get the offset.
-% % this does not seem to work: try on a per trial basis to minimize the
-% % mismatch
-% 
-% sel1   = strcmp({event.type}, 'UPPT001');
-% otherevent = event(setdiff(1:numel(event), sel1));
-% event  = event(sel1);
-% val1   = [event(:).value];
-% val2   = [event2(:).value];
-% 
-% sel1   = find(val1==20);
-% sel2   = find(val2==20);
-% 
-% if numel(sel1)<numel(sel2)
-%   % assume the logfile is correct
-%   % the trigger channel in acq has missed some of them
-%   error('there is a mismatch between the triggers that I don''t understand');
-% elseif numel(sel1)>numel(sel2)
-%   % don't know what's going on
-%   error('there is a mismatch between the triggers that I don''t understand');
-% else
-%   % assume a 1 to 1 match
-% end
-% 
-% for k = 1:numel(sel1)-1
-%   x1 = [event([sel1(k) sel1(k+1)]).sample];
-%   x2 = [event2([sel2(k) sel2(k+1)]).sample];
-%   x2(2,:) = 1;
-%   b  = x1/x2;
-%   fprintf('using betas of %d and %d\n', b(1), b(2));
-%   for m = sel2(k):sel2(k+1)-1
-%     event2(m).sample = b(1)*event2(m).sample + b(2);
-%   end
-% end
-% 
-% % update the remaining triggers
-% for k = (m+1):numel(event2)
-%   event2(k).sample = b(1)*event2(k).sample + b(2);
-% end
-% 
-% event = [event(:);event2(:)];
-% [srt,ix] = sort([event.sample]');
-% event = event(ix);
-% 
-% 
