@@ -35,7 +35,8 @@ if numel(eventlog) == 1;
 else
   error('eventlog has >1 element because subject has >1 logfile and this problem has not been fixed yet');
 end
-scenario = str2double(logfname{1}(41));
+[p,f,e]  = fileparts(logfname{1});
+scenario = str2double(f(7));
 
 % ideally we should use ft_read_data here
 cfg            = [];
@@ -243,6 +244,22 @@ if numel(fixdatsmp)==numel(fixlogsmp) && numel(fixdatsmp)==240
   smp = [event.sample];
   [srt,ix] = sort(smp);
   event = event(ix);
+elseif numel(fixdatsmp)<numel(fixlogsmp)
+  % express both in milliseconds and find a match, based on the assumption
+  % that the data contains a continuous sequence of the trials 
+  fixdatsmp = fixdatsmp./1.2;
+  fixlogsmp = fixlogsmp./10;
+  for m = 1:(numel(fixlogsmp)-numel(fixdatsmp)+1)
+    match_id(m,1) = median(diff(fixdatsmp)-diff(fixlogsmp(m-1+(1:numel(fixdatsmp)))));
+  end
+  [m,ix] = min(abs(match_id));
+  fprintf('matching trial %d to %d in the logfile with the data, median of timing difference is %d ms\n', ix, ix-1+numel(fixdatsmp), m);
+  wavfiles = {eventlog(fixlog+1).type}';
+  for k = 1:numel(fixdatsmp)
+    event(end+1).type   = wavfiles{k+ix-1};
+    event(end  ).sample = event(fixdat(k)).sample;
+    event(end  ).value  = 14;
+  end
 else
   warning('did not manage to merge event information from log file with the event information from the triggers, returning only triggers'); 
 end
