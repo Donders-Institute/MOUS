@@ -35,7 +35,10 @@ if numel(eventlog) == 1;
 elseif numel(eventlog) == 2 && isequal(eventlog{1}, eventlog{2})
   % this is OK, take either one of them
   eventlog = eventlog{1};
-elseif numel(eventlog) >= 2
+elseif numel(eventlog) == 2 && ~isequal(eventlog{1}, eventlog{2})
+  % this is probably weird, but concatenate the two
+  eventlog = [eventlog{1} eventlog{2}];
+elseif numel(eventlog) > 2
   error('eventlog has >1 element because subject has >1 logfile and this problem has not been fixed yet');
 end
 [p,f,e]  = fileparts(logfname{1});
@@ -85,8 +88,9 @@ dtrigger             = diff(find(diff(trigger)));
 dtrigger(dtrigger<5) = []; % triggers less than 5 samples wide probably don't mean anything
 pulselength          = mode(dtrigger);
 
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % deal with the levelmode issue
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 newtrigger = trigger;
 if ~isempty(bits)
   %pulselength = min(pulselength, 15); % make new pulses at most 10 samples wide.
@@ -121,10 +125,16 @@ if ~isempty(bits)
     end
   end
   newtrigger(newtrigger<0) = 0;
+  
+  dtrigger             = diff(find(diff(newtrigger)));
+  dtrigger(dtrigger<5) = []; % triggers less than 5 samples wide probably don't mean anything
+  pulselength          = mode(dtrigger);
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % deal with the datasets that have a long pulselength, i.e. on the order of
 % 30 ms or so.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % the following part is modified from ft_read_event
 channel     = 'UPPT001';
@@ -170,12 +180,19 @@ if pulselength > pulselengththreshold
   updown    = zeros(1,numel(event));
   updown(strcmp({event.type}, 'UPPT001_up')) = 1;
   
+  val       = [event.value];
+  smp       = [event.sample];
+  
   % the following tries to deal with overlapping triggers. only works if at
-  % most 2 triggers are overlapping
+  % most 2 triggers are overlapping. also, if two upflanks occur one sample
+  % apart, it could have been a sluggish trigger, merge into 1
   keep = false(size(updown));
   for k = 1:(numel(updown)-2)
     if updown(k)==1 && updown(k+1)==0 && updown(k+2)==1
       keep(k) = 1;
+    elseif updown(k)==1 && updown(k+1)==1 && val(k)==val(k+1) && smp(k)==smp(k+1)-1
+      keep(k) = 0; % don't keep
+      event(k+1).sample = event(k+1).sample-1; % correct the sample
     elseif updown(k)==1 && updown(k+1)==1 && updown(k+2)==0
       keep(k) = 1;
       
@@ -212,8 +229,10 @@ else
   end
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % now try to map the events from the logfile onto the events from the
 % datafile, expressed in datafile-samples.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % issues:
 % -datafile sample unit is 1/1200 second
 % -logfile sample unit is 1/10000 second
@@ -252,10 +271,12 @@ elseif numel(fixdatsmp)<numel(fixlogsmp)
   % that the data contains a continuous sequence of the trials 
   fixdatsmp = fixdatsmp./1.2;
   fixlogsmp = fixlogsmp./10;
-  for m = 1:(numel(fixlogsmp)-numel(fixdatsmp)+1)
-    match_id(m,1) = median(diff(fixdatsmp)-diff(fixlogsmp(m-1+(1:numel(fixdatsmp)))));
+  match_id  = nan+zeros(numel(fixlogsmp)-numel(fixdatsmp)+1,1);
+  for m = 1:numel(match_id)
+    tmp      = abs(diff(fixdatsmp)-diff(fixlogsmp(m-1+(1:numel(fixdatsmp)))));
+    match_id(m,1) = median(tmp);
   end
-  [m,ix] = min(abs(match_id));
+  [m,ix] = min(match_id(:,1));
   fprintf('matching trial %d to %d in the logfile with the data, median of timing difference is %d ms\n', ix, ix-1+numel(fixdatsmp), m);
   wavfiles = {eventlog(fixlog+1).type}';
   for k = 1:numel(fixdatsmp)
