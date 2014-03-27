@@ -198,18 +198,22 @@ if pulselength > pulselengththreshold
     elseif updown(k)==1 && updown(k+1)==0 && updown(k+2)==0
       keep(k) = 1;
       
-      if k>1 && updown(k-1)==0
+      if k>1 && updown(k-1)==0 && smp(k+1)+1<smp(k+2)
         % this is needed to fix the 'missing' trigger issue.
         % it seems a perfectly synchronized switching on and off of two
         % triggers, causing an 'incomplete staircase', i.e. a pattern in the
         % updown vector of 0_100_1, rather than 0_1100_1
+        %
+        % the conditional statement on smp is needed to avoid a sluggish
+        % downslope of a single trigger to be identified as 2 triggers (for
+        % A2097)
         keep(k+1) = 1;
         event(k+1).value = event(k+2).value;
-        
       else
         % adjust the value
         event(k).value = event(k+2).value;
       end
+      
     else
       % don't keep
     end
