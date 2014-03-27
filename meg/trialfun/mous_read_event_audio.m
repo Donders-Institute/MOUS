@@ -32,11 +32,9 @@ logfname = mous_db_getfilename(subjname,'meg_raw_log');
 eventlog = read_logfile_audio(subjname);
 if numel(eventlog) == 1;
   eventlog = eventlog{1};
-elseif numel(eventlog) == 2 && isequal(eventlog{1}, eventlog{2})
-  % this is OK, take either one of them
-  eventlog = eventlog{1};
 elseif numel(eventlog) == 2 && ~isequal(eventlog{1}, eventlog{2})
   % this is probably weird, but concatenate the two
+  % only for A2036 which as 2 scenarios
   eventlog = [eventlog{1} eventlog{2}];
 elseif numel(eventlog) > 2
   error('eventlog has >1 element because subject has >1 logfile and this problem has not been fixed yet');
