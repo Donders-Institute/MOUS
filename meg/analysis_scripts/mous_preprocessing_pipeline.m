@@ -61,4 +61,6 @@ if numel(filename)>1
 end
 
 length = [num2str(prestim*10,'%02d'),'-',num2str(poststim*10,'%02d')];
-mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,1);
+%mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,1);
+mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,0);
+
