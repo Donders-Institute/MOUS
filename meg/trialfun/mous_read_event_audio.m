@@ -85,7 +85,7 @@ end
 % with these bits. this leaves us to guess the average length of the pulses
 
 dtrigger             = diff(find(diff(trigger)));
-dtrigger(dtrigger<5) = []; % triggers less than 5 samples wide probably don't mean anything
+dtrigger(dtrigger<3) = []; % triggers less than 5 samples wide probably don't mean anything
 pulselength          = mode(dtrigger);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,7 +127,7 @@ if ~isempty(bits)
   newtrigger(newtrigger<0) = 0;
   
   dtrigger             = diff(find(diff(newtrigger)));
-  dtrigger(dtrigger<5) = []; % triggers less than 5 samples wide probably don't mean anything
+  dtrigger(dtrigger<3) = []; % triggers less than 5 samples wide probably don't mean anything
   pulselength          = mode(dtrigger);
 end
 
@@ -195,7 +195,6 @@ if pulselength > pulselengththreshold
       event(k+1).sample = event(k+1).sample-1; % correct the sample
     elseif updown(k)==1 && updown(k+1)==1 && updown(k+2)==0
       keep(k) = 1;
-      
     elseif updown(k)==1 && updown(k+1)==0 && updown(k+2)==0
       keep(k) = 1;
       
