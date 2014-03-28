@@ -39,8 +39,17 @@ cfg         = [];
 cfg.trl     = trl;
 cfg.dataset = filename;
 for k = 1:numel(artifactcfg)
-  % clunky way of doing it, can be improved
-  eval(['cfg.artfctdef.zvalue',num2str(k),'.artifact = artifactcfg{',num2str(k)','}.artfctdef.zvalue.artifact']);
+  type = artifactcfg{k}.artfctdef.type;
+  if strcmp(type, 'zvalue')
+    % there may be more of those
+    cfg = setsubfield(cfg, ['artfctdef.zvalue',num2str(k),'.artifact'], artifactcfg{k}.artfctdef.zvalue.artifact);
+    
+    % clunky way of doing it, can be improved
+    %eval(['cfg.artfctdef.zvalue',num2str(k),'.artifact = artifactcfg{',num2str(k)','}.artfctdef.zvalue.artifact']);
+  else
+    % assume this type name to be unique
+    cfg = setsubfield(cfg, ['artfctdef.',type,'.artifact'], artifactcfg{k}.artfctdef.(type).artifact);
+  end
 end
 cfg.artfctdef.reject       = method;
 cfg.artfctdef.minaccepttim = minlength;
