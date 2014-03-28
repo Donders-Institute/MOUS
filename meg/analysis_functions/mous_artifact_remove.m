@@ -39,7 +39,11 @@ cfg         = [];
 cfg.trl     = trl;
 cfg.dataset = filename;
 for k = 1:numel(artifactcfg)
-  type = artifactcfg{k}.artfctdef.type;
+  if isfield(artifactcfg{k}.artfctdef, 'type')
+    type = artifactcfg{k}.artfctdef.type;
+  else
+    type = 'zvalue';
+  end
   if strcmp(type, 'zvalue')
     % there may be more of those
     cfg = setsubfield(cfg, ['artfctdef.zvalue',num2str(k),'.artifact'], artifactcfg{k}.artfctdef.zvalue.artifact);
