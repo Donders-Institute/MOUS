@@ -38,6 +38,7 @@ end
 cfg         = [];
 cfg.trl     = trl;
 cfg.dataset = filename;
+
 for k = 1:numel(artifactcfg)
   if isfield(artifactcfg{k}.artfctdef, 'type')
     type = artifactcfg{k}.artfctdef.type;
@@ -50,7 +51,7 @@ for k = 1:numel(artifactcfg)
     
     % clunky way of doing it, can be improved
     %eval(['cfg.artfctdef.zvalue',num2str(k),'.artifact = artifactcfg{',num2str(k)','}.artfctdef.zvalue.artifact']);
-  else
+  elseif(~isempty(type))
     % assume this type name to be unique
     cfg = setsubfield(cfg, ['artfctdef.',type,'.artifact'], artifactcfg{k}.artfctdef.(type).artifact);
   end
