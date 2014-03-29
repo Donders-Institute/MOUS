@@ -35,6 +35,7 @@ for k = 1:numel(filename)
       mous_db_getdata(subjectname, 'meg_artifact_cfg_manual');
     catch
       cfgmanual.visual.artifact = [];
+      cfgmanual.artfctdef.type = [];
     end
   else
     mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);
@@ -42,6 +43,7 @@ for k = 1:numel(filename)
       mous_db_getdata(subjectname, ['meg_artifact_cfg_manual_pt',num2str(k)]);
     catch
       cfgmanual.visual.artifact = [];
+      cfgmanual.artfctdef.type = [];
     end
   end 
    
