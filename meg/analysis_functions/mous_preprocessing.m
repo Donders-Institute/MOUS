@@ -1,4 +1,4 @@
-function [data] = mous_preprocessing(filename, trl, resamplefs, analysisType, baseline)
+function [data] = mous_preprocessing(filename, trl, resamplefs, analysisType)
 
 %% Preprocess data
 % Created by AH, NL. 31-5-2012
