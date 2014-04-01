@@ -57,7 +57,7 @@ for k = 1:numel(filename)
   end
   [trl] = mous_defineTrial(filename{k}, prestim, poststim, trialfun);
   [trl] = mous_artifact_remove(trl, filename{k}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
-  tmp   = mous_preprocessing(filename{k}, trl, resamplefs, analysisType, prestim);
+  tmp   = mous_preprocessing(filename{k}, trl, resamplefs, analysisType);
   if k==1
     data       = tmp;
     tmpsens(k) = tmp.grad;
