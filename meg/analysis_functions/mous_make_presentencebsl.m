@@ -1,4 +1,4 @@
-function [sent seq] = mous_make_presentencebsl(subj, oscband, rootdir)
+  function [sent seq sentwhole seqwhole] = mous_make_presentencebsl(subj, oscband, rootdir)
 
 Nsubj   = numel(subj);
 
@@ -17,7 +17,7 @@ for k = 1:Nsubj
   
   % load data
   clear tlcksentfirst tlckseqfirst
-  mous_db_getdata(subj{k}, ['meg_bfica_sourcedatasentseq_firstword_',oscband], rootdir);
+  mous_db_getdata(subj{k}, ['meg_bfica_sourcedatasentseq_firstword',oscband], rootdir);
   if k==1
     mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
     sourcemodel = rmfield(sourcemodel, 'leadfield');
@@ -29,36 +29,32 @@ for k = 1:Nsubj
   % limit time dimensions
   % When oscband = low: only one toi i.e. -0.1, when oscband > low (e.g., medium/high) there will be two i.e. -0.15 and -0.1
   % This is in alignment with the pre-word baseline calculated within mous_bfica_sourcestatistics(XXX).m
-  cfgt = [];
-  if strcmp(oscband,'low')
-    cfgt.latency = [-0.1 -0.1]; 
-  elseif strcmp(osband,'medium') || strcmp(oscband,'high');
-    cfgt.latency = [-0.15 -0.1];
+  if strcmp(oscband,'_low')
+    tlcksentfirst= ft_selectdata(tlcksentfirst,'toilim',[-0.1 -0.1]);
+    tlckseqfirst = ft_selectdata(tlckseqfirst,'toilim',[-0.1 -0.1]);
+  elseif strcmp(oscband,'_medium') || strcmp(oscband,'_high');
+    tlcksentfirst= ft_selectdata(tlcksentfirst,'toilim',[-0.15 -0.1],'avgovertime','yes');
+    tlckseqfirst = ft_selectdata(tlckseqfirst,'toilim',[-0.15 -0.1],'avgovertime','yes');
   end
-  cfgt.avgovertime = 'yes';  % leads to removal of 'time' field
-  tlcksentfirst= ft_selectdata(cfgt, tlcksentfirst);
-  tlckseqfirst = ft_selectdata(cfgt, tlckseqfirst);
  
     
   % Adjust sourcemodel dimensions according to input data
-  if isfield(tlckseqfirst, 'freq')      % but most likely will be 3D matrix
+  if isfield(tlckseqfirst, 'freq')      %  3D matrix
     sourcemodel.freq  = tlckseqfirst.freq;
     sourcemodel.dimord = 'pos_freq';    % time dimension removed (averaged)
     %sourcemodel.dimord = 'pos_freq_time';  
     % FIXME: consider keeping timefield so that we can run statistics for act vs. bsl
   else
-    sourcemodel.time = 'pos_time';      % for default 2D matrix
+    sourcemodel.time = 'pos_time';      % 2D matrix
   end
      
   % no log transform
   % sequences 
   sourcemodel.avg.pow = (tlckseqfirst.avg);
   if isfield(tlckseqfirst,'freq')
-    % CHECKME please
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
-    %tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
-    tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+    tmp                 = zeros(prod(sourcemodel.dim),1);
   end 
   tmp(newinside,:,:)    = sourcemodel.avg.pow; % 'newinside' is a variable that loads along with the leadfield.
   sourcemodel.avg.pow = tmp;
@@ -69,9 +65,8 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = (tlcksentfirst.avg); 
   if isfield(tlcksentfirst,'freq')
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
-    %tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
-    tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+    tmp                 = zeros(prod(sourcemodel.dim),1);
   end
   tmp(newinside,:,:)    = sourcemodel.avg.pow;
   sourcemodel.avg.pow = tmp;
@@ -79,6 +74,12 @@ for k = 1:Nsubj
   sent{k}.pos    = sourcemodeltemplate.pos;
 end
 
+  % this returns the full structure so that it can be used as an individual
+  % condition for group-level statistics.
+  sentwhole = sent;
+  seqwhole  = seq; 
+
+  % this only returns the power values without the structure
 % array: each element is the baseline matrix for one subject
 % each cell:  % [number of sources X number of frequency bands] 
 % [source x freq] 
