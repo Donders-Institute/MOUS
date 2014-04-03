@@ -80,7 +80,11 @@ if numel(filename)>1
   data.grad = ft_average_sens(tmpsens, 'weights', weights);     
 end
 
-length = [num2str(prestim*10,'%02d'),'-',num2str(poststim*10,'%02d')];
+if ~ischar(poststim)
+  length = [num2str(prestim*10,'%02d'),'-',num2str(poststim*10,'%02d')];
+else
+  length = [num2str(prestim*10,'%02d'),'-',poststim];
+end
 %mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,1);
 mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,0);
 
