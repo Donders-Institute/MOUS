@@ -15,7 +15,7 @@ cfg.channel    = {'MEG' 'EEG057' 'EEG058'};
 if (strcmp(analysisType, 'TFR') > 0)
     %TFR-specific parameters
     cfg.dftfilter  = 'yes';
-    cfg.padding    = 5;
+    cfg.padding    = 4;
     
 elseif (strcmp(analysisType, 'ERF') > 0)
     % ERF-specific parameters
@@ -26,7 +26,7 @@ elseif (strcmp(analysisType, 'ERF') > 0)
     %cfg.hpfiltord       = 100;    %not in Tinekes script
     %cfg.hpfreq          = 0.5;    %weired number  % tineke has 0.5
     %cfg.padding         = 10;     %big padding for hp to work   
-    cfg.padding = 5;
+    cfg.padding = 4;
     cfg.custom.funhandle = @ft_preproc_highpass_box;
     cfg.custom.varargin  = 1200;
 else

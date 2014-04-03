@@ -52,8 +52,8 @@ for k = 1:numel(filename)
   % a highpass filter, this will interfere with jumps and cause problems
   if ~isempty(cfgjump.artfctdef.zvalue.artifact)
     % take half the data padding length for preprocessing
-    cfgjump.artfctdef.zvalue.artifact(:,1) = cfgjump.artfctdef.zvalue.artifact(:,1)-1200*2.5;
-    cfgjump.artfctdef.zvalue.artifact(:,2) = cfgjump.artfctdef.zvalue.artifact(:,2)+1200*2.5;
+    cfgjump.artfctdef.zvalue.artifact(:,1) = cfgjump.artfctdef.zvalue.artifact(:,1)-1200*2;
+    cfgjump.artfctdef.zvalue.artifact(:,2) = cfgjump.artfctdef.zvalue.artifact(:,2)+1200*2;
   end
   [trl] = mous_defineTrial(filename{k}, prestim, poststim, trialfun);
   [trl] = mous_artifact_remove(trl, filename{k}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
