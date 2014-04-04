@@ -6,6 +6,10 @@ if ~exist('domne_parametric', 'var')
   domne_parametric = 0;
 end
 
+if ~exist('domne_parcellate', 'var')
+  domne_parcellate = 0;
+end
+
 if ~exist('rootdir', 'var')
   rootdir = '/project/3011020.09/MEG';
 end
