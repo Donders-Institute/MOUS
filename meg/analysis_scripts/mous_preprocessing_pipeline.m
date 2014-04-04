@@ -52,8 +52,8 @@ for k = 1:numel(filename)
   % a highpass filter, this will interfere with jumps and cause problems
   if ~isempty(cfgjump.artfctdef.zvalue.artifact)
     % take half the data padding length for preprocessing
-    cfgjump.artfctdef.zvalue.artifact(:,1) = cfgjump.artfctdef.zvalue.artifact(:,1)-1200*2.5;
-    cfgjump.artfctdef.zvalue.artifact(:,2) = cfgjump.artfctdef.zvalue.artifact(:,2)+1200*2.5;
+    cfgjump.artfctdef.zvalue.artifact(:,1) = cfgjump.artfctdef.zvalue.artifact(:,1)-1200*2;
+    cfgjump.artfctdef.zvalue.artifact(:,2) = cfgjump.artfctdef.zvalue.artifact(:,2)+1200*2;
   end
   [trl] = mous_defineTrial(filename{k}, prestim, poststim, trialfun);
   [trl] = mous_artifact_remove(trl, filename{k}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
@@ -80,7 +80,11 @@ if numel(filename)>1
   data.grad = ft_average_sens(tmpsens, 'weights', weights);     
 end
 
-length = [num2str(prestim*10,'%02d'),'-',num2str(poststim*10,'%02d')];
+if ~ischar(poststim)
+  length = [num2str(prestim*10,'%02d'),'-',num2str(poststim*10,'%02d')];
+else
+  length = [num2str(prestim*10,'%02d'),'-',poststim];
+end
 %mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,1);
 mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,0);
 
