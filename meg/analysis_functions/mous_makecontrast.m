@@ -13,7 +13,7 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 % sequence trigger values: 3 4 7 8
 
 switch contrast
-  case {'sent-seq', 'sent-seqTarget', 'sent1-sent2','sent-seq_presentenceblc'}
+  case {'sent-seq', 'sent-seqTarget', 'sentMX-sentRC','sent-seqFirstword'}
     %if  nargin<3  
     % need extra input arguments to differentiate between VIS and AUD
     % could try to infer from trialinfo i.e. VIS has all words present but
@@ -34,12 +34,12 @@ switch contrast
     elseif strcmp(contrast, 'sent-seqTarget')
       sel1 = find(ismember(T,[2 6]));
       sel2 = find(ismember(T,[4 8]));      
-    elseif strcmp(contrast, 'sent-seq_presentenceblc')
+    elseif strcmp(contrast, 'sent-seqFirstword')
       sel1 = find(ismember(T,[1 5]) & data.trialinfo(:,2) == 1); 
       sel2 = find(ismember(T,[3 7]) & data.trialinfo(:,2) == 1);   
-    elseif strcmp(contrast, 'sent1-sent2')
-      sel1 = find(ismember(T,[1 2]));
-      sel2 = find(ismember(T,[5 6]));
+    elseif strcmp(contrast, 'sentMX-sentRC')
+      sel1 = find(ismember(T,[1 2]));  % mix
+      sel2 = find(ismember(T,[5 6]));  % rc
     end
     
     if numel(sel1)~=numel(sel2) % balance numtrials btw sent and seq
@@ -118,7 +118,6 @@ switch contrast
       otherwise
     end
     
-  %case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc'}
   case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc','wordsenttar_parametric','wordseqtar_parametric','wordsenttar_parametric_blc','wordseqtar_parametric_blc',}
     Xcond = data.trialinfo(:,3);
     if regexp(contrast,    'wordsent_para')  % regexp = parametric(_blc)
@@ -137,7 +136,7 @@ switch contrast
     cfg              = [];
     cfg.vartrllength = 2;
     %if strcmp(contrast, 'wordsent_parametric_blc') || strcmp(contrast, 'wordseq_parametric_blc')
-    if regexp(contrast, 'blc') || strcmp(contrast, 'blc')  % generalised for any kind of baseline subtraction
+    if regexp(contrast, 'blc')  % generalised for any kind of baseline subtraction
       cfg.preproc.baselinewindow = [-inf 0];
       cfg.preproc.demean         = 'yes';
     end
