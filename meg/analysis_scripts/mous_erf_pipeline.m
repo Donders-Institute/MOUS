@@ -30,7 +30,7 @@ planar     = '-pg';
 if doerf_main
   % files for input/output are divided between MEG and annhul
   if strcmp(subjectname(1),'V')
-    mous_db_getdata(subjectname,inputdata,'/project/3011020.09/MEG/'); 
+    mous_db_getdata(subjectname,inputdata,rootdir); 
   elseif strcmp(subjectname(1),'A')
     mous_db_getdata(subjectname,inputdata,rootdir);
   end
