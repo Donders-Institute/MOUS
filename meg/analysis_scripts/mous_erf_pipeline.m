@@ -13,8 +13,9 @@
 %                  ERF data is in /project/3011020.09/annhul/'
 % AUDITORY SUBJS:  both are both in /project/3011020.09/annhul/'
 
-if ~exist('inrootdir',          'var'), rootdir          = '/project/3011020.09/MEG/';  end
-if ~exist('outrootdir',          'var'), rootdir          = '/project/3011020.09/MEG/';  end
+if ~exist('rootdir',          'var'), rootdir          = '/project/3011020.09/MEG/';  end
+if ~exist('inrootdir',        'var'), inrootdir        = rootdir;  end
+if ~exist('outrootdir',       'var'), outrootdir       = rootdir;  end
 if ~exist('doerf_main',       'var'), doerf_main       = 0;                           end
 if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                           end
 if ~exist('length',           'var'), length           = '02-10';                     end
