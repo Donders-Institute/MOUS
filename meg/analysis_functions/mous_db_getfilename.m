@@ -65,7 +65,7 @@ end
 % these reflect subjects in which there was problem with the MEG data, but
 % does not consider issue in the MRI (whereby MEG data was still fine)
 badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1067';'V1082';'V1091';'V1096';'V1112';...
-               'A2022';'A2043';'A2044';'A2045';'A2054';'A2074';'A2081';'A2082'; 'A2087';'A2093';'A2087';'A2093';'A2100';'A2107'};
+               'A2022';'A2043';'A2044';'A2045';'A2054';'A2074';'A2081';'A2082'; 'A2087';'A2093';'A2100';'A2107';'AP02'};
            
            
 % subjects with more than one dataset because MEG acquisition PC crashed           
