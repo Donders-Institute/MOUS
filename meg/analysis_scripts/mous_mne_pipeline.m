@@ -6,6 +6,10 @@ if ~exist('domne_parametric', 'var')
   domne_parametric = 0;
 end
 
+if ~exist('domne_parcellate', 'var')
+  domne_parcellate = 0;
+end
+
 if ~exist('rootdir', 'var')
   rootdir = '/project/3011020.09/MEG';
 end
@@ -210,10 +214,10 @@ if domne_parametric
   % filters have been computed on the same data as the one that will be
   % projected
   
-  if ~exist('suffix', 'var')
+  if ~exist('suffix_rawdata', 'var')
     error('you need to specify the file suffix for the preprocessed data');
   end
-  mous_db_getdata(subjectname, suffix);%, rootdir);
+  mous_db_getdata(subjectname, suffix_rawdata, rootdir);
   
   if ~exist('suffix_mne', 'var')
     error('you need to specify the file suffix for the mne data');
@@ -256,5 +260,61 @@ if domne_parametric
   stat = stat_seq;
   mu   = mu_seq;
   mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir);
+end
+
+if domne_parcellate
+  % this part assumes that it can use precomputed MNE filters, and that the
+  % filters have been computed on the same data as the one that will be
+  % projected
+  
+  if ~exist('suffix', 'var')
+    error('you need to specify the file suffix for the timelocked data');
+  end
+  mous_db_getdata(subjectname, suffix);%, rootdir);
+  sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
+  tlck.label = tlck.label(sel);
+  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,:);     end;
+  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,:); end;
+  tlcksent = tlck;
+  mous_db_getdata(subjectname, strrep(suffix,'sent','seq'));%, rootdir);
+  sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
+  tlck.label = tlck.label(sel);
+  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,:);     end;
+  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,:); end;
+  tlckseq = tlck;
+  
+  tlck.avg = (tlcksent.avg.*tlcksent.dof(sel,:)+tlckseq.avg.*tlckseq.dof(sel,:))./(tlcksent.dof(sel,:)+tlckseq.dof(sel,:));
+  
+  if ~exist('suffix_mne', 'var')
+    error('you need to specify the file suffix for the mne data');
+  end
+  mous_db_getdata(subjectname, suffix_mne);
+  
+  load atlas_conte69_8196reg_LR_brodmann_subparc;
+  
+  tlck         = mous_mne_parcellate(source,tlck,atlas);
+  U = tlck.U; 
+  S = tlck.S;
+  N = tlck.N;
+  atlas.filter = tlck.F;
+  
+  tlck            = mous_mne_parcellate(source,tlcksent,atlas);
+  tlck.U          = U;
+  tlck.S          = S;
+  tlck.N          = N;
+  tlck.suffix_mne = suffix_mne;
+  tlck.suffix     = suffix;
+  if ~exist('suffix_output', 'var')
+    error('you need to specify the file suffix for the output data');
+  end
+  mous_db_putdata(subjectname, suffix_output, 'tlck', rootdir);
+  tlck            = mous_mne_parcellate(source,tlckseq,atlas);
+  tlck.U          = U;
+  tlck.S          = S;
+  tlck.N          = N;
+  tlck.suffix_mne = suffix_mne;
+  tlck.suffix     = suffix;
+  mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);
+
   
 end

@@ -14,6 +14,8 @@
 % AUDITORY SUBJS:  both are both in /project/3011020.09/annhul/'
 
 if ~exist('rootdir',          'var'), rootdir          = '/project/3011020.09/MEG/';  end
+if ~exist('inrootdir',        'var'), inrootdir        = rootdir;  end
+if ~exist('outrootdir',       'var'), outrootdir       = rootdir;  end
 if ~exist('doerf_main',       'var'), doerf_main       = 0;                           end
 if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                           end
 if ~exist('length',           'var'), length           = '02-10';                     end
@@ -30,9 +32,9 @@ planar     = '-pg';
 if doerf_main
   % files for input/output are divided between MEG and annhul
   if strcmp(subjectname(1),'V')
-    mous_db_getdata(subjectname,inputdata,'/project/3011020.09/MEG/'); 
+    mous_db_getdata(subjectname,inputdata,inrootdir); 
   elseif strcmp(subjectname(1),'A')
-    mous_db_getdata(subjectname,inputdata,rootdir);
+    mous_db_getdata(subjectname,inputdata,inrootdir);
   end
   
   cfg = [];
@@ -74,14 +76,14 @@ if doerf_main
     outname2 = strcat(outname2(1:end-2),condition,planar);
   end
   
-  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', rootdir);
-  mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',rootdir);
+  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', outrootdir);
+  mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',outrootdir);
 end  % end doerf_main
 
 if doerf_parametric
   % FIXME: currently, parametric is done for all words (e.g., not only for
   % target words)
-  mous_db_getdata(subjectname, inputdata, rootdir);
+  mous_db_getdata(subjectname, inputdata, inrootdir);
   
   % move around the columns in the trialinfo field so that the condition
   % trigger ends up in the third column and the word ordinal indicator in
@@ -93,10 +95,10 @@ if doerf_parametric
   
   tlck = tlck_sent;
   stat = stat_sent;
-  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc'], 'tlck', 'stat', rootdir);
+  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc'], 'tlck', 'stat', outrootdir);
   tlck = tlck_seq;
   stat = stat_seq;
-  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc'], 'tlck', 'stat', rootdir);
+  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc'], 'tlck', 'stat', outrootdir);
  
   % convert to planar
   cfg        = [];
@@ -112,8 +114,8 @@ if doerf_parametric
   
   tlck = tlckp_sent;
   stat = statp_sent;
-  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', rootdir);
+  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', outrootdir);
   tlck = tlckp_seq;
   stat = statp_seq;
-  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', rootdir);
+  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', outrootdir);
 end
