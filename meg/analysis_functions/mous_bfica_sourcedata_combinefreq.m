@@ -20,23 +20,51 @@ switch prefix
   case 'sourcedatasentseq'
     tlcksent  = appendstuff(subjectname, prefix, freqs, rootdir,'tlcksent');
     tlckseq   = appendstuff(subjectname, prefix, freqs, rootdir, 'tlckseq');
-    tstat = appendstuff(subjectname, prefix, freqs, rootdir,'tstat');        
-    
+    tstat = appendstuff(subjectname, prefix,     freqs, rootdir,'tstat');        
     mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksent','tlckseq','tstat',rootdir);
-  case 'sourcedatasentpar'
     
+  case 'sourcedatasentseqtar'
+    tlcksenttar  = appendstuff(subjectname, prefix,  freqs, rootdir,'tlcksenttar');
+    tlckseqtar   = appendstuff(subjectname, prefix,  freqs, rootdir, 'tlckseqtar');
+    tstattar = appendstuff(subjectname, prefix,      freqs, rootdir,'tstattar');        
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksenttar','tlckseqtar','tstattar',rootdir);
+    
+  case 'sourcedatasentseq_firstword'
+    tlcksentfirst  = appendstuff(subjectname, prefix, freqs, rootdir,'tlcksentfirst');
+    tlckseqfirst   = appendstuff(subjectname, prefix, freqs, rootdir, 'tlckseqfirst');
+    tstatfirst = appendstuff(subjectname, prefix,     freqs, rootdir,'tstatfirst');        
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentfirst','tlckseqfirst','tstatfirst',rootdir);
+  
+  case 'sourcedatasentMXRC'
+    tlcksentMX    = appendstuff(subjectname, prefix, freqs, rootdir, 'tlcksentMX');
+    tlcksentRC    = appendstuff(subjectname, prefix, freqs, rootdir, 'tlcksentRC');
+    tstat    = appendstuff(subjectname, prefix, freqs, rootdir, 'tstat');
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentMX','tlcksentRC','tstat');
+   
+  case 'sourcedatasentpar'    
     tlcksentpar  = appendstuff(subjectname, prefix, freqs, rootdir, 'tlcksentpar');
     statsentpar  = appendstuff(subjectname, prefix, freqs, rootdir,'statsentpar');
     stat2sentpar = appendstuff(subjectname, prefix, freqs, rootdir, 'stat2sentpar');
-     
     mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentpar','statsentpar','stat2sentpar',rootdir); 
-  case 'sourcedataseqpar'
     
-    tlckseqpar   = appendstuff(subjectname, prefix, freqs, rootdir, 'tlckseqpar');
-    statseqpar  = appendstuff(subjectname, prefix, freqs, rootdir,'statseqpar');
-    stat2seqpar = appendstuff(subjectname, prefix, freqs, rootdir,'stat2seqpar');
-     
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlckseqpar','statseqpar','stat2seqpar',rootdir); 
+  case 'sourcedataseqpar'    
+    tlckseqpar   = appendstuff(subjectname, prefix,  freqs, rootdir, 'tlckseqpar');
+    statseqpar  = appendstuff(subjectname, prefix,  freqs, rootdir,'statseqpar');
+    stat2seqpar = appendstuff(subjectname, prefix,  freqs, rootdir,'stat2seqpar');
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlckseqpar','statseqpar','stat2seqpar',rootdir);   
+    
+  case 'sourcedatasentpartar'    
+    tlcksentpartar  = appendstuff(subjectname, prefix,  freqs, rootdir, 'tlcksentpartar');
+    statsentpartar  = appendstuff(subjectname, prefix,  freqs, rootdir,'statsentpartar');
+    stat2sentpartar = appendstuff(subjectname, prefix,  freqs, rootdir, 'stat2sentpartar');
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentpartar','statsentpartar','stat2sentpartar',rootdir); 
+    
+  case 'sourcedataseqpartar'    
+    tlckseqpartar   = appendstuff(subjectname, prefix,  freqs, rootdir, 'tlckseqpartar');
+    statseqpartar  = appendstuff(subjectname, prefix,   freqs, rootdir,'statseqpartar');
+    stat2seqpartar = appendstuff(subjectname, prefix,   freqs, rootdir,'stat2seqpartar');
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlckseqpartar','statseqpartar','stat2seqpartar',rootdir); 
+    
   otherwise
     error('unknown prefix specified');
 end
@@ -44,11 +72,11 @@ end
 function data = appendstuff(subjectname, prefix, freqs, rootdir,fieldname)
 
 for k = 1:numel(freqs)
-  if freqs(end) < 40
+%   if freqs(end) < 40
     suff = [prefix,num2str(freqs(k)*10)];
-  elseif freqs(end) >= 40 && freqs(end) <= 100
-    suff = [prefix,num2str(freqs(k)*10),'_dft'];  % next round of computations = remove dft
-  end
+%   elseif freqs(end) >= 40 && freqs(end) <= 100
+%     suff = [prefix,num2str(freqs(k)*10),'_dft'];  % next round of computations = remove dft
+%   end
   
   filename = mous_db_getfilename(subjectname,['meg_bfica_',suff],0,rootdir);
   dum      = load(filename{1});
