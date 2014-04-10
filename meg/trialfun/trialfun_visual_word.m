@@ -81,10 +81,13 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       begsample = tmpsmp(kk) - offset;                   % onset of word: sample value of Xth word within the current trial 
       if ischar(poststim) && strcmp(poststim, 'nextword')
         endsample = tmpsmp(kk+2); % epoch lasts until next word onset
+        if endsample-begsample>2400
+          continue; % a word longer than two second is probably a trigger issue, skip it
+        end
       else
         endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), inf);%smplast);   % offset of word: sample value of Xth word within the current trial + poststim (3s);  
       end
-
+      
       wordcount = wordcount + 1;
 
       %         1         2         3       4 5          6                   7
