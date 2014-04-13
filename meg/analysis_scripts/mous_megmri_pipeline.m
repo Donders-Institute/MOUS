@@ -3,7 +3,7 @@
 if ~exist('subjectname', 'var'), error('subjectname should be provided'); end
 if ~exist('rootdir',     'var'), rootdir  = '/project/3011020.09/MEG';    end
 if ~exist('dointerp',    'var'), dointerp = 0;                            end
-if ~exist('dointerp',    'var'), dointerp3d = 0;                          end
+if ~exist('dointerp3d',    'var'), dointerp3d = 0;                          end
 
 % HARD CODED, remove!
 figpath  = '/project/3011020.09/jansch/results/20140328';  
