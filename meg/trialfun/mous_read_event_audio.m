@@ -267,6 +267,29 @@ if numel(fixdatsmp)==numel(fixlogsmp) && numel(fixdatsmp)==240
   smp = [event.sample];
   [srt,ix] = sort(smp);
   event = event(ix);
+elseif numel(fixdatsmp)==numel(fixlogsmp)
+  % this is potentially easy, but is it safe to assume that there's a one
+  % to one match?
+  fprintf('an equal number of trials are extracted from MEG data and logfile, but not 240\n');
+  
+  fixdatsmp = fixdatsmp./1.2;
+  fixlogsmp = fixlogsmp./10;
+  match_id  = nan+zeros(numel(fixlogsmp)-numel(fixdatsmp)+1,1);
+  for m = 1:numel(match_id)
+    tmp      = abs(diff(fixdatsmp)-diff(fixlogsmp(m-1+(1:numel(fixdatsmp)))));
+    match_id(m,1) = median(tmp);
+  end
+  [m,ix] = min(match_id(:,1));
+  fprintf('matching trial %d to %d in the logfile with the data, median of timing difference is %d ms\n', ix, ix-1+numel(fixdatsmp), m);
+  wavfiles = {eventlog(fixlog+1).type}';
+  for k = 1:numel(fixdatsmp)
+    event(end+1).type   = wavfiles{k+ix-1};
+    event(end  ).sample = event(fixdat(k)).sample;
+    event(end  ).value  = 14;
+  end
+  smp = [event.sample];
+  [srt,ix] = sort(smp);
+  event = event(ix);
 elseif numel(fixdatsmp)<numel(fixlogsmp)
   % express both in milliseconds and find a match, based on the assumption
   % that the data contains a continuous sequence of the trials 
@@ -285,6 +308,9 @@ elseif numel(fixdatsmp)<numel(fixlogsmp)
     event(end  ).sample = event(fixdat(k)).sample;
     event(end  ).value  = 14;
   end
+  smp = [event.sample];
+  [srt,ix] = sort(smp);
+  event = event(ix);
 else
   warning('did not manage to merge event information from log file with the event information from the triggers, returning only triggers'); 
 end
