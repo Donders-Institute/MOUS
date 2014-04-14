@@ -24,6 +24,11 @@ function [trl] = trialfun_auditory_word(cfg)
 %   column 8: wordcount based on logfile (presentation triggers don't hold word position info
 %   2012 | NL
 % 
+%% trialfun exception list
+% these subjects need to be dealt differently in order to get the target
+% word position into the trl
+%exptn = {'A2002','A2009','A2011','A2062','A2063','A2076','A2084'};
+exptn = {'A2009','A2011','A2062','A2063','A2076','A2084'};
 
 %% load target location info (word position of target for each sentence/sequence)
 idx = regexp(cfg.dataset,'A2');
@@ -44,6 +49,17 @@ event = mous_read_event_audio(cfg.dataset);  % this line is necessary to fix the
 % select the UPPT001 events
 type = {event.type};
 fp   = strcmp('UPPT001', type) | ~cellfun('isempty', strfind(type, 'wav'));
+
+% get list of .wav files for exptn
+%% FIXME: perhaps move this further down to ~line 113 to use if/else
+if ismember(subjectname,exptn)
+  i  = regexp(type,'.wav');
+  i = find(~cellfun(@isempty,i));
+  tmp = type(i);
+  for k = 1:numel(tmp)
+    wavlist(k) = str2num(tmp{k}(1:3));
+  end
+end 
 
 % create a vector with the event values and their respective sample numbers
 val  = [event(fp).value];
@@ -89,29 +105,36 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       end
       offset    = round(hdr.Fs*prestim);
       begsample = tmpsmp(kk) - offset;                
+      
       if ischar(poststim) && strcmp(poststim, 'nextword')
         endsample = tmpsmp(kk+1); % epoch lasts until next word onset
       else
         endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), inf); % offset of word: word's onset sample + poststim (3s);  
       end
       
-      wavfileid = str2double(type{selfix(k)+1}(1:3)); % get soundfile filename of current trial
-      tmpwav = wavfileid;
       wordcount = wordcount + 1;
       
-      % get target position (based on logfile, not triggers)
-      if wordcount ~= 1  
-      % if trial = sequence, find matching sentence (that shares same
-      % target location) because tarloc only holds sentence filenames
+      if wordcount ~= 1  % get target position (info from logfile)
+        % get soundfile filename of current trial
+        if ~ismember(subjectname, exptn)
+          wavfileid = str2double(type{selfix(k)+1}(1:3)); 
+          tmpwav = wavfileid;
+        elseif ismember(subjectname,exptn)
+          wavfileid = wavlist(k);
+        else
+          error('unrecognised subject number')
+        end   
+      
+        % if current trial is a sequence, find corresponding sentence (same word pstn)
         if wavfileid > 409
-            wavfileid2 = wavfileid - 500;  
-            idxwav = find(tarloc(:,1) == wavfileid2); % original wavfileid preserved but not entered into trialinfo
-        elseif wavfileid < 409
+          wavfileid2 = wavfileid - 500;  
+          idxwav = find(tarloc(:,1) == wavfileid2); % original wavfileid preserved but not entered into trialinfo
+        else % wavfileid < 409
           idxwav = find(tarloc(:,1) == wavfileid);
-        end           
-          wordcount = tarloc(idxwav,2);          
-      end  
-
+        end
+        wordcount = tarloc(idxwav,2);  
+      end           
+                 
       %         1         2         3       4 5          6                    7                      8        
       tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
       
