@@ -143,7 +143,7 @@ pad         = 0;
 if ~isempty(bits)
   trigshift = 3;
 else
-  trigshift = 0;
+  trigshift = 1;
 end
 
 % assign pulselength threshold depending on MEG scenario
@@ -224,6 +224,7 @@ if pulselength > pulselengththreshold
   end
 else
   for j=find(diff([pad newtrigger(:)'])>0)
+    
     event(end+1).type   = channel;        % distinguish between up and down flank
     event(end  ).sample = j + begsample - 1;      % assign the sample at which the trigger has gone down
     event(end  ).value  = newtrigger(j+trigshift);      % assign the trigger value just _after_ going up
