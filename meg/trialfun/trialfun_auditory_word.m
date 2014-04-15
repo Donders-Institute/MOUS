@@ -57,24 +57,8 @@ end
 idx         = regexp(cfg.dataset,'A2');
 subjectname = cfg.dataset(idx:idx+4);
 tarloc      = mous_audio_gettarloc(subjectname);
-% 
-% % trialfun exception list: these subjects need to be dealt differently in 
-% % order to get the target word position into the trl
-% %exptn = {'A2002','A2009','A2011','A2062','A2063','A2076','A2084'};
-% exptn = {'A2062','A2063','A2076','A2084'};
-exptn = {};
-% 
-% % get list of .wav files for exptn
-% if ismember(subjectname,exptn)
-%   i  = regexp(type,'.wav');
-%   i  = ~cellfun(@isempty,i);
-%   tmp = type(i);
-%   wavlist = zeros(numel(tmp),1);
-%   for k = 1:numel(tmp)
-%     wavlist(k) = str2double(tmp{k}(1:3));
-%   end
-% end 
 
+% create trl
 trl    = zeros(0,8);
 for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequence; % -1 because last trigger is a dummy
   
@@ -120,13 +104,9 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
         wordcount = 1;
       elseif wordcount > 1  % get target position (info from logfile)
         % get soundfile filename of current trial
-        if ~ismember(subjectname, exptn)
-          wavfileid = str2double(type{selfix(k)+1}(1:3)); 
-          tmpwav = wavfileid;
-        elseif ismember(subjectname,exptn)
-          wavfileid = wavlist(k);
-        else
-          error('unrecognised subject number')
+        wavfileid = str2double(type{selfix(k)+1}(1:3)); 
+        if isnan(wavfileid)
+          error('unable to find target position for subject %s in trial %d', subjectname,k)
         end   
       
         % if current trial is a sequence, find corresponding sentence (same word pstn)
@@ -138,6 +118,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
         end
         wordcount = tarloc(idxwav,2);  
       end    
+      
       if isempty(wordcount)
         wordcount = nan;
       end
@@ -151,6 +132,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
    
    trl = cat(1, trl, tmptrl);
 end
+
 
 % do a final quality check on the trl-matrix, to catch an exception
 % (currently the only known exception is A2062, but in the future, with
