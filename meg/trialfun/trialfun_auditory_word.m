@@ -152,4 +152,17 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
    trl = cat(1, trl, tmptrl);
 end
 
+% do a final quality check on the trl-matrix, to catch an exception
+% (currently the only known exception is A2062, but in the future, with
+% single word triggers possibly present, there may be more 'exceptions')
+% where due to overlapping triggers the correct identity of the first word
+% in the sentence is not caught, mistakingly indexing a target word as the
+% first word in the sentence. For now these rows will be just removed from
+% the trl-matrix, too bad.
+sel = find(mod(trl(:,5),2)==0 & trl(:,8)==1);
+if numel(sel)>0
+  fprintf('inconsistency detected in %d trials, removing them\n',numel(sel));
+  trl(sel,:) = [];
+end
+
 
