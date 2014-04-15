@@ -143,7 +143,7 @@ pad         = 0;
 if ~isempty(bits)
   trigshift = 3;
 else
-  trigshift = 1;
+  trigshift = 0;
 end
 
 % assign pulselength threshold depending on MEG scenario
