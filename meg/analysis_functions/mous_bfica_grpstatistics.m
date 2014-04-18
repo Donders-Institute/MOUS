@@ -25,7 +25,7 @@ cfg.correctm            = 'cluster';
 %cfg.clusterthreshold = 'parametric_common'; % estimate threshold from the randomization distribution. The threshold is common to all channel-time-frequency points
 cfg.clusterthreshold    = 'parametric';
 cfg.clusteralpha        = 0.01;
-cfg.numrandomization    = 2000; % 1200 for 68 subjs;  %2000 for 102 subjs
+cfg.numrandomization    = 600; %600 for 30 1200 for 68 subjs;  %2000 for 102 subjs
 %  cfg.correcttail         = 'prob';
     
 switch suffix.wordtype
@@ -36,14 +36,16 @@ switch suffix.wordtype
     
     elseif strcmp(subjectnames{1}(1),'V')  % visual single subject data in MEG dir (finalised)
       [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics(subjectnames, suffix, bslflag, cfg, rootdir); %
-      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');    
+      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj',suffix.suff3],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');    
      end
     
    
   case {'sourcedatasentseqpar' , 'sourcedatasentseqpartar'}; 
-    suffix  = {['sourcedatasentpar',suffix.oscband] , ['sourcedataseqpar',suffix.oscband]};
-
-    cfg.clusterthreshold   = 'nonparametric_common';
+    if regexp(suffix.wordtype,'tar')
+      suffix  = {['sourcedatasentpartar',suffix.oscband] , ['sourcedataseqpartar',suffix.oscband]};   
+    else
+      suffix  = {['sourcedatasentpar',suffix.oscband] , ['sourcedataseqpar',suffix.oscband]};
+    end 
 
     if strcmp(subjectnames{1}(1),'A')      
       [stat,Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subjectnames, suffix, 1, cfg, savedir);
@@ -61,7 +63,17 @@ switch suffix.wordtype
       save([savedir,'/groupresults/bfica/auditory/',suffix.wordtype,suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');  
     
     elseif strcmp(subjectnames{1}(1),'V') 
-      [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
-      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');    
+      [stat,Nsubj,avgact,avgbslcdtn,semact,sembslcdtn] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
+      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgact','avgbslcdtn','semact','sembslcdtn','-v7.3');    
+    end
+    
+  case {'sourcedatasentMXRC'}
+    if strcmp(subjectnames{1}(1),'A')     
+      [stat,Nsubj,avgrc,avgmix,semrc,semmix] = mous_bfica_sourcestatistics_MXRC(subjectnames, suffix, bslflag, cfg, savedir); %
+      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgrc','avgmix','semrc','semmix','-v7.3');    
+    
+    elseif strcmp(subjectnames{1}(1),'V') 
+      [stat,Nsubj,avgrc,avgmix,semrc,semmix] = mous_bfica_sourcestatistics_MXRC(subjectnames, suffix, bslflag, cfg, rootdir); %
+      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj',suffix.suff3],'stat','Nsubj','avgrc','avgmix','semrc','semmix','-v7.3');    
     end
 end
