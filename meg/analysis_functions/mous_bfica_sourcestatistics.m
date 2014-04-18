@@ -29,6 +29,21 @@ for k = 1:Nsubj
   clear -regexp tlcksent tlckseq  % can be used for tlcksent or tlcksenttar!
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype, suffix.oscband], rootdir);
   
+  % select frequency
+  if ~isempty(suffix.selfreq) 
+    if strcmp(suffix.avg,'no')
+      tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
+      tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
+    elseif strcmp(suffix.avg, 'yes'); % average across frequencies
+      tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
+      tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
+    end 
+    tlcksent.avg = squeeze(tlcksent.avg);
+    tlcksent.var = squeeze(tlcksent.var);
+    tlckseq.avg = squeeze(tlckseq.avg);
+    tlckseq.var = squeeze(tlckseq.var); 
+  end
+  
   % rename variables
   % When analysing target words (tlcksenttar, tlckseqtar) this avoids
   % having to create 2 scripts with identical function but diff varname.
@@ -47,7 +62,7 @@ for k = 1:Nsubj
   end
   
   sourcemodel.time = tlckseq.time;  
-  if isfield(tlckseq, 'freq')
+  if isfield(tlckseq, 'freq') && ndims(tlckseq.avg) == 3
     sourcemodel.freq  = tlckseq.freq;
     sourcemodel.dimord = 'pos_freq_time';
   else
@@ -57,7 +72,7 @@ for k = 1:Nsubj
   % no log transform
   % sequences 
   sourcemodel.avg.pow = (tlckseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
-  if isfield(tlckseq,'freq')
+  if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
@@ -69,7 +84,7 @@ for k = 1:Nsubj
  
   % sentences
   sourcemodel.avg.pow = (tlcksent.avg); 
-  if isfield(tlckseq,'freq')
+  if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
@@ -102,7 +117,7 @@ if baselineflag == 2            % pre-sentence baseline
     end
 end
 if baselineflag  == 1
-  if isfield(tlckseq,'freq')        % for 3D matrix: chan_freq_time (where chan = source)
+  if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3     % for 3D matrix: chan_freq_time (where chan = source)
       ix = find(sent{k}.time<=-0.1);  % loop through each bsl timepoint ?!?
       for k = 1:numel(sent)
         tmp = sent{k}.avg.pow;
