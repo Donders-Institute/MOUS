@@ -1,4 +1,4 @@
-function [avgdat, avgdat2, semdat, semdat2, Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix, baselineflag, cfg, rootdir)
+function [stat, Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix, baselineflag, cfg, rootdir)
 
 if nargin<3
   baselineflag = 0;
@@ -25,8 +25,31 @@ load([p,'/',n,e]);
 sourcemodeltemplate = sourcemodel;
 
 for k = 1:Nsubj
+   
+  if k==1
+    mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
+    sourcemodel = rmfield(sourcemodel, 'leadfield');
+    if isfield(sourcemodel, 'cfg')
+      sourcemodel = rmfield(sourcemodel, 'cfg');
+    end
+  end
+  
+  %% sentences
   clear -regexp tlcksentpar statsentpar stat2sentpar  % for target/allword variables
-  mous_db_getdata(subj{k}, ['meg_bfica_',suffix{1}], rootdir);
+  mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{1}], rootdir);
+  
+  % select frequency
+  if isfield(suffix,'selfreq') 
+    if strcmp(suffix.avg,'no')
+      statsentpar = ft_selectdata(statsentpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
+    elseif strcmp(suffix.avg, 'yes'); % average across frequencies
+      statsentpar = ft_selectdata(statsentpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
+    end 
+    statsentpar.stat = squeeze(statsentpar.stat);
+    statsentpar.prob = squeeze(statsentpar.prob);
+    statsentpar.mask = squeeze(statsentpar.mask);
+    statsentpar.cirange = squeeze(statsentpar.cirange);  
+  end
   
   % rename variables
   % When analysing target words (tlcksentpartar, tlckseqpartar) this avoids
@@ -37,17 +60,9 @@ for k = 1:Nsubj
     stat2sentpar  = stat2sentpartar;
     clear -vars tlcksentpartar statsentpartar stat2sentpartar
   end 
-  
-  
-  if k==1
-    mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
-    sourcemodel = rmfield(sourcemodel, 'leadfield');
-    if isfield(sourcemodel, 'cfg')
-      sourcemodel = rmfield(sourcemodel, 'cfg');
-    end
-  end
+   
   sourcemodel.time = tlcksentpar.time;
-  if isfield(tlcksentpar, 'freq')
+  if isfield(tlcksentpar, 'freq') && ndims(statsentpar.stat) == 3 
     sourcemodel.freq  = tlcksentpar.freq;
     sourcemodel.dimord = 'pos_freq_time';
   else
@@ -57,7 +72,7 @@ for k = 1:Nsubj
 % no log transform
   sourcemodel.avg.pow = statsentpar.stat;% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
   %tmp                 = zeros(prod(sourcemodel.dim), numel(sourcemodel.time));
-  if isfield(statsentpar,'freq')
+  if isfield(statsentpar,'freq') && ndims(statsentpar.stat) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
@@ -67,11 +82,24 @@ for k = 1:Nsubj
   dat{k}         = sourcemodel;
   dat{k}.pos     = sourcemodeltemplate.pos;
   
-  
+  %% sequences
   clear -regexp tlckseqpar statseqpar stat2seqpar
-  mous_db_getdata(subj{k}, ['meg_bfica_',suffix{2}], rootdir);
+  mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{2}], rootdir);
   
-  if exist('tlcksentpartar','var')
+  if isfield(suffix,'selfreq') 
+    if strcmp(suffix.avg,'no')
+      statseqpar = ft_selectdata(statseqpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
+    elseif strcmp(suffix.avg, 'yes'); % average across frequencies
+      statseqpar = ft_selectdata(statseqpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
+    end 
+
+    statseqpar.stat = squeeze(statseqpar.stat);
+    statseqpar.prob = squeeze(statseqpar.prob);
+    statseqpar.mask = squeeze(statseqpar.mask);
+    statseqpar.cirange = squeeze(statseqpar.cirange);
+  end
+  
+  if exist('tlckseqpartar','var')
     tlckseqpar   = tlckseqpartar;
     statseqpar   = statseqpartar;
     stat2seqpar  = stat2seqpartar;
@@ -84,7 +112,7 @@ for k = 1:Nsubj
   % no log transform
   sourcemodel.avg.pow = statseqpar.stat;% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
   %tmp                 = zeros(prod(sourcemodel.dim), numel(sourcemodel.time));
-  if isfield(statseqpar,'freq')
+  if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
@@ -98,7 +126,7 @@ end
 % do a baseline subtraction
 if baselineflag
   ix = find(dat{k}.time<=-0.1);  % define toi for baseline
-  if isfield(tlckseqpar,'freq')  % if 3D matrix
+  if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3 % if 3D matrix
     for k = 1:numel(dat)
       tmp = dat{k}.avg.pow;
       
@@ -120,7 +148,6 @@ if baselineflag
   end
 end
 
-cfg = []; % keep cfg from inarg
 cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
 cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
@@ -128,38 +155,6 @@ cfg.ivar = 1;
 cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
 stat = ft_sourcestatistics(cfg, dat{:}, dat2{:});  % sent = dat;  seq = dat2;
-
-% for k = 1:Nsubj
-%   if k==1
-%     sumdat = dat{k}.avg.pow;
-%     sumdat2 = dat2{k}.avg.pow;
-%     ssqdat = dat{k}.avg.pow.^2;
-%     ssqdat2  = dat2{k}.avg.pow.^2;
-%     allinside = dat2{k}.inside;
-%   else
-%     sumdat = sumdat + dat{k}.avg.pow;
-%     sumdat2  = sumdat2 + dat2{k}.avg.pow;
-%     ssqdat = ssqdat + dat{k}.avg.pow.^2;
-%     ssqdat2  = ssqdat2  + dat2{k}.avg.pow.^2;
-%     allinside = intersect(allinside, dat{k}.inside);
-%   end  
-% end
-% alloutside = setdiff(1:size(dat{1}.pos,1), allinside);
-% for k = 1:Nsubj
-%   dat{k}.inside = allinside(:)';
-%   dat{k}.outside = alloutside(:)';
-%   dat2{k}.inside  = allinside(:)';
-%   dat2{k}.outside = alloutside(:)';
-% end
-% 
-% % compute mean per condition and sem
-% avgdat = sumdat./Nsubj;
-% vardat = (ssqdat - sumdat.^2./Nsubj)./(Nsubj-1);
-% semdat = sqrt(vardat./Nsubj);
-% 
-% avgdat2  = sumdat2./Nsubj;
-% vardat2  = (ssqdat2 - sumdat2.^2./Nsubj)./(Nsubj-1);
-% semdat2  = sqrt(vardat2./Nsubj);
 
 
 % Commented out because this functions wasn't written to take into account
