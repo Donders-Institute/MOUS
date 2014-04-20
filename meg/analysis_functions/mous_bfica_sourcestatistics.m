@@ -30,7 +30,7 @@ for k = 1:Nsubj
   mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype, suffix.oscband], rootdir);
   
   % select frequency
-  if ~isempty(suffix.selfreq) 
+  if isfield(suffix,'selfreq') 
     if strcmp(suffix.avg,'no')
       tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
       tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
@@ -62,7 +62,7 @@ for k = 1:Nsubj
   end
   
   sourcemodel.time = tlckseq.time;  
-  if isfield(tlckseq, 'freq') && ndims(tlckseq.avg) == 3
+  if isfield(tlckseq, 'freq') && ndims(tlckseq.avg) == 3 % this dimord is wrong for stats on only 1 freq (selected from matrix of source x freq x time)
     sourcemodel.freq  = tlckseq.freq;
     sourcemodel.dimord = 'pos_freq_time';
   else
