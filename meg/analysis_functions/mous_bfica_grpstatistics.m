@@ -42,9 +42,9 @@ switch suffix.wordtype
    
   case {'sourcedatasentseqpar' , 'sourcedatasentseqpartar'}; 
     if regexp(suffix.wordtype,'tar')
-      suffix  = {['sourcedatasentpartar',suffix.oscband] , ['sourcedataseqpartar',suffix.oscband]};   
+      suffix.wordtype  = {['sourcedatasentpartar',suffix.oscband] , ['sourcedataseqpartar',suffix.oscband]};   
     else
-      suffix  = {['sourcedatasentpar',suffix.oscband] , ['sourcedataseqpar',suffix.oscband]};
+      suffix.wordtype  = {['sourcedatasentpar',suffix.oscband] , ['sourcedataseqpar',suffix.oscband]};
     end 
 
     if strcmp(subjectnames{1}(1),'A')      
@@ -53,7 +53,7 @@ switch suffix.wordtype
       
     elseif strcmp(subjectnames{1}(1),'V')     
       [stat,Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subjectnames, suffix, 1, cfg,rootdir);
-      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype,suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','-v7.3');    
+      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype,suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj',suffix.suff3],'stat','Nsubj','-v7.3');    
     end
 
   case {'sourcedatasentvbsl' , 'sourcedataseqvbsl'}
@@ -64,7 +64,7 @@ switch suffix.wordtype
     
     elseif strcmp(subjectnames{1}(1),'V') 
       [stat,Nsubj,avgact,avgbslcdtn,semact,sembslcdtn] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
-      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgact','avgbslcdtn','semact','sembslcdtn','-v7.3');    
+      save([savedir,'/groupresults/bfica/visual/',suffix.wordtype, suffix.oscband,'_',savebsl,'_',num2str(Nsubj),'subj',suffix.suff3],'stat','Nsubj','avgact','avgbslcdtn','semact','sembslcdtn','-v7.3');    
     end
     
   case {'sourcedatasentMXRC'}
