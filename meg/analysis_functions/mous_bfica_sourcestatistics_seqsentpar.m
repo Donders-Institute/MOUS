@@ -1,4 +1,10 @@
-function [stat, Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix, baselineflag, cfg, rootdir)
+function [stat, Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix, baselineflag, cfg, rootdir, findx)
+
+suffixstruct = isstruct(suffix);
+
+if nargin<6
+  findx = [];
+end
 
 if nargin<3
   baselineflag = 0;
@@ -36,10 +42,11 @@ for k = 1:Nsubj
   
   %% sentences
   clear -regexp tlcksentpar statsentpar stat2sentpar  % for target/allword variables
-  mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{1}], rootdir);
   
   % select frequency
-  if isfield(suffix,'selfreq') 
+  if suffixstruct && isfield(suffix,'selfreq') 
+    % Nietzsche's code uses a structure for the input argument suffix
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{1}], rootdir);
     if strcmp(suffix.avg,'no')
       statsentpar = ft_selectdata(statsentpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
     elseif strcmp(suffix.avg, 'yes'); % average across frequencies
@@ -48,7 +55,20 @@ for k = 1:Nsubj
     statsentpar.stat = squeeze(statsentpar.stat);
     statsentpar.prob = squeeze(statsentpar.prob);
     statsentpar.mask = squeeze(statsentpar.mask);
-    statsentpar.cirange = squeeze(statsentpar.cirange);  
+    statsentpar.cirange = squeeze(statsentpar.cirange);
+    
+  else
+    % JM's original code uses a cell array of strings for the input
+    % argument suffix
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix{1}], rootdir);
+    if isempty(findx), findx = 1; end
+    
+    statsentpar.stat = squeeze(statsentpar.stat(:,findx,:));
+    if numel(findx)==1 && isfield(tlcksentpar, 'freq'), 
+      tlcksentpar = rmfield(tlcksentpar, 'freq'); 
+      statsentpar = rmfield(statsentpar, 'freq');
+    end
+    
   end
   
   % rename variables
@@ -84,9 +104,10 @@ for k = 1:Nsubj
   
   %% sequences
   clear -regexp tlckseqpar statseqpar stat2seqpar
-  mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{2}], rootdir);
   
-  if isfield(suffix,'selfreq') 
+  
+  if suffixstruct && isfield(suffix,'selfreq') 
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{2}], rootdir);
     if strcmp(suffix.avg,'no')
       statseqpar = ft_selectdata(statseqpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
     elseif strcmp(suffix.avg, 'yes'); % average across frequencies
@@ -97,6 +118,15 @@ for k = 1:Nsubj
     statseqpar.prob = squeeze(statseqpar.prob);
     statseqpar.mask = squeeze(statseqpar.mask);
     statseqpar.cirange = squeeze(statseqpar.cirange);
+  else
+    % JM's original code uses a cell array of strings for the input
+    % argument suffix
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix{2}], rootdir);
+    statseqpar.stat = squeeze(statseqpar.stat(:,findx,:));
+    if numel(findx)==1 && isfield(tlckseqpar, 'freq'), 
+      tlckseqpar = rmfield(tlckseqpar, 'freq');
+      statseqpar = rmfield(statseqpar, 'freq');
+    end
   end
   
   if exist('tlckseqpartar','var')
@@ -109,9 +139,7 @@ for k = 1:Nsubj
   
   sourcemodel.time = tlckseqpar.time;
 
-  % no log transform
-  sourcemodel.avg.pow = statseqpar.stat;% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
-  %tmp                 = zeros(prod(sourcemodel.dim), numel(sourcemodel.time));
+  sourcemodel.avg.pow = statseqpar.stat;
   if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
