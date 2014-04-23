@@ -37,6 +37,8 @@ if doerf_main
     mous_db_getdata(subjectname,inputdata,inrootdir);
   end
   
+
+ if ~isempty(condition)
   cfg = [];
   switch condition
     case 'mix'
@@ -47,6 +49,7 @@ if doerf_main
       cfg.trials = sel;
   end
   data = ft_selectdata(cfg,data);
+ end
   
   cfg2 = [];
   switch wordtype
