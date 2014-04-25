@@ -70,8 +70,8 @@ if refineflag==1
   mri.coordsys  = 'ctf';
   mri           = ft_volumerealign(cfg, mri);
 
-  shape        = struct(mri.cfg.headshape); % convert back from config object
-  shapemri     = struct(mri.cfg.headshapemri);
+  shape        = struct(mri.cfg.headshape.headshape); % convert back from config object
+  shapemri     = struct(mri.cfg.headshape.headshapemri);
 elseif refineflag==2
   shape    = ft_convert_units(pos, 'mm');
   
