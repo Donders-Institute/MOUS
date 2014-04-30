@@ -19,7 +19,7 @@ if ~exist('trialfun',     'var'),
     trialfun = 'trialfun_auditory_word';
   end
 end
-if ~exist('rootdir','var'), rootdir = '/project/3011020.09/annhul/';  end  % directory for saving
+if ~exist('rootdir','var'), rootdir = '/project/3011020.09/MEG/';  end  % directory for saving
 
 fprintf('Preprocessing subject %s  \n', subjectname);
 mous_db_makesubjdir(subjectname)
