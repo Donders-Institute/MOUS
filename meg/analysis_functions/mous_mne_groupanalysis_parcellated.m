@@ -64,8 +64,8 @@ for k = 1:numel(subj)
   %mous_db_getdata(subj{k}, ['meg_mne_',suffix,'_Seq'], rootdir);
   mous_db_getdata(subj{k}, strrep(suffix,'sent','seq'), rootdir);
   if ~exist('source', 'var')
-    ixbeg = nearest(stat.time,-0.1);
-    ixend = nearest(stat.time,0.6);
+    ixbeg = nearest(stat.time,-0.2);
+    ixend = nearest(stat.time,0.9);
     stat.(param) = stat.(param)(:,ixbeg:ixend);
     stat.time    = stat.time(ixbeg:ixend);
     
@@ -123,18 +123,32 @@ datsent = zeros(size(sent{1}.(param)));
 cntsent = zeros(1,size(datsent,2));
 datseq  = zeros(size(sent{1}.(param)));
 cntseq  = zeros(1,size(datseq,2));
+
+
+% for k = 1:Nsubj
+%   tmpsent = sent{k}.(param);
+%   tmpseq  = seq{k}.(param);
+%   
+%   cntsent = cntsent + double(isfinite(tmpsent(:,1)));
+%   cntseq  = cntseq  + double(isfinite(tmpsent(:,1)));
+%   
+%   tmpsent(~isfinite(tmpsent(:,1)),:) = 0;
+%   tmpseq(~isfinite(tmpseq(:,1)),:)   = 0;
+%   
+%   datsent = datsent + tmpsent; %bug
+%   datseq  = datseq  + tmpseq; %bug
+% 
+% end
+% datsent = diag(1./cntsent)*datsent;
+% datseq  = diag(1./cntseq)*datseq;
+
+datsent = zeros(size(sent{1}.(param)));
+datseq = zeros(size(sent{1}.(param)));
 for k = 1:Nsubj
-  tmpsent = sent{k}.(param);
-  tmpseq  = seq{k}.(param);
-  
-  cntsent = cntsent + double(isfinite(tmpsent(:,1)));
-  cntseq  = cntseq  + double(isfinite(tmpsent(:,1)));
-  
-  tmpsent(~isfinite(tmpsent(:,1)),:) = 0;
-  tmpseq(~isfinite(tmpseq(:,1)),:)   = 0;
-  
-  datsent = datsent + tmpsent;
-  datseq  = datseq  + tmpseq;
+  datsent = datsent+sent{k}.(param);
+  datseq = datseq+seq{k}.(param);
 end
-datsent = diag(1./cntsent)*datsent;
-datseq  = diag(1./cntseq)*datseq;
+datsent = datsent./Nsubj;
+datseq = datseq./Nsubj;
+
+
