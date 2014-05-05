@@ -99,6 +99,7 @@ if domne_main,
   % FIXME, also make the filename configurable, because now it will always
   % work.
   mous_db_getdata(subjectname, suffix_erfdata, rootdir);
+  rootdir = '/project/3011020.09/MEG';
   if exist('senWord_AG', 'var')
     data1 = senWord_AG;
     data2 = seqWord_AG;
@@ -267,16 +268,19 @@ if domne_parcellate
   % filters have been computed on the same data as the one that will be
   % projected
   
-  if ~exist('suffix', 'var')
+  if ~exist('suffix_erfdata', 'var')
     error('you need to specify the file suffix for the timelocked data');
   end
-  mous_db_getdata(subjectname, suffix);%, rootdir);
+  mous_db_getdata(subjectname, suffix_erfdata);%, rootdir);
+  tlck = senWord_AG;
   sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,:);     end;
   if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,:); end;
   tlcksent = tlck;
-  mous_db_getdata(subjectname, strrep(suffix,'sent','seq'));%, rootdir);
+  
+  %tlck= mous_db_getdata(subjectname, strrep(suffix_erfdata,'sent','seq'));%, rootdir);
+  tlck = seqWord_AG;
   sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,:);     end;
@@ -290,7 +294,11 @@ if domne_parcellate
   end
   mous_db_getdata(subjectname, suffix_mne);
   
-  load atlas_conte69_8196reg_LR_brodmann_subparc;
+%  load atlas_conte69_8196reg_LR_brodmann_subparc;
+  load atlas_conte69_8196reg_LR;
+  
+  atlas.parcellation = atlas.parcellation2;
+  atlas.parcellationlabel = atlas.parcellation2label;
   
   tlck         = mous_mne_parcellate(source,tlck,atlas);
   U = tlck.U; 
@@ -303,7 +311,7 @@ if domne_parcellate
   tlck.S          = S;
   tlck.N          = N;
   tlck.suffix_mne = suffix_mne;
-  tlck.suffix     = suffix;
+  tlck.suffix     = suffix_erfdata;
   if ~exist('suffix_output', 'var')
     error('you need to specify the file suffix for the output data');
   end
@@ -313,7 +321,7 @@ if domne_parcellate
   tlck.S          = S;
   tlck.N          = N;
   tlck.suffix_mne = suffix_mne;
-  tlck.suffix     = suffix;
+  tlck.suffix     = suffix_erfdata;
   mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);
 
   
