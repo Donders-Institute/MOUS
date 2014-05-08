@@ -104,7 +104,7 @@ switch method
     % use an existing parcellation, but still do an svd on the projected
     % power
     parcellation = ft_getopt(varargin, 'parcellation');
-    parcelparam  = ft_getopt(varargin, 'parcellationparam');
+    parcelparam  = ft_getopt(varargin, 'parcellationparam', 'parcellation');
     
     Nparcel = numel(parcellation.([parcelparam,'label']));
     filter  = cell(Nparcel,1);

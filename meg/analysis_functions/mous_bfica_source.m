@@ -30,7 +30,7 @@ if nargin>2 && ~isempty(toi)
 else
   % concatenate all tois
   if isfield(freq, 'time'),
-    tmp = mtmconvol2mtmfft(freq, 200);
+    tmp = mtmconvol2mtmfft(freq, 300); % FIXME in local copy set to 300, was 200.
   else
     tmp = freq;
   end

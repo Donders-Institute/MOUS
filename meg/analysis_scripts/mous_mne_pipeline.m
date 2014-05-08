@@ -131,7 +131,7 @@ if domne_main,
     
     % this part computes the sum of squares of the leadfields, and uses the
     % inverse of it for depth weighting.
-    Lss = zeros(8193,1)+nan;
+    Lss = zeros(8192,1)+nan;
     for k = 1:numel(sourcemodel.inside)
       indx = sourcemodel.inside(k);
       lf   = sourcemodel.leadfield{indx};
@@ -274,20 +274,26 @@ if domne_parcellate
   mous_db_getdata(subjectname, suffix_erfdata);%, rootdir);
   tlck = senWord_AG;
   sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
+  sel2 = 1:nearest(tlck.time, 0.8);
   tlck.label = tlck.label(sel);
-  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,:);     end;
-  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,:); end;
+  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
+  if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
+  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
+  tlck.time = tlck.time(sel2);
   tlcksent = tlck;
   
   %tlck= mous_db_getdata(subjectname, strrep(suffix_erfdata,'sent','seq'));%, rootdir);
   tlck = seqWord_AG;
   sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
+  sel2 = 1:nearest(tlck.time, 0.8);
   tlck.label = tlck.label(sel);
-  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,:);     end;
-  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,:); end;
+  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
+  if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
+  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
+  tlck.time = tlck.time(sel2);
   tlckseq = tlck;
   
-  tlck.avg = (tlcksent.avg.*tlcksent.dof(sel,:)+tlckseq.avg.*tlckseq.dof(sel,:))./(tlcksent.dof(sel,:)+tlckseq.dof(sel,:));
+  tlck.avg = (tlcksent.avg.*tlcksent.dof+tlckseq.avg.*tlckseq.dof)./(tlcksent.dof+tlckseq.dof);
   
   if ~exist('suffix_mne', 'var')
     error('you need to specify the file suffix for the mne data');
@@ -300,10 +306,10 @@ if domne_parcellate
   atlas.parcellation = atlas.parcellation2;
   atlas.parcellationlabel = atlas.parcellation2label;
   
-  tlck         = mous_mne_parcellate(source,tlck,atlas);
-  U = tlck.U; 
-  S = tlck.S;
-  N = tlck.N;
+  tlck = mous_mne_parcellate(source,tlck,atlas, 'svdmethod', 'projectavg');
+  U            = tlck.U; 
+  S            = tlck.S;
+  N            = tlck.N;
   atlas.filter = tlck.F;
   
   tlck            = mous_mne_parcellate(source,tlcksent,atlas);
@@ -321,8 +327,51 @@ if domne_parcellate
   tlck.S          = S;
   tlck.N          = N;
   tlck.suffix_mne = suffix_mne;
+<<<<<<< Updated upstream
   tlck.suffix     = suffix_erfdata;
   mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);
 
-  
+=======
+  tlck.suffix     = suffix;
+  mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);  
 end
+if domne_denoise
+  % this assume domne_parametric and domne_parcellate to be done. it
+  % operates on the parametric analysis results
+  if ~exist('suffix', 'var')
+    error('a file suffix should be given');
+  end
+  mous_db_getdata(subjectname, suffix, rootdir);
+  
+  addpath('/home/language/jansch/matlab/toolboxes/EP_den_auto/EP_den_Auto');
+  handles.par.samples = 512;
+  handles.par.scales  = 5;
+  handles.par.stim    = nearest(tlck.time, 0);
+  
+  dat   = tlck.avg;
+  dat   = dat - repmat(nanmean(dat(:,1:nearest(tlck.time,0)),2),[1 numel(tlck.time)]);
+  dat   = cat(2, dat,                  zeros(   numel(tlck.label),512-numel(tlck.time)));
+  trial = cat(3, tlck.trial(2:11,:,:), zeros(10,numel(tlck.label),512-numel(tlck.time)));
+  
+  cleandat   = dat+nan;
+  cleantrial = trial+nan;
+  for k = 1:numel(tlck.label)
+    %fprintf('denoising channel %d/%d\n',k,numel(tlck.label));
+    if any(~isfinite(dat(k,:)))
+      continue;
+    else
+      [~, cleandat(k,:), den_coeff, y] = Run_NZT(dat(k,:), handles);
+      cleantrial(:,k,:)                = st_den(squeeze(trial(:,k,:))', den_coeff, handles);
+    end
+  end
+  cleandat   = cleandat(:,1:numel(tlck.time));
+  cleantrial = cleantrial(:,:,1:numel(tlck.time));
+  
+  tlck.trial = cleantrial;
+  tlck.avg   = cleandat;
+  mous_db_putdata(subjectname, [suffix,'_denoised'], 'tlck', rootdir);
+end
+  
+>>>>>>> Stashed changes
+  
+  

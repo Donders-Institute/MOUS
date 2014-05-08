@@ -26,7 +26,8 @@ if dopreproc
 
   % get the description of the artifacts
   mous_db_getdata(subjectname, 'meg_artifact_cfg');
-  trl = mous_defineTrial(filename{1}, -0.2, 0.6, 'all', 'visual_word'); %FIXME only for V* for now
+  %trl = mous_defineTrial(filename{1}, -0.2, 0.6, 'all', 'visual_word'); %FIXME only for V* for now
+  trl = mous_defineTrial(filename{1}, -0.2, 0.6, 'visual_word'); %FIXME only for V* for now
   trl = mous_artifact_remove(trl, filename{1}, {cfgeog1 cfgeog2 cfgjump cfgmuscle});
 
   cfg            = [];
@@ -80,7 +81,7 @@ if dofreq
     if k==1,
       csd_sent = tmpfreq;
     else
-      csd_sent.crsspctrm = csd_sent.crsspctrm.*sel1(chunk1(k)) + tmpfreq.crsspctrm.*numel(cfg.trials);
+      csd_sent.crsspctrm = (csd_sent.crsspctrm.*sel1(chunk1(k)) + tmpfreq.crsspctrm.*numel(cfg.trials))./(sel1(chunk1(k))+numel(cfg.trials));
     end
     clear tmpfreq;
   end
@@ -95,7 +96,7 @@ if dofreq
     if k==1,
       csd_seq = tmpfreq;
     else
-      csd_seq.crsspctrm = csd_seq.crsspctrm.*sel2(chunk2(k)) + tmpfreq.crsspctrm.*numel(cfg.trials);
+      csd_seq.crsspctrm = (csd_seq.crsspctrm.*sel2(chunk2(k)) + tmpfreq.crsspctrm.*numel(cfg.trials))./(sel1(chunk2(k))+numel(cfg.trials));
     end
     clear tmpfreq;
   end
@@ -127,7 +128,8 @@ if doparcellate
     load cortex_midthickness_8196reg;
     source.tri = sourcemodel.tri;
   end
-  [source, parcellation] = mous_lcmv_parcellate(source, tlck);
+  load atlas_conte69_8196reg_LR_brodmann_subparc
+  [source, parcellation] = mous_lcmv_parcellate(source, tlck, 'method', 'parcellation', 'parcellation', atlas);
   mous_db_putdata(subjectname, 'meg_granger_parcellation', 'parcellation', 'source', rootdir);
 end
  

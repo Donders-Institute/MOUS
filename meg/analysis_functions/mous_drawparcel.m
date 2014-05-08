@@ -17,8 +17,8 @@ if ischar(label)
   label = {label};
 end
 
-sel = match_str(atlas.parcellation2label, label);
-dum = atlas.parcellation2;
+sel = match_str(atlas.parcellationlabel, label);
+dum = atlas.parcellation;
 dum(~ismember(dum,sel)) = nan;
  
 figure;hold on;

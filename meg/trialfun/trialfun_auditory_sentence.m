@@ -48,7 +48,6 @@ end
 
 trl    = zeros(0,7);
 for k = 1:numel(selfix)-1
-  
   % FIXATION CROSS - keep track of the '20' trigger
   fixsmp = smp(selfix(k));
     
@@ -57,7 +56,7 @@ for k = 1:numel(selfix)-1
   % create a sequence of triggers within the trial
   tmpval = val(sel);
   tmpsmp = smp(sel);  
-  
+   
   % get FIRST WORD onset  
   for kk = 1:numel(tmpval)
     trg1 = tmpval(kk);

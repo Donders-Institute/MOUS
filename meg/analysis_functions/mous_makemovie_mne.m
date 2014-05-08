@@ -20,7 +20,7 @@ function frames = mous_makemovie_mne(source, filename, varargin)
 %   xlim      = vector, specifying the time limits per frame, default is 1 time point per frame,
 %   baselinecorrect = 'yes' (default) or 'no', perform baselinecorrection on the time series
 %   baselinewindow  = [min max], limits of baseline windoew
-%   maskparameter   = TO-BE-IMPLEMENTED
+%   maskparameter   = string, parameter to be used as a mask
 %   parcellation    = parcellation-structure that describes the parcels. at present it should be 
 %                     defined in the field 'parcellation'
 %   hemisphere      = 'both' (default), 'left', 'right' the hemisphere(s) to be plotted
@@ -203,6 +203,7 @@ end
 htxt = text(xpos_text,0,ypos_text,textstring);
 set(htxt, 'color', 'w');
 set(htxt, 'fontsize', 15);
+set(htxt, 'interpreter', 'none');
 
 hfun1 = ft_plot_mesh(s, 'edgecolor', 'none', 'vertexcolor', data(:,1));
 
