@@ -1,4 +1,10 @@
-function [stat, Nsubj, avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics(subj, suffix, baselineflag, cfg, rootdir)
+function [stat, Nsubj, avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics(subj, suffix, baselineflag, cfg, rootdir, findx)
+
+suffixstruct = isstruct(suffix);
+
+if nargin<6
+  findx = [];
+end
 
 if nargin<3
   baselineflag = 0;
@@ -26,11 +32,21 @@ load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
 sourcemodeltemplate = sourcemodel;
 
 for k = 1:Nsubj
-  clear -regexp tlcksent tlckseq  % can be used for tlcksent or tlcksenttar!
-  mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype, suffix.oscband], rootdir);
+ if k==1
+    mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
+    sourcemodel = rmfield(sourcemodel, 'leadfield');
+    if isfield(sourcemodel, 'cfg')
+      sourcemodel = rmfield(sourcemodel, 'cfg');
+    end
+ end
+ 
+ clear -regexp tlcksent tlckseq  % can be used for tlcksent or tlcksenttar!
   
   % select frequency
-  if isfield(suffix,'selfreq') 
+  
+  if suffixstruct && isfield(suffix,'selfreq') 
+    % Nietz's code suffix inarg is a struct
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype, suffix.oscband], rootdir);
     if strcmp(suffix.avg,'no')
       tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
       tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
@@ -42,6 +58,18 @@ for k = 1:Nsubj
     tlcksent.var = squeeze(tlcksent.var);
     tlckseq.avg = squeeze(tlckseq.avg);
     tlckseq.var = squeeze(tlckseq.var); 
+  
+  else
+    % JM's code usings suffix inarg that is made up of a cell array of strings
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix{1}], rootdir);
+    if isempty(findx), findx = 1; end
+    
+    tlcksent.avg = squeeze(tlcksent.avg.stat(:,findx,:));
+    tlckseq.avg = squeeze(tlckseq.avg.stat(:,findx,:));
+    if numel(findx)==1 && isfield(tlcksentpar, 'freq'), 
+      tlcksent = rmfield(tlcksent, 'freq'); 
+      tlckseq = rmfield(tlckseq, 'freq');
+    end
   end
   
   % rename variables
@@ -53,14 +81,7 @@ for k = 1:Nsubj
     clear -vars tlcksenttar tlckseqtar
   end 
   
-  if k==1
-    mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
-    sourcemodel = rmfield(sourcemodel, 'leadfield');
-    if isfield(sourcemodel, 'cfg')
-      sourcemodel = rmfield(sourcemodel, 'cfg');
-    end
-  end
-  
+
   sourcemodel.time = tlckseq.time;  
   if isfield(tlckseq, 'freq') && ndims(tlckseq.avg) == 3 % this dimord is wrong for stats on only 1 freq (selected from matrix of source x freq x time)
     sourcemodel.freq  = tlckseq.freq;
@@ -71,7 +92,7 @@ for k = 1:Nsubj
    
   % no log transform
   % sequences 
-  sourcemodel.avg.pow = (tlckseq.avg);% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
+  sourcemodel.avg.pow = (tlckseq.avg);
   if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
