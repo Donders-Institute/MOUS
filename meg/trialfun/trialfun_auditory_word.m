@@ -64,7 +64,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   
   sel = selfix(k):selfix(k+1); % (2) start and end of a trial defined by two consecutive 20 triggers.
                             
-  tmpval = val(sel);
+  tmpval = val(sel)
   tmpsmp = smp(sel);
   
   % only go up until a question, which has a trigger value of 40
@@ -124,7 +124,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       end
                  
       %         1         2         3       4 5          6                    7                      8        
-      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
+      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount(1)];
       
       tmptrl = cat(1,tmptrl,tmp);
     end  
@@ -147,4 +147,14 @@ if numel(sel)>0
   trl(sel,:) = [];
 end
 
+% here's another too bad situation: for A2036 (and possibly others) there
+% may be three words per sentence, this can at the moment not occur
+% ##### to be revisited if single words are coded ######
+% for now remove those rows, too
+t  = trl(:,4);
+ut = unique(t);
+for k = 1:numel(ut)
+  n(k) = sum(t==ut(k));
+end
+trl(ismember(trl(:,4),ut(n>2)),:) = [];
 

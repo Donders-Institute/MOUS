@@ -186,11 +186,14 @@ if pulselength > pulselengththreshold
   % apart, it could have been a sluggish trigger, merge into 1
   keep = false(size(updown));
   for k = 1:(numel(updown)-2)
+    if k==1843,keyboard;end
     if updown(k)==1 && updown(k+1)==0 && updown(k+2)==1
       keep(k) = 1;
     elseif updown(k)==1 && updown(k+1)==1 && val(k)==val(k+1) && smp(k)==smp(k+1)-1
-      keep(k) = 0; % don't keep
+      keep(k) = 0; % don't keep, sluggish upstroke, only keep 1 of the 2
       event(k+1).sample = event(k+1).sample-1; % correct the sample
+    
+ 
     elseif updown(k)==1 && updown(k+1)==1 && updown(k+2)==0
       keep(k) = 1;
     elseif updown(k)==1 && updown(k+1)==0 && updown(k+2)==0
@@ -207,6 +210,10 @@ if pulselength > pulselengththreshold
         % A2097)
         keep(k+1) = 1;
         event(k+1).value = event(k+2).value;
+      elseif val(k-1)+val(k+1)~=val(k)+val(k+2)
+        % do not adjust the value: although we have a staircase, the
+        % expected values do not match up. THIS IS NEEDED E.G. FOR SUBJECT
+        % A2036, I DON'T KNOW THE CONSEQUENCES FOR OTHER SUBJS
       else
         % adjust the value
         event(k).value = event(k+2).value;
