@@ -1,4 +1,4 @@
-function [datout, Rout] = mous_preproc_saccades(dat, x)
+function [datout, Rout, triggers] = mous_preproc_saccades(dat, x)
 
 % MOUS_PREPROC_SACCADES serves the purpose as a custom function to be
 % called in preproc, in order to maximize sensitivity to the features of a

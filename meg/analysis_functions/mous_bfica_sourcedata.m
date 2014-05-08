@@ -10,7 +10,7 @@ if nargin==3
 % This was this on 18.4.2013 btw JM and NL, but NL didn't push the change
 % the first time but only changed her own local copy
 elseif isfield(freq,'time') 
-  freq = mtmconvol2mtmfft(freq, 200);
+  freq = mtmconvol2mtmfft(freq, 300); %FIXME used to be 200, we should have access to the downsample freq: NOTE the second input does not seem to be  used in the function
 end
 
 % compute single 'trial' power

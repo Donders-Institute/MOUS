@@ -4,6 +4,8 @@ if ~exist('dodss',     'var'), dodss     = 0; end
 if ~exist('doccc',     'var'), doccc     = 0; end
 if ~exist('dogranger1', 'var'), dogranger1 = 0; end
 if ~exist('dogranger2', 'var'), dogranger2 = 0; end
+if ~exist('domim', 'var'),      domim = 0; end
+if ~exist('domim_freq_type1', 'var'), domim_freq_type1 = 0; end
 
 collectresults = false;
 docardiacconfound = 0;
@@ -14,9 +16,23 @@ if dopreproc
 end
 
 if dofreq
-  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
-  data = ft_appenddata([], data, ecg);
-  freq = mous_restingstate_freq(data);
+  mous_db_getdata(subjectname, 'meg_restingstate_dss', '/project/3011020.09/jansch');
+  
+  % do the sensor level processing
+  options            = [];
+  options.resamplefs = 600;
+  data               = mous_restingstate_preprocessing(subjectname, '', options);
+  
+  options            = [];
+  options.length     = 4;
+  options.overlap    = 0.5;
+  options.avgcomp    = avgcomp;
+  options.comp       = comp;
+  options.tapsmofrq  = 2;
+  freq               = mous_restingstate_freq(data, options);
+  %mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
+  %data = ft_appenddata([], data, ecg);
+  %freq = mous_restingstate_freq(data);
   fd   = ft_freqdescriptives([], freq);
   freq = ft_checkdata(freq, 'cmbrepresentation', 'fullfast');
   mous_db_putdata(subjectname, 'meg_restingstate_freq', 'freq', 'fd', rootdir);
@@ -98,19 +114,24 @@ end
 if dogranger1
   mous_db_getdata(subjectname, 'meg_restingstate_dss', '/project/3011020.09/jansch');
   
-  % do the sensor level processing
-  options            = [];
-  options.resamplefs = 600;
-  data               = mous_restingstate_preprocessing(subjectname, '', options);
+%   % do the sensor level processing
+%   options            = [];
+%   options.resamplefs = 600;
+%   data               = mous_restingstate_preprocessing(subjectname, '', options);
+
+  mous_db_getdata(subjectname, 'meg_restingstate_data', '/project/3011020.09/jansch');
   
   options            = [];
   options.length     = 4;
   options.overlap    = 0.5;
   options.avgcomp    = avgcomp;
   options.comp       = comp;
-  tlck               = mous_restingstate_tlck(data, options);
+  options.foilim     = [0 100];
+  options.pad        = 4;
+  [tlck, data_cut]   = mous_restingstate_tlck(data, options);
   options.tapsmofrq  = 2;
-  freq               = mous_restingstate_freq(data, options);
+  %[freq, freq_ems]   = mous_restingstate_freq(data, options);
+  [~, freq]   = mous_restingstate_freq(data, options); % use the ensemble mean subtracted version
   
   % compute the leadfields
 %   mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
@@ -140,7 +161,7 @@ if dogranger1
   cfg                 = [];
   cfg.method          = 'lcmv';
   cfg.lcmv.keepfilter = 'yes';
-  %cfg.lcmv.fixedori   = 'yes';%'no';
+  cfg.lcmv.fixedori   = 'yes';%'no';
   cfg.lcmv.lambda     = '5%';
   cfg.lcmv.projectnoise = 'yes';
   cfg.grid            = sourcemodel;
@@ -236,4 +257,157 @@ if dogranger2
   warning on;
   mous_db_putdata(subjectname, 'meg_restingstate_granger', 'g', 'pow', 'noise', '/project/3011020.09/jansch');%, 0);
 end
+
+if domim
   
+  % do the sensor level processing
+  %options            = [];
+  %options.resamplefs = 600;
+  %data               = mous_restingstate_preprocessing(subjectname, '', options);
+  
+  mous_db_getdata(subjectname, 'meg_restingstate_data', '/project/3011020.09/jansch');
+  mous_db_getdata(subjectname, 'meg_restingstate_dss',  '/project/3011020.09/jansch');
+  
+  v = var(avgcomp,[],2);
+  v = v./v(1);
+
+  % dummy trial to fool ft_rejectcomponent
+  comp.trial = comp.time;
+
+  % NOTE: this avoids a crash later on, but not sure which grad structure is
+  % used in ft_rejectcomponent.
+  if isfield(comp,'grad')
+    comp = rmfield(comp, 'grad');
+  end 
+
+  cfg           = [];
+  cfg.component = find(v>0.1);
+  data          = ft_rejectcomponent(cfg, comp, data);
+
+  
+  options            = [];
+  options.length     = 4;
+  options.overlap    = 0.5;
+  %options.avgcomp    = avgcomp;
+  %options.comp       = comp;
+  options.tapsmofrq  = 2;
+  %[freq, freq_ems]   = mous_restingstate_freq(data, options);
+  freq               = mous_restingstate_freq(data, options);
+  
+  % compute the leadfields
+  mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
+  sourcemodel = ft_convert_units(bnd,         'm');
+  sourcemodel.inside = 1:8196;
+  sourcemodel.outside = [];
+  sourcemodelorig     = sourcemodel;
+  
+  mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+  headmodel   = ft_convert_units(vol,         'm');
+  freq.grad   = ft_convert_units(freq.grad,   'm');
+  
+  cfg = [];
+  %cfg.frequency = 10;
+  cfg.frequency = 22;
+  cfg.channel   = 'MEG';
+  freq = ft_selectdata(cfg, freq);
+  
+  cfg      = [];
+  cfg.vol  = headmodel;
+  cfg.grad = freq.grad;
+  cfg.grid = sourcemodel;
+  cfg.channel = 'MEG';
+  cfg.backproject = 'no'; % create 2-column leadfield
+  sourcemodel = ft_prepare_leadfield(cfg);
+  
+  load atlas_conte69_8196reg_LR_brodmann_subparc;
+  
+  addpath ~/Dropbox/utilities
+  mim1 = estimate_mim4x4_1dip(sourcemodel, freq, 'lambda', 0.001, 'memory', 'low');
+  P    = zeros(max(atlas.parcellation), double(size(mim1.mim,1)));
+  for k = 1:max(atlas.parcellation)
+    P(k,atlas.parcellation==k) = 1./sum(atlas.parcellation==k);
+  end
+  mim1.mim = P*double(mim1.mim)*P';
+  mim2 = estimate_mimPxP_1dip(sourcemodel, freq, 'lambda', 0.001, 'parcellation', atlas, 'memory', 'low');
+  mim3 = estimate_mimPxP_parcel(sourcemodel, freq, 'lambda', 0.001, 'parcellation', atlas);
+  
+  K = 2*sum(freq.cumtapcnt);
+  %mous_db_putdata(subjectname, 'meg_restingstate_mim', 'freq', 'sourcemodel', 'mim1', 'mim2', 'mim3', '/project/3011020.09/jansch');
+  mous_db_putdata(subjectname, 'meg_restingstate_mim22', 'freq', 'sourcemodel', 'mim1', 'mim2', 'mim3', 'K', '/project/3011020.09/jansch',0);
+
+end
+
+if domim_freq_type1
+  if ~exist('frequency', 'var'), frequency = 10; end
+  
+  mous_db_getdata(subjectname, 'meg_restingstate_data', '/project/3011020.09/jansch');
+  mous_db_getdata(subjectname, 'meg_restingstate_dss',  '/project/3011020.09/jansch');
+  
+%   v = var(avgcomp,[],2);
+%   v = v./v(1);
+% 
+%   % dummy trial to fool ft_rejectcomponent
+%   comp.trial = comp.time;
+% 
+%   % NOTE: this avoids a crash later on, but not sure which grad structure is
+%   % used in ft_rejectcomponent.
+%   if isfield(comp,'grad')
+%     comp = rmfield(comp, 'grad');
+%   end 
+% 
+%   cfg           = [];
+%   cfg.component = find(v>0.1);
+%   data          = ft_rejectcomponent(cfg, comp, data);
+
+  
+  options            = [];
+  options.length     = 4;
+  options.overlap    = 0.5;
+  %options.avgcomp    = avgcomp;
+  %options.comp       = comp;
+  options.tapsmofrq  = 2;
+  options.foilim     = [0 100];
+  %[freq, freq_ems]   = mous_restingstate_freq(data, options);
+  freq               = mous_restingstate_freq(data, options);
+  
+  % compute the leadfields
+  mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
+  sourcemodel = ft_convert_units(bnd,         'm');
+  sourcemodel.inside = 1:8196;
+  sourcemodel.outside = [];
+  sourcemodelorig     = sourcemodel;
+  
+  mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+  headmodel   = ft_convert_units(vol,         'm');
+  freq.grad   = ft_convert_units(freq.grad,   'm');
+  
+  cfg = [];
+  cfg.frequency = frequency;
+  cfg.channel   = 'MEG';
+  freq = ft_selectdata(cfg, freq);
+  
+  cfg      = [];
+  cfg.vol  = headmodel;
+  cfg.grad = freq.grad;
+  cfg.grid = sourcemodel;
+  cfg.channel = 'MEG';
+  cfg.backproject = 'no'; % create 2-column leadfield
+  sourcemodel = ft_prepare_leadfield(cfg);
+  
+  load atlas_conte69_8196reg_LR_brodmann_subparc;
+  
+  addpath ~/Dropbox/utilities
+  mim = estimate_mim4x4_1dip(sourcemodel, freq, 'lambda', 0.001, 'memory', 'low');
+  P   = zeros(max(atlas.parcellation), double(size(mim.mim,1)));
+  for k = 1:max(atlas.parcellation)
+    P(k,atlas.parcellation==k) = 1./sum(atlas.parcellation==k);
+  end
+  mim.mim = P*double(mim.mim)*P';
+
+  mim     = rmfield(mim, {'w', 'lf'}); % remove to save memory;
+  K       = 2*sum(freq.cumtapcnt);
+  suffix  = ['meg_restingstate_mim',num2str(frequency),'Hz'];
+  mous_db_putdata(subjectname, suffix, 'freq', 'mim', 'K', '/project/3011020.09/jansch');
+
+end
+

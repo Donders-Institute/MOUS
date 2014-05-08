@@ -105,5 +105,4 @@ set(gcf,'position',[10 10 1000 1000]);
 h(1) = gcf;
 
 % visualize the warped sheet with the normalized anatomy for quality checking
-figure('position',[10 10 1000 1000]);ft_plot_montage(mrimnin.anatomy,'transform',mrimnin.transform,'intersectmesh',meg,'intersectlinewidth',1)
-h(2) = gcf;
+h(2) = figure('position',[10 10 1000 1000]);ft_plot_montage(mrimnin.anatomy,'transform',mrimnin.transform,'intersectmesh',meg,'intersectlinewidth',1);

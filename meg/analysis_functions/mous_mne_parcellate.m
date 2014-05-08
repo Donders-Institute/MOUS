@@ -5,7 +5,7 @@ if ~hasavg, error('input timelock structure should have an avg-field'); end
 hastrial = isfield(tlck, 'trial');
 
 parcelparam = ft_getopt(varargin, 'parcelparam', 'parcellation');
-
+svdmethod   = ft_getopt(varargin, 'svdmethod',   'projectfilt');
 
 parc      = parcellation.(parcelparam);
 parclabel = parcellation.([parcelparam,'label']);
@@ -38,7 +38,12 @@ else
     sel = intersect(find(parc==k), source.inside);
     f   = cat(1, source.avg.filter{sel});
     if size(f,1)>0
-      dat = f;%*tlck.avg;
+      switch svdmethod
+        case 'projectfilt'
+          dat = f;%*tlck.avg;
+        case 'projectavg'
+          dat = f*tlck.avg;
+      end
       c   = dat*dat';
       [u,s,v] = svd(c);
       U{k} = u(:,1)';
@@ -66,7 +71,6 @@ if hastrial
     trial(m,:,:) = F*shiftdim(tlck.trial(m,:,:));
   end  
 end
-
 
 % create the output
 data       = [];

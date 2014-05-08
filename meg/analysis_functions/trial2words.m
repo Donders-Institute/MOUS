@@ -1,6 +1,6 @@
 function [trial, time, trialinfo] = trial2words(trialin, trialinfoin, toi)
 
-% [trial,time,trialinfo] = trial2sentences(trialin, trialinfoin, toi)
+% [trial,time,trialinfo] = trial2words(trialin, trialinfoin, toi)
 %
 % Converts single trial matrix into cell-array of single word trials based on 
 % the trialinfo. Trialinfo is assumed to contain:
