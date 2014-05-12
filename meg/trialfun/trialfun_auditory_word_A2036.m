@@ -64,7 +64,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   
   sel = selfix(k):selfix(k+1); % (2) start and end of a trial defined by two consecutive 20 triggers.
                             
-  tmpval = val(sel)
+  tmpval = val(sel);
   tmpsmp = smp(sel);
   
   % only go up until a question, which has a trigger value of 40
