@@ -186,7 +186,6 @@ if pulselength > pulselengththreshold
   % apart, it could have been a sluggish trigger, merge into 1
   keep = false(size(updown));
   for k = 1:(numel(updown)-2)
-%     if k==1843,keyboard;end
     if updown(k)==1 && updown(k+1)==0 && updown(k+2)==1
       keep(k) = 1;
     elseif updown(k)==1 && updown(k+1)==1 && val(k)==val(k+1) && smp(k)==smp(k+1)-1
