@@ -6,10 +6,7 @@ for k = 1:numel(filename)        % loop created since A2036 has >1 logfile to be
   
   % open logfile
   fid = fopen(filename{k});
-  if strcmp(subjectname,'A2076') % only use 2nd logfile.
-    fid = fopen(filename{2});
-  end
-
+ 
   % read line-by-line
   line = fgetl(fid);
   while isempty(strfind(line, subjectname))
