@@ -30,9 +30,20 @@ load(fname);
 
 if ~isempty(range)
   tmp = getsubfield(comp, fieldname);
-  % comp = setsubfield(comp,mean(tmp(:,range),2),fieldname); % inarg in wrong order
-  comp = setsubfield(comp, fieldname, mean(tmp(:,range),2));
-  comp.time = mean(comp.time(range));
+  
+  % tmp can be posxfreqxtime or posxtime or posxfreq. in case it is 3D
+  % require range to be a cell-array, where the first cell selects
+  % frequencies, and the second cell selects time points
+  if ndims(tmp)==3
+    if ~iscell(range), error('the input argument range should be a cell-array'); end
+    comp = setsubfield(comp, fieldname, nanmean(nanmean(tmp(:,range{1},range{2}),3),2));
+    comp.time = mean(comp.time(range{2}));
+    comp.freq = mean(comp.freq(range{1}));
+  else
+    % comp = setsubfield(comp,mean(tmp(:,range),2),fieldname); % inarg in wrong order
+    comp = setsubfield(comp, fieldname, mean(tmp(:,range),2));
+    comp.time = mean(comp.time(range));
+  end
   
   source = mous_bfica_sourceinterpolate(comp, fieldname, inside);
   return;
@@ -81,8 +92,16 @@ if ndims(tmp)==2
     %sourcemodel.avg.pow(sourcemodel.inside) = comp.corrmap(:,k);
     source(k) = ft_sourceinterpolate(cfgi, sourcemodel, mri);
   end
-else
+%elseif % FIXME: make it work for 3D array: ndims(tmp)==3
+elseif ndims(tmp) == 3
+  for k = 1:size(tmp,3)
+    % sourcemodel.avg.pow = 11000 x 1
+    % tmp  = 11000 x 16 x 14 
+    sourcemodel.avg.pow(:) = tmp(:,:,k);
+    source(k) = ft_sourceinterpolate(cfgi,sourcemodel,mri);
+  end
+else 
   sourcemodel.avg.pow(:) = tmp(:);
   source = ft_sourceinterpolate(cfgi, sourcemodel, mri);
 end
-%source.coordsys = 'spm';
+source.coordsys = 'spm';
