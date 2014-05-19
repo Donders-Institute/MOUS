@@ -1,14 +1,8 @@
-if ~exist('domne_main', 'var')
-  domne_main = 0;
-end
+if ~exist('domne_main',       'var'), domne_main       = 0; end
+if ~exist('domne_parametric', 'var'), domne_parametric = 0; end
+if ~exist('domne_parcellate', 'var')  domne_parcellate = 0; end
+if ~exist('domne_denoise', 'var')     domne_denoise    = 0; end
 
-if ~exist('domne_parametric', 'var')
-  domne_parametric = 0;
-end
-
-if ~exist('domne_parcellate', 'var')
-  domne_parcellate = 0;
-end
 
 if ~exist('rootdir', 'var')
   rootdir = '/project/3011020.09/MEG';
@@ -204,10 +198,10 @@ if domne_main,
   
   % save the solution
   source = sd_Seq;
-  mous_db_putdata(subjectname, [suffix_mnedata,'-seq_currentdensity_weighted'],  'source', rootdir);
+  mous_db_putdata(subjectname, [suffix_mnedata,'-seq_currentdensity_weighted'],  'source', rootdir,0);
   
   source = sd_Sent;
-  mous_db_putdata(subjectname, [suffix_mnedata,'-sent_currentdensity_weighted'], 'source', rootdir);
+  mous_db_putdata(subjectname, [suffix_mnedata,'-sent_currentdensity_weighted'], 'source', rootdir,0);
 end
 
 if domne_parametric
@@ -260,7 +254,7 @@ if domne_parametric
   tlck = tlck_seq;
   stat = stat_seq;
   mu   = mu_seq;
-  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir);
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,0);
 end
 
 if domne_parcellate
@@ -327,13 +321,8 @@ if domne_parcellate
   tlck.S          = S;
   tlck.N          = N;
   tlck.suffix_mne = suffix_mne;
-<<<<<<< Updated upstream
   tlck.suffix     = suffix_erfdata;
   mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);
-
-=======
-  tlck.suffix     = suffix;
-  mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);  
 end
 if domne_denoise
   % this assume domne_parametric and domne_parcellate to be done. it
@@ -371,7 +360,4 @@ if domne_denoise
   tlck.avg   = cleandat;
   mous_db_putdata(subjectname, [suffix,'_denoised'], 'tlck', rootdir);
 end
-  
->>>>>>> Stashed changes
-  
-  
+

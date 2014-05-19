@@ -8,7 +8,7 @@
 % 5. condition = 'mix','rc'; OR don't specify anything (that's also okay)
 
 
-% NOTE 
+% NOTE
 % VISUAL SUBJECTS: preprocessed data is in /project/3011020.09/MEG/'
 %                  ERF data is in /project/3011020.09/annhul/'
 % AUDITORY SUBJS:  both are both in /project/3011020.09/annhul/'
@@ -18,38 +18,33 @@ if ~exist('inrootdir',        'var'), inrootdir        = rootdir;  end
 if ~exist('outrootdir',       'var'), outrootdir       = rootdir;  end
 if ~exist('doerf_main',       'var'), doerf_main       = 0;                           end
 if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                           end
-if ~exist('length',           'var'), length           = '02-10';                     end
+if ~exist('doerf_rc',         'var'), doerf_rc         = 0;                           end
+if ~exist('length',           'var'), length           = '02-nextword';               end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
 
 % define parameters used for both doerf_main and doerf_parametric
 % N.B.Neither wordtype / trialfunreflected in inputname therefore removed
-  
+
 inputdata  = ['meg_erf_allwords_' length];
 axial      = '-ag';
 planar     = '-pg';
-  
-if doerf_main
-  % files for input/output are divided between MEG and annhul
-  if strcmp(subjectname(1),'V')
-    mous_db_getdata(subjectname,inputdata,inrootdir); 
-  elseif strcmp(subjectname(1),'A')
-    mous_db_getdata(subjectname,inputdata,inrootdir);
-  end
-  
 
- if ~isempty(condition)
-  cfg = [];
-  switch condition
-    case 'mix'
-      sel = find(ismember(data.trialinfo(:,2),[1 2 3 4]));
-      cfg.trials = sel;
-    case 'rc'
-      sel = find(ismember(data.trialinfo(:,2),[5 6 7 8]));
-      cfg.trials = sel;
+if doerf_main
+  mous_db_getdata(subjectname,inputdata,inrootdir);
+    
+  if ~isempty(condition)
+    cfg = [];
+    switch condition
+      case 'mix'
+        sel = find(ismember(data.trialinfo(:,2),[1 2 3 4]));
+        cfg.trials = sel;
+      case 'rc'
+        sel = find(ismember(data.trialinfo(:,2),[5 6 7 8]));
+        cfg.trials = sel;
+    end
+    data = ft_selectdata(cfg,data);
   end
-  data = ft_selectdata(cfg,data);
- end
   
   cfg2 = [];
   switch wordtype
@@ -70,7 +65,7 @@ if doerf_main
       error('unknown wordtype specified');
   end
   data = ft_preprocessing(cfg2, data);
-
+  
   [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG, stdev] = mous_erf_compute(subjectname, data);
   
   % update outputdata filename
@@ -79,7 +74,7 @@ if doerf_main
     outname2 = strcat(outname2(1:end-2),condition,planar);
   end
   
-  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', outrootdir);
+  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', outrootdir, 0);
   mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',outrootdir);
 end  % end doerf_main
 
@@ -102,7 +97,7 @@ if doerf_parametric
   tlck = tlck_seq;
   stat = stat_seq;
   mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc'], 'tlck', 'stat', outrootdir);
- 
+  
   % convert to planar
   cfg        = [];
   cfg.method = 'distance';
@@ -117,8 +112,83 @@ if doerf_parametric
   
   tlck = tlckp_sent;
   stat = statp_sent;
-  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', outrootdir);
+  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 0);
   tlck = tlckp_seq;
   stat = statp_seq;
-  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', outrootdir);
+  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 0);
+end
+
+if doerf_rc
+  % FIXME: currently this only works for visual subjects
+  mous_db_getdata(subjectname, inputdata, inrootdir);
+  
+  % select only sentences from RC condition
+  sel        = find(ismember(data.trialinfo(:,2),[5 6]));
+  cfg.trials = sel;
+  data       = ft_selectdata(cfg, data);
+  
+  % determine the number per sentence from the original trial definition
+  % get the filename of the raw data
+  filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
+
+  if ~strcmp(subjectname(1), 'V'),
+    error('doerf_rc only works with visual subjects');
+  end
+  for k = 1:numel(filename)
+    tmptrl = mous_defineTrial(filename{k}, 0.2, 'nextword', 'trialfun_visual_word');
+    if k==1
+      trl = tmptrl;
+    else
+      trl = cat(1,trl,tmptrl);
+    end
+  end
+  trialinfo = trl(:,4:end);
+  
+  % column 1 contains the sentence indicator, the last column the ordinal
+  % word
+  sentid = unique(trialinfo(:,1));
+  for k = 1:numel(sentid)
+    nwords(k,1) = max(trialinfo(trialinfo(:,1)==sentid(k),5));
+  end
+  
+  % add an extra column to the trialinfo that indicates the total number of
+  % words
+  ncol = size(data.trialinfo,2);
+  for k = 1:numel(data.trial)
+    data.trialinfo(k,ncol+1) = nwords(sentid==data.trialinfo(k,1));
+  end
+  
+  
+  % move around the columns in the trialinfo field so that the condition
+  % trigger ends up in the third column and the word ordinal indicator in
+  % the second
+  % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
+  data.trialinfo = data.trialinfo(:,[1 5 2 6 3 4]); % sentence, word, condition, total number of words
+  [tlck_early, tlck_late] = mous_makecontrast(data, 'early-late');
+  
+  tlck = tlck_sent;
+  stat = stat_sent;
+  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc'], 'tlck', 'stat', outrootdir);
+  tlck = tlck_seq;
+  stat = stat_seq;
+  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc'], 'tlck', 'stat', outrootdir);
+  
+  % convert to planar
+  cfg        = [];
+  cfg.method = 'distance';
+  neighbours = ft_prepare_neighbours(cfg, data);
+  
+  cfg              = [];
+  cfg.planarmethod = 'sincos';
+  cfg.neighbours   = neighbours;
+  data             = ft_megplanar(cfg, data);
+  [tlckp_sent, statp_sent, statp2_sent] = mous_makecontrast(data, 'wordsent_parametric_blc');
+  [tlckp_seq,  statp_seq,  statp2_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc');
+  
+  tlck = tlckp_sent;
+  stat = statp_sent;
+  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 0);
+  tlck = tlckp_seq;
+  stat = statp_seq;
+  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 0);
 end

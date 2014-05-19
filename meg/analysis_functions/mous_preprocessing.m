@@ -19,16 +19,27 @@ if (strcmp(analysisType, 'TFR') > 0)
     
 elseif (strcmp(analysisType, 'ERF') > 0)
     % ERF-specific parameters
-    cfg.lpfilter        = 'yes';   % apply lowpass filter
-    cfg.lpfreq          = 40;
-    %cfg.hpfilter        = 'yes';
-    %cfg.hpfilttype      = 'fir';  %not in Tinekes script
-    %cfg.hpfiltord       = 100;    %not in Tinekes script
-    %cfg.hpfreq          = 0.5;    %weired number  % tineke has 0.5
-    %cfg.padding         = 10;     %big padding for hp to work   
-    cfg.padding = 4;
-    cfg.custom.funhandle = @ft_preproc_highpass_box;
-    cfg.custom.varargin  = 1200;
+%     cfg.lpfilter        = 'yes';   % apply lowpass filter
+%     cfg.lpfreq          = 40;
+%     cfg.lpfiltord       = 100;
+%     cfg.lpfilttype      = 'fir';
+%     
+%     cfg.hpfilter        = 'yes';
+%     cfg.hpfilttype      = 'fir'; 
+%     cfg.hpfiltord       = 1800;  
+%     cfg.hpfreq          = 0.5;
+%     cfg.padding         = 4;    % big padding for hp to work   
+
+    cfg.bpfilter   = 'yes';
+    cfg.bpfilttype = 'fir';
+    cfg.bpfiltord  = 600;
+    cfg.bpfreq     = [0.5 40];
+    cfg.padding    = 4;
+    
+    %cfg.padding = 4;
+    %cfg.custom.funhandle = @ft_preproc_highpass_box;
+    %cfg.custom.varargin  = 1200;
+    
 else
     error('unrecognized type requested');
 end

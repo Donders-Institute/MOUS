@@ -1,19 +1,43 @@
 function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 
-% data.trialinfo:
+% MOUS_MAKECONTRAST extracts the average across observations for a specific
+% set of defined conditions.
+%
+% Input arguments:
+%   data      = data structure, type raw or freq
+%   contrast  = string defining the contrast
+%   trialinfo = NxM matrix with trial specific information
+%   M         = optional matrix, that is left multiplied with the data
+%                 matrix, e.g. minimum norm spatial filter
+%
+% data.trialinfo is assumed to be defined as:
 %  column 1: sentence index
 %  column 2: word index
 %  column 3: condition trigger
 %
 % if trialinfo is specified, this takes prevalence (first column is
 % condition)
-
+%
+% supprted contrasts are:
+%   sent-seq = sentence versus word list, all words in the data
+%   sent-seqTarget = sentence versus word list, target words
+%   sent-seqFirstword = sentence versus word list, first word
+%   sentMX-sentRC = sentence 'mixed clauses' versus Relative Clauses
+%
+%   wordsent_parametric
+%   wordsent_parametric_blc
+%   wordseq_parametric
+%   wordseq_parametric_blc
+%   wordsenttar_parametric
+%   wordsenttar_parametric_blc
+%   wordseqtar_parametric
+%   wordseqtar_parametric_blc
 
 % sentence trigger values: 1 2 5 6
 % sequence trigger values: 3 4 7 8
 
 switch contrast
-  case {'sent-seq', 'sent-seqTarget', 'sentMX-sentRC','sent-seqFirstword'}
+  case {'sent-seq', 'sent-seqTarget', 'sentMX-sentRC','sent-seqFirstword','early-late'}
     %if  nargin<3  
     % need extra input arguments to differentiate between VIS and AUD
     % could try to infer from trialinfo i.e. VIS has all words present but
@@ -40,6 +64,17 @@ switch contrast
     elseif strcmp(contrast, 'sentMX-sentRC')
       sel1 = find(ismember(T,[1 2]));  % mix
       sel2 = find(ismember(T,[5 6]));  % rc
+    elseif strcmp(contrast, 'early-late')
+      % take words 2 to 4 and n-3 to n-1: NOTE this only works
+      % for visual subjects. it assumes the trialinfo field in data to be
+      % organized as: sentence, ordinal word, condition, total number of
+      % words
+      
+      % early
+      sel1 = find(ismember(data.trialinfo(:,2),[2 3 4]));
+      
+      % late
+      sel2 = find(ismember(data.trialinfo(:,4)-data.trialinfo(:,2),[1 2 3]));
     end
     
     if numel(sel1)~=numel(sel2) % balance numtrials btw sent and seq
@@ -52,17 +87,6 @@ switch contrast
       sel2=sel2(sort(x2(1:n)));
     end
     
-    
-%     n1 = numel(sel1);
-%     n2 = numel(sel2);
-%     
-%     if n1>n2
-%       tmp = randperm(n1);
-%       sel1 = sort(tmp(1:n2));
-%     else
-%       tmp = randperm(n2);
-%       sel2 = sort(tmp(1:n1));
-%     end
     switch ft_datatype(data)
       case 'raw'
         cfg.trials = sel1;
@@ -181,7 +205,7 @@ switch contrast
       end
       
       % do a baseline correction (again) if requested
-      if strcmp(contrast, 'wordsent_parametric_blc') || strcmp(contrast, 'wordseq_parametric_blc')
+      if regexp(contrast, 'blc')  % generalised for any kind of baseline subtraction
         sel = nearest(tmp.time, 0);
         tmp.trial = tmp.trial - repmat(mean(tmp.trial(:,:,1:sel),3),[1 1 size(tmp.trial,3)]);
       end
