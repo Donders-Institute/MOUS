@@ -1,6 +1,11 @@
 function [trl] = trialfun_visual_word(cfg)
-% [trl] = trialfun_visual_word(cfg) creates the trl-matrix for the 
-% single words
+
+% TRIALFUN_VISUAL_WORD creates the trl-matrix for the single words for the
+% visual subjects.
+% 
+% Use as
+%
+% [trl] = trialfun_visual_word(cfg)
 % 
 % the cfg needs to contain the following option:
 %   cfg.dataset = string, name of the dataset
@@ -10,17 +15,15 @@ function [trl] = trialfun_visual_word(cfg)
 %                  in this case, it represents onset of each word (but more
 %                  generally refers to onset of a trial)
 %              
-% 2) prestim: duration before time point 0, also referred to as 'offset'
-%             (not to be confused with "word offset")
+% 2) prestim: duration before time point 0, (default = 0.3)
 %
 %             in this case it is also the baseline (but this is not definitive)
-% 3) poststim: duration from time point 0 until (a) next trial begins or 
-%              (b) end of poststim value (as defined in cfg.poststim)
-% 
+% 3) poststim: duration from time point 0. (default = 0.8), can be
+%             'nextword'
+%
 %%  The trl-matrix has 8 columns:
-%   column 1: begin sample: word onset trigger - 500 ms.
-%   column 2: end sample, onset of word + 800 ms, or next word onset
-%             trigger, whichever occurs first.
+%   column 1: begin sample: word onset trigger - prestim s.
+%   column 2: end sample, onset of word + poststim s
 %   column 3: offset of first sample with respect to time point 0
 %   column 4: trial number (X out of 240; 120 sentences, 120 sequences)
 %   column 5: trigger corresponding to the word
@@ -28,6 +31,7 @@ function [trl] = trialfun_visual_word(cfg)
 %   column 7: number of samples between word on and offset
 %   column 8: ordinal number of word position
 
+cfg.trialdef = ft_getopt(cfg, 'trialdef');
 prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.3);
 poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
 
@@ -108,3 +112,26 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   
   trl = cat(1, trl, tmptrl);
 end
+
+[p,f,e]             = fileparts(cfg.dataset);
+subjectname         = f(1:5);
+[newtext, sentence] = read_logfile_visual(subjectname);
+
+try
+  load('mous_stimuli');
+  id = mous_getstimulusid(sentence, stimuli);
+catch
+  warning('could not deal with the mous_simuli file, probably because you don''t have it: ask Jan-Mathijs');
+  id = nan+zeros(size(trl,1),1);
+end
+
+
+if max(trl(:,4))==numel(id)
+  % there is assumed to be a one-to-one match with the stimulus counter and
+  % the number of elements in the stimulus material extracted from the
+  % logfile
+  trl(:,9) = id(trl(:,4));
+else
+  trl(:,9) = nan;
+end
+
