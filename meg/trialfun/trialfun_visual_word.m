@@ -30,6 +30,8 @@ function [trl] = trialfun_visual_word(cfg)
 %   column 6: sample number relative to the onset of the first word
 %   column 7: number of samples between word on and offset
 %   column 8: ordinal number of word position
+%   column 9: stimulus id, linking the sentence/sequence to the total
+%             stimulus set
 
 cfg.trialdef = ft_getopt(cfg, 'trialdef');
 prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.3);
@@ -72,7 +74,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   % get the first word on/off sequence
   firstword = [];
   tmptrl    = zeros(0,8);
-  for kk = 1:numel(tmpval)-2   % (3) gets triggers representing on/off of each word in the trial except last 2 triggers which are an 'empty word'
+  for kk = 1:numel(tmpval)-1%-2   % (3) gets triggers representing on/off of each word in the trial except last 2 triggers which are an 'empty word'
     
     trg1 = tmpval(kk);         % loop through the triggers
     trg2 = tmpval(kk+1);
@@ -108,23 +110,31 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   % last word.
   smplast     = tmptrl(end,1)+offset;
   tmptrl(:,2) = min(tmptrl(:,2), smplast);
-  tmptrl      = tmptrl(1:end-1,:);
+  if ismember(tmptrl(1,5), [1 2 5 6]),
+    % for the sentences the last 'word' did not contain a word
+    tmptrl      = tmptrl(1:end-1,:);
+  end
   
   trl = cat(1, trl, tmptrl);
 end
 
-[p,f,e]             = fileparts(cfg.dataset);
-subjectname         = f(1:5);
-[newtext, sentence] = read_logfile_visual(subjectname);
-
-try
-  load('mous_stimuli');
-  id = mous_getstimulusid(sentence, stimuli);
-catch
-  warning('could not deal with the mous_simuli file, probably because you don''t have it: ask Jan-Mathijs');
-  id = nan+zeros(size(trl,1),1);
+try,
+  [p,f,e]             = fileparts(cfg.dataset);
+  subjectname         = f(1:5);
+  [newtext, sentence, wordduration] = read_logfile_visual(subjectname);
 end
 
+try
+  load('/home/language/jansch/projects/mous/meg/trialfun/mous_stimuli.mat');
+catch
+  warning('could not deal with the mous_simuli file, probably because you don''t have it: ask Jan-Mathijs');
+end
+
+if exist('stimuli', 'var') && exist('sentence', 'var')
+  id = mous_getstimulusid(sentence, stimuli);
+else
+  id = nan+zeros(size(trl,1),1);
+end
 
 if max(trl(:,4))==numel(id)
   % there is assumed to be a one-to-one match with the stimulus counter and
@@ -132,6 +142,22 @@ if max(trl(:,4))==numel(id)
   % logfile
   trl(:,9) = id(trl(:,4));
 else
-  trl(:,9) = nan;
+  % we have to somehow match it
+  if exist('wordduration', 'var')
+    % number of words estimated from log file
+    nw1 = cellfun(@numel,wordduration);
+    
+    % column 8 contains the number of words, number of words estimated from
+    % trl matrix
+    tmp = trl(:,8);
+    nw2 = tmp(find(diff(tmp)<0));
+    
+    [c,lags] = xcorr(nw1-mean(nw1),nw2-mean(nw2));
+    [m,idx]  = max(c);
+  else
+    lags = 0;
+    idx  = 1;
+  end
+  trl(:,9) = id(trl(:,4)+lags(idx));
 end
 

@@ -30,4 +30,9 @@ for k = 1:numel(sentence)
     end
   end
 end
-id = [stimuli(id).id]';
+for k = 1:numel(id)
+  if isfinite(id(k))
+    id(k) = stimuli(id(k)).id;
+  end
+end
+id = id(:);

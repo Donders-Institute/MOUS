@@ -1,4 +1,4 @@
-function [newtext, stimuli] = read_logfile_visual(subjectname)
+function [newtext, stimuli, wordduration] = read_logfile_visual(subjectname)
 
 %% Read in logfile
 filename = mous_db_getfilename(subjectname,'meg_raw_log');
@@ -38,19 +38,28 @@ for k = 1:numel(idx)-1
   newtext{k} = alltxt(idx(k):idx(k+1)-1);  % easier to find relevant entry lines in txtfile
 end
 
-stimuli = parselogfile(newtext)';
+[stimuli,wordduration] = parselogfile(newtext);
+stimuli      = stimuli(:);
+wordduration = wordduration(:);
 
-function sentence = parselogfile(txt)
+function [sentence, wordduration] = parselogfile(txt)
+
+% extract the sentence/sequence content + the word duration as coded in the
+% log file
 
 selfix = find(~cellfun('isempty',strfind(txt, 'FIX')));
 selfix = [selfix;numel(txt)+1];
 for k = 1:numel(selfix)-1
   tmp = txt((selfix(k)+1):(selfix(k+1)-1));
-  sel = find(cellfun('isempty',strfind(tmp, 'ISI')));
+  sel = find(cellfun('isempty',strfind(tmp, 'ISI')) & cellfun('isempty',strfind(tmp, 'QUESTION')) & ...
+   cellfun('isempty',strfind(tmp, 'WOORDEN')) & cellfun('isempty',strfind(tmp, 'ZINNEN')) & ...
+   cellfun('isempty',strfind(tmp, 'Pause')) & cellfun('isempty',strfind(tmp, 'Resume')) & ...
+   cellfun('isempty',strfind(tmp, 'Response')));
   tmp = tmp(sel);
   
   % extract the words
   word = cell(1,numel(tmp));
+  duration = nan+zeros(1,numel(tmp));
   for m = 1:numel(tmp)
     ix   = regexp(tmp{m}, 'Picture');
     [str1,str2] = strtok(tmp{m}((ix+8):end));
@@ -62,6 +71,7 @@ for k = 1:numel(selfix)-1
     
     if strcmp(str1, 'blank')
       word = word(1:(m-1));
+      duration = duration(1:(m-1));
       break;
     end
     
@@ -69,15 +79,30 @@ for k = 1:numel(selfix)-1
     % word by a space (sequences?), and sometimes it is.
     if numel(str1)==1
       word{m} = strtok(str2);
+      remain  = str2;
     elseif isfinite(str2double(str1(1)))
       word{m} = strtok(str1(2:end));
+      remain  = [str1 str2];
     end
+    
+    % find indices of spaces and tabs
+    ind_space = regexp(remain, ' ');
+    ind_tab   = regexp(remain, '\t');
+    ind       = sort([ind_space ind_tab]);
+    if ind(1)~=1
+      ind = [0 ind];
+    end
+    if ind(end)~=numel(remain)
+      ind =[ind numel(remain)+1];
+    end
+    duration(m) = str2double(remain((ind(2)+1):(ind(3)-1)));
     
     % the following only works for sentences, because they end with a full
     % stop
     if ~isempty(strfind(word{m},'.'))
       word{m} = word{m}(1:(strfind(word{m},'.')-1));
       word    = word(1:m);
+      duration = duration(1:m);
       break;
     end
   end
@@ -88,4 +113,8 @@ for k = 1:numel(selfix)-1
     str = [str ' ' deblank(word{m})];
   end
   sentence{k} = deblank(str);
+  if ~isfinite(duration(end))
+    duration = duration(1:end-1);
+  end
+  wordduration{k} = duration;
 end
