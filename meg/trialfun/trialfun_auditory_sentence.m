@@ -27,13 +27,17 @@ function [trl,val] = trialfun_auditory_sentence(cfg)
 % 
 % $Id: trialfun_auditory_sentence.m  | NL 2013
 
+cfg.trialdef         = ft_getopt(cfg, 'trialdef');
+cfg.trialdef.prestim = ft_getopt(cfg.trialdef, 'prestim', 1);
+
 % read in event information
 event = mous_read_event_audio(cfg.dataset);
 
 % select the UPPT001 events
 type = {event.type};
 fp   = strcmp('UPPT001', type);
-
+wavid = type(~cellfun('isempty',strfind(type,'wav')));
+ 
 % create a vector with the event values and sample numbers
 val  = [event(fp).value];
 smp  = [event(fp).sample];
@@ -56,15 +60,31 @@ for k = 1:numel(selfix)-1
   % create a sequence of triggers within the trial
   tmpval = val(sel);
   tmpsmp = smp(sel);  
-   
+  
+  % check whether it should start at audio onset
+  if ischar(cfg.trialdef.prestim) && strcmp(cfg.trialdef.prestim, 'audioonset')
+    doaudioonset = true;
+  else
+    doaudioonset = false;
+  end
+  
   % get FIRST WORD onset  
   for kk = 1:numel(tmpval)
     trg1 = tmpval(kk);
     begsmp = nan;
+    if trg1 == 14
+      onset = tmpsmp(kk);
+    end
+    
     if trg1 == 1 || trg1 == 3 || trg1 == 5 || trg1 == 7  % Don't need to a second cdtn to check because first word's trigger don't overlap with target's trigger
-      offset = 1200;
+      if doaudioonset,
+        % depends on the audio file
+        offset = tmpsmp(kk) - onset;
+      else
+        % depends on the user
+        offset = round(1200*cfg.trialdef.prestim); %HARDCODED @ 1200HZ
+      end
       begsmp = tmpsmp(kk) - offset;  % first word speech onset == time point 0  
-      %endsmp = tmpsmp(kk);
       fstwrd = trg1;
       break;    
     end    
@@ -102,8 +122,14 @@ for k = 1:numel(selfix)-1
   %tmp = [fixsmp endsmp -offset k condition critsmp-offset-fixsmp]; % visual stimuli
   %begsmp = first onset - 1s.
   if isfinite(begsmp) && isfinite(endsmp)
-  tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset];
-  trl = cat(1,trl,tmp);
+    tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset];
+    trl = cat(1,trl,tmp);
   end
 
+end
+
+if size(trl,1)==numel(wavid)
+  for k = 1:size(trl,1)
+    trl(k, 8) = str2double(wavid{k}(1:3));
+  end
 end
