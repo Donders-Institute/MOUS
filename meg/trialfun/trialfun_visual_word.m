@@ -102,14 +102,15 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
     end
   end
   
-  % for each sentence/sequence truncate the epochs' length of words 
-  % so that they do not go beyond the end of a
-  % sentence/sequence, taking into account that the last word on/off
-  % trigger pair did not actually contain a visually presented word.
-  % i.e. the end of the last actual word is here marked by the onset of the
-  % last word.
-  smplast     = tmptrl(end,1)+offset;
-  tmptrl(:,2) = min(tmptrl(:,2), smplast);
+%   % for each sentence/sequence truncate the epochs' length of words 
+%   % so that they do not go beyond the end of a
+%   % sentence/sequence, taking into account that the last word on/off
+%   % trigger pair did not actually contain a visually presented word.
+%   % i.e. the end of the last actual word is here marked by the onset of the
+%   % last word.
+%   smplast     = tmptrl(end,1)+offset;
+%   tmptrl(:,2) = min(tmptrl(:,2), smplast);
+
   if ismember(tmptrl(1,5), [1 2 5 6]),
     % for the sentences the last 'word' did not contain a word
     tmptrl      = tmptrl(1:end-1,:);
