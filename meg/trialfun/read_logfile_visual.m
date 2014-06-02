@@ -1,15 +1,24 @@
 function [newtext, stimuli, wordduration] = read_logfile_visual(subjectname)
 
+% READ_LOGFILE_VISUAL reads in the logfile for a particular visual dataset.
+% 
+% Use as
+% 
+%   [text, stimuli, wordduratin] = read_logfile_visual(subjectname)
+
 %% Read in logfile
 filename = mous_db_getfilename(subjectname,'meg_raw_log');
 
-intxt   =  filename{1};
-fid     = fopen(intxt);
-fseek(fid,0,'eof');  % at eof to get number of elements in text
-numelm  = ftell(fid);
-fseek(fid,0,'bof');  % at bof to start reading
-alltxt  = fread(fid,numelm,'uint8=>char');  % whole logfile
-fclose(fid);
+alltxt = '';
+for k = 1:numel(filename)
+  intxt   =  filename{k};
+  fid     = fopen(intxt);
+  fseek(fid,0,'eof');  % at eof to get number of elements in text
+  numelm  = ftell(fid);
+  fseek(fid,0,'bof');  % at bof to start reading
+  alltxt  = [alltxt;' ';fread(fid,numelm,'uint8=>char')];  % whole logfile
+  fclose(fid);
+end
 
 %% remove excessive information i.e. lines without words (preceded by a trigger)
 % need to use regexp as there is not a consistent format in the logfile
@@ -107,14 +116,20 @@ for k = 1:numel(selfix)-1
     end
   end
   
-  % convert it into a single string
-  str = word{1};
-  for m = 2:numel(word)
-    str = [str ' ' deblank(word{m})];
+  if numel(word)>0
+    % convert it into a single string
+    str = word{1};
+    for m = 2:numel(word)
+      str = [str ' ' deblank(word{m})];
+    end
+    sentence{k} = deblank(str);
+    if ~isfinite(duration(end))
+      duration = duration(1:end-1);
+    end
+    wordduration{k} = duration;
   end
-  sentence{k} = deblank(str);
-  if ~isfinite(duration(end))
-    duration = duration(1:end-1);
-  end
-  wordduration{k} = duration;
 end
+
+sel = ~cellfun('isempty', sentence);
+sentence     = sentence(sel);
+wordduration = wordduration(sel);
