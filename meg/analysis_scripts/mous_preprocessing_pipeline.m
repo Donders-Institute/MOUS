@@ -85,6 +85,6 @@ if ~ischar(poststim)
 else
   length = [num2str(prestim*10,'%02d'),'-',poststim];
 end
-%mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,1);
-mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,0);
+mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,1);
+%mous_db_putdata(subjectname, ['meg_erf_allwords_',length], 'data',rootdir,0);
 
