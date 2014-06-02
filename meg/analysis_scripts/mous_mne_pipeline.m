@@ -10,10 +10,12 @@ end
   
 if domne_main,
   if ~exist('suffix_rawdata', 'var')
-    suffix_rawdata = 'meg_processed_{_preProcERFvisual_word_all_02-1ds}';
+    %suffix_rawdata = 'meg_processed_{_preProcERFvisual_word_all_02-1ds}';
+    suffix_rawdata = 'meg_erf_allwords_02-nextword';
   end
   if ~exist('suffix_erfdata', 'var')
-    suffix_erfdata = 'meg_processed_{_erf_visual_word_all_02-1ds-ag}';
+    %suffix_erfdata = 'meg_processed_{_erf_visual_word_all_02-1ds-ag}';
+    suffix_erfdata = 'meg_erf_allwords_02-nextword-allwords-ag';
   end
   if ~exist('suffix_mnedata', 'var')
     suffix_mnedata = strrep(suffix_rawdata, 'erf', 'mne');
@@ -160,6 +162,7 @@ if domne_main,
   
   cfg            = [];
   cfg.demean     = 'yes';
+  cfg.baselinewindow = [-0.1 0];
   cfg.projectmom = 'yes';
   cfg.zscore     = 'no';
   
