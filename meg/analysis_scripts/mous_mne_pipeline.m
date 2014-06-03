@@ -252,10 +252,12 @@ if domne_parametric
   
   tlck = tlck_sent;
   stat = stat_sent;
+  stat = rmfield(stat, {'prob', 'mask', 'cirange'});
   mu   = mu_sent;
   mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir);
   tlck = tlck_seq;
   stat = stat_seq;
+  stat = rmfield(stat, {'prob', 'mask', 'cirange'});
   mu   = mu_seq;
   mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,0);
 end
