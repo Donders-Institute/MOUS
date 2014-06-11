@@ -130,7 +130,7 @@ try
   load('/home/language/jansch/projects/mous/meg/trialfun/mous_stimuli.mat');
 catch
   try
-    ('/home/language/nielam/MOUS/meg/trialfun/mous_stimuli.mat');
+   load('/home/language/nielam/MOUS/meg/trialfun/mous_stimuli.mat');
   catch
     warning('could not deal with the mous_simuli file, probably because you don''t have it: ask Jan-Mathijs');
   end
