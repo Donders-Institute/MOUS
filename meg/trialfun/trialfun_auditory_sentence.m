@@ -24,6 +24,7 @@ function [trl,val] = trialfun_auditory_sentence(cfg)
 %   column 5: trigger corresponding to first word
 %   column 6: trigger corresponding to target word
 %   column 7: sample number of critical word onset, relative to time point 0
+%   column 8: name of .wav file
 % 
 % $Id: trialfun_auditory_sentence.m  | NL 2013
 
@@ -35,12 +36,14 @@ event = mous_read_event_audio(cfg.dataset);
 
 % select the UPPT001 events
 type = {event.type};
-fp   = strcmp('UPPT001', type);
+%fp   = strcmp('UPPT001', type);
+fp   = strcmp('UPPT001', type) | ~cellfun('isempty', strfind(type, 'wav'));
 wavid = type(~cellfun('isempty',strfind(type,'wav')));
  
 % create a vector with the event values and sample numbers
 val  = [event(fp).value];
 smp  = [event(fp).sample];
+type = type(fp);
 
 % parse it into the constituent trials; 20 == fixation cross
 selfix = find(val==20);
@@ -50,7 +53,7 @@ if selfix(end)<numel(val)
   selfix(end+1) = numel(val);
 end
 
-trl    = zeros(0,7);
+trl    = zeros(0,8);
 for k = 1:numel(selfix)-1
   % FIXATION CROSS - keep track of the '20' trigger
   fixsmp = smp(selfix(k));
@@ -117,19 +120,35 @@ for k = 1:numel(selfix)-1
     end
   end
   
+  % get wav file ID
+  currwav = str2double(wavid{k}(1:3));
+%   unlike trialfun_auditory_word, there is no need to find sentence
+%   equivalent of sequences because we do not need to locate the target
+%   word.
+%   if currwav > 409  
+%     currwav = currwav - 500;
+%   end 
+%   
+  
   
   %%
   %tmp = [fixsmp endsmp -offset k condition critsmp-offset-fixsmp]; % visual stimuli
   %begsmp = first onset - 1s.
   if isfinite(begsmp) && isfinite(endsmp)
-    tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset];
+    tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset currwav];
     trl = cat(1,trl,tmp);
   end
 
 end
 
-if size(trl,1)==numel(wavid)
-  for k = 1:size(trl,1)
-    trl(k, 8) = str2double(wavid{k}(1:3));
-  end
-end
+
+% do NOT add wavid after trl matrix has been formed because numel(wavid)
+% and size(trl,1) do not always match up.  This inequality is because when
+% the DSQ error occurs - there is no data (i.e. no row in trl) but the
+% triggers in event.type still collect the trigger (with the wavid
+% attached).
+% if size(trl,1)==numel(wavid)
+%   for k = 1:size(trl,1)
+%     trl(k, 8) = str2double(wavid{k}(1:3));
+%   end
+% end
