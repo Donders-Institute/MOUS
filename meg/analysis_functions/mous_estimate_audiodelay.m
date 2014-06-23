@@ -67,7 +67,7 @@ for k = 1:numel(filename)
   X(2,:) = X(2,:)-mean(X(2,:));
   beta   = phi(:,N:end)/X;
   
-  tmpdelay  = beta(:,2)*1000./(2*pi)
+  tmpdelay  = beta(:,2)*1000./(2*pi);
   tmpid     = trl(:,end);
   
   delay  = cat(1,delay,tmpdelay);
