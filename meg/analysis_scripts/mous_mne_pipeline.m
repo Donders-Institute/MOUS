@@ -1,8 +1,8 @@
 if ~exist('domne_main',       'var'), domne_main       = 0; end
 if ~exist('domne_parametric', 'var'), domne_parametric = 0; end
-if ~exist('domne_parcellate', 'var')  domne_parcellate = 0; end
-if ~exist('domne_denoise', 'var')     domne_denoise    = 0; end
-
+if ~exist('domne_parcellate', 'var'), domne_parcellate = 0; end
+if ~exist('domne_denoise', 'var'),    domne_denoise    = 0; end
+if ~exist('dodspm', 'var'),           dodspm           = 0; end     
 
 if ~exist('rootdir', 'var')
   rootdir = '/project/3011020.09/MEG';
@@ -10,11 +10,9 @@ end
   
 if domne_main,
   if ~exist('suffix_rawdata', 'var')
-    %suffix_rawdata = 'meg_processed_{_preProcERFvisual_word_all_02-1ds}';
     suffix_rawdata = 'meg_erf_allwords_02-nextword';
   end
   if ~exist('suffix_erfdata', 'var')
-    %suffix_erfdata = 'meg_processed_{_erf_visual_word_all_02-1ds-ag}';
     suffix_erfdata = 'meg_erf_allwords_02-nextword-allwords-ag';
   end
   if ~exist('suffix_mnedata', 'var')
@@ -29,8 +27,8 @@ if domne_main,
  
   data     = ft_selectdata(data, 'toilim', [-inf 0.6]);
   database = ft_selectdata(data, 'toilim', [-inf 0]);
-  selsent  = find(ismember(database.trialinfo(:,2),[1 2 5 6]) & database.trialinfo(:,end)==1);
-  selseq   = find(ismember(database.trialinfo(:,2),[3 4 7 8]) & database.trialinfo(:,end)==1);
+  selsent  = find(ismember(database.trialinfo(:,2),[1 2 5 6]) & database.trialinfo(:,5)==1);
+  selseq   = find(ismember(database.trialinfo(:,2),[3 4 7 8]) & database.trialinfo(:,5)==1);
   n        = min(numel(selsent),numel(selseq));
   tmp      = randperm(numel(selsent));selsent=sort(selsent(tmp(1:n)));
   tmp      = randperm(numel(selseq));selseq=sort(selseq(tmp(1:n)));
@@ -102,8 +100,11 @@ if domne_main,
   else
     error('don''t know which variable to use');
   end
-  data1.cov = tlck.cov; % add the covariance computed from both conditions
-  data2.cov = tlck.cov;
+  [a,b]     = match_str(data1.label,tlck.label); % added 2014-06-20 to ensure the correct order of channels in covariance and label list!!!!!
+  data1.cov = zeros(numel(data1.label));
+  data2.cov = zeros(numel(data2.label));
+  data1.cov(a,a) = tlck.cov(b,b); % add the covariance computed from both conditions
+  data2.cov(a,a) = tlck.cov(b,b);
   
   data1 = ft_selectdata(data1, 'toilim', [-inf 0.6]);
   data2 = ft_selectdata(data2, 'toilim', [-inf 0.6]);
@@ -158,6 +159,7 @@ if domne_main,
   cfg.mne.noiselambda = 0.2*trace(data1.cov)./size(data1.cov,1);
   cfg.mne.sourcecov   = S;
   source_sent         = ft_sourceanalysis(cfg, data1);
+  cfg.mne.keepfilter  = 'no'; % the spatial filter will be the same as for source_sent, redundant: added this line 2014-06-19
   source_seq          = ft_sourceanalysis(cfg, data2);
   
   cfg            = [];
@@ -192,19 +194,21 @@ if domne_main,
   sd_Seq.tri  = sourcemodelorig.tri;
   
   % do the normalisation to get a 'dSPM'
-  npnt = size(sd_Sent.pos,1);
-  sd_Sent.avg.dspm = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Sent.avg.pow;
-  sd_Seq.avg.dspm  = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Seq.avg.pow;
+  if dodspm,
+    npnt = size(sd_Sent.pos,1);
+    sd_Sent.avg.dspm = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Sent.avg.pow;
+    sd_Seq.avg.dspm  = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Seq.avg.pow;
+  end
   
   sd_Sent.avg = rmfield(sd_Sent.avg, 'mom');
   sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
   
   % save the solution
   source = sd_Seq;
-  mous_db_putdata(subjectname, [suffix_mnedata,'-seq_currentdensity_weighted'],  'source', rootdir,0);
+  mous_db_putdata(subjectname, [suffix_mnedata,'_seq'],  'source', rootdir,1); % removed the currentdensity_weighted on 2014-06-19
   
   source = sd_Sent;
-  mous_db_putdata(subjectname, [suffix_mnedata,'-sent_currentdensity_weighted'], 'source', rootdir,0);
+  mous_db_putdata(subjectname, [suffix_mnedata,'_sent'], 'source', rootdir,1);
 end
 
 if domne_parametric
@@ -213,15 +217,20 @@ if domne_parametric
   % projected
   
   if ~exist('suffix_rawdata', 'var')
-    error('you need to specify the file suffix for the preprocessed data');
+    suffix_rawdata = 'meg_erf_allwords_02-nextword';
+    % error('you need to specify the file suffix for the preprocessed data');
   end
   mous_db_getdata(subjectname, suffix_rawdata, rootdir);
   
   if ~exist('suffix_mne', 'var')
-    error('you need to specify the file suffix for the mne data');
+    suffix_mne = strrep(suffix_rawdata, 'erf', 'mne');
+    suffix_mne = cat(2, suffix_mne, '_sent');
+    % error('you need to specify the file suffix for the mne data');
   end
   %IMPORTANT: always use the sent condition in the suffix, because this is
-  %assumed later on. Otherwise the conditions will be swapped
+  %assumed later on. Otherwise the conditions will be swapped, and because
+  %as of 2014-06-19 only the sentence condition file contains the spatial
+  %filters
   mous_db_getdata(subjectname, suffix_mne, rootdir);
   
   % create the spatial filter matrix
@@ -240,6 +249,7 @@ if domne_parametric
   sel1 = sort(sel1(1:n));
   sel2 = sort(sel2(1:n));
   data = ft_selectdata(data, 'rpt', [sel1(:);sel2(:)]);
+  data = ft_selectdata(data, 'toilim', [-inf 0.6]);
   
   % move around the columns in the trialinfo field so that the condition
   % trigger ends up in the third column and the word ordinal indicator in
@@ -250,16 +260,55 @@ if domne_parametric
   [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
   [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
   
-  tlck = tlck_sent;
+  tlck = ft_struct2single(tlck_sent);
   stat = stat_sent;
   stat = rmfield(stat, {'prob', 'mask', 'cirange'});
-  mu   = mu_sent;
-  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir);
-  tlck = tlck_seq;
+  mu   = single(mu_sent);
+  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  tlck = ft_struct2single(tlck_seq);
   stat = stat_seq;
   stat = rmfield(stat, {'prob', 'mask', 'cirange'});
-  mu   = mu_seq;
-  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,0);
+  mu   = single(mu_seq);
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+end
+if domne_earlylate
+  % do a quick and dirty (don't use mous_makecontrast) comparison by
+  % projecting the sensor ERFs throught the spatial filter, and save the
+  % difference waveform
+  
+  if ~exist('suffix_mne', 'var')
+    suffix_mne = 'meg_mne_allwords_02-nextword';
+    suffix_mne = cat(2, suffix_mne, '_sent');
+    % error('you need to specify the file suffix for the mne data');
+  end
+  
+  mous_db_getdata(subjectname, suffix_mne);
+  F = zeros(8196, size(source.avg.filter{source.inside(1)},2));
+  for kk = 1:numel(source.inside)
+    k = source.inside(kk);
+    F(k,:) = source.avg.ori{k}*source.avg.filter{k};
+  end
+  
+  tlck1 = mous_db_getdata(subjectname, 'meg_erf_allwords_02-nextword_wordsentRC_early');
+  tlck2 = mous_db_getdata(subjectname, 'meg_erf_allwords_02-nextword_wordsentRC_late');
+  sel   = match_str(tlck1.label, ft_channelselection('MEG', tlck1.label));
+  
+  tlck1 = ft_selectdata(tlck1, 'toilim', [-inf 0.6]);
+  tlck2 = ft_selectdata(tlck2, 'toilim', [-inf 0.6]);
+  
+  dat1  = (F*tlck1.avg(sel,:));
+  dat2  = (F*tlck2.avg(sel,:));
+  ix    = nearest(tlck1.time, 0);
+  dat1  = dat1 - repmat(nanmean(dat1(:,1:ix),2),[1 size(dat1,2)]);
+  ix    = nearest(tlck2.time, 0);
+  dat2  = dat2 - repmat(nanmean(dat2(:,1:ix),2),[1 size(dat2,2)]);
+  dpow  = abs(dat1)-abs(dat2); clear dat1 dat2;
+  
+  source = rmfield(source, 'avg');
+  source.avg.pow = dpow;
+  mous_db_putdata(subjectname, 'meg_mne_allwords_02-nextword_wordsentRC_early-late', 'source');
+  
+  
 end
 
 if domne_parcellate
@@ -350,7 +399,7 @@ if domne_denoise
   cleandat   = dat+nan;
   cleantrial = trial+nan;
   for k = 1:numel(tlck.label)
-    %fprintf('denoising channel %d/%d\n',k,numel(tlck.label));
+    %fprinsuffix_rawdata = 'meg_erf_allwords_02-nextword';tf('denoising channel %d/%d\n',k,numel(tlck.label));
     if any(~isfinite(dat(k,:)))
       continue;
     else
