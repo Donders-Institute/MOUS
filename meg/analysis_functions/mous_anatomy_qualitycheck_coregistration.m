@@ -13,6 +13,9 @@ end
 headshape    = ft_convert_units(shape,    'mm');
 headshapemri = ft_convert_units(shapemri, 'mm');
 
+if isfield(headshapemri, 'bnd')
+  headshapemri = headshapemri.bnd;
+end
 v = headshapemri.pnt;
 f = headshapemri.tri;
 [f,v]=reducepatch(f,v, 0.2);
