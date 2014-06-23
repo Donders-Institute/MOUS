@@ -21,6 +21,7 @@ end
 param = ft_getopt(varargin, 'parameter', 'avg.pow');
 sent  = ft_getopt(varargin, 'sent');
 seq   = ft_getopt(varargin, 'seq');
+cfg   = ft_getopt(varargin, 'cfg', []);
 
 if isempty(sent) || isempty(seq)
   
@@ -42,7 +43,7 @@ if isempty(sent) || isempty(seq)
       
       tmpdat   = getsubfield(source, param);
       inside   = find(sum(tmpdat~=0,2)==numel(source.time)|sum(isfinite(tmpdat),2)==numel(source.time));
-      outside  = find(sum(tmpdat==0,2)==numel(source.time)|sum(~isfinite(tmpdat),2)==numel(source.time));
+      outside  = setdiff(1:8196,inside(:)')';
       endtim   = nearest(source.time, 0.6);
       
       tmp.inside = inside;
@@ -72,27 +73,58 @@ end
 
 
 Nsubj = numel(sent);
-for k = 1:Nsubj
-  sent{k}.dim = [8196 1 1];
-  seq{k}.dim  = [8196 1 1];
-end
+% if ~isfield(sent{1}, 'dim')
+% for k = 1:Nsubj
+%   sent{k}.dim = [8196 1 1];
+%   seq{k}.dim  = [8196 1 1];
+% end
+% end
 
 load('cortex_inflated_8196reg');
 
-cfg = [];
-cfg.method = 'montecarlo';
-cfg.statistic = 'depsamplesT';
-%cfg.statistic = 'ft_statfun_diff';
-%cfg.statistic = 'statfun_yuent';
-%cfg.yuent.type = 'depsamples';
-cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
-cfg.ivar   = 1;
-cfg.uvar   = 2;
-cfg.numrandomization = 1000;
+
+design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
+
+cfg.method    = ft_getopt(cfg, 'method', 'montecarlo');
+cfg.statistic = ft_getopt(cfg, 'statistic', 'depsamplesT');
+cfg.design    = ft_getopt(cfg, 'design', design);
+cfg.ivar      = ft_getopt(cfg, 'ivar',   1);
+cfg.uvar      = ft_getopt(cfg, 'uvar',   2);
+cfg.numrandomization = ft_getopt(cfg, 'numrandomization', 1000);
 cfg.parameter = param;
-cfg.correctm = 'cluster';
-cfg.clusterthreshold = 'nonparametric_individual';
-cfg.tri = sourcemodel.tri;
+cfg.correctm  = ft_getopt(cfg, 'correctm', 'cluster');
+if strcmp(cfg.correctm,'cluster')
+  cfg.clusterthreshold = ft_getopt(cfg, 'clusterthreshold', 'nonparametric_individual');
+end
+cfg.tri       = sourcemodel.tri;
+
+if isfield(cfg, 'latency'),
+  % ft_sourcestatistics does not work with latency yet, so do it here
+  for k = 1:numel(sent)
+    ix = nearest(sent{k}.time, cfg.latency(1));
+    iy = nearest(sent{k}.time, cfg.latency(2));
+    tmp = getsubfield(sent{k}, param);
+    tmp = tmp(:,ix:iy);
+    sent{k} = setsubfield(sent{k}, param, tmp);
+  
+    ix = nearest(seq{k}.time, cfg.latency(1));
+    iy = nearest(seq{k}.time, cfg.latency(2));
+    tmp = getsubfield(seq{k}, param);
+    tmp = tmp(:,ix:iy);
+    seq{k} = setsubfield(seq{k}, param, tmp);
+  end
+  cfg = rmfield(cfg, 'latency');
+end
+if isfield(cfg, 'avgovertime') && istrue(cfg.avgovertime)
+  for k = 1:numel(sent)
+    tmp = getsubfield(sent{k}, param);
+    sent{k} = setsubfield(sent{k}, param, nanmean(tmp,2));
+    tmp = getsubfield(seq{k}, param);
+    seq{k} = setsubfield(seq{k}, param, nanmean(tmp,2));
+  end
+  cfg = rmfield(cfg, 'avgovertime');
+end
+
 stat = ft_sourcestatistics(cfg,sent{:},seq{:});
 
 datsent = zeros(size(stat.stat));
