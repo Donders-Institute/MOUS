@@ -75,7 +75,7 @@ if doerf_main
     outname2 = strcat(outname2(1:end-2),condition,planar);
   end
   
-  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', outrootdir, 0);
+  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', outrootdir, 1);
   mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',outrootdir);
 end  % end doerf_main
 
@@ -99,6 +99,18 @@ if doerf_parametric
   stat = stat_seq;
   mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc'], 'tlck', 'stat', outrootdir);
   
+  % parametric without basline
+  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric');
+  [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric');
+  
+  tlck = tlck_sent;
+  stat = stat_sent;
+  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric'], 'tlck', 'stat', outrootdir);
+  tlck = tlck_seq;
+  stat = stat_seq;
+  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric'], 'tlck', 'stat', outrootdir);
+  
+  
   % convert to planar
   cfg        = [];
   cfg.method = 'distance';
@@ -113,10 +125,21 @@ if doerf_parametric
   
   tlck = tlckp_sent;
   stat = statp_sent;
-  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 0);
+  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 1);
   tlck = tlckp_seq;
   stat = statp_seq;
-  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 0);
+  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 1);
+  
+  % parametric without basline
+  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric');
+  [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric');
+  
+  tlck = tlck_sent;
+  stat = stat_sent;
+  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_planar'], 'tlck', 'stat', outrootdir);
+  tlck = tlck_seq;
+  stat = stat_seq;
+  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_planar'], 'tlck', 'stat', outrootdir);
 end
 
 if doerf_rc
@@ -164,13 +187,13 @@ if doerf_rc
   % trigger ends up in the third column and the word ordinal indicator in
   % the second
   % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
-  data.trialinfo = data.trialinfo(:,[1 5 2 6 3 4]); % sentence, word, condition, total number of words
+  data.trialinfo = data.trialinfo(:,[1 5 2 7 3 4]); % sentence, word, condition, total number of words
   [tlck_early, tlck_late] = mous_makecontrast(data, 'early-late');
   
   tlck = tlck_early;
   mous_db_putdata(subjectname, [inputdata,'_wordsentRC_early'], 'tlck', outrootdir);
   tlck = tlck_late;
-  mous_db_putdata(subjectname, [inputdata,'_wordseqRC_late'], 'tlck', outrootdir);
+  mous_db_putdata(subjectname, [inputdata,'_wordsentRC_late'], 'tlck', outrootdir);
   
   % convert to planar
   cfg        = [];
@@ -234,13 +257,13 @@ if doerf_mix
   % trigger ends up in the third column and the word ordinal indicator in
   % the second
   % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
-  data.trialinfo = data.trialinfo(:,[1 5 2 6 3 4]); % sentence, word, condition, total number of words
+  data.trialinfo = data.trialinfo(:,[1 5 2 7 3 4]); % sentence, word, condition, total number of words
   [tlck_early, tlck_late] = mous_makecontrast(data, 'early-late');
   
   tlck = tlck_early;
   mous_db_putdata(subjectname, [inputdata,'_wordsentMIX_early'], 'tlck', outrootdir);
   tlck = tlck_late;
-  mous_db_putdata(subjectname, [inputdata,'_wordseqMIX_late'], 'tlck', outrootdir);
+  mous_db_putdata(subjectname, [inputdata,'_wordsentMIX_late'], 'tlck', outrootdir);
   
   % convert to planar
   cfg        = [];
