@@ -112,7 +112,9 @@ switch method
       sel = find(parcellation.(parcelparam)==k);
       F   = cat(1,sourcein.avg.filter{sel});
       [u,s,v] = svd(F*tlck.cov*F');
-      filter{k} = u(:,1)'*F;
+      filter{k} = u'*F;
+      S{k}      = diag(s);
+      U{k}      = u;
     end
     
     source = rmfield(sourcein, 'avg');
@@ -123,6 +125,8 @@ switch method
     
     parcellation.label  = source.parcellationlabel;
     parcellation.filter = filter;
+    parcellation.s      = S;
+    parcellation.u      = U;
     
   otherwise
 end
