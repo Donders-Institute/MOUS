@@ -32,7 +32,6 @@ function [dataout] = volumeedit(data, varargin)
 %
 % $Id:$
 
-revision = '$Id: ft_sourceplot.m 7192 2012-12-13 22:32:56Z roboos $';
 
 bckgrnd = ft_getopt(varargin, 'background', []);
 
