@@ -24,7 +24,10 @@ function frames = mous_makemovie_mne(source, filename, varargin)
 %   parcellation    = parcellation-structure that describes the parcels. at present it should be 
 %                     defined in the field 'parcellation'
 %   hemisphere      = 'both' (default), 'left', 'right' the hemisphere(s) to be plotted
-%   viewmode        = 'both' (default), 'lateral', 'medial', the viewmode 
+%   viewmode        = 'both' (default), 'lateral', 'medial', the viewmode
+%   plotroi         = false (default), true: assumes the data matrix to
+%                     represent the labels in the second dimension, works
+%                     only with parcellated input
 
 %% set the parameters
 parameter = ft_getopt(varargin, 'parameter', 'avg');
@@ -44,6 +47,8 @@ textstringbase = ft_getopt(varargin, 'textstring', 'time = ');
 textstringparameter = ft_getopt(varargin, 'textstringparameter', 'time');
 makecolorbar = ft_getopt(varargin, 'colorbar', 0);
 xparam       = ft_getopt(varargin, 'xparam', 'time');
+plotroi      = ft_getopt(varargin, 'plotroi', false);
+framerate    = ft_getopt(varargin, 'framerate', 2);
 
 makecolorbar = istrue(makecolorbar);
 
@@ -72,6 +77,9 @@ if ~isempty(parcellation)
     mask = unparcellate(source, parcellation, maskparameter, parcelparameter);
   else
     mask = [];
+  end
+  if plotroi
+    roiidx = unparcellate((1:numel(source.label))', parcellation, source.label, parcelparameter);
   end
 else
   data = getsubfield(source, parameter);
@@ -152,6 +160,7 @@ s.tri  = [s.tri;s.tri + 8196];
 % this is needed when presenting both medial and lateral views
 data = repmat(data,[2 1]);
 mask = repmat(mask,[2 1]);
+roiidx = repmat(roiidx, [2 1]);
 
 usepnt = true(size(data,1),1);
 usetri = true(size(s.tri,1),1);
@@ -206,6 +215,11 @@ set(htxt, 'fontsize', 15);
 set(htxt, 'interpreter', 'none');
 
 hfun1 = ft_plot_mesh(s, 'edgecolor', 'none', 'vertexcolor', data(:,1));
+if plotroi
+  tmproi = nan+zeros(size(roiidx));
+  tmproi(roiidx==1) = 1;
+  hroi = ft_plot_mesh(s, 'edgecolor','none', 'vertexcolor', tmproi*[1 0 1]);
+end
 
 alphamap(opacitymap);
 set(hfun1, 'FaceVertexAlphaData', 0.5*ones(size(data,1),1));
@@ -220,13 +234,14 @@ end
 
 % Prepare the new file.
 vidObj = VideoWriter(filename);
-vidObj.FrameRate = 15;
+vidObj.FrameRate = framerate;
 
 open(vidObj);
 abc = get(gcf, 'position');
 for k = 1:numel(xlim)-1
-  ix(1) = nearest(source.(xparam), xlim(k)+eps*100);
+  ix(1) = nearest(source.(xparam), xlim(k)+eps*10000);
   ix(2) = nearest(source.(xparam), xlim(k+1));
+  disp(ix);
   dat   = nanmean(data(:,ix(1):ix(2)),2);
   msk   = nanmean(mask(:,ix(1):ix(2)),2);
   set(hfun1, 'FaceVertexCData',     dat(:));
@@ -237,7 +252,12 @@ for k = 1:numel(xlim)-1
     textstring = [textstringbase,source.(textstringparameter){ix(1)}];
   end
   set(htxt, 'string', textstring);
-
+  if plotroi
+    tmproi = nan+zeros(size(roiidx));
+    tmproi(ismember(roiidx,ix(1):ix(2))) = 1;
+    set(hroi, 'FaceVertexCData', tmproi*[1 0 1]);
+  end
+  
   currFrame   = getframe(gcf,[1 1 abc(3:4)-1]);
   frames(k,1) = currFrame;
   writeVideo(vidObj, currFrame);
