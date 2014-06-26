@@ -1,4 +1,4 @@
-function mous_bfica_maxvoxel(subj,sourcedata,toi,bslflag,rootdir)
+function mous_bfica_maxvoxel(subjectname,sourcedata,toi,bslflag,rootdir)
 
 % this function works with source-level data
 % the voxels belonging to each parcel are identified
@@ -8,10 +8,6 @@ function mous_bfica_maxvoxel(subj,sourcedata,toi,bslflag,rootdir)
 % Note not all parcels belong within the functional data, therefore some
 % parcels will not have a representing maximum voxel.
 % NL 
-
-if nargin < 1
-  error('specify a dataset to correlate between subjects') 
-end 
 
 if nargin < 2
   sourcedata = 'meg_bfica_sourcedatasentseq_low';
@@ -36,32 +32,38 @@ load('/home/language/nielam/MOUS/meg/templates/sourcemodel/standard_sourcemodel3
 aal = sourcemodel;
 
 % load regular sourcemodel (3d8mm)
-% [p,n,e] = fileparts(which('mous_anatomy_sourcemodel3D'));
-% load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
+[p,n,e] = fileparts(which('mous_anatomy_sourcemodel3D'));
+load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
 
 % get insides: (5782 new inside; 5219 new outside)
-% lf = mous_db_getdata('V1001','meg_bfica_leadfield8mm','/project/3011020.09/MEG/');
+lf = mous_db_getdata('V1001','meg_bfica_leadfield8mm','/project/3011020.09/MEG/');
+sourcemodel.inside = lf.newinside;
 
-% assign memory: [parcel | representing voxel | rep. vox power]
+% assign memory: [parcel | representing voxel | rep. vox.'s power]
 roi = 1:330;     % all parcels
 voxlist = zeros(numel(roi),3); voxlist(:,1) = roi; 
 
-mous_db_getdata(subj,sourcedata,rootdir) %  load data 
+%  load data 
+mous_db_getdata(subjectname,sourcedata,rootdir) 
+
+%  make script flexible to all/target words (vis/aud words)
+if regexp(sourcedata,'tar')
+  tlcksent  = tlcksenttar;
+  tlckseq   = tlckseqtar;
+end 
 
 % calculate prestim and poststim 
 % use combined conditions vs. bsl to determine max. voxel for each subj
 if bslflag 
-  cfg = [];
-  cfg.operation = 'add';
-  cfg.parameter = 'avg';
-  tmp = ft_math(cfg,tlcksent,tlckseq);% combine conditions
+  % combine conditions (sent+seq)
+     % note: ft_math doesn't work because ft_selectdata will sort the output!   
+  tmp = tlcksent;
+  tmp.avg = tlcksent.avg+tlckseq.avg;  % all values are positive
 
+  % subtract baseline from poststim
+  
   cfg = [];
-  if ~regexp(sourcedata, 'low')
-    cfg.latency = [-0.15 -0.1];
-  elseif regexp(sourcedata,'low')
-    cfg.latency = [-0.1 -0.1];
-  end
+  cfg.latency = [-inf -0.09];
   bsl = ft_selectdata(cfg,tmp);       % prestim (bsl)
 
   cfg = [];
@@ -69,51 +71,42 @@ if bslflag
   sentseq = ft_selectdata(cfg,tmp);   % poststim 
 
   dat = sentseq;
-  dat.avg = sentseq.avg - repmat(bsl.avg,[1,1,size(sentseq.avg,3)]);      
+  bsl = repmat(bsl.avg,[1,1,size(sentseq.avg,3)]);
+  dat.avg = abs(((dat.avg)./bsl)-1);
 end 
+
+% average across time and freq
+datvoxmean = mean(mean(dat.avg,3),2);
 
 for cntr = 1:numel(roi)
-  ivox = find(aal.tissue == roi(cntr)); % find number of voxels in current parcel (roi)
-
-  for cntv = 1:numel(ivox)            % calc power for each voxel and find max. voxel
-      if cntv == 1
-        maxvox = 0;
-        voxid  = 0;
-      end 
-      if ivox(cntv) < 5783            % only if voxel is within sourcemodel.inside
-        cfg = [];
-        cfg.foilim  = [min(dat.freq) max(dat.freq)];
-        cfg.latency = toi;
-        cfg.channel = ivox(cntv);
-        cfg.avgoverfreq = 'yes';
-        cfg.avgovertime = 'yes';
-        currvox = ft_selectdata(cfg,dat);
-
-        if currvox.avg > maxvox           % get max. voxel within parcel
-          maxvox = currvox.avg;
-          voxid  = ivox(cntv);
-        end 
-      end 
-  end % end voxel loop
   
-  if exist('voxid','var') && cntv == numel(ivox)
-    voxlist(cntr,2) = voxid; voxlist(cntr,3) = maxvox;  % store max. voxel; 0 = no voxels
-  end 
+  ivox = find(aal.tissue == roi(cntr));   % voxel positions corresponding to parcel 
+                                          % values in sourcemodel.inside
+                                          % (not indices of sourcemodel.inside)
   
+  [iisvox, isourceins] = ismember(ivox,sourcemodel.inside); % which voxels in current parcel are within functional data 
+  
+  [m,imax] = max(datvoxmean(isourceins));  % get max. voxel: use indexing from sourcemodel.inside 
+                                         % as source position = 8889 doesn't fit within 1-5782 source positions) 
+  
+  voxlist(cntr,2) = sourcemodel.inside(isourceins(imax));  % voxel positions(in current parcel(maximum power))
+  voxlist(cntr,3) = m;
+
 end     % end parcel loop
 
+% save
+tmp = num2str(toi(1));   tmp2 = num2str(toi(2));  toi2 = [tmp(1), tmp(3), tmp2(1), tmp2(3)];
 if bslflag 
-  tmp = num2str(toi(1));   tmp2 = num2str(toi(2));  toi2 = [tmp(1), tmp(3), tmp2(1), tmp2(3)];
-  mous_db_putdata(subj,[sourcedata(1:20),'_bslVSsentseq',toi2],'sentseq','bsl','dat',rootdir,1);
+  mous_db_putdata(subjectname,[sourcedata,'_bslVSsentseq',toi2],'sentseq','bsl','dat',rootdir,1);
 end 
 
-mous_db_putdata(subj,[sourcedata(1:20),'_voxlist4parcels_330parcels_usingbslVSsentseq',toi2],'voxlist',rootdir,1);
+mous_db_putdata(subjectname,[sourcedata,'_voxlist4parcels_330parcels_usingbslVSsentseq',toi2],'voxlist',rootdir,1);
 
 %% check that voxlist is a unique list of voxels 
 % i.e. no voxel should belong to >1 parcel
 % voxsort = sort(voxlist(:,2));
 % voxsort(voxsort == 0) = [];  % remove parcels w/o vox.
-% numel(unique(voxsort));
+% numel(unique(voxsort))
 
 %% notes - code that I might use at a later stage
 % % negative values
@@ -121,8 +114,7 @@ mous_db_putdata(subj,[sourcedata(1:20),'_voxlist4parcels_330parcels_usingbslVSse
 % % positive values
 % find(A==max(A) & A>0)
 
-
-%     IF contrasts have been computed
+%% IF contrasts (e.g. sent vs. seq) have been computed
 %     then separate between positive and negative voxels (for each condition)
 %     tlcksentpos = tlcksent;  tlcksentpos.avg(tlcksentpos.avg < 0) = NaN;
 %     tlcksentneg = tlcksent;  tlcksentneg.avg(tlcksentneg.avg > 0) = NaN;
@@ -142,6 +134,34 @@ mous_db_putdata(subj,[sourcedata(1:20),'_voxlist4parcels_330parcels_usingbslVSse
 %   voxidseq  = ivox(cntv);
 % end
 % voxseq  = zeros(numel(roi),3); voxseq(:,1) = roi;    
+
+%% first try for finding max. voxel
+
+%   for cntv = 1:numel(ivox)              % calc average power for each voxel and find max. voxel
+%       if cntv == 1
+%         maxvox = 0;
+%         voxid  = 0;
+%       end 
+%       if ismember(ivox(cntv),sourcemodel.inside)  % only if voxel is within sourcemodel.inside (5782/11000)
+%         cfg = [];
+%         cfg.foilim  = [min(dat.freq) max(dat.freq)];
+%         cfg.latency = toi;
+%         cfg.channel = ivox(cntv);
+%         cfg.avgoverfreq = 'yes';
+%         cfg.avgovertime = 'yes';
+%         currvox = ft_selectdata(cfg,dat);
+% 
+%         if currvox.avg > maxvox           % get max. voxel within parcel
+%           maxvox = currvox.avg;
+%           voxid  = ivox(cntv);
+%         end 
+%       end 
+%   end % end voxel loop
+%   
+%   if exist('voxid','var') && cntv == numel(ivox)
+%     voxlist(cntr,2) = voxid; voxlist(cntr,3) = maxvox;  % store max. voxel; 0 = no voxels
+%   end 
+%   
 
 
 
