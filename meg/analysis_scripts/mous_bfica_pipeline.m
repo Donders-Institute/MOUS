@@ -108,7 +108,7 @@ if dosource,
 end
 if doleadfield8mm,
   mous_db_getdata(subjectname, ['meg_bfica_freq',suff], rootdir);
-  [sourcemodel, newinside, oldinside] = mous_bfica_leadfield(subjectname, ft_struct2double(freq), toi, 8, gridtype);
+  [sourcemodel, newinside, oldinside] = mous_bfica_leadfield(subjectname, ft_struct2double(freq), toi, 8);
   mous_db_putdata(subjectname, 'meg_bfica_leadfield8mm', 'sourcemodel', 'newinside', 'oldinside', rootdir, 0);
 end
 
@@ -238,7 +238,7 @@ if dosource_contrasts,
     %tois = -0.2:0.05:0.8;
 
     tmpfreq = ft_selectdata(freq, 'foilim', frequency*[1 1]+[-0.1 0.1]);
-    [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8, leadfieldtype, rootdir);  % default directory is jansch in order to get leadfield
+    [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8, rootdir);  % default directory is jansch in order to get leadfield
     sourcedataorig      = mous_bfica_sourcedata(source, tmpfreq, toi(toilop));
     
     sourcedataorig.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
@@ -256,34 +256,48 @@ if dosource_contrasts,
     sourcedata = sourcedataorig;
     
     %% dosentvsseq   
+% % %     allsentVSallseq
     [tlcksent(toilop), tlckseq(toilop),tstat(:,toilop)] = mous_makecontrast(sourcedata,'sent-seq');
 
-%      domixvsrelativeclause
-     [tlcksentMX(toilop), tlcksentRC(toilop), tstat(:,toilop)] = mous_makecontrast(sourcedata,'sentMX-sentRC');
+% % %     mixVSrelativeclause
+%     [tlcksentMX(toilop), tlcksentRC(toilop), tstat(:,toilop)] = mous_makecontrast(sourcedata,'sentMX-sentRC');
 
-    % dowordsentpar2
+% % %     wordsentpar2
 %     if strcmp(subjectname(1),'V')     
 %       [tlcksentpar(toilop),statsentpar(toilop),stat2sentpar(toilop)] = mous_makecontrast(sourcedata, 'wordsent_parametric');
-% 
-%       %% dowordseqpar2
 %       [tlckseqpar(toilop),statseqpar(toilop),stat2seqpar(toilop)] = mous_makecontrast(sourcedata, 'wordseq_parametric');
 %     end
   
-
-%     % dofirstword - use <0s for baseline computation
+% % %     firstword - user <0s for baseline computation
 %     [tlcksentfirst(toilop),tlckseqfirst(toilop),tstatfirst(:,toilop)] = mous_makecontrast(sourcedata,'sent-seqFirstword');   
 % 
-    [tlcksenttar(toilop), tlckseqtar(toilop),tstattar(:,toilop)] = mous_makecontrast(sourcedata,'sent-seqTarget');
+% % %     allsenttar VS allseqtar
+%     [tlcksenttar(toilop), tlckseqtar(toilop),tstattar(:,toilop)] = mous_makecontrast(sourcedata,'sent-seqTarget');
 % 
-%     % FIXME: Auditory parametric needs logfile+excel file info - not completed for all subjects (there are exceptions - 26 Feb 2014)
-%      % target word parametric (sent)
-    [tlcksentpartar(toilop),statsentpartar(toilop),stat2sentpartar(toilop)] = mous_makecontrast(sourcedata,'wordsenttar_parametric'); % _blc option available
+% % %     wordsentpartar
+%     [tlcksentpartar(toilop),statsentpartar(toilop),stat2sentpartar(toilop)] = mous_makecontrast(sourcedata,'wordsenttar_parametric'); % _blc option available
 % 
-%     % target word parametric (seq)
-    [tlckseqpartar(toilop),statseqpartar(toilop),stat2seqpartar(toilop)] = mous_makecontrast(sourcedata,'wordseqtar_parametric'); % _blc option available
+% % %    wordseQpartar
+%     [tlckseqpartar(toilop),statseqpartar(toilop),stat2seqpartar(toilop)] = mous_makecontrast(sourcedata,'wordseqtar_parametric'); % _blc option available
+%   
+% % %    sent earlyVSlate
+    [tlckearly, tlcklate] = mous_makecontrast(tlcksent,'early-late');
   end
   
-  concatenate 
+  %concatenate
+  
+  tlckearly(1).avg = cat(2,tlckearly(:).avg);                % tlckearly
+  tlckearly(1).var = cat(2,tlckearly(:).var);
+  tlckearly(1).dof = cat(2,tlckearly(:).dof);
+  tlckearly(1).time = cat(2,tlckearly(:).time);
+  tlckearly         = tlckearly(1);
+
+  tlcklate(1).avg = cat(2,tlcklate(:).avg);                   % tlcklate
+  tlcklate(1).var = cat(2,tlcklate(:).var);
+  tlcklate(1).dof = cat(2,tlcklate(:).dof);
+  tlcklate(1).time = cat(2,tlcklate(:).time);
+  tlcklate         = tlcklate(1);
+  
   tlcksent(1).avg = cat(2,tlcksent(:).avg);                % tlcksent
   tlcksent(1).var = cat(2,tlcksent(:).var);
   tlcksent(1).dof = cat(2,tlcksent(:).dof);
@@ -296,19 +310,19 @@ if dosource_contrasts,
   tlckseq(1).time = cat(2,tlckseq(:).time);
   tlckseq         = tlckseq(1);
 
-
-  tlcksentMX(1).avg = cat(2,tlcksentMX(:).avg);                % tlcksentMIX
-  tlcksentMX(1).var = cat(2,tlcksentMX(:).var);
-  tlcksentMX(1).dof = cat(2,tlcksentMX(:).dof);
-  tlcksentMX(1).time = cat(2,tlcksentMX(:).time);
-  tlcksentMX         = tlcksentMX(1);
-
-  tlcksentRC(1).avg = cat(2,tlcksentRC(:).avg);                   % tlcksentRC
-  tlcksentRC(1).var = cat(2,tlcksentRC(:).var);
-  tlcksentRC(1).dof = cat(2,tlcksentRC(:).dof);
-  tlcksentRC(1).time = cat(2,tlcksentRC(:).time);
-  tlcksentRC         = tlcksentRC(1);
-
+% 
+%   tlcksentMX(1).avg = cat(2,tlcksentMX(:).avg);                % tlcksentMIX
+%   tlcksentMX(1).var = cat(2,tlcksentMX(:).var);
+%   tlcksentMX(1).dof = cat(2,tlcksentMX(:).dof);
+%   tlcksentMX(1).time = cat(2,tlcksentMX(:).time);
+%   tlcksentMX         = tlcksentMX(1);
+% 
+%   tlcksentRC(1).avg = cat(2,tlcksentRC(:).avg);                   % tlcksentRC
+%   tlcksentRC(1).var = cat(2,tlcksentRC(:).var);
+%   tlcksentRC(1).dof = cat(2,tlcksentRC(:).dof);
+%   tlcksentRC(1).time = cat(2,tlcksentRC(:).time);
+%   tlcksentRC         = tlcksentRC(1);
+% 
 %   tlcksentfirst(1).avg = cat(2,tlcksentfirst(:).avg);       % tlcksentfirst
 %   tlcksentfirst(1).var = cat(2,tlcksentfirst(:).var);
 %   tlcksentfirst(1).dof = cat(2,tlcksentfirst(:).dof);
@@ -320,7 +334,7 @@ if dosource_contrasts,
 %   tlckseqfirst(1).dof = cat(2,tlckseqfirst(:).dof);
 %   tlckseqfirst(1).time = cat(2,tlckseqfirst(:).time);
 %   tlckseqfirst         = tlckseqfirst(1); 
-%    
+% %    
 %   tlcksenttar(1).avg = cat(2,tlcksenttar(:).avg);           % tlcksenttar
 %   tlcksenttar(1).var = cat(2,tlcksenttar(:).var);
 %   tlcksenttar(1).dof = cat(2,tlcksenttar(:).dof);
@@ -332,7 +346,7 @@ if dosource_contrasts,
 %   tlckseqtar(1).dof = cat(2,tlckseqtar(:).dof);
 %   tlckseqtar(1).time = cat(2,tlckseqtar(:).time);
 %   tlckseqtar         = tlckseqtar(1); 
-%   
+% %   
 %   if strcmp(subjectname(1),'V')
 %     tlcksentpar(1).avg = cat(2,tlcksentpar(:).avg);           % tlcksentpar (all)
 %     tlcksentpar(1).var = cat(2,tlcksentpar(:).var);
@@ -380,78 +394,111 @@ if dosource_contrasts,
 %     stat2seqpar            = stat2seqpar(1);
 %   end
 % 
-  tlcksentpartar(1).avg = cat(2,tlcksentpartar(:).avg);     % tlcksentpartar
-  tlcksentpartar(1).var = cat(2,tlcksentpartar(:).var);
-  tlcksentpartar(1).dof = cat(2,tlcksentpartar(:).dof);
-  tlcksentpartar(1).time = cat(2,tlcksentpartar(:).time);
-  tlcksentpartar(1).trial = cat(3,tlcksentpartar(:).trial);
-  tlcksentpartar(1).trial2 = cat(3,tlcksentpartar(:).trial2);
-  tlcksentpartar           = tlcksentpartar(1);
-
-  tlckseqpartar(1).avg = cat(2,tlckseqpartar(:).avg);       %  tlckseqpartar
-  tlckseqpartar(1).var = cat(2,tlckseqpartar(:).var);
-  tlckseqpartar(1).dof = cat(2,tlckseqpartar(:).dof);
-  tlckseqpartar(1).time = cat(2,tlckseqpartar(:).time);
-  tlckseqpartar(1).trial = cat(3,tlckseqpartar(:).trial);
-  tlckseqpartar(1).trial2 = cat(3,tlckseqpartar(:).trial2);
-  tlckseqpartar           = tlckseqpartar(1);
-
-  statsentpartar(1).stat = cat(2,statsentpartar(:).stat);    % statsentpartar
-  statsentpartar(1).prob = cat(2,statsentpartar(:).prob);
-  statsentpartar(1).mask = cat(2,statsentpartar(:).mask);
-  statsentpartar(1).time = cat(2,statsentpartar(:).time);
-  statsentpartar(1).cirange = cat(2,statsentpartar(:).cirange);
-  statsentpartar            = statsentpartar(1);
-
-  stat2sentpartar(1).stat = cat(2,stat2sentpartar(:).stat);  % stat2sentpartar
-  stat2sentpartar(1).prob = cat(2,stat2sentpartar(:).prob);
-  stat2sentpartar(1).mask = cat(2,stat2sentpartar(:).mask);
-  stat2sentpartar(1).time = cat(2,stat2sentpartar(:).time);
-  stat2sentpartar(1).cirange = cat(2,stat2sentpartar(:).cirange);
-  stat2sentpartar            = stat2sentpartar(1);
-
-  statseqpartar(1).stat = cat(2,statseqpartar(:).stat);      % statseqpartar
-  statseqpartar(1).prob = cat(2,statseqpartar(:).prob);
-  statseqpartar(1).mask = cat(2,statseqpartar(:).mask);
-  statseqpartar(1).time = cat(2,statseqpartar(:).time);
-  statseqpartar(1).cirange = cat(2,statseqpartar(:).cirange);
-  statseqpartar            = statseqpartar(1);
-
-  stat2seqpartar(1).stat = cat(2,stat2seqpartar(:).stat);    % stat2seqpartar
-  stat2seqpartar(1).prob = cat(2,stat2seqpartar(:).prob);
-  stat2seqpartar(1).mask = cat(2,stat2seqpartar(:).mask);
-  stat2seqpartar(1).time = cat(2,stat2seqpartar(:).time);
-  stat2seqpartar(1).cirange = cat(2,stat2seqpartar(:).cirange);
-  stat2seqpartar            = stat2seqpartar(1);
+%   tlcksentpartar(1).avg = cat(2,tlcksentpartar(:).avg);     % tlcksentpartar
+%   tlcksentpartar(1).var = cat(2,tlcksentpartar(:).var);
+%   tlcksentpartar(1).dof = cat(2,tlcksentpartar(:).dof);
+%   tlcksentpartar(1).time = cat(2,tlcksentpartar(:).time);
+%   tlcksentpartar(1).trial = cat(3,tlcksentpartar(:).trial);
+%   tlcksentpartar(1).trial2 = cat(3,tlcksentpartar(:).trial2);
+%   tlcksentpartar           = tlcksentpartar(1);
+% 
+%   tlckseqpartar(1).avg = cat(2,tlckseqpartar(:).avg);       %  tlckseqpartar
+%   tlckseqpartar(1).var = cat(2,tlckseqpartar(:).var);
+%   tlckseqpartar(1).dof = cat(2,tlckseqpartar(:).dof);
+%   tlckseqpartar(1).time = cat(2,tlckseqpartar(:).time);
+%   tlckseqpartar(1).trial = cat(3,tlckseqpartar(:).trial);
+%   tlckseqpartar(1).trial2 = cat(3,tlckseqpartar(:).trial2);
+%   tlckseqpartar           = tlckseqpartar(1);
+% 
+%   statsentpartar(1).stat = cat(2,statsentpartar(:).stat);    % statsentpartar
+%   statsentpartar(1).prob = cat(2,statsentpartar(:).prob);
+%   statsentpartar(1).mask = cat(2,statsentpartar(:).mask);
+%   statsentpartar(1).time = cat(2,statsentpartar(:).time);
+%   statsentpartar(1).cirange = cat(2,statsentpartar(:).cirange);
+%   statsentpartar            = statsentpartar(1);
+% 
+%   stat2sentpartar(1).stat = cat(2,stat2sentpartar(:).stat);  % stat2sentpartar
+%   stat2sentpartar(1).prob = cat(2,stat2sentpartar(:).prob);
+%   stat2sentpartar(1).mask = cat(2,stat2sentpartar(:).mask);
+%   stat2sentpartar(1).time = cat(2,stat2sentpartar(:).time);
+%   stat2sentpartar(1).cirange = cat(2,stat2sentpartar(:).cirange);
+%   stat2sentpartar            = stat2sentpartar(1);
+% 
+%   statseqpartar(1).stat = cat(2,statseqpartar(:).stat);      % statseqpartar
+%   statseqpartar(1).prob = cat(2,statseqpartar(:).prob);
+%   statseqpartar(1).mask = cat(2,statseqpartar(:).mask);
+%   statseqpartar(1).time = cat(2,statseqpartar(:).time);
+%   statseqpartar(1).cirange = cat(2,statseqpartar(:).cirange);
+%   statseqpartar            = statseqpartar(1);
+% 
+%   stat2seqpartar(1).stat = cat(2,stat2seqpartar(:).stat);    % stat2seqpartar
+%   stat2seqpartar(1).prob = cat(2,stat2seqpartar(:).prob);
+%   stat2seqpartar(1).mask = cat(2,stat2seqpartar(:).mask);
+%   stat2seqpartar(1).time = cat(2,stat2seqpartar(:).time);
+%   stat2seqpartar(1).cirange = cat(2,stat2seqpartar(:).cirange);
+%   stat2seqpartar            = stat2seqpartar(1);
 
   
+
   % save the results
   suff2 = num2str(round(frequency*10));
+mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylate',suff2], 'tlckearly', 'tlcklate', rootdir, 1);
 
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 0);
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 0);
   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentMXRC',suff2], 'tlcksentMX', 'tlcksentRC',    'tstat', rootdir, 0);
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentMXRC',suff2], 'tlcksentMX', 'tlcksentRC',    'tstat', rootdir, 1);
 %   if strcmp(subjectname(1),'V')
 %     mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff2], 'tlcksentpar', 'stat2sentpar', 'statsentpar', rootdir, 0);
 %     mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 0);
 %   end
   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq_firstword',suff2], 'tlcksentfirst',    'tlckseqfirst',  'tstatfirst', rootdir, 0);
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqtar',suff2], 'tlcksenttar',    'tlckseqtar',      'tstattar', rootdir, 0);
-%   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpartar',suff2], 'tlcksentpartar', 'stat2sentpartar', 'statsentpartar', rootdir, 0);
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpartar', suff2], 'tlckseqpartar',  'stat2seqpartar',  'statseqpartar', rootdir, 0);
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq_firstword',suff2], 'tlcksentfirst',    'tlckseqfirst',  'tstatfirst', rootdir, 1);
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqtar',suff2], 'tlcksenttar',    'tlckseqtar',      'tstattar', rootdir, 1);
+% %   
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpartar',suff2], 'tlcksentpartar', 'stat2sentpartar', 'statsentpartar', rootdir, 1);
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpartar', suff2], 'tlckseqpartar',  'stat2seqpartar',  'statseqpartar', rootdir, 1);
 end 
 
-if doparcel_source2sens,
+
+% parcellation for allwords sent  VS.  allwords seq
+% dataset contains both tlcksent and tlckseq
+
+if doparcel_source2sens, % allwords parametric sent VS. seq
   mous_db_getdata(subjectname, sourcedata, rootdir);
   mous_db_getdata(subjectname,'meg_bfica_leadfield8mm',rootdir); % only need 'newinside' variable
   load('/home/language/nielam/MOUS/meg/templates/sourcemodel/standard_sourcemodel3d8mm_parcellated_aal_sub');
-  [tlcksent] = mous_bfica_parcellate(sourcemodel,tlcksent,newinside);
-  [tlckseq]  = mous_bfica_parcellate(sourcemodel,tlckseq,newinside);
-  mous_db_putdata(subjectname,[sourcedata,'_parcelavg'],'tlcksent','tlckseq',rootdir,1);
-end 
   
+  % parametric option
+  % tlcksentpar tlcksentpar stored in separate mat files
+  if exist('tlcksentpar','var') 
+    tlcksent = tlcksentpar;
+    clear tlcksentpar
+    [tlcksent] = mous_bfica_parcellate(sourcemodel,tlcksent,newinside);
+    mous_db_putdata(subjectname,[sourcedata,'_parcelavg'],'tlcksent',rootdir,1);
+  end
+  if exist('tlckseqpar','var')
+    tlckseq = tlckseqpar;
+    clear tlckseqpar
+    [tlcksent] = mous_bfica_parcellate(sourcemodel,tlcksent,newinside);
+    mous_db_putdata(subjectname,[sourcedata,'_parcelavg'],'tlcksent',rootdir,1);
+  end
+  
+  % calculate for allwords sent vs. allwords seq
+   % tlcksent and tlckseq stored together in one mat file
+  if exist('tlcksent','var')
+    [tlcksent] = mous_bfica_parcellate(sourcemodel,tlcksent,newinside);
+    [tlcksent] = mous_bfica_parcellate(sourcemodel,tlcksent,newinside);
+    mous_db_putdata(subjectname,[sourcedata,'_parcelavg'],'tlcksent','tlckseq',rootdir,1);
+  end
+
+  % earlylate option
+  if exist('tlckearly','var')  %tlckearly and tlcklate variables store in one mat file
+    [tlckearly] = mous_bfica_parcellate(sourcemodel,tlckearly,newinside);
+    [tlcklate] = mous_bfica_parcellate(sourcemodel,tlcklate,newinside);
+    mous_db_putdata(subjectname,[sourcedata,'_parcelavg'],'tlckearly','tlcklate',rootdir,1);
+  end
+end 
+
 if docombinefreq,
   mous_bfica_sourcedata_combinefreq(subjectname, prefix, freqs, savesuffix);
 end
