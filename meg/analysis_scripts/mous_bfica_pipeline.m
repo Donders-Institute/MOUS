@@ -486,24 +486,24 @@ if dosource_contrasts,
 %% save the results
   suff2 = num2str(round(frequency*10));
   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateRC',suff2], 'tlckearly', 'tlcklate', 'tstatelrc' rootdir, 1);
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateMX',suff2], 'tlckearly', 'tlcklate', 'tstatelmx',rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateRC',suff2], 'tlckearly', 'tlcklate', 'tstatelrc' rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateMX',suff2], 'tlckearly', 'tlcklate', 'tstatelmx',rootdir, 0);
 
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 0);
   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentMXRC',suff2], 'tlcksentMX', 'tlcksentRC',    'tstat', rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentMXRC',suff2], 'tlcksentMX', 'tlcksentRC',    'tstat', rootdir, 0);
   
   if strcmp(subjectname(1),'V')
-    mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff2], 'tlcksentpar', 'stat2sentpar', 'statsentpar', rootdir, 1);
-    mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 1);
+    mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff2], 'tlcksentpar', 'stat2sentpar', 'statsentpar', rootdir, 0);
+    mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 0);
   end
   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqfirstword',suff2], 'tlcksentfirst',    'tlckseqfirst',  'tstatfirst', rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqfirstword',suff2], 'tlcksentfirst',    'tlckseqfirst',  'tstatfirst', rootdir, 0);
   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqtar',       suff2], 'tlcksenttar',    'tlckseqtar',      'tstattar', rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqtar',       suff2], 'tlcksenttar',    'tlckseqtar',      'tstattar', rootdir, 0);
  
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpartar',suff2], 'tlcksentpartar', 'stat2sentpartar', 'statsentpartar', rootdir, 1);
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpartar', suff2], 'tlckseqpartar',  'stat2seqpartar',  'statseqpartar', rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpartar',suff2], 'tlcksentpartar', 'stat2sentpartar', 'statsentpartar', rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpartar', suff2], 'tlckseqpartar',  'stat2seqpartar',  'statseqpartar', rootdir, 0);
 end 
 
 
