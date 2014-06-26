@@ -49,6 +49,7 @@ if interactiveflag
   % do an initial coregistration
   cfg             = [];
   cfg.interactive = 'yes';
+  cfg.coordsys    = 'ctf';
   mri = ft_volumerealign(cfg, mri);
   T   = mri.transform;
 end

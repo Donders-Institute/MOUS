@@ -8,5 +8,6 @@ function [mri, T] = mous_anatomy_coregMNI(mri)
 % do the coregistration
 cfg             = [];
 cfg.interactive = 'yes';
+cfg.coordsys    = 'spm';
 mri = ft_volumerealign(cfg, mri);
 T   = mri.transform;
