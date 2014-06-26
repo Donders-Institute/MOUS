@@ -22,8 +22,9 @@ end
 if nargin < 4
   warning('no parcels (roi) in AAL template specified, all 330 used for analysis')
   roi.savename = 'LR4allparcels';
-elseif nargin == 4
-  roi = varargin{4};
+  roi.index = 1:330;
+elseif nargin >= 4
+  roi = varargin{1};
   if isempty(roi.savename) || isempty(roi.index)
     error('you are missing a filename for saving the statistics on the ROI and/or the indices for the ROIs to be selected');
   end
@@ -31,14 +32,14 @@ end
 
 if nargin < 5
   warning('no foi specified'); 
-elseif naragin == 5
-  foi = varargin{5};
+elseif nargin >= 5
+  foi = varargin{2};
 end
   
 if nargin < 6
   warning('no toi specified');
-elseif nargin == 6
-  toi = varargin{6};
+elseif nargin >= 6
+  toi = varargin{3};
 end
 
 % aal parcellation template
@@ -57,8 +58,8 @@ sourcemodel.inside = lf.newinside;
 dat1 = cell(1,numel(subjectnames));
 dat2 = cell(1,numel(subjectnames));
 
-%% select maximum voxel representing parcel 
-if regexp(sourcedata,'parcelavg')
+%% make parcel
+if regexp(sourcedata,'parcelavg')  % average across voxels in parcel
   for k = 1:numel(subjectnames)
     mous_db_getdata(subjectnames{k},sourcedata,rootdir);  % name has "parcelavg" in it
 
@@ -79,26 +80,77 @@ if regexp(sourcedata,'parcelavg')
     dat2{k} = tlckseq;
   end  % end subject loop
   
+  %subtract baseline  
+  % assumes that dat1/dat2 contain entire trial: bsl until 0.5s
+  ix  = find(dat1{1}.time<=-0.09);  % baseline duration ( (-0.15 &) -0.10): set at -0.09 due to matlab rounding
+  for k = 1:numel(dat1)
+    tmp = dat1{k}.powspctrm;
+    bsl = nanmean(tmp(:,:,ix),3);        % 2D: vox x freq 
+    bsl = repmat(bsl,[1,1,size(tmp,3)]); % repmat on time dimension
+    dat1{k}.powspctrm = (tmp./bsl)-1;   % change to relative difference (on 26 June, decrease effects of 1/f)
+    
+    
+    tmp = dat2{k}.powspctrm;
+    bsl = nanmean(tmp(:,:,ix),3);
+    bsl = repmat(bsl,[1,1,size(tmp,3)]);
+    dat2{k}.powspctrm = (tmp./bsl)-1;
+  end
+  
 else
-  for k = 1:numel(subjectnames)
+  for k = 1:numel(subjectnames)    % use maximum voxel within parcel
     % get data
     mous_db_getdata(subjectnames{k},sourcedata,rootdir); 
-    % get max. voxel list
-    load(['/project/3011020.09/MEG/',subjectnames{k}, filesep,'bfica',filesep,subjectnames{k},'_bfica_sourcedata_voxlist4parcels_330parcels_usingbslVSsentseq0205.mat']);
+    % get maximum voxel list
+    % the voxel position (not it's corresponding index in sourcemodel.inside)
+    frange = sourcedata(29:end);
+    load(['/project/3011020.09/MEG/',subjectnames{k}, filesep,'bfica',filesep,subjectnames{k},'_bfica_sourcedatasentseq_',frange,'_voxlist4parcels_330parcels_usingbslVSsentseq0205.mat']);
+    
+    % post stim
+    if exist('foi','var') || exist('toi','var') % extra if statement needed because if ft_selectdata is called without ingredients, channels get rearranged alphabetically
+      cfg = [];
+      if exist('foi','var')
+        cfg.foilim = foi;
+      end
+      if exist('toi','var')
+        cfg.latency = toi;
+      end   
+      tmpsent = ft_selectdata(cfg, tlcksent);
+      tmpseq  = ft_selectdata(cfg, tlckseq);
+    end
+    
+    % pre stim
+    cfg = [];
+    cfg.latency = [-inf -0.09]; 
+    if exist('foi','var')
+      cfg.foilim = foi;
+    else    
+      bslsent = ft_selectdata(cfg,tlcksent);
+      bslseq  = ft_selectdata(cfg,tlckseq);
+    end 
+   
 
     % list is in order of parcels (1:330); same order for all subjects
-    dat1{k} = tlcksent; 
-    dat2{k} = tlckseq;
+    dat1{k} = tmpsent; 
+    dat2{k} = tmpseq;
 
-    for kk = 1:330 % # parcels  
-      i = find(sourcemodel.inside == voxlist(kk,2));
-      %   tmp = tlcksent.avg(i,:,7:13);
-      %   dat1.powspctrm(k,:,: = mean(tmp(:));
-      dat1{k}.powspctrm(kk,:,:) = tlcksent.avg(i,:,:);
-
-    %   tmp = tlckseq.avg(i,:,7:13);
-    %   dat2.powspctrm = mean(tmp(:));
-      dat2{k}.powspctrm(kk,:,:) = tlckseq.avg(i,:,:); 
+    for kk = 1:numel(roi.index) 
+      % get data for roi
+      i = find(sourcemodel.inside == voxlist(roi.index(kk),2));    
+      dat1{k}.powspctrm(kk,:,:) = tmpsent.avg(i,:,:);
+      dat2{k}.powspctrm(kk,:,:) = tmpseq.avg(i,:,:); 
+      
+      % get bsl for roi
+      bsl1 = nanmean(bslsent.avg(i,:,:),3); % select vox*freq*time, average on time
+      bsl2 = nanmean(bslseq.avg(i,:,:),3); 
+            
+      % subtract bsl
+      tmp = dat1{k}.powspctrm(kk,:,:);
+      bsl1 = repmat(bsl1,[1,1,size(tmp,3)]);  % repmat bsl on time
+      dat1{k}.powspctrm(kk,:,:) = (tmp./bsl1)-1;
+      
+      tmp = dat2{k}.powspctrm(kk,:,:);
+      bsl2 = repmat(bsl2,[1,1,size(tmp,3)]);
+      dat2{k}.powspctrm(kk,:,:) = (tmp./bsl2)-1;
     end 
     
     % remove unnecessary fields
@@ -107,33 +159,21 @@ else
     dat2{k} = rmfield(dat2{k},fd);
     
     % update label for FieldTrip to understand dimord
-    dat1{k}.label = aal.tissuelabel; 
-    dat2{k}.label = aal.tissuelabel; 
+    dat1{k}.label = aal.tissuelabel(roi.index);
+    dat2{k}.label = aal.tissuelabel(roi.index);
     
   end % end subject loop
 end % end type of parcellation choice
 
-%subtract baseline  
-ix = find(dat1{1}.time<=-0.09);  % baseline duration ( (-0.15 &) -0.10): set at -0.09 due to matlab rounding
-for k = 1:numel(dat1)
-  tmp = dat1{k}.powspctrm;
-  bsl = nanmean(tmp(:,:,ix),3);
-  dat1{k}.powspctrm = tmp - repmat(bsl,[1,1,size(tmp,3)]); % subtract baseline (repmat)
-
-  tmp = dat2{k}.powspctrm;
-  bsl = nanmean(tmp(:,:,ix),3);
-  dat2{k}.powspctrm = tmp - repmat(bsl,[1,1,size(tmp,3)]);
-end
 
 % specify empty neighbourhood structure to allow for clustering options
-
 % parameters for stats calculation
 Nsubj = numel(subjectnames);
 cfg = [];
 cfg.statistic = 'depsamplesT';
 cfg.method = 'montecarlo';
 cfg.clusterthreshold = 'parametric';
-cfg.clusteralpha = 0.01;
+cfg.clusteralpha = 0.05;
 cfg.clusterstatistic = 'maxsum';
 % cfg.alpha = 0.05; % default
 cfg.correctm = 'cluster';
@@ -147,10 +187,12 @@ cfg.parameter = 'powspctrm';
 [stat] = ft_freqstatistics(cfg, dat1{:},dat2{:});
 
 savedir = '/project/3011020.09/nielam/groupresults/bfica_parcel/visual/';
-roilabels = tlcksent.label;
 
 if isempty(regexp(sourcedata,'parcelavg'))
-  save([savedir, sourcedata(11:end),'_maxvoxelparcel_',num2str(Nsubj),'subj_',roi.savename],'stat','roilabels');
+  save([savedir, sourcedata(11:end),'_maxvoxelparcel_',num2str(Nsubj),'subj_',roi.savename],'stat','roi');
+else
+  roilabels = tlcksent.label;
+  save([savedir, sourcedata(11:end),'_',num2str(Nsubj),'subj_',roi.savename],'stat','roi','roilabels');
 end
-% save([savedir, sourcedata(11:end),'_',num2str(Nsubj),'subj_',roi.savename],'stat','roi','roilabels');
+
 
