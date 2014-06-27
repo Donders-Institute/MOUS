@@ -239,6 +239,7 @@ if dosource_contrasts,
     %tois = -0.2:0.05:0.8;
 
     tmpfreq = ft_selectdata(freq, 'foilim', frequency*[1 1]+[-0.1 0.1]);
+    % FIXME: don't balance senttrial vs. seqtrials for early-late contrast
     [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8, rootdir);  % compute spatial filter
     sourcedataorig      = mous_bfica_sourcedata(source, tmpfreq, toi(toilop));
     
@@ -486,7 +487,7 @@ if dosource_contrasts,
 %% save the results
   suff2 = num2str(round(frequency*10));
   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateRC',suff2], 'tlckearly', 'tlcklate', 'tstatelrc' rootdir, 0);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateRC',suff2], 'tlckearly', 'tlcklate', 'tstatelrc', rootdir, 0);
   mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateMX',suff2], 'tlckearly', 'tlcklate', 'tstatelmx',rootdir, 0);
 
   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 0);
