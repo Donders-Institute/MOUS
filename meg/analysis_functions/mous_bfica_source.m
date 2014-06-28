@@ -1,4 +1,12 @@
-function [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, res, rootdir)
+function [source, trialinfo] = mous_bfica_source(subjectname, freq, toi, res, rootdir, balance)
+
+if nargin<6
+  % balancing is required for most calculations performed by
+  % mous_makecontrast downstream in the dosource_contrast section of
+  % mous_bfica_pipeline. 
+  % Turn off balancing for the temporal (early/late) by complexity (RC/MIX) analysis 
+  balance = true;
+end
 
 if nargin<5
   rootdir = '/project/3011020.09/jansch/';
@@ -6,6 +14,7 @@ end
 if nargin<4
   res = 10;
 end
+
 
 % Do time slice selection first. In a previous version of the code the
 % selection only took place after balancing for trials, and there was no
@@ -41,9 +50,9 @@ warning off;
 freq = ft_struct2double(freq);
 warning on;
 
-%% corrmnebf doesn't use the following code
-
-if ~isfield(freq, 'calc') 
+%% balancing not done for corrmnebf, and temporal (early/late) by complexity (MX/RC) contrast
+if balance
+    warning('trials are being balanced between sentence and sequence condition.')
     % balance the number of replicates per condition
     % (only sentences versus sequences
     T = freq.trialinfo(:,2);
