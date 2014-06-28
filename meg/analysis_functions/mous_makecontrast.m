@@ -23,6 +23,8 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 %   sent-seqTarget = sentence versus word list, target words
 %   sent-seqFirstword = sentence versus word list, first word
 %   sentMX-sentRC = sentence 'mixed clauses' versus Relative Clauses
+%   early-late    = beginning vs. end of sentence (or word list)
+%   comb-bsl      = sent+seq vs. baseline
 %
 %   wordsent_parametric
 %   wordsent_parametric_blc
@@ -114,9 +116,9 @@ switch contrast
         data             = ft_megplanar(cfg, data);
         
         if any(data.freq>=50)
-          cfg = [];
-          cfg.frequency  = [49 51];
-          tmp = ft_selectdata(cfg, data);
+%           cfg = [];
+%           cfg.frequency  = [49 51];
+          tmp = ft_selectdata(data,'foilim',[49 51]);
           cfg = [];
           cfg.keeptrials = 'yes';
           tmp = ft_freqdescriptives(cfg, tmp);
