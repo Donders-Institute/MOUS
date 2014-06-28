@@ -235,11 +235,62 @@ if dosource_contrasts,
   
   
 %% source estimates for each time point  
-  for toilop = 1:2 %numel(toi)
-    %tois = -0.2:0.05:0.8;
-
+  for toilop = 1:numel(toi)
     tmpfreq = ft_selectdata(freq, 'foilim', frequency*[1 1]+[-0.1 0.1]);
-    % FIXME: don't balance senttrial vs. seqtrials for early-late contrast
+    
+%% sent earlyVSlate contrast: setup trialinfo and reorder it's columns
+    [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8, rootdir,0);  % compute spatial filter
+    sourcedataorig      = mous_bfica_sourcedata(source, tmpfreq, toi(toilop));
+    
+    sourcedataorig.trialinfo(:,end+1:7) = 1; % add dummy columns, they don't mean anything
+    [trial,time,trialinfonew]       = trial2words(sourcedataorig.trial{1},sourcedataorig.trialinfo(:,[1 5 7 2:4 6]),toi(toilop));
+  
+    % match the trials with the trialinfo from the sourcedata file
+    [c, ia, ib] = intersect(trialinfonew(:,1:2), trialinfo(:,[1 5]),'rows');
+    % chop until word offset minus half a time window for the spectral analysis
+    % FIXME
+  
+    sourcedataorig.trialinfo = trialinfonew(ia,:);
+    sourcedataorig.trial = trial(ia);
+    sourcedataorig.time = time(ia);
+    sourcedataorig.fsample = 1; 
+    sourcedata = sourcedataorig;
+    sourcedata = sourcedata;
+  
+    sentid = unique(sourcedata.trialinfo(:,1));       % add new column = total number of words in sentence
+    nwords = zeros(size(sentid,1),size(sentid,2));
+    for kk = 1:numel(sentid)
+      nwords(kk,1) = max(sourcedata.trialinfo(sourcedata.trialinfo(:,1)==sentid(kk),2));
+    end
+    % 1          2            3              4                           5                                6          7 
+    % sentcount  ordinalpstn  word trigger   #smp. relative to 1st word  #smps btw word onset and offset  .wavfile   total num words
+    ncol = size(sourcedata.trialinfo,2);
+    for kk = 1:size(sourcedata.trialinfo,1)
+      sourcedata.trialinfo(kk,ncol+1) = nwords(sentid==sourcedata.trialinfo(kk,1)); 
+    end
+    
+    % (2) reorder columns and remove column 6 (.wav filename)
+    % 1         2            3             4              5                                6
+    % sentence, ordinalpstn, word trigger, total # words, smp# relative to 1st word onset, smp# btw word onset-word offset
+    sourcedata.trialinfo = sourcedata.trialinfo(:,[1 2 3 7 4 5]); 
+    
+    % create two conditions RC and MIX
+    sel = find(ismember(sourcedata.trialinfo(:,3),[1 2]));  %sent MX 
+%     cfg = [];
+%     cfg.trials = sel;
+%     sentMX = ft_selectdata(cfg,sourcedata);
+    sentMX = ft_selectdata(sourcedata,'rpt',sel);
+
+    sel = find(ismember(sourcedata.trialinfo(:,3),[5 6]));  %sent RC
+%     cfg.trials = sel;
+%     sentRC = ft_selectdata(cfg,sourcedata);
+    sentRC = ft_selectdata(sourcedata,'rpt',sel);
+    
+    [tlckearlyMX(toilop), tlcklateMX(toilop), tstatelmx(:,toilop)] = mous_makecontrast(sentMX,'early-late');   
+    [tlckearlyRC(toilop), tlcklateRC(toilop), tstatelrc(:,toilop)] = mous_makecontrast(sentRC,'early-late');
+    
+%% the below contrasts require a balance between number of trials in sent and seq
+
     [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8, rootdir);  % compute spatial filter
     sourcedataorig      = mous_bfica_sourcedata(source, tmpfreq, toi(toilop));
     
@@ -256,40 +307,7 @@ if dosource_contrasts,
     sourcedataorig.time = time(ia);
     sourcedataorig.fsample = 1; 
     sourcedata = sourcedataorig;
-    
-% sent earlyVSlate contrast: setup trialinfo and reorder it's columns
-    sourcedata2 = sourcedata;
-  
-    sentid = unique(sourcedata2.trialinfo(:,1));       % add new column = total number of words in sentence
-    nwords = zeros(size(sentid,1),size(sentid,2));
-    for kk = 1:numel(sentid)
-      nwords(kk,1) = max(sourcedata2.trialinfo(sourcedata2.trialinfo(:,1)==sentid(kk),2));
-    end
-    % 1          2            3              4                           5                                6          7 
-    % sentcount  ordinalpstn  word trigger   #smp. relative to 1st word  #smps btw word onset and offset  .wavfile   total num words
-    ncol = size(sourcedata2.trialinfo,2);
-    for kk = 1:size(sourcedata2.trialinfo,1)
-      sourcedata2.trialinfo(kk,ncol+1) = nwords(sentid==sourcedata2.trialinfo(kk,1)); 
-    end
-    
-    % (2) reorder columns and remove column 6 (.wav filename)
-    % 1         2            3             4              5                                6
-    % sentence, ordinalpstn, word trigger, total # words, smp# relative to 1st word onset, smp# btw word onset-word offset
-    sourcedata2.trialinfo = sourcedata2.trialinfo(:,[1 2 3 7 4 5]); 
-    
-    % create two conditions RC and MIX
-    sel = find(ismember(sourcedata2.trialinfo(:,3),[1 2]));  %sent MX 
-    cfg = [];
-    cfg.trials = sel;
-    sentMX = ft_selectdata(cfg,sourcedata2);
 
-    sel = find(ismember(sourcedata2.trialinfo(:,3),[5 6]));  %sent RC
-    cfg.trials = sel;
-    sentRC = ft_selectdata(cfg,sourcedata2);
-    
-    [tlckearlyMX(toilop), tlcklateMX(toilop), tstatelmx(:,toilop)] = mous_makecontrast(sentMX,'early-late');   
-    [tlckearlyRC(toilop), tlcklateRC(toilop), tstatelrc(:,toilop)] = mous_makecontrast(sentRC,'early-late');
-    
 % dosentvsseq   
     [tlcksent(toilop), tlckseq(toilop),tstat(:,toilop)] = mous_makecontrast(sourcedata,'sent-seq');
 
