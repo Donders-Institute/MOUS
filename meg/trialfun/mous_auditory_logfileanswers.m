@@ -1,7 +1,19 @@
 % This script extracts the SubjectName, QuestionNr and responses from
 % all specified logfiles.
-% updated on 22 May 2014 to reflect and updated set of subjectnames and to
-% correct the code NL
+% written by Manu
+
+% updated code to reflect and updated set of subjectnames and to
+% correct the code NL - 22 May 2014 
+
+% 'AllFiles_Aud_meg' is the final output variable from this script which
+% contains the information from all subjects listed in Allfiles
+% output of most recent subject is in the variable 'QuestionNr'
+% the columns of both variables are as follows:
+%  1    2          3              4
+% [subj  response  .wav filename  sentence type]
+% whereby:
+% response:  1 = incorrect, 0 = correct
+% sentence type:   1 = sentRC;  2 = sentMX, 3 = sequenceRC, 4 = sequenceMX
 
 %% Get responses for single trials
 AllFiles = {'A2001',	'A2002',	'A2003',	'A2004',	'A2005',	'A2006',	'A2007',	'A2008',	'A2009',...
@@ -15,7 +27,10 @@ AllFiles = {'A2001',	'A2002',	'A2003',	'A2004',	'A2005',	'A2006',	'A2007',	'A200
   'A2083',	'A2084',	'A2085',	'A2086',	'A2088',	'A2089',	'A2090',...
   'A2091',	'A2092',	'A2094',	'A2095',	'A2096',	'A2097',	'A2098',	'A2099',...
   'A2101',	'A2102',	'A2103',	'A2104',	'A2105',	'A2106',	'A2108',	'A2109',	'A2110',...
-  'A2111',	'A2112',	'A2113',	'A2114'};
+  'A2111',	'A2112',	'A2113',	'A2114' 'A2115' 'A2116' 'A2117' 'A2118' 'A2119' 'A2120'...
+  'A2121' 'A2122'};
+
+
 
 % N.B. subjects A2001, A2018 had no questions in the MEG experiment because of coding
 % error in Presentation file. 
@@ -70,7 +85,7 @@ for j = 1:length(AllFiles)
             if QuestionNr(R,3) < 204
                 QuestionNr(R,4) = 4;
             elseif QuestionNr(R,3) > 204 && QuestionNr(R,3) < 409
-                QuestionNr(R,4) = 3;
+                QuestionNr(R,4) = 3;.n,m 
             elseif QuestionNr(R,3) > 501 && QuestionNr(R,3) < 704
                 QuestionNr(R,4) = 2;
             elseif QuestionNr(R,3) > 705
