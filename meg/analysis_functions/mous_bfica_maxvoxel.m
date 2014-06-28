@@ -61,14 +61,16 @@ if bslflag
   tmp.avg = tlcksent.avg+tlckseq.avg;  % all values are positive
 
   % subtract baseline from poststim
-  
-  cfg = [];
-  cfg.latency = [-inf -0.09];
-  bsl = ft_selectdata(cfg,tmp);       % prestim (bsl)
-
-  cfg = [];
-  cfg.latency = toi;   
-  sentseq = ft_selectdata(cfg,tmp);   % poststim 
+%   
+%   cfg = [];
+%   cfg.latency = [-inf -0.09];
+%   bsl = ft_selectdata(cfg,tmp);       % prestim (bsl)
+  bsl = ft_selectdata(tmp,'toilim',[-inf -0.09]);
+% 
+%   cfg = [];
+%   cfg.latency = toi;   
+%   sentseq = ft_selectdata(cfg,tmp);   % poststim 
+  sentseq = ft_selectdata(tmp,'toilim',toi);
 
   dat = sentseq;
   bsl = repmat(bsl.avg,[1,1,size(sentseq.avg,3)]);
@@ -100,7 +102,7 @@ if bslflag
   mous_db_putdata(subjectname,[sourcedata,'_bslVSsentseq',toi2],'sentseq','bsl','dat',rootdir,1);
 end 
 
-mous_db_putdata(subjectname,[sourcedata,'_voxlist4parcels_330parcels_usingbslVSsentseq',toi2],'voxlist',rootdir,1);
+mous_db_putdata(subjectname,[sourcedata,'_voxlist4parcels_330parcels_usingbslVSsentseq_absolutebsl',toi2],'voxlist',rootdir,1);
 
 %% check that voxlist is a unique list of voxels 
 % i.e. no voxel should belong to >1 parcel
