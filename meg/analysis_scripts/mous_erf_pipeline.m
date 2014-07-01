@@ -20,6 +20,7 @@ if ~exist('doerf_main',       'var'), doerf_main       = 0;                     
 if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                           end
 if ~exist('doerf_rc',         'var'), doerf_rc         = 0;                           end
 if ~exist('doerf_mix',        'var'), doerf_mix        = 0;                           end
+if ~exist('doerf_rc_onoff',   'var'), doerf_rc_onoff   = 0;                           end
 if ~exist('length',           'var'), length           = '02-nextword';               end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
@@ -38,10 +39,10 @@ if doerf_main
     cfg = [];
     switch condition
       case 'mix'
-        sel = find(ismember(data.trialinfo(:,2),[1 2 3 4]));
+        sel = find(ismember(data.trialinfo(:,2),[5 6 7 8])); % prior to july 1 2014 this was wrong
         cfg.trials = sel;
       case 'rc'
-        sel = find(ismember(data.trialinfo(:,2),[5 6 7 8]));
+        sel = find(ismember(data.trialinfo(:,2),[1 2 3 4]));
         cfg.trials = sel;
     end
     data = ft_selectdata(cfg,data);
@@ -147,7 +148,7 @@ if doerf_rc
   mous_db_getdata(subjectname, inputdata, inrootdir);
   
   % select only sentences from RC condition
-  sel        = find(ismember(data.trialinfo(:,2),[5 6]));
+  sel        = find(ismember(data.trialinfo(:,2),[1 2]));
   cfg.trials = sel;
   data       = ft_selectdata(cfg, data);
   
@@ -217,7 +218,7 @@ if doerf_mix
   mous_db_getdata(subjectname, inputdata, inrootdir);
   
   % select only sentences from 'MIX' condition
-  sel        = find(ismember(data.trialinfo(:,2),[1 2]));
+  sel        = find(ismember(data.trialinfo(:,2),[5 6]));
   cfg.trials = sel;
   data       = ft_selectdata(cfg, data);
   
@@ -280,4 +281,53 @@ if doerf_mix
   mous_db_putdata(subjectname, [inputdata,'_wordsentMIX_early_planar'], 'tlck', outrootdir);
   tlck = tlckp_late;
   mous_db_putdata(subjectname, [inputdata,'_wordsentMIX_late_planar'], 'tlck', outrootdir);
+end
+
+if doerf_rc_onoff
+  % FIXME: currently this only works for visual subjects
+  mous_db_getdata(subjectname, inputdata, inrootdir);
+  
+  % select only sentences from RC condition
+  sel        = find(ismember(data.trialinfo(:,2),[5 6]));
+  cfg.trials = sel;
+  data       = ft_selectdata(cfg, data);
+  
+  % match the stimuli so that the RC onset/offset can be recovered
+  trialinfo = data.trialinfo; % make a local copy
+  sentid    = unique(trialinfo(:,6));
+  
+  load mous_stimuli;
+  for k = 1:numel(sentid)
+  end 
+  
+  
+  
+  
+  % move around the columns in the trialinfo field so that the condition
+  % trigger ends up in the third column and the word ordinal indicator in
+  % the second
+  % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
+  data.trialinfo = data.trialinfo(:,[1 5 2 7 3 4]); % sentence, word, condition, total number of words
+  [tlck_early, tlck_late] = mous_makecontrast(data, 'early-late');
+  
+  tlck = tlck_early;
+  mous_db_putdata(subjectname, [inputdata,'_wordsentRC_early'], 'tlck', outrootdir);
+  tlck = tlck_late;
+  mous_db_putdata(subjectname, [inputdata,'_wordsentRC_late'], 'tlck', outrootdir);
+  
+  % convert to planar
+  cfg        = [];
+  cfg.method = 'distance';
+  neighbours = ft_prepare_neighbours(cfg, data);
+  
+  cfg              = [];
+  cfg.planarmethod = 'sincos';
+  cfg.neighbours   = neighbours;
+  data             = ft_megplanar(cfg, data);
+  [tlckp_early, tlckp_late] = mous_makecontrast(data, 'early-late');
+  
+  tlck = tlckp_early;
+  mous_db_putdata(subjectname, [inputdata,'_wordsentRC_early_planar'], 'tlck', outrootdir);
+  tlck = tlckp_late;
+  mous_db_putdata(subjectname, [inputdata,'_wordsentRC_late_planar'], 'tlck', outrootdir);
 end
