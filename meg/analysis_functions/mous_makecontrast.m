@@ -64,8 +64,8 @@ switch contrast
       sel1 = find(ismember(T,[1 5]) & data.trialinfo(:,2) == 1); 
       sel2 = find(ismember(T,[3 7]) & data.trialinfo(:,2) == 1);   
     elseif strcmp(contrast, 'sentMX-sentRC')
-      sel1 = find(ismember(T,[1 2]));  % mix
-      sel2 = find(ismember(T,[5 6]));  % rc
+      sel1 = find(ismember(T,[1 2]));  % RC
+      sel2 = find(ismember(T,[5 6]));  % MIX
     elseif strcmp(contrast, 'early-late')
       % take words 2 to 4 and n-3 to n-1: NOTE this only works
       % for visual subjects. it assumes the trialinfo field in data to be
