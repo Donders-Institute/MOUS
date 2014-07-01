@@ -70,10 +70,10 @@ if bslflag
 %   cfg = [];
 %   cfg.latency = toi;   
 %   sentseq = ft_selectdata(cfg,tmp);   % poststim 
-  sentseq = ft_selectdata(tmp,'toilim',toi);
-
+  sentseq = ft_selectdata(tmp,'toilim',toi);  % separate variable from dat - available for saving
+  
   dat = sentseq;
-  bsl = repmat(bsl.avg,[1,1,size(sentseq.avg,3)]);
+  bsl = repmat(mean(bsl.avg,3),[1,1,size(dat.avg,3)]);
   dat.avg = abs(((dat.avg)./bsl)-1);
 end 
 
@@ -99,7 +99,8 @@ end     % end parcel loop
 % save
 tmp = num2str(toi(1));   tmp2 = num2str(toi(2));  toi2 = [tmp(1), tmp(3), tmp2(1), tmp2(3)];
 if bslflag 
-  mous_db_putdata(subjectname,[sourcedata,'_bslVSsentseq',toi2],'sentseq','bsl','dat',rootdir,1);
+  contrast = dat;
+  mous_db_putdata(subjectname,[sourcedata,'_bslVSsentseq_absolutebsl',toi2],'sentseq','bsl','contrast',rootdir,1);
 end 
 
 mous_db_putdata(subjectname,[sourcedata,'_voxlist4parcels_330parcels_usingbslVSsentseq_absolutebsl',toi2],'voxlist',rootdir,1);
