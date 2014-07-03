@@ -1,11 +1,14 @@
-function mous_bfica_freqstatistics4parcel(subjectnames,sourcedata,rootdir,varargin) %,varargin{:}) %roi,foi,toi)
+function mous_bfica_freqstatistics4parcel(subjectnames,sourcedata,frange,rootdir,varargin) %,varargin{:}) %roi,foi,toi)
 % Statistical analyses on an AAL-parcellated 8mm grid
 % input = freq data 
 % Input data can come in 2 forms both containing 1 value per parcel i.e.
 % one voxel per parcel
 % (1) average of voxels within a parcel 
+%     this option loads parcellated data
 % (2) maximum voxel within a parcel (subject specific max. voxel)
-% For option 2 see mous_bfica_maxvoxel for details
+%     this option loads voxel data (non-parcellated) and the voxel with the
+%     highest power amongst all voxels belonging to a parcel is selected  
+% For details on how the maximum voxel is chosen see mous_bfica_maxvoxel
 % varargin: 3 possibilities to be entered in a specific order
 % roi: which parcel out of 1 to 330
 % foi: which frequency(ies)
@@ -15,30 +18,30 @@ if nargin < 2
   error('specify sourcedata e.g., "meg_bfica_sourcedatasentseq_low_parcelavg", or "meg_bfica_sourcedatasentseq_low"');
 end 
 
-if nargin < 3
+if nargin < 4
   rootdir = '/project/3011020.09/MEG/';
 end
 
-if nargin < 4
+if nargin < 5
   warning('no parcels (roi) in AAL template specified, all 330 used for analysis')
   roi.savename = 'LR4allparcels';
   roi.index = 1:330;
-elseif nargin >= 4
+elseif nargin >= 5
   roi = varargin{1};
   if isempty(roi.savename) || isempty(roi.index)
     error('you are missing a filename for saving the statistics on the ROI and/or the indices for the ROIs to be selected');
   end
 end
 
-if nargin < 5
+if nargin < 6
   warning('no foi specified'); 
-elseif nargin >= 5
+elseif nargin >= 6
   foi = varargin{2};
 end
   
-if nargin < 6
+if nargin < 7
   warning('no toi specified');
-elseif nargin >= 6
+elseif nargin >= 7
   toi = varargin{3};
 end
 
@@ -61,7 +64,7 @@ dat2 = cell(1,numel(subjectnames));
 %% make parcel
 if regexp(sourcedata,'parcelavg')  % average across voxels in parcel
   for k = 1:numel(subjectnames)
-    mous_db_getdata(subjectnames{k},sourcedata,rootdir);  % name has "parcelavg" in it
+     mous_db_getdata(subjectnames{k},sourcedata,rootdir);  % name has "parcelavg" in it
 
     % select roi,foi,toi (optional)
     cfg = [];
@@ -98,39 +101,65 @@ if regexp(sourcedata,'parcelavg')  % average across voxels in parcel
   
 else
   for k = 1:numel(subjectnames)    % use maximum voxel within parcel
-    % get data
-    mous_db_getdata(subjectnames{k},sourcedata,rootdir); 
-    % get maximum voxel list
-    % the voxel position (not it's corresponding index in sourcemodel.inside)
-    frange = sourcedata(29:end);
-    load(['/project/3011020.09/MEG/',subjectnames{k}, filesep,'bfica',filesep,subjectnames{k},'_bfica_sourcedatasentseq_',frange,'_voxlist4parcels_330parcels_usingbslVSsentseq0205.mat']);
     
-    % post stim
-    if exist('foi','var') || exist('toi','var') % extra if statement needed because if ft_selectdata is called without ingredients, channels get rearranged alphabetically
-      cfg = [];
-      if exist('foi','var')
-        cfg.foilim = foi;
-      end
-      if exist('toi','var')
-        cfg.latency = toi;
-      end   
-      tmpsent = ft_selectdata(cfg, tlcksent);
-      tmpseq  = ft_selectdata(cfg, tlckseq);
+    % sentseq target
+    if ~isempty(regexp(sourcedata,'tar')) && isempty(regexp(sourcedata,'par'))
+      mous_db_getdata(subjectnames{k},sourcedata,rootdir);
+      tlcksent = tlcksenttar;
+      tlckseq  = tlckseqtar; 
+      
+    % sentseq parametric
+    elseif ~isempty(regexp(sourcedata,'par')) && isempty(regexp(sourcedata,'tar'))
+      mous_db_getdata(subjectnames{k},['meg_bfica_sourcedatasentpar_',frange,'_bslabsolute'],rootdir);
+      tlcksent = tlcksentpar;
+      mous_db_getdata(subjectnames{k},['meg_bfica_sourcedataseqpar_',frange,'_bslabsolute'],rootdir);
+      tlckseq  = tlckseqpar;
+      
+    % sentseq target parametric
+    elseif ~isempty(regexp(sourcedata,'par')) && ~isempty(regexp(sourcedata,'tar'))
+      mous_db_getdata(subjectnames{k},['meg_bfica_sourcedatasentpartar_',frange,'_bslabsolute'],rootdir);
+      tlcksent = tlcksentpartar;
+      mous_db_getdata(subjectnames{k},['meg_bfica_sourcedataseqpartar_',frange,'_bslabsolute'],rootdir);
+      tlckseq = tlckseqpartar;  
+    
+    % sent MX vs sentRC 
+    elseif regexp(sourcedata,'sentMXRC')
+      mous_db_getdata(subjectnames{k},sourcedata,rootdir);
+      tlcksent = tlcksentRC;
+      tlckseq  = tlcksentMX;
+    
+    % sentseq allwords contrast
+    else 
+      mous_db_getdata(subjectnames{k},sourcedata,rootdir);
     end
     
-    % pre stim
+    % get maximum voxel list: voxel position (not it's corresponding index in sourcemodel.inside)
+%     load(['/project/3011020.09/MEG/',subjectnames{k}, filesep,'bfica',filesep,subjectnames{k},'_bfica_sourcedatasentseq_',frange,'_voxlist4parcels_330parcels_usingbslVSsentseq_0205.mat']);
+    load(['/project/3011020.09/MEG/',subjectnames{k}, filesep,'bfica',filesep,subjectnames{k},'_bfica_sourcedatasentseq_',frange,'_bslabsolute_voxlist4parcels_330parcels_usingbslVSsentseq_0205.mat']);
+    
+    % post stim
     cfg = [];
-    cfg.latency = [-inf -0.09]; 
     if exist('foi','var')
       cfg.foilim = foi;
-    else    
-      bslsent = ft_selectdata(cfg,tlcksent);
-      bslseq  = ft_selectdata(cfg,tlckseq);
-    end 
-   
+    end
+    if exist('toi','var')
+      cfg.latency = toi;
+    end
+    tmpsent = ft_selectdata(cfg,tlcksent);
+    tmpseq = ft_selectdata(cfg,tlckseq);
 
-    % list is in order of parcels (1:330); same order for all subjects
-    dat1{k} = tmpsent; 
+    % pre stim
+    cfg = [];
+    if exist('foi','var')
+      cfg.foilim = foi;
+    end
+    bslsent = ft_selectdata(cfg,tlcksent);
+    bslseq = ft_selectdata(cfg,tlckseq);
+    
+    % update dat1,dat2 to retain only the necessary parcels
+    % note: voxlist is in order of parcels (1:330); same order for all subjects
+    % set up full data structure (including all fields)
+    dat1{k} = tmpsent;
     dat2{k} = tmpseq;
 
     for kk = 1:numel(roi.index) 
@@ -188,11 +217,12 @@ cfg.parameter = 'powspctrm';
 
 savedir = '/project/3011020.09/nielam/groupresults/bfica_parcel/visual/';
 
+%note if sentMXRC contrast, tlcksent(dat1) = RC, tlckseq(dat2) = MX
 if isempty(regexp(sourcedata,'parcelavg'))
   save([savedir, sourcedata(11:end),'_maxvoxelparcel_',num2str(Nsubj),'subj_',roi.savename],'stat','roi');
 else
   roilabels = tlcksent.label;
-  save([savedir, sourcedata(11:end),'_',num2str(Nsubj),'subj_',roi.savename],'stat','roi','roilabels');
+  save([savedir, sourcedata(11:end),'_parcelavg_',num2str(Nsubj),'subj_',roi.savename],'stat','roi','roilabels');
 end
 
 
