@@ -291,24 +291,36 @@ if domne_earlylate
   
   tlck1 = mous_db_getdata(subjectname, 'meg_erf_allwords_02-nextword_wordsentRC_early');
   tlck2 = mous_db_getdata(subjectname, 'meg_erf_allwords_02-nextword_wordsentRC_late');
+  tlck3 = mous_db_getdata(subjectname, 'meg_erf_allwords_02-nextword_wordsentMIX_early');
+  tlck4 = mous_db_getdata(subjectname, 'meg_erf_allwords_02-nextword_wordsentMIX_late');
   sel   = match_str(tlck1.label, ft_channelselection('MEG', tlck1.label));
   
   tlck1 = ft_selectdata(tlck1, 'toilim', [-inf 0.6]);
   tlck2 = ft_selectdata(tlck2, 'toilim', [-inf 0.6]);
+  tlck3 = ft_selectdata(tlck3, 'toilim', [-inf 0.6]);
+  tlck4 = ft_selectdata(tlck4, 'toilim', [-inf 0.6]);
   
   dat1  = (F*tlck1.avg(sel,:));
   dat2  = (F*tlck2.avg(sel,:));
+  dat3  = (F*tlck3.avg(sel,:));
+  dat4  = (F*tlck4.avg(sel,:));
   ix    = nearest(tlck1.time, 0);
   dat1  = dat1 - repmat(nanmean(dat1(:,1:ix),2),[1 size(dat1,2)]);
   ix    = nearest(tlck2.time, 0);
   dat2  = dat2 - repmat(nanmean(dat2(:,1:ix),2),[1 size(dat2,2)]);
-  dpow  = abs(dat1)-abs(dat2); clear dat1 dat2;
+  ix    = nearest(tlck3.time, 0);
+  dat3  = dat3 - repmat(nanmean(dat3(:,1:ix),2),[1 size(dat3,2)]);
+  ix    = nearest(tlck4.time, 0);
+  dat4  = dat4 - repmat(nanmean(dat4(:,1:ix),2),[1 size(dat4,2)]);
+  dpow  = abs(dat1)-abs(dat2); clear dat1 dat2
+  dpow2 = abs(dat3)-abs(dat4); clear dat3 dat4
   
   source = rmfield(source, 'avg');
   source.avg.pow = dpow;
   mous_db_putdata(subjectname, 'meg_mne_allwords_02-nextword_wordsentRC_early-late', 'source');
-  
-  
+  source.avg.pow = dpow2;
+  mous_db_putdata(subjectname, 'meg_mne_allwords_02-nextword_wordsentMIX_early-late', 'source');
+    
 end
 
 if domne_parcellate

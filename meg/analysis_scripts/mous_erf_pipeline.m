@@ -288,7 +288,7 @@ if doerf_rc_onoff
   mous_db_getdata(subjectname, inputdata, inrootdir);
   
   % select only sentences from RC condition
-  sel        = find(ismember(data.trialinfo(:,2),[5 6]));
+  sel        = find(ismember(data.trialinfo(:,2),[1 2]));
   cfg.trials = sel;
   data       = ft_selectdata(cfg, data);
   
@@ -297,8 +297,28 @@ if doerf_rc_onoff
   sentid    = unique(trialinfo(:,6));
   
   load mous_stimuli;
+  rc_onset = [stimuli(sentid).RConsetword];
+  mc_cont  = [stimuli(sentid).MCcontinuationword];
+  nwords   = mc_cont-rc_onset;
+  
   for k = 1:numel(sentid)
-  end 
+    trialinfo(trialinfo(:,6)==sentid(k),7) = nwords(k); % add a column to keep track of the length of the relative clause
+    trialinfo(trialinfo(:,6)==sentid(k),8) = rc_onset(k);
+    trialinfo(trialinfo(:,6)==sentid(k),9) = mc_cont(k);
+  end
+  
+  sel = false(size(trialinfo,1),1);
+  for k = 1:numel(sentid)
+    tmp = find(trialinfo(:,6)==sentid(k)&(trialinfo(:,5)==rc_onset(k)|trialinfo(:,5)==mc_cont(k)));
+    if ~isempty(tmp)
+      sel(tmp)=true;
+    end
+  end
+  data.trialinfo = trialinfo;
+  
+  cfg = [];
+  cfg.trials = find(sel);
+  data       = ft_selectdata(cfg, data);
   
   
   
