@@ -23,11 +23,20 @@ sent  = ft_getopt(varargin, 'sent');
 seq   = ft_getopt(varargin, 'seq');
 cfg   = ft_getopt(varargin, 'cfg', []);
 
+if ~iscell(suffix)
+  suffix = {suffix};
+  % suffix was either a single string or a 2-element cell-array
+  % in case it was a string, the assumption was that it contains 'sent' and
+  % the other condition is assumed to have 'sent' replaced with 'seq'.
+  % in case it was a cell-array, it's more generic, where the first element
+  % is condition 1 and the second condition 2
+end
+
 if isempty(sent) || isempty(seq)
   
   % load in the data
   for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, suffix, rootdir);
+    mous_db_getdata(subj{k}, suffix{1}, rootdir);
     if ~exist('source', 'var')
       %HACK
       source = stat;
@@ -59,7 +68,12 @@ if isempty(sent) || isempty(seq)
     sent{k} = tmp;
     clear source;
     
-    mous_db_getdata(subj{k}, strrep(suffix,'sent','seq'), rootdir);
+    if numel(suffix)>1
+      suffix2 = suffix{2};
+    else
+      suffix2 = strrep(suffix{1},'sent', 'seq');
+    end
+    mous_db_getdata(subj{k}, suffix2, rootdir);
     if ~exist('source', 'var')
       %HACK
       source = stat;
