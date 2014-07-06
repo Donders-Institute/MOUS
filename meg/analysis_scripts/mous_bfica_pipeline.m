@@ -288,7 +288,7 @@ if dosource_contrasts,
 %% the below contrasts require a balance between number of trials in sent and seq
 % 
     % balance between conditions
-    T = sourcedata.trialinfo(:,2);
+    T = sourcedata.trialinfo(:,3);
     sel1 = find(ismember(T, [1 2 5 6])); n1 = numel(sel1);
     sel2 = find(ismember(T, [3 4 7 8])); n2 = numel(sel2);
 
@@ -308,10 +308,10 @@ if dosource_contrasts,
 %     [tlcksentMX(toilop), tlcksentRC(toilop), tstatmxrc(:,toilop)] = mous_makecontrast(sourcedata,'sentMX-sentRC');
 % 
 % % wordsentpar2
-    if strcmp(subjectname(1),'V')     
+%     if strcmp(subjectname(1),'V')     
 %       [tlcksentpar(toilop),statsentpar(toilop),stat2sentpar(toilop)] = mous_makecontrast(sourcedata, 'wordsent_parametric');
-      [tlckseqpar(toilop),statseqpar(toilop),stat2seqpar(toilop)] = mous_makecontrast(sourcedata, 'wordseq_parametric');
-    end
+%       [tlckseqpar(toilop),statseqpar(toilop),stat2seqpar(toilop)] = mous_makecontrast(sourcedata, 'wordseq_parametric');
+%     end
 %   
 % % firstword - user <0s for baseline computation
 %     [tlcksentfirst(toilop),tlckseqfirst(toilop),tstatfirst(:,toilop)] = mous_makecontrast(sourcedata,'sent-seqFirstword');   
@@ -403,7 +403,7 @@ if dosource_contrasts,
 %   tlckseqtar(1).time = cat(2,tlckseqtar(:).time);
 %   tlckseqtar         = tlckseqtar(1); 
 %    
-  if strcmp(subjectname(1),'V')
+%   if strcmp(subjectname(1),'V')
 %     tlcksentpar(1).avg = cat(2,tlcksentpar(:).avg);           % tlcksentpar (all)
 %     tlcksentpar(1).var = cat(2,tlcksentpar(:).var);
 %     tlcksentpar(1).dof = cat(2,tlcksentpar(:).dof);
@@ -412,14 +412,14 @@ if dosource_contrasts,
 %     tlcksentpar(1).trial2 = cat(3,tlcksentpar(:).trial2);
 %     tlcksentpar           = tlcksentpar(1);
 % 
-    tlckseqpar(1).avg = cat(2,tlckseqpar(:).avg);             % tlckseqpar (all)
-    tlckseqpar(1).var = cat(2,tlckseqpar(:).var);
-    tlckseqpar(1).dof = cat(2,tlckseqpar(:).dof);
-    tlckseqpar(1).time = cat(2,tlckseqpar(:).time);
-    tlckseqpar(1).trial = cat(3,tlckseqpar(:).trial);
-    tlckseqpar(1).trial2 = cat(3,tlckseqpar(:).trial2);
-    tlckseqpar           = tlckseqpar(1);
-  
+%     tlckseqpar(1).avg = cat(2,tlckseqpar(:).avg);             % tlckseqpar (all)
+%     tlckseqpar(1).var = cat(2,tlckseqpar(:).var);
+%     tlckseqpar(1).dof = cat(2,tlckseqpar(:).dof);
+%     tlckseqpar(1).time = cat(2,tlckseqpar(:).time);
+%     tlckseqpar(1).trial = cat(3,tlckseqpar(:).trial);
+%     tlckseqpar(1).trial2 = cat(3,tlckseqpar(:).trial2);
+%     tlckseqpar           = tlckseqpar(1);
+%   
 %   
 %     statsentpar(1).stat = cat(2,statsentpar(:).stat);         % statsentpar(all)
 %     statsentpar(1).prob = cat(2,statsentpar(:).prob);
@@ -435,20 +435,20 @@ if dosource_contrasts,
 %     stat2sentpar(1).cirange = cat(2,stat2sentpar(:).cirange);
 %     stat2sentpar            = stat2sentpar(1);
 % 
-    statseqpar(1).stat = cat(2,statseqpar(:).stat);           % statseqpar(all)
-    statseqpar(1).prob = cat(2,statseqpar(:).prob);
-    statseqpar(1).mask = cat(2,statseqpar(:).mask);
-    statseqpar(1).time = cat(2,statseqpar(:).time);
-    statseqpar(1).cirange = cat(2,statseqpar(:).cirange);
-    statseqpar            = statseqpar(1);
-
-    stat2seqpar(1).stat = cat(2,stat2seqpar(:).stat);         % stat2seqpar(all)
-    stat2seqpar(1).prob = cat(2,stat2seqpar(:).prob);
-    stat2seqpar(1).mask = cat(2,stat2seqpar(:).mask);
-    stat2seqpar(1).time = cat(2,stat2seqpar(:).time);
-    stat2seqpar(1).cirange = cat(2,stat2seqpar(:).cirange);
-    stat2seqpar            = stat2seqpar(1);
-  end
+%     statseqpar(1).stat = cat(2,statseqpar(:).stat);           % statseqpar(all)
+%     statseqpar(1).prob = cat(2,statseqpar(:).prob);
+%     statseqpar(1).mask = cat(2,statseqpar(:).mask);
+%     statseqpar(1).time = cat(2,statseqpar(:).time);
+%     statseqpar(1).cirange = cat(2,statseqpar(:).cirange);
+%     statseqpar            = statseqpar(1);
+% 
+%     stat2seqpar(1).stat = cat(2,stat2seqpar(:).stat);         % stat2seqpar(all)
+%     stat2seqpar(1).prob = cat(2,stat2seqpar(:).prob);
+%     stat2seqpar(1).mask = cat(2,stat2seqpar(:).mask);
+%     stat2seqpar(1).time = cat(2,stat2seqpar(:).time);
+%     stat2seqpar(1).cirange = cat(2,stat2seqpar(:).cirange);
+%     stat2seqpar            = stat2seqpar(1);
+%   end
 % 
 %   tlcksentpartar(1).avg = cat(2,tlcksentpartar(:).avg);     % tlcksentpartar
 %   tlcksentpartar(1).var = cat(2,tlcksentpartar(:).var);
@@ -507,7 +507,7 @@ if dosource_contrasts,
 %   
 %   if strcmp(subjectname(1),'V')
 %     mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpar',suff2], 'tlcksentpar', 'stat2sentpar', 'statsentpar', rootdir, 1);
-    mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 1);
+%     mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpar', suff2], 'tlckseqpar',  'stat2seqpar',  'statseqpar', rootdir, 1);
 %   end
 %   
 %   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseqfirstword',suff2], 'tlcksentfirst',    'tlckseqfirst',  'tstatfirst', rootdir, 1);
