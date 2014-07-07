@@ -63,7 +63,7 @@ for k = 1:Nsubj
     mous_db_getdata(subj{k}, ['meg_bfica_',suffix{1}], rootdir);
     if isempty(findx), findx = 1; end
     
-    statsentpar.stat = squeeze(statsentpar.stat(:,findx,:));
+    statsentpar.stat = squeeze(nanmean(statsentpar.stat(:,findx,:),2));
     if numel(findx)==1 && isfield(tlcksentpar, 'freq'), 
       tlcksentpar = rmfield(tlcksentpar, 'freq'); 
       statsentpar = rmfield(statsentpar, 'freq');
@@ -122,7 +122,7 @@ for k = 1:Nsubj
     % JM's original code uses a cell array of strings for the input
     % argument suffix
     mous_db_getdata(subj{k}, ['meg_bfica_',suffix{2}], rootdir);
-    statseqpar.stat = squeeze(statseqpar.stat(:,findx,:));
+    statseqpar.stat = squeeze(nanmean(statseqpar.stat(:,findx,:),2));
     if numel(findx)==1 && isfield(tlckseqpar, 'freq'), 
       tlckseqpar = rmfield(tlckseqpar, 'freq');
       statseqpar = rmfield(statseqpar, 'freq');
