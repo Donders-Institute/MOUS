@@ -1,6 +1,21 @@
 function [stat, Nsubj, avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics(subj, suffix, baselineflag, cfg, rootdir, findx)
 
+% This function computes source-level statistics for sentseq(tar) contrasts
+% suffix is a struct consisting of the components of the sourcedata being
+% used in the contrast:
+% suffix.wordtype = 'sentseq' or 'sentseqtar';
+% suffix.oscband  = 'low', 'medium', or 'high';
+% suffix.extra    = 'parcelavg','bslabsolute'...
+% suffix.selfreq  = [low high];
+% suffix.avg      = 'no'  or 'yes';  - option to average across selected frequencies 
+% baselineflag:  1 = pre-word,  2 = pre-sentence
+
+% cfg = options for ft_sourcestatistics
+% rootdir = '/project/3011020.09/MEG/'
+% findx  = index in the frequency dimension of the data (a JM option)
+
 suffixstruct = isstruct(suffix);
+Nsubj   = numel(subj);
 
 if nargin<6
   findx = [];
@@ -21,43 +36,43 @@ if strcmp(cfg.correctm, 'cluster')
   cfg.clusterthreshold = ft_getopt(cfg, 'clusterthreshold', 'nonparametric_individual');
 end
 
-Nsubj   = numel(subj);
-
 if nargin<5
     rootdir = '/project/3011020.09/jansch/';
 end 
-%rootdir = '/home/language/jansch/public/mous';
+
+% load sourcemodel
 [p,n,e] = fileparts(which('mous_anatomy_sourcemodel3D'));
 load([p(1:end-18),'templates/sourcemodel/standard_sourcemodel3d8mm']);
 sourcemodeltemplate = sourcemodel;
 
 for k = 1:Nsubj
- if k==1
+  if k==1
     mous_db_getdata(subj{k}, 'meg_bfica_leadfield8mm', rootdir);
     sourcemodel = rmfield(sourcemodel, 'leadfield');
     if isfield(sourcemodel, 'cfg')
       sourcemodel = rmfield(sourcemodel, 'cfg');
     end
- end
+  end
  
  clear -regexp tlcksent tlckseq  % can be used for tlcksent or tlcksenttar!
   
-  % select frequency
-  
-  if suffixstruct && isfield(suffix,'selfreq') 
+  %% select dataset by frequency(low/medium/high)
+  if suffixstruct
     % Nietz's code suffix inarg is a struct
-    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype, suffix.oscband], rootdir);
-    if strcmp(suffix.avg,'no')
-      tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
-      tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
-    elseif strcmp(suffix.avg, 'yes'); % average across frequencies
-      tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
-      tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
-    end 
-    tlcksent.avg = squeeze(tlcksent.avg);
-    tlcksent.var = squeeze(tlcksent.var);
-    tlckseq.avg = squeeze(tlckseq.avg);
-    tlckseq.var = squeeze(tlckseq.var); 
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.sourcedata], rootdir);
+    if isfield(suffix,'selfreq') 
+      if strcmp(suffix.avg,'no')
+        tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
+        tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
+      elseif strcmp(suffix.avg, 'yes'); % average across frequencies
+        tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
+        tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
+      end 
+      tlcksent.avg = squeeze(tlcksent.avg);
+      tlcksent.var = squeeze(tlcksent.var);
+      tlckseq.avg = squeeze(tlckseq.avg);
+      tlckseq.var = squeeze(tlckseq.var);
+    end
   
   else
     % JM's code usings suffix inarg that is made up of a cell array of strings
@@ -72,16 +87,14 @@ for k = 1:Nsubj
     end
   end
   
-  % rename variables
-  % When analysing target words (tlcksenttar, tlckseqtar) this avoids
-  % having to create 2 scripts with identical function but diff varname.
+  %% rename variables: can reuse same script
   if exist('tlcksenttar','var')
     tlcksent = tlcksenttar;
     tlckseq  = tlckseqtar;
     clear -vars tlcksenttar tlckseqtar
   end 
   
-
+  %% create data structure for statististics
   sourcemodel.time = tlckseq.time;  
   if isfield(tlckseq, 'freq') && ndims(tlckseq.avg) == 3 % this dimord is wrong for stats on only 1 freq (selected from matrix of source x freq x time)
     sourcemodel.freq  = tlckseq.freq;
@@ -97,7 +110,7 @@ for k = 1:Nsubj
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
   else 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
-  end 
+  end
   tmp(newinside,:,:)    = sourcemodel.avg.pow; % 'newinside' is a variable that loads along with the leadfield.
   sourcemodel.avg.pow = tmp;
   seq{k}         = sourcemodel;
@@ -116,7 +129,7 @@ for k = 1:Nsubj
   sent{k}.pos    = sourcemodeltemplate.pos;
 end
 
-% do a baseline subtraction
+%% baseline subtraction
 if baselineflag == 2            % pre-sentence baseline 
     [bslsen bslseq] = mous_make_presentencebsl(subj,suffix.oscband,rootdir);
     if isfield(tlckseq,'freq')  % for 3D data matrix
@@ -161,7 +174,7 @@ if baselineflag  == 1
 end
 
   
-% compute cumulative sum and ssq + determine the inside for all
+%% compute cumulative sum and ssq + determine the inside for all
 for k = 1:Nsubj
   if k==1
     sumsent = sent{k}.avg.pow;
@@ -194,6 +207,7 @@ avgseq  = sumseq./Nsubj;
 varseq  = (ssqseq - sumseq.^2./Nsubj)./(Nsubj-1);
 semseq  = sqrt(varseq./Nsubj);
 
+%% stats
 % cfg = [ ];  % keep cfg from inarg
 cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
