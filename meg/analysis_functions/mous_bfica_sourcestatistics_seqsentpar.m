@@ -44,52 +44,102 @@ for k = 1:Nsubj
   clear -regexp tlcksentpar statsentpar stat2sentpar  % for target/allword variables
   
   % select frequency
-  if suffixstruct && isfield(suffix,'selfreq') 
-    % Nietzsche's code uses a structure for the input argument suffix
-    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{1}], rootdir);
+  if suffixstruct && isfield(suffix,'selfreq') % Nietzsche's code uses a structure for the input argument suffix
+    
+    % get data 
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{1}], rootdir);     
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{2}], rootdir);
+
+    if regexp(suffix.wordtype{1},'tar')  % rename variable if necessary
+      statsentpar = statsentpartar;
+      statseqpar  = statseqpartar;
+    end
+    
+       %%% frequency (and averaging) selection
     if strcmp(suffix.avg,'no')
-      statsentpar = ft_selectdata(statsentpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
+      statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq);
+      statseqpar  = ft_selectdata(statseqpar,'foilim',suffix.selfreq);
     elseif strcmp(suffix.avg, 'yes'); % average across frequencies
-      statsentpar = ft_selectdata(statsentpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
+      statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq,'avgoverfreq','yes');
+      statseqpar = ft_selectdata(statseqpar,'foilim',suffix.selfreq,'avgoverfreq','yes');
     end 
+    
+    % prestim    
+    bsltoi = [-inf -0.09];
+    bslsent = ft_selectdata(statsentpar,'toilim',bsltoi);
+    bslseq = ft_selectdata(statseqpar,'toilim',bsltoi);
+
+    % poststim
+    % time selection
+    if isfield(suffix,'toi')
+      statsentpar = ft_selectdata(statsentpar,'toilim',suffix.toi);
+      statseqpar = ft_selectdata(statseqpar,'toilim',suffix.toi);
+    end
+    % squeeze data
     statsentpar.stat = squeeze(statsentpar.stat);
     statsentpar.prob = squeeze(statsentpar.prob);
     statsentpar.mask = squeeze(statsentpar.mask);
     statsentpar.cirange = squeeze(statsentpar.cirange);
     
+    statseqpar.stat = squeeze(statseqpar.stat);
+    statseqpar.prob = squeeze(statseqpar.prob);
+    statseqpar.mask = squeeze(statseqpar.mask);
+    statseqpar.cirange = squeeze(statseqpar.cirange);
+    
+    bslsent.stat = squeeze(bslsent.stat);
+    bslseq.stat = squeeze(bslseq.stat);
+   
   else
     % JM's original code uses a cell array of strings for the input
     % argument suffix
     mous_db_getdata(subj{k}, ['meg_bfica_',suffix{1}], rootdir);
     if isempty(findx), findx = 1; end
-    
+    % sentences
     statsentpar.stat = squeeze(nanmean(statsentpar.stat(:,findx,:),2));
     if numel(findx)==1 && isfield(tlcksentpar, 'freq'), 
       tlcksentpar = rmfield(tlcksentpar, 'freq'); 
       statsentpar = rmfield(statsentpar, 'freq');
     end
     
+    % sequences
+    mous_db_getdata(subj{k}, ['meg_bfica_',suffix{2}], rootdir);
+    statseqpar.stat = squeeze(nanmean(statseqpar.stat(:,findx,:),2));
+    if numel(findx)==1 && isfield(tlckseqpar, 'freq'), 
+      tlckseqpar = rmfield(tlckseqpar, 'freq');
+      statseqpar = rmfield(statseqpar, 'freq');
+    end
   end
   
-  % rename variables
-  % When analysing target words (tlcksentpartar, tlckseqpartar) this avoids
-  % having to create 2 scripts with identical function but diff varname.
-  if exist('tlcksentpartar','var')
-    tlcksentpar   = tlcksentpartar;
-    statsentpar   = statsentpartar;
-    stat2sentpar  = stat2sentpartar;
-    clear -vars tlcksentpartar statsentpartar stat2sentpartar
+  
+  %% baseline subtraction
+  if baselineflag
+    if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3 % if 3D matrix
+        tmp = statsentpar.stat;
+        statsentpar.stat = tmp - repmat(nanmean(bslsent.stat,3),[1,1,size(tmp,3)]); % subtract baseline (repmat)
+
+        tmp = statseqpar.stat;
+        statseqpar.stat = tmp - repmat(nanmean(bslseq.stat,3),[1,1,size(tmp,3)]); 
+    else 
+        tmp = statsentpar.stat;
+        statsentpar.stat = tmp - nanmean(bslsent.stat,2)*ones(1,size(tmp,2));
+
+        tmp = statseqpar.stat;
+        statseqpar.stat = tmp - nanmean(bslseq.stat,2)*ones(1,size(tmp,2));
+    end
   end 
-   
-  sourcemodel.time = tlcksentpar.time;
-  if isfield(tlcksentpar, 'freq') && ndims(statsentpar.stat) == 3 
-    sourcemodel.freq  = tlcksentpar.freq;
+  
+  %% update dimord
+  sourcemodel.time = statsentpar.time;
+  if isfield(statsentpar, 'freq') && ndims(statsentpar.stat) == 3 
+    sourcemodel.freq  = statsentpar.freq;
     sourcemodel.dimord = 'pos_freq_time';
   else
     sourcemodel.dimord = 'pos_time';
   end
   
-% no log transform
+  %% create data structure for statistics (no log transform)
+
+  % seNTences
   sourcemodel.avg.pow = statsentpar.stat;% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
   %tmp                 = zeros(prod(sourcemodel.dim), numel(sourcemodel.time));
   if isfield(statsentpar,'freq') && ndims(statsentpar.stat) == 3
@@ -101,44 +151,9 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = tmp; 
   dat{k}         = sourcemodel;
   dat{k}.pos     = sourcemodeltemplate.pos;
-  
-  %% sequences
-  clear -regexp tlckseqpar statseqpar stat2seqpar
-  
-  
-  if suffixstruct && isfield(suffix,'selfreq') 
-    mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{2}], rootdir);
-    if strcmp(suffix.avg,'no')
-      statseqpar = ft_selectdata(statseqpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
-    elseif strcmp(suffix.avg, 'yes'); % average across frequencies
-      statseqpar = ft_selectdata(statseqpar,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
-    end 
 
-    statseqpar.stat = squeeze(statseqpar.stat);
-    statseqpar.prob = squeeze(statseqpar.prob);
-    statseqpar.mask = squeeze(statseqpar.mask);
-    statseqpar.cirange = squeeze(statseqpar.cirange);
-  else
-    % JM's original code uses a cell array of strings for the input
-    % argument suffix
-    mous_db_getdata(subj{k}, ['meg_bfica_',suffix{2}], rootdir);
-    statseqpar.stat = squeeze(nanmean(statseqpar.stat(:,findx,:),2));
-    if numel(findx)==1 && isfield(tlckseqpar, 'freq'), 
-      tlckseqpar = rmfield(tlckseqpar, 'freq');
-      statseqpar = rmfield(statseqpar, 'freq');
-    end
-  end
-  
-  if exist('tlckseqpartar','var')
-    tlckseqpar   = tlckseqpartar;
-    statseqpar   = statseqpartar;
-    stat2seqpar  = stat2seqpartar;
-    clear -vars tlcksentpartar statsentpartar stat2sentpartar
-  end 
-  
-  
-  sourcemodel.time = tlckseqpar.time;
-
+  % seQuences
+  sourcemodel.time = statseqpar.time;
   sourcemodel.avg.pow = statseqpar.stat;
   if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
@@ -149,32 +164,8 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = tmp;
   dat2{k}         = sourcemodel;
   dat2{k}.pos     = sourcemodeltemplate.pos;
-end
 
-% do a baseline subtraction
-if baselineflag
-  ix = find(dat{k}.time<=-0.1);  % define toi for baseline
-  if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3 % if 3D matrix
-    for k = 1:numel(dat)
-      tmp = dat{k}.avg.pow;
-      
-      bsl = nanmean(tmp(:,:,ix),3);
-      dat{k}.avg.pow = tmp - repmat(bsl,[1,1,size(tmp,3)]); % subtract baseline (repmat)
-
-      tmp = dat2{k}.avg.pow;
-      bsl = nanmean(tmp(:,:,ix),3);
-      dat2{k}.avg.pow = tmp - repmat(bsl,[1,1,size(tmp,3)]); % subtract baseline (repmat)
-    end
-  else 
-    for k = 1:numel(dat)
-      tmp = dat{k}.avg.pow;
-      dat{k}.avg.pow = tmp - nanmean(tmp(:,ix),2)*ones(1,size(tmp,2));
-
-      tmp = dat2{k}.avg.pow;
-      dat2{k}.avg.pow = tmp - nanmean(tmp(:,ix),2)*ones(1,size(tmp,2));
-    end
-  end
-end
+end % end subject loop
 
 cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
