@@ -54,7 +54,6 @@ for k = 1:Nsubj
     end
   end
  
- clear -regexp tlcksent tlckseq  % can be used for tlcksent or tlcksenttar!
   
   %% select dataset by frequency(low/medium/high)
   if suffixstruct
@@ -71,11 +70,11 @@ for k = 1:Nsubj
     %%% frequency (and averaging) selection
     if isfield(suffix,'selfreq') 
       if strcmp(suffix.avg,'no')
-        tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
-        tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)]);
+        tlcksent = ft_selectdata(tlcksent,'foilim',suffix.selfreq);
+        tlckseq = ft_selectdata(tlckseq,'foilim',suffix.selfreq);
       elseif strcmp(suffix.avg, 'yes'); % average across frequencies
-        tlcksent = ft_selectdata(tlcksent,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
-        tlckseq = ft_selectdata(tlckseq,'foilim',[suffix.selfreq(1) suffix.selfreq(2)],'avgoverfreq','yes');
+        tlcksent = ft_selectdata(tlcksent,'foilim',suffix.selfreq,'avgoverfreq','yes');
+        tlckseq = ft_selectdata(tlckseq,'foilim',suffix.selfreq,'avgoverfreq','yes');
       end 
     end
     
@@ -92,11 +91,15 @@ for k = 1:Nsubj
     end
     % cannot squeeze data before baseline has been selected, otherwise
     % ft_selectdata cannot correct select timepoints
-    if isfield(suffix,'selfreq')
+    
+    if isfield(suffix,'selfreq') && suffix.selfreq(1) == suffix.selfreq(2)
       tlcksent.avg = squeeze(tlcksent.avg);
       tlcksent.var = squeeze(tlcksent.var);
       tlckseq.avg = squeeze(tlckseq.avg);
       tlckseq.var = squeeze(tlckseq.var);
+      
+      bslsent.avg = squeeze(bslsent.avg);
+      bslseq.avg = squeeze(bslseq.avg);
     end
    
   else
@@ -117,37 +120,33 @@ for k = 1:Nsubj
   if baselineflag == 2            % pre-sentence baseline 
      [bslsen bslseq] = mous_make_presentencebsl(subj,suffix.oscband,rootdir);
       if isfield(tlckseq,'freq')  % for 3D data matrix
-        for k = 1:numel(sent)
           tmp = tlcksent.avg;
           tlcksent.avg  = tmp - repmat(bslsen{k},[1,1,size(tmp,3)]);
 
           tmp = tlckseq.avg;
           tlckseq.avg  = tmp - repmat(bslseq{k},[1,1,size(tmp,3)]);
-        end
       else   % FIXME:  for 2D data matrix
-        for k = 1:numel(sent)
           tmp = tlcksent.avg;
           tlcksent.avg = tmp - bslsen{k}.avg.pow*ones(1,size(tmp,2));
 
           tmp = tlckseq.avg;
           tlckseq.avg = tmp -  bslseq{k}.avg.pow*ones(1,size(tmp,2));
-        end
       end
   end
   if baselineflag  == 1
     % for 3D matrix: chan_freq_time (where chan = source)
     if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3     
-          tmp = tlcksent.avg;
-          tlcksent.avg = tmp - repmat(nanmean(bslsent.avg,2),[1,1,size(tmp,3)]); % subtract baseline (repmat)
+      tmp = tlcksent.avg;
+      tlcksent.avg = tmp - repmat(nanmean(bslsent.avg,3),[1,1,size(tmp,3)]); % subtract baseline (repmat)
 
-          tmp = tlckseq.avg;
-          tlckseq.avg = tmp - repmat(nanmean(bslseq.avg,2),[1,1,size(tmp,3)]);
+      tmp = tlckseq.avg;
+      tlckseq.avg = tmp - repmat(nanmean(bslseq.avg,3),[1,1,size(tmp,3)]);
     % for 2D matrix: chan_time  (single freq)
     else                         
-          tmp = tlcksent.avg;
-          tlcksent.avg = tmp - nanmean(bslsent.avg,2)*ones(1,size(tmp,2));
-          tmp = tlckseq.avg;
-          tlckseq.avg = tmp - nanmean(bslseq.avg,2)*ones(1,size(tmp,2));
+      tmp = tlcksent.avg;
+      tlcksent.avg = tmp - nanmean(bslsent.avg,2)*ones(1,size(tmp,2));
+      tmp = tlckseq.avg;
+      tlckseq.avg = tmp - nanmean(bslseq.avg,2)*ones(1,size(tmp,2));
     end
   end
  
@@ -230,6 +229,8 @@ cfg.ivar = 1;
 cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
 stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
+
+k = 1;
 
 
 % Commented out because this functions wasn't written to take into account
