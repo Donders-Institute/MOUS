@@ -74,7 +74,7 @@ badsubjects = {'V1014';'V1018';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'
 % considered as a task dataset by the heuristic. Therefore they are hard coded 
 % A2052 is an exception, no crash happened, but the first recording was
 % very bad so we started again.
-cannotdetectdatasetsubjects = {'A2052';'A2062';'A2063'};
+cannotdetectdatasetsubjects = {'A2052';'A2062';'A2063';'A2115'};
 
 
           
