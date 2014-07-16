@@ -63,6 +63,7 @@ for k = 1:Nsubj
   % baseline (pre-word; select first because cdtn then becomes toi specific)
   if bzflag == 1
     bsl = ft_selectdata(cdtn, 'toilim',[-inf -0.09]);
+    bsl.avg = nanmean(bsl.avg,3);
   end
   
   if isfield(suffix,'toi')
@@ -106,7 +107,7 @@ for k = 1:Nsubj
   if bzflag == 1
     sourcemodel.avg.pow = bsl.avg;
     sourcemodel.time    = cdtn.time;  %% fool ft_sourcestatistics (need same # time points)
-    if isfield(tlckseq,'freq')
+    if isfield(bsl,'freq') && ndims(cdtn.avg) == 3 
       tmp = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
     else
       tmp = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
@@ -138,18 +139,14 @@ for k = 1:Nsubj
   if k==1
     sumact      = act{k}.avg.pow;  
     ssqact      = act{k}.avg.pow.^2;
-    if bzflag == 1
-      sumbslorzero  = bslorzero{k}.avg.pow;
-      ssqbslorzero  = bslorzero{k}.avg.pow.^2;
-    end
+    sumbslorzero  = bslorzero{k}.avg.pow;
+    ssqbslorzero  = bslorzero{k}.avg.pow.^2;
     allinside   = act{k}.inside;
   else
     sumact      = sumact + act{k}.avg.pow;
     ssqact      = ssqact + act{k}.avg.pow.^2;
-    if bzflag == 1
-      sumbslorzero  = sumbslorzero  + bslorzero{k}.avg.pow;  
-      ssqbslorzero  = ssqbslorzero  + bslorzero{k}.avg.pow.^2;
-    end
+    sumbslorzero  = sumbslorzero  + bslorzero{k}.avg.pow;  
+    ssqbslorzero  = ssqbslorzero  + bslorzero{k}.avg.pow.^2;
     allinside = intersect(allinside, act{k}.inside);
   end  
 end
@@ -158,10 +155,8 @@ alloutside = setdiff(1:size(act{1}.pos,1), allinside);
 for k = 1:Nsubj
   act{k}.inside = allinside(:)';
   act{k}.outside = alloutside(:)';
-  if bzflag == 1
-    bslorzero{k}.inside  = allinside(:)';
-    bslorzero{k}.outside = alloutside(:)';
-  end
+  bslorzero{k}.inside  = allinside(:)';
+  bslorzero{k}.outside = alloutside(:)';
 end
 
 % compute mean per condition and sem
@@ -169,12 +164,11 @@ avgact = sumact./Nsubj;
 varact = (ssqact - sumact.^2./Nsubj)./(Nsubj-1);
 semact = sqrt(varact./Nsubj);
 
-if bzflag == 1
-  avgbslorzero  = sumbslorzero./Nsubj;
-  varbslorzero  = (ssqbslorzero - sumbslorzero.^2./Nsubj)./(Nsubj-1);
-  sembslorzero  = sqrt(varbslorzero./Nsubj);
-end
+avgbslorzero  = sumbslorzero./Nsubj;
+varbslorzero  = (ssqbslorzero - sumbslorzero.^2./Nsubj)./(Nsubj-1);
+sembslorzero  = sqrt(varbslorzero./Nsubj);
 
+%% stats
 % cfg = [ ];  % keep cfg from inarg
 % FIXME: does data for 'act' and ' bslorzero'  need to have same time
 % parameters?
