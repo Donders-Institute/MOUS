@@ -19,6 +19,8 @@ if bslflag == 1
   savebsl = 'prewordbsl';
 elseif bslflag == 2;
   savebsl = 'presenbsl';
+elseif bslflag == 3;
+  savebsl = 'zero';
 end
 
 % statistical test parameters 
@@ -117,7 +119,7 @@ elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentvbz')) || ~isempty(strf
   end
   warning('testing condition (sent or seq) against %s',bz)
   [stat,Nsubj,avgact,avgbslcdtn,semact,sembslcdtn] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
-  save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffixfreq,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgact','avgbslcdtn','semact','sembslcdtn','-v7.3');    
+  save([savedir,mod,suffix.sourcedata(1:end-2),savebsl,'_',suffixfreq,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgact','avgbslcdtn','semact','sembslcdtn','-v7.3');    
 
 % sentences only RC vs MX.
 elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentRCMX'))
