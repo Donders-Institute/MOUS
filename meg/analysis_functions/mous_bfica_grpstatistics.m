@@ -106,8 +106,16 @@ elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentseqpar'))
   [stat,Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subjectnames, suffix, 1, cfg, rootdir);
   save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffixfreq,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','-v7.3');  
 
-% condition vs. bsl
-elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentvbsl')) || ~isempty(strfind(suffix.sourcedata,'sourcedataseqvbsl'))
+% condition vs. bsl/zero  - use flag
+elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentvbz')) || ~isempty(strfind(suffix.sourcedata,'sourcedataseqvbz'))
+  if bslflag == 1
+    bz = 'pre-word bsl';
+  elseif bslflag == 2
+    bz = 'pre-sent bsl';
+  elseif bslflag == 3
+    bz = 'zero';
+  end
+  warning('testing condition (sent or seq) against %s',bz)
   [stat,Nsubj,avgact,avgbslcdtn,semact,sembslcdtn] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
   save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffixfreq,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgact','avgbslcdtn','semact','sembslcdtn','-v7.3');    
 
