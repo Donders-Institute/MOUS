@@ -7,6 +7,7 @@ function mous_bfica_grpstatistics(subjectnames,suffix,bslflag)
 % suffix.selfreq: [min max] 
 % if selfreq is specified, then specify if need averaging
 % suffix.avg = 'yes' or 'no';
+% suffix.toi: [min max]
 
   
 rootdir = '/project/3011020.09/MEG/';
@@ -38,17 +39,20 @@ else
   error('subject type is not visual or auditory');
 end
 
-% determine frequency choice, and place in savename
+% determine frequency choice, and update choice in savename
 if isfield(suffix,'selfreq')
   if suffix.selfreq(1) == suffix.selfreq(2)
     suffixfreq = [num2str(suffix.selfreq(1)),'Hz'];
   elseif suffix.selfreq(1) ~= suffix.selfreq(2)
     suffixfreq = [num2str(suffix.selfreq(1)),'to',num2str(suffix.selfreq(2)),'Hz'];
-      if strcmp(suffix.avg,'yes')
-        suffixfreq = [suffixfreq,'avg'];
-      end
+  end
+  if isfield(suffix,'avg') && strcmp(suffix.avg,'yes')
+    suffixfreq = [suffixfreq,'avg'];
+  else
+    suffix.avg = 'no';
   end
 end
+
 if isfield(suffix,'toi')
   a = num2str(suffix.toi(1)); a = [a(1) a(3)];
   b = num2str(suffix.toi(2)); b = [b(1) b(3)];
