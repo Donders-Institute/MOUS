@@ -236,7 +236,7 @@ if dosource_contrasts,
   
 %% source estimates for each time point  
   for toilop = 1:numel(toi)
-   
+    warning('on toilop %d',toilop);
     tmpfreq = ft_selectdata(freq, 'foilim', frequency*[1 1]+[-0.1 0.1]);
     
     [source, trialinfo] = mous_bfica_source(subjectname, tmpfreq, toi(toilop), 8, rootdir,0);  % compute spatial filter
@@ -272,7 +272,8 @@ if dosource_contrasts,
     % (2) reorder columns and remove column 6 (.wav filename)
     % 1         2            3             4              5                                6
     % sentence, ordinalpstn, word trigger, total # words, smp# relative to 1st word onset, smp# btw word onset-word offset
-    sourcedata2.trialinfo = sourcedata2.trialinfo(:,[1 2 3 7 4 5]); 
+    sourcedata2.trialinfo = sourcedata2.trialinfo(:,[1 2 3 7 4 5]);
+    sourcedata2.trialinfo(:,7) = (sourcedata2.trialinfo(:,1)*10)+sourcedata2.trialinfo(:,2);
     
     % create two conditions RC and MIX
     sel = find(ismember(sourcedata2.trialinfo(:,3),[1 2]));  %sent RC [sen: 1 2  seq: 3 4] 
@@ -280,7 +281,79 @@ if dosource_contrasts,
 
     sel = find(ismember(sourcedata2.trialinfo(:,3),[5 6]));  %sent MX [sen: 5 6  seq: 7 8]
     sentMX = ft_selectdata(sourcedata2,'rpt',sel);
+    
+    % balance the number of words for each word position (balance # trials  between RC and MIX
+    tmp = unique(sentRC.trialinfo(:,2));
+    tmp2 = unique(sentMX.trialinfo(:,2));
+    matchedpstn = min(numel(tmp),numel(tmp2));  
+    
+    % remove additional word position from the condition that has more
+    % gurantees that the same word positions used for n-1, n-2 and n-3
+    % FIXME: remove - not necessary
+    if min(numel(tmp) ~= numel(tmp2))
+       sel = find(sentRC.trialinfo(:,2) ~= matchedpstn+1);
+       sentRC = ft_selectdata(sentRC,'rpt',sel);  
+       
+       sel = find(sentMX.trialinfo(:,2) ~= matchedpstn+1);
+       sentMX = ft_selectdata(sentMX,'rpt',sel);
+    end
+    
+    % Match the number of trials at each word position
+    % the 'early-late' contrast is done only for 2,3,4th and n-4,3,2nd word
+    % Within a frequency range, retain same trial across frequencies, at each time point
+    
+    if (frequency == 2.5 || frequency == 12 || frequency == 36) % FIXME:  some subjects dont have data at 36Hz
+      if toilop == 1   % If first frequency in each freqrange set variables
+      RCb4 = sentRC;   % all words before matching
+      MXb4 = sentMX;    
+      
+      selRC = cell(1,numel(toi)); % create memory for storing trials
+      selMX = cell(1,numel(toi));
+      end 
+    
+      % In current timepoint, for the lowest frequency in each range    
+      % record which trials are used for each word position
+      % allows subsequent freqs (in same freqrange) to use same trials at
+      % each timepoint.
+      for q = 1:matchedpstn
+        % equate number of trials for each condition
+        sel1 = find(sentRC.trialinfo(:,2) == q);  n1 = numel(sel1);
+        sel2 = find(sentMX.trialinfo(:,2) == q);  n2 = numel(sel2);
+        n = min(n1,n2);
+        tmp1 = randperm(n1);
+        tmp2 = randperm(n2);
 
+        % select trials for each condition
+        iRC = sel1(sort(tmp1(1:n)));
+        iMX = sel2(sort(tmp2(1:n)));
+
+        if q == 1
+          iRCall = iRC;  iMXall = iMX;
+        else
+          iRCall = [iRCall; iRC];
+          iMXall = [iMXall; iMX];
+        end
+      end % loop for word position
+
+      selRC{toilop} = sort(iRCall);  
+      selMX{toilop} = sort(iMXall);
+
+      if toilop == numel(toi) % at final timepoint of first freq in each freqrange, store trial selection
+       mous_db_putdata(subjectname,['meg_bfica_',suff,'_earlylateRCMX_matchtrialsel'],'selRC','selMX',rootdir,1);
+      end
+    end
+        
+    % if not the first frequency of each frequency range, load trial selection
+    if (frequency > 2.5 || frequency > 12 || frequency > 36) && toilop == 1 
+      % load pre-created trial selection once: at first time point 
+        mous_db_getdata(subjectname,['meg_bfica_',suff,'_earlylateRCMX_matchtrialsel'],rootdir);
+    end
+    
+    % selected trials for each condition (matched across cdtns)
+    sentRC = ft_selectdata(sentRC,'rpt',selRC{toilop});
+    sentMX = ft_selectdata(sentMX,'rpt',selMX{toilop});
+    
+        
     [tlckearlyRC(toilop), tlcklateRC(toilop), tstatelrc(:,toilop)] = mous_makecontrast(sentRC,'early-late');
     [tlckearlyMX(toilop), tlcklateMX(toilop), tstatelmx(:,toilop)] = mous_makecontrast(sentMX,'early-late');   
 
@@ -288,18 +361,18 @@ if dosource_contrasts,
 %% the below contrasts require a balance between number of trials in sent and seq
 % 
     % balance between conditions
-    T = sourcedata.trialinfo(:,3);
-    sel1 = find(ismember(T, [1 2 5 6])); n1 = numel(sel1);
-    sel2 = find(ismember(T, [3 4 7 8])); n2 = numel(sel2);
-
-    n = min(n1,n2);
-    tmp1 = randperm(n1);
-    tmp2 = randperm(n2);
-    sel1 = sel1(sort(tmp1(1:n)));
-    sel2 = sel2(sort(tmp2(1:n)));
-
-    sel = [sel1(:);sel2(:)];
-    sourcedata = ft_selectdata(sourcedata, 'rpt', sel);
+%     T = sourcedata.trialinfo(:,3);
+%     sel1 = find(ismember(T, [1 2 5 6])); n1 = numel(sel1);
+%     sel2 = find(ismember(T, [3 4 7 8])); n2 = numel(sel2);
+% 
+%     n = min(n1,n2);
+%     tmp1 = randperm(n1);
+%     tmp2 = randperm(n2);
+%     sel1 = sel1(sort(tmp1(1:n)));
+%     sel2 = sel2(sort(tmp2(1:n)));
+% 
+%     sel = [sel1(:);sel2(:)];
+%     sourcedata = ft_selectdata(sourcedata, 'rpt', sel);
 %     
 % % dosentvsseq   
 %     [tlcksent(toilop), tlckseq(toilop),tstat(:,toilop)] = mous_makecontrast(sourcedata,'sent-seq');
@@ -427,7 +500,7 @@ if dosource_contrasts,
 %     statsentpar(1).time = cat(2,statsentpar(:).time);
 %     statsentpar(1).cirange = cat(2,statsentpar(:).cirange);
 %     statsentpar            = statsentpar(1);
-% 
+% % 
 %     stat2sentpar(1).stat = cat(2,stat2sentpar(:).stat);       % stat2sentpar(all)
 %     stat2sentpar(1).prob = cat(2,stat2sentpar(:).prob);
 %     stat2sentpar(1).mask = cat(2,stat2sentpar(:).mask);
@@ -498,8 +571,8 @@ if dosource_contrasts,
 %% save the results
   suff2 = num2str(round(frequency*10));
   
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateRC',suff2], 'tlckearlyRC', 'tlcklateRC', 'tstatelrc', rootdir, 1);
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateMX',suff2], 'tlckearlyMX', 'tlcklateMX', 'tstatelmx',rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateRC','_matched_',suff2], 'tlckearlyRC', 'tlcklateRC', 'tstatelrc', rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateMX','_matched_',suff2], 'tlckearlyMX', 'tlcklateMX', 'tstatelmx',rootdir, 1);
 
 %   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 1);
 %   
