@@ -1,21 +1,19 @@
 function mous_crossmeasuredata(subjectname, param)
 
+% parameters needed 
 
-%ffxinput, fmrioutput, outdir)
 % 
-% if nargin<2 
-%   rootdir = '/project/3011020.09/MEG';
-% end
+% param.ffxinput  % name of the fmri contrast to be interpolated e.g.
+                  % 'con_ZinnenLTIBI_LinearIncrease_V1001' N.b. must include subject number% 
+% param.ffxpath   % path for the fmri data
+% param.megsheet  % name of meg mne data file computed on cortical sheet.
+%                 % desired for the interpollation e.g. 'meg_processed_{_mne_allwords_02-nextword_sent}';
+%
+% param.fmrioutput  % name of output file e.g. 'meg_megmri_{sentLTibi_LinInce_interpol}'; 
+% param.outdir      % path for output e.g. '/project/3011020.09/annhul'; 
 
-% get the functional MRI data
-% Julias naming scheme
-% file = [param.ffxpath subjectname param.ffxinput]; 
-% Huberts naming scheme
-% FIXME JM: to keep the code flexible, consider allocating the filename of the
-% contrast image outside the function, i.e. rather than coding it in the
-% param input argument, just pass a separate argument that provides the
-% filename, or alternatively use param.mrifilename and param.megfilename
-file = [param.ffxpath  param.ffxinput subjectname '.img']; 
+
+file = [param.ffxpath  param.ffxinput '.img']; 
 
 mri        = ft_read_mri(file, 'format', 'analyze_img');
 mri.inside = isfinite(mri.anatomy); % ensure that voxels without data will not be used in the interpolation
