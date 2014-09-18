@@ -5,27 +5,24 @@ function  mous_samplecount(subjectname,datasegmenter,artifactsel,saveartifact)
 % (1) number of samples
 % (2) number of trials, for each conditions (sent and word list)
 
-% datasegmenter: 'bfica_rawprocsamplediff_trialfunword' or '...trialfunsent'
+% datasegmenter: 'meg_artifact_rawprocsamplediff_trialfunword' or '...trialfunsent'
 % artifactsel:
 
-if strcmp(subjectname(1),'V')
-  rootdir = '/project/3011020.09/MEG';
-elseif strcmp(subjectname(1),'A')
-  rootdir = '/project/3011020.09/nielam';
-end
 
+rootdir = '/project/3011020.09/MEG';
+  
 % define trial for RAW data and get sample information
 dataset = mous_db_getfilename(subjectname,'meg_raw_task',0,'/project/3011020.09/MEG');
 
 % load detected artifact(s) and combine raw datasets if necessary
 if numel(dataset)>1
-  for k = 1:numel(dataset)
+  for k = 2:numel(dataset)
     tmpdataset   = dataset{k};
     mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);  % separate artifact cfg for each task file
     tmpartfctcfg = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
-    [trlpre trlpost] = compute_data(tmpdataset, tmpartfctcfg,subjectname,datasegmenter);
+    [trlpre trlpost] = compute_data(tmpdataset, tmpartfctcfg,subjectname,datasegmenter,artifactsel);
     
-    if k==1,
+    if k==2,
       pre = trlpre;
       post = trlpost;
     else
