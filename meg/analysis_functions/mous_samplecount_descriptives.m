@@ -1,13 +1,11 @@
 function mous_samplecount_descriptives(subjectnames,datasegmenter,artifactsel)
-% datasegmenter = 'artifact_rawprocsamplediff_trialfunword' or '...trialfunsent'
+% datasegmenter = 'meg_artifact_rawprocsamplediff_trialfunword' or '...trialfunsent'
+% artifactsel = [1 1 1 1]; % process for all 4 types of of artifacts in
+% order of bjsm.
 
 
-% rootdir
-if strcmp(subjectnames{1}(1),'V')  
-  rootdir = '/project/3011020.09/MEG/';
-else
-  rootdir = '/project/3011020.09/nielam/';
-end 
+rootdir = '/project/3011020.09/MEG/';
+
 
 % savename 
 artnames = {'b','s','j','m'};
@@ -20,14 +18,17 @@ for k = 1:numel(tmp)
   end
 end
     
-% [f,s] = mous_db_getfilename(subjectnames,datasegmenter,0,rootdir);
-% ns = find(s==0);
-% if numel(f(ns)) ~= 0
-%   subsubj = subjectnames(ns);
+[f,s] = mous_db_getfilename(subjectnames,[datasegmenter,'_',saveartifact],0,rootdir);
+ns = find(s==0);
+if numel(f(ns)) ~= 0
+  orisubj = subjectnames;
+  subjectnames = subjectnames(ns);
   for q = 1:numel(subjectnames)
     mous_samplecount(subjectnames{q},datasegmenter,artifactsel,saveartifact);
   end
-% end
+  subjectnames = orisubj;
+end
+
 
 % savedir 
 savedir = '/project/3011020.09/nielam/groupresults/sample_difference/';
