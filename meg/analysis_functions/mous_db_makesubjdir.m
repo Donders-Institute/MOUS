@@ -20,7 +20,7 @@ if nargin<3
 end
 
 if isempty(subdir)
-  subdir = {'anatomy';'erf';'tfr';'corrmnebf';'mne';'bfica';'RAW';'artifact';'test';'other';'qualitycheck';'headposition';'restingstate'};
+  subdir = {'anatomy';'erf';'tfr';'corrmnebf';'mne';'bfica';'RAW';'artifact';'test';'other';'qualitycheck';'headposition';'restingstate';'megmri';};
 end
 
 if ischar(subdir)
