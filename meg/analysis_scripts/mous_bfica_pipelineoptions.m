@@ -29,11 +29,11 @@ if ~exist('dowordsentpar2',         'var'), dowordsentpar2         = 0; end
 if ~exist('dowordseqpar2',          'var'), dowordseqpar2          = 0; end
 if ~exist('docleanup',              'var'), docleanup              = 0; end
 if ~exist('dosource_contrasts',     'var'), dosource_contrasts     = 0; end
-if ~exist('doparcel_source2sens',   'var'), doparcelaverage        = 0; end
+if ~exist('doparcel_source2sens',   'var'), doparcel_source2sens    = 0; end
 if ~exist('docombinefreq',          'var'), docombinefreq          = 0; end
 
 % set the rootdir variable
-if ~exist('rootdir', 'var'), rootdir = '/home/language/jansch/public/mous/'; end 
+if ~exist('rootdir', 'var'), rootdir = '/project/3011020.09/MEG'; end 
 
 % set some defaults that are needed for some parts of the pipeline
 if ~exist('suff', 'var'),      suff      = ''; end
