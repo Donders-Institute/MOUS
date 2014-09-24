@@ -55,7 +55,7 @@ end
 for k = 1:numel(data)
   data{k} = ft_selectdata(data{k}, 'channel', ft_channelselection('MEG', data{k}.label));
 end
-nrow = floor(sqrt(numel(data)));
+nrow = ceil(sqrt(numel(data)));
 ncol = ceil(sqrt(numel(data)));
 
 
