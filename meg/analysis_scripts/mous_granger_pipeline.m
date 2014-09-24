@@ -20,6 +20,7 @@ if ~exist('dogranger_seq',  'var'), dogranger_seq  = 0; end
 if ~exist('dogranger_sub',  'var'), dogranger_sub  = 0; end
 if ~exist('dogranger_sub2',  'var'), dogranger_sub2  = 0; end
 if ~exist('dogranger_earlylate', 'var'), dogranger_earlylate = 0; end
+if ~exist('dograngerpow_earlylate', 'var'), dograngerpow_earlylate = 0; end
 if ~exist('dopow_sub2',     'var'), dopow_sub2     = 0; end
 
 if dopreproc
@@ -394,8 +395,7 @@ if dogranger_earlylate
   cfg.method   = 'granger';
   cfg.granger.sfmethod = 'bivariate';
   cfg.granger.checkconvergence = false;
-  g            = ft_connectivityanalysis(cfg, csd_all);
-  g            = ft_checkdata(g, 'cmbrepresentation', 'full');
+   g            = ft_checkdata(g, 'cmbrepresentation', 'full');
   
   warning off; g = ft_struct2single(g); warning on;
   mous_db_putdata(subjectname, 'meg_granger_granger_sent_early', 'g', rootdir);
@@ -464,6 +464,66 @@ if dogranger_earlylate
   warning off; g = ft_struct2single(g); warning on;
   mous_db_putdata(subjectname, 'meg_granger_granger_seq_late', 'g', rootdir);
 
+end
+
+if dograngerpow_earlylate
+  
+  % do pairwise-parcel power estimation
+  mous_db_getdata(subjectname, 'meg_granger_csd_sent_early', rootdir);
+  mous_db_getdata(subjectname, 'meg_granger_parcellation',   rootdir);
+  sel = find(~cellfun(@isempty, parcellation.filter));
+  tmp = parcellation.filter(sel);
+  for k = 1:numel(tmp)
+    F(k,:) = tmp{k}(1,:);
+  end
+   
+  csd_all   = ft_struct2double(csd_sent_early); clear csd_sent_early;
+  powspctrm = zeros(size(F,1),256); % anecdotally this speeds up the fft
+  for k = 1:size(powspctrm,2)
+    powspctrm(:,k) = abs(diag(F*csd_all.crsspctrm(:,:,k)*F'));
+  end
+  pow.powspctrm = powspctrm;
+  pow.label     = parcellation.label(sel);
+  pow.freq      = csd_all.freq(1:256);
+  pow_sent_early = pow;
+  
+  mous_db_getdata(subjectname, 'meg_granger_csd_sent_late', rootdir);
+  csd_all   = ft_struct2double(csd_sent_late); clear csd_sent_late;
+  powspctrm = zeros(size(F,1),256); % anecdotally this speeds up the fft
+  for k = 1:size(powspctrm,2)
+    powspctrm(:,k) = abs(diag(F*csd_all.crsspctrm(:,:,k)*F'));
+  end
+  pow.powspctrm = powspctrm;
+  pow.label     = parcellation.label(sel);
+  pow.freq      = csd_all.freq(1:256);
+  pow_sent_late = pow;
+  
+  mous_db_getdata(subjectname, 'meg_granger_csd_seq_early', rootdir);
+  mous_db_getdata(subjectname, 'meg_granger_parcellation',   rootdir);
+  csd_all   = ft_struct2double(csd_seq_early); clear csd_seq_early;
+  crsspctrm = zeros(size(F,1),size(F,1),256); % anecdotally this speeds up the fft
+  powspctrm = zeros(size(F,1),256); % anecdotally this speeds up the fft
+  for k = 1:size(powspctrm,2)
+    powspctrm(:,k) = abs(diag(F*csd_all.crsspctrm(:,:,k)*F'));
+  end
+  pow.powspctrm = powspctrm;
+  pow.label     = parcellation.label(sel);
+  pow.freq      = csd_all.freq(1:256);
+  pow_seq_early = pow;
+  
+  mous_db_getdata(subjectname, 'meg_granger_csd_seq_late', rootdir);
+  csd_all   = ft_struct2double(csd_seq_late); clear csd_seq_late;
+  powspctrm = zeros(size(F,1),256); % anecdotally this speeds up the fft
+  for k = 1:size(powspctrm,2)
+    powspctrm(:,k) = abs(diag(F*csd_all.crsspctrm(:,:,k)*F'));
+  end
+  pow.powspctrm = powspctrm;
+  pow.label     = parcellation.label(sel);
+  pow.freq      = csd_all.freq(1:256);
+  pow_seq_late  = pow;
+  
+  mous_db_putdata(subjectname, 'meg_granger_pow_earlylate', 'pow_sent_early', 'pow_sent_late', 'pow_seq_early', 'pow_seq_late', rootdir);
+  
 end
 
 if dogranger_sent
