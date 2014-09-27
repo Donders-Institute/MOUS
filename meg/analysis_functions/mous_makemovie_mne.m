@@ -43,7 +43,7 @@ parcellation   = ft_getopt(varargin, 'parcellation', []);
 parcelparameter = ft_getopt(varargin, 'parcellationparameter', 'parcellation');     
 hemimode       = ft_getopt(varargin, 'hemisphere', 'both');
 viewmode       = ft_getopt(varargin, 'viewmode',   'both');
-textstringbase = ft_getopt(varargin, 'textstring', 'time = ');
+textstringbase = ft_getopt(varargin, 'textstring', 'time = ', 1);
 textstringparameter = ft_getopt(varargin, 'textstringparameter', 'time');
 makecolorbar = ft_getopt(varargin, 'colorbar', 0);
 xparam       = ft_getopt(varargin, 'xparam', 'time');
@@ -59,10 +59,12 @@ if ~isfield(source, xparam)
 end
 
 %% deal with xlim and zlim
-if isempty(xlim)
+if isempty(xlim) && numel(source.(xparam))>1
   dtime  = mean(diff(source.(xparam)));
   xlim   = source.(xparam) - dtime/2;
   xlim(end+1) = source.(xparam)(end) + dtime/2;
+elseif numel(source.(xparam))==1
+  xlim = [1 1];
 end
 
 if isempty(zlim)
@@ -80,6 +82,8 @@ if ~isempty(parcellation)
   end
   if plotroi
     roiidx = unparcellate((1:numel(source.label))', parcellation, source.label, parcelparameter);
+  else
+    roiidx = [];
   end
 else
   data = getsubfield(source, parameter);
@@ -88,6 +92,7 @@ else
   else
     mask = [];
   end
+  roiidx = [];
 end
 [mask, opacitylim, opacitymap] = handle_mask(mask, opacitylim, opacitymap); 
 if isempty(mask), mask = zeros(size(data))+0.5; end
@@ -266,19 +271,13 @@ end
 % Close the file.
 close(vidObj);
 
-close all;
+if numel(xlim)==2,
+  % Save a png as well
+  savepng(frames.cdata, [filename,'.png']);
+else
+  close all;   
+end
 
-% function fun = unparcellate(data, parcellation, parameter)
-% 
-% tmp = getsubfield(data, parameter);
-% fun = zeros(size(parcellation.pos, 1), size(tmp, 2));
-% for k = 1:numel(data.label)
-%   sel = match_str(parcellation.parcellationlabel, data.label{k});
-%   if ~isempty(sel)
-%     sel = parcellation.parcellation==sel;
-%     fun(sel,:) = repmat(tmp(k,:), [sum(sel) 1]);
-%   end
-% end
 
 function [newtri] = tri_reindex(tri)
 
