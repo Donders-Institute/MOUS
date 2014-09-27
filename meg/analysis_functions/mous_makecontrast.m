@@ -66,17 +66,14 @@ switch contrast
     elseif strcmp(contrast, 'sentMX-sentRC')
       sel1 = find(ismember(T,[5 6]));  % MIX
       sel2 = find(ismember(T,[1 2]));  % RC
+    elseif strcmp(contrast,'RCend-RCafter')
+      [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
     elseif strcmp(contrast, 'early-late')
       % take words 2 to 4 and n-3 to n-1: NOTE this only works
-      % for visual subjects. it assumes the trialinfo field in data to be
-      % organized as: sentence, ordinal word, condition, total number of
-      % words
-      
-      % early
-      sel1 = find(ismember(data.trialinfo(:,2),[2 3 4]));
-      
-      % late
-      sel2 = find(ismember(data.trialinfo(:,4)-data.trialinfo(:,2),[1 2 3]));
+      % for visual subjects. Assume trialinfo organized as:
+      % sentence, ordinal word, condition, total number of words
+      sel1 = find(ismember(data.trialinfo(:,2),[2 3 4]));                     % early
+      sel2 = find(ismember(data.trialinfo(:,4)-data.trialinfo(:,2),[1 2 3])); % late
     end
     
     if numel(sel1)~=numel(sel2) % balance numtrials btw sent and seq
@@ -103,7 +100,24 @@ switch contrast
           dat1 = cat(2,data.trial{sel1});
           dat2 = cat(2,data.trial{sel2});
           Tstat = yuent(dat1,dat2,0.2,2);
-          varargout{3} = Tstat;
+          if ~strcmp(contrast,'RCend-RCafter')
+            varargout{3} = Tstat;
+          else
+            varargout{5} = Tstat;
+            dat1 = cat(2,data.trial{sel3});
+            dat2 = cat(2,data.trial{sel4});
+            Tstat = yuent(dat1,dat2,0.2,2);
+            varargout{6} = Tstat;
+          end
+        end
+        
+        if strcmp(contrast,'RCend-RCafter')
+          cfg.trials = sel3;
+          tlck3      = ft_timelockanalysis(cfg,data);
+          cfg.trials = sel4;
+          tlck4      = ft_timelockanalysis(cfg,data);
+          varargout{3} = tlck3;
+          varargout{4} = tlck4;        
         end
       case 'freq'
         % convert to planar
