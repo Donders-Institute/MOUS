@@ -79,7 +79,7 @@ else
 end
 
 fprintf('putting data to file %s\n', filename);
-if ft_datatype(data, 'volume')
+if isstruct(data) && ft_datatype(data, 'volume')
   % save volumetric data as nifti
   cfg           = [];
   cfg.filetype  = 'nifti';

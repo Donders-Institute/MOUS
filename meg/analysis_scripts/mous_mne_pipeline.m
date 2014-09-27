@@ -1,8 +1,11 @@
 if ~exist('domne_main',       'var'), domne_main       = 0; end
 if ~exist('domne_parametric', 'var'), domne_parametric = 0; end
 if ~exist('domne_parcellate', 'var'), domne_parcellate = 0; end
+if ~exist('domne_parcellate2', 'var'), domne_parcellate2 = 0; end
 if ~exist('domne_denoise', 'var'),    domne_denoise    = 0; end
 if ~exist('dodspm', 'var'),           dodspm           = 0; end     
+if ~exist('domne_earlylate', 'var'), domne_earlylate = 0; end
+
 
 if ~exist('rootdir', 'var')
   rootdir = '/project/3011020.09/MEG';
@@ -425,5 +428,50 @@ if domne_denoise
   tlck.trial = cleantrial;
   tlck.avg   = cleandat;
   mous_db_putdata(subjectname, [suffix,'_denoised'], 'tlck', rootdir);
+end
+
+if domne_parcellate2
+  % this part assumes that it can use precomputed MNE filters, and that the
+  % filters have been computed on the same data as the one that will be
+  % projected
+  
+  if ~exist('suffix_erfdata', 'var')
+    suffix_erfdata = 'meg_erf_allwords_02-nextword-allwords-ag';
+  end
+  mous_db_getdata(subjectname, suffix_erfdata);%, rootdir);
+  tlck = senWord_AG;
+  sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
+  sel2 = 1:nearest(tlck.time, 0.6);
+  tlck.label = tlck.label(sel);
+  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
+  if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
+  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
+  tlck.time = tlck.time(sel2);
+  tlcksent = tlck;
+  
+  %tlck= mous_db_getdata(subjectname, strrep(suffix_erfdata,'sent','seq'));%, rootdir);
+  tlck = seqWord_AG;
+  sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
+  sel2 = 1:nearest(tlck.time, 0.6);
+  tlck.label = tlck.label(sel);
+  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
+  if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
+  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
+  tlck.time = tlck.time(sel2);
+  tlckseq = tlck;
+  
+  parcellation = mous_mne_makeparcellation(subjectname, 200);
+  
+  mous_db_getdata(subjectname, 'meg_mne_allwords_02-nextword_sent');
+  tlcksent = mous_mne_parcellate(source,tlcksent,parcellation, 'svdmethod', 'projectavg');
+  tlckseq  = mous_mne_parcellate(source,tlckseq, parcellation, 'svdmethod', 'projectavg');
+
+  if ~exist('suffix_output', 'var')
+    error('you need to specify the file suffix for the output data');
+  end
+  tlck = tlcksent;
+  mous_db_putdata(subjectname, suffix_output, 'tlck', 'parcellation', rootdir);
+  tlck = tlckseq;
+  mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', 'parcellation', rootdir);
 end
 

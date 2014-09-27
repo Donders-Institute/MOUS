@@ -22,7 +22,7 @@ if dofreq,
         options.resamplefs = 300;
         options.t_ftimwin  = ones(1,numel(frequency))*0.4;
         freq= mous_bfica_freq(subjectname, frequency, rootdir, options);
-        mous_db_putdata(subjectname, ['meg_bfica_freq' suff], 'freq', rootdir,1);
+         mous_db_putdata(subjectname, ['meg_bfica_freq' suff], 'freq', rootdir,1);
 
     elseif strcmp(suff,'_medium')
 

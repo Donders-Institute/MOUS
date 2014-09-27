@@ -176,7 +176,7 @@ switch contrast
         tlck = tmp;
         tlck.trial  = shiftdim(tlck.avg,-1);
         tlck.trial2 = shiftdim(tlck.dof(1,:),-1); %!!!! keep track of the dof
-      else
+      elseif uXword(k)<13
         tlck.trial(uXword(k),:,1:size(tmp.avg,2))  = tmp.avg;
         tlck.time(1:size(tmp.avg,2))       = tmp.time;
         tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof(1,:);
