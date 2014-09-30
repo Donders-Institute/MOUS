@@ -40,7 +40,7 @@ for k = 1:numel(filename)
     
     % cut into 0.5 s epochs
     cfgr         = [];
-    cfgr.length  = 0.5;
+    cfgr.length  = 2;
     cfgr.overlap = 0.5;
     megaudio     = ft_redefinetrial(cfgr, megaudio);
     
@@ -62,10 +62,10 @@ for k = 1:numel(filename)
   end
   
   % regression to get the slope
-  N      = 51;
-  X      = [ones(1,301+1-N);freq.freq(N:end)];
+  N      = 301;
+  X      = [ones(1,1201+1-N-150);freq.freq(N:end-150)];
   X(2,:) = X(2,:)-mean(X(2,:));
-  beta   = phi(:,N:end)/X;
+  beta   = phi(:,N:end-150)/X;
   
   tmpdelay  = beta(:,2)*1000./(2*pi);
   tmpid     = trl(:,end);
@@ -73,3 +73,7 @@ for k = 1:numel(filename)
   delay  = cat(1,delay,tmpdelay);
   stimid = cat(1,stimid,tmpid);
 end
+
+%if nargout==0
+  mous_db_putdata(subjectname,'meg_qualitycheck_audiodelay', 'delay', 'stimid');
+%end
