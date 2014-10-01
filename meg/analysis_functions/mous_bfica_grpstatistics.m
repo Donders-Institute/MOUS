@@ -1,10 +1,8 @@
 function mous_bfica_grpstatistics(subjectnames,suffix,bslflag)
 
-% suffix.wordtype: 
-% suffix.parcel: 
-% suffix.oscband:  can reflect a oscillatory band: low/medium/high, or just one
-% specific frequency e.g., 25 for 2.5Hz
-% suffix.selfreq: [min max] 
+% suffix.sourcedata: type of contrast e.g., sentseq, sentpar...etc
+% suffix.parcel:     parcel(s) on which to do statistics
+% suffix.selfreq:    [min max] 
 % if selfreq is specified, then specify if need averaging
 % suffix.avg = 'yes' or 'no';
 % suffix.toi: [min max]
@@ -13,7 +11,6 @@ function mous_bfica_grpstatistics(subjectnames,suffix,bslflag)
 rootdir = '/project/3011020.09/MEG/';
 savedir = '/project/3011020.09/nielam/groupresults/bfica/';
 Nsubj   = numel(subjectnames);
-% osc = 'low','medium', 'high', or a specific number
 
 if bslflag == 1
   savebsl = 'prewordbsl';
@@ -26,11 +23,10 @@ end
 % statistical test parameters 
 cfg     = [];
 cfg.correctm            = 'cluster';
-%cfg.clusterthreshold = 'parametric_common'; % estimate threshold from the randomization distribution. The threshold is common to all channel-time-frequency points
-cfg.clusterthreshold    = 'parametric';
+cfg.clusterthreshold    = 'parametric'; %cfg.clusterthreshold = 'parametric_common'; % estimate threshold from the randomization distribution. The threshold is common to all channel-time-frequency points
 cfg.clusteralpha        = 0.01;
-cfg.numrandomization    = 2000; %600 for 30 1200 for 68 subjs;  %2000 for 102 subjs
-%  cfg.correcttail         = 'prob';
+cfg.numrandomization    = 2000; % 600 for 30 1200 for 68 subjs;  %2000 for 102 subjs
+%  cfg.correcttail         = 'prob';  % uncommented to allow all clusters to be visualised
 
 % save folder (modality determined)
 if strcmp(subjectnames{1}(1),'A')     % auditory single subject data in nielam dir.
@@ -55,6 +51,7 @@ if isfield(suffix,'selfreq')
   end
 end
 
+% select time window for analysing
 if isfield(suffix,'toi')
   a = num2str(suffix.toi(1)); a = [a(1) a(3)];
   b = num2str(suffix.toi(2)); b = [b(1) b(3)];
@@ -79,6 +76,11 @@ if ~isempty(strfind(suffix.sourcedata,'sourcedataearlylate'))
   [stattime statcomplex stattimecomp avgearlyRC avglateRC avgearlyMX avglateMX semearlyRC semlateRC semearlyMX semlateMX] = mous_bfica_sourcestatistics_timecomplexity(subjectnames, suffix, bslflag, cfg, rootdir);
   save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffixfreq,'_',suffend,'_',num2str(Nsubj),'subj'],'stattime','statcomplex','stattimecomp', 'avgearlyRC', 'avglateRC', 'avgearlyMX', 'avglateMX', 'semearlyRC', 'semlateRC', 'semearlyMX', 'semlateMX','-v7.3');
 
+% RCendafter vs. MXendafter
+elseif ~isempty(strfind(suffix.sourcedata,'RCendafter'))
+  [stat, Nsubj, avgRCendafter, avgMXendafter, semRCendafter, semRCendafter] = mous_bfica_sourcestatistics(subjectnames, suffix, bslflag, cfg, rootdir);
+  save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffixfreq,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgRCendafter','avgMXendafter','semRCendafter','semMXendafter','-v7.3');    
+  
 % sentseq / sentseqtar
 elseif (~isempty(strfind(suffix.sourcedata,'sourcedatasentseq')) && isempty(regexp(suffix.sourcedata,'par'))) || (~isempty(strfind(suffix.sourcedata,'sourcedatasentseqtar')) && isempty(regexp(suffix.sourcedata,'par')))
   [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics(subjectnames, suffix, bslflag, cfg, rootdir); %
@@ -118,8 +120,8 @@ elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentvbz')) || ~isempty(strf
     bz = 'zero';
   end
   warning('testing condition (sent or seq) against %s',bz)
-  [stat,Nsubj,avgact,avgbslcdtn,semact,sembslcdtn] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
-  save([savedir,mod,suffix.sourcedata(1:end-2),savebsl,'_',suffixfreq,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgact','avgbslcdtn','semact','sembslcdtn','-v7.3');    
+  [stat,Nsubj,avgact,avgbslorzero,semact,sembslorzero] = mous_bfica_sourcestatistics_cdtnvbsl(subjectnames, suffix, bslflag, cfg, rootdir); %
+  save([savedir,mod,suffix.sourcedata(1:end-2),savebsl,'_',suffixfreq,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgact','avgbslorzero','semact','sembslorzero','-v7.3');    
 
 % sentences only RC vs MX.
 elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentRCMX'))
