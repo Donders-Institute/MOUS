@@ -44,7 +44,7 @@ for k = 1:Nsubj
   clear -regexp tlcksentpar statsentpar stat2sentpar  % for target/allword variables
   
   % select frequency
-  if suffixstruct && isfield(suffix,'selfreq') % Nietzsche's code uses a structure for the input argument suffix
+  if suffixstruct % Nietzsche's code uses a structure for the input argument suffix
     
     % get data 
     mous_db_getdata(subj{k}, ['meg_bfica_',suffix.wordtype{1}], rootdir);     
@@ -56,13 +56,15 @@ for k = 1:Nsubj
     end
     
        %%% frequency (and averaging) selection
-    if strcmp(suffix.avg,'no')
-      statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq);
-      statseqpar  = ft_selectdata(statseqpar,'foilim',suffix.selfreq);
-    elseif strcmp(suffix.avg, 'yes'); % average across frequencies
-      statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq,'avgoverfreq','yes');
-      statseqpar = ft_selectdata(statseqpar,'foilim',suffix.selfreq,'avgoverfreq','yes');
-    end 
+    if isfield(suffix,'selfreq')
+      if strcmp(suffix.avg,'no')
+        statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq);
+        statseqpar  = ft_selectdata(statseqpar,'foilim',suffix.selfreq);
+      elseif strcmp(suffix.avg, 'yes'); % average across frequencies
+        statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq,'avgoverfreq','yes');
+        statseqpar = ft_selectdata(statseqpar,'foilim',suffix.selfreq,'avgoverfreq','yes');
+      end 
+    end
     
     % prestim    
     bsltoi = [-inf -0.09];
