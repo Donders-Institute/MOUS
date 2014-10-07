@@ -57,27 +57,36 @@ for k = 1:Nsubj
     
        %%% frequency (and averaging) selection
     if isfield(suffix,'selfreq')
-      if strcmp(suffix.avg,'no')
-        statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq);
-        statseqpar  = ft_selectdata(statseqpar,'foilim',suffix.selfreq);
-      elseif strcmp(suffix.avg, 'yes'); % average across frequencies
+      if isfield(suffix, 'avg')
         statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq,'avgoverfreq','yes');
         statseqpar = ft_selectdata(statseqpar,'foilim',suffix.selfreq,'avgoverfreq','yes');
+      else % don't average
+        statsentpar = ft_selectdata(statsentpar,'foilim',suffix.selfreq);
+        statseqpar  = ft_selectdata(statseqpar,'foilim',suffix.selfreq);
       end 
     end
     
-    % prestim    
+    %% prestim    
     bsltoi = [-inf -0.09];
     bslsent = ft_selectdata(statsentpar,'toilim',bsltoi);
     bslseq = ft_selectdata(statseqpar,'toilim',bsltoi);
 
-    % poststim
+    %% poststim
     % time selection
     if isfield(suffix,'toi')
-      statsentpar = ft_selectdata(statsentpar,'toilim',suffix.toi);
-      statseqpar = ft_selectdata(statseqpar,'toilim',suffix.toi);
+      if isfield(suffix,'tavg')
+        statsentpar= ft_selectdata(statsentpar,'toilim',suffix.toi,'avgovertime','yes');
+        statseqpar = ft_selectdata(statseqpar,'toilim',suffix.toi,'avgovertime','yes');
+      else  % no averaging across time points
+        statsentpar = ft_selectdata(statsentpar,'toilim',suffix.toi);
+        statseqpar  = ft_selectdata(statseqpar,'toilim',suffix.toi);
+      end
     end
-    % squeeze data
+    
+    %% squeeze data
+    % If only one frequency band, squeeze data
+    % If squeeze data before baseline selection ft_selectdata cannot correct select timepoints
+    
     statsentpar.stat = squeeze(statsentpar.stat);
     statsentpar.prob = squeeze(statsentpar.prob);
     statsentpar.mask = squeeze(statsentpar.mask);
@@ -118,15 +127,21 @@ for k = 1:Nsubj
     if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3 % if 3D matrix
         tmp = statsentpar.stat;
         statsentpar.stat = tmp - repmat(nanmean(bslsent.stat,3),[1,1,size(tmp,3)]); % subtract baseline (repmat)
-
         tmp = statseqpar.stat;
         statseqpar.stat = tmp - repmat(nanmean(bslseq.stat,3),[1,1,size(tmp,3)]); 
-    else 
+        
+    elseif strcmp(statsentpar.dimord,'chan_time')  
         tmp = statsentpar.stat;
         statsentpar.stat = tmp - nanmean(bslsent.stat,2)*ones(1,size(tmp,2));
-
         tmp = statseqpar.stat;
         statseqpar.stat = tmp - nanmean(bslseq.stat,2)*ones(1,size(tmp,2));
+        
+    elseif strcmp(statsentpar.dimord,'chan_freq_time')
+        tmp = statsentpar.stat;
+        statsentpar.stat = tmp - nanmean(bslsent.stat,3);
+        
+        tmp = statseqpar.stat;
+        statseqpar.stat = tmp - nanmean(bslseq.stat,3);
     end
   end 
   
@@ -135,32 +150,40 @@ for k = 1:Nsubj
   if isfield(statsentpar, 'freq') && ndims(statsentpar.stat) == 3 
     sourcemodel.freq  = statsentpar.freq;
     sourcemodel.dimord = 'pos_freq_time';
-  else
+  elseif numel(size(statsentpar.stat) == 2) && strcmp(statsentpar.dimord,'chan_time')
     sourcemodel.dimord = 'pos_time';
+  elseif numel(size(statsentpar.stat) == 2) && strcmp(statsentpar.dimord,'chan_freq_time')
+    sourcemodel.dimord = 'pos';
   end
   
   %% create data structure for statistics (no log transform)
 
-  % seNTences
+  % sentences
   sourcemodel.avg.pow = statsentpar.stat;% ./ repmat(Bseq, [1 numel(tlckseq.time)]);
   %tmp                 = zeros(prod(sourcemodel.dim), numel(sourcemodel.time));
   if isfield(statsentpar,'freq') && ndims(statsentpar.stat) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
-  else 
+  elseif strcmp(sourcemodel.dimord,'pos_time')
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+  elseif strcmp(sourcemodel.dimord,'pos')  % single freq point, single time point 
+    sourcemodel.freq     = statsentpar.freq;
+    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
   end 
   tmp(newinside,:,:)    = sourcemodel.avg.pow;
   sourcemodel.avg.pow = tmp; 
   dat{k}         = sourcemodel;
   dat{k}.pos     = sourcemodeltemplate.pos;
 
-  % seQuences
+  % sequences
   sourcemodel.time = statseqpar.time;
   sourcemodel.avg.pow = statseqpar.stat;
   if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
-  else 
+  elseif strcmp(sourcemodel.dimord,'pos_time') 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+  elseif strcmp(sourcemodel.dimord,'pos')
+    sourcemodel.freq     = statseqpar.freq;
+    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
   end 
   tmp(newinside,:,:)    = sourcemodel.avg.pow;
   sourcemodel.avg.pow = tmp;
