@@ -3,7 +3,7 @@ function [stat, Nsubj, avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestat
 % This function computes source-level statistics for sentseq(tar) contrasts
 % suffix is a struct consisting of the components of the sourcedata being
 % used in the contrast:
-% suffix.wordtype = 'sentseq' or 'sentseqtar';
+% suffix.sourcedata = 'sentseq' or 'sentseqtar';
 % suffix.oscband  = 'low', 'medium', or 'high';
 % suffix.extra    = 'parcelavg','bslabsolute'...
 % suffix.selfreq  = [low high];
@@ -60,21 +60,35 @@ for k = 1:Nsubj
     % Nietz's code suffix inarg is a struct
     mous_db_getdata(subj{k}, ['meg_bfica_',suffix.sourcedata], rootdir);
     
-    %%%% rename variables: can reuse same script
+    %%% adjust for target word analysis
     if exist('tlcksenttar','var')
       tlcksent = tlcksenttar;
       tlckseq  = tlckseqtar;
       clear -vars tlcksenttar tlckseqtar
     end 
     
+    %%% adjust for RCendafter analysis
+    if exist('tlckRCend','var')
+      % cannot calculate variance for RCend-RCafter, and MXend-MXafter
+      % nonequal number of trials in tlckRCend and tlckRCafter
+      % this doesn't affect the group variance (based on new calculated
+      % averages)
+      tmp = tlckRCend;
+      tlcksent = tmp.avg - tlckRCafter;
+      
+      tmp = tlckMXend;
+      tlckseq = tmp.avg - tlckMXafter;
+      clear -vars tlckMX* tlckRC* tstat*
+    end
+    
     %%% frequency (and averaging) selection
     if isfield(suffix,'selfreq') 
-      if strcmp(suffix.avg,'no')
-        tlcksent = ft_selectdata(tlcksent,'foilim',suffix.selfreq);
-        tlckseq = ft_selectdata(tlckseq,'foilim',suffix.selfreq);
-      elseif strcmp(suffix.avg, 'yes'); % average across frequencies
+      if isfield(suffix,'avg') && strcmp(suffix.avg, 'yes'); % average across frequencies
         tlcksent = ft_selectdata(tlcksent,'foilim',suffix.selfreq,'avgoverfreq','yes');
         tlckseq = ft_selectdata(tlckseq,'foilim',suffix.selfreq,'avgoverfreq','yes');
+      else % strcmp(suffix.avg,'no')
+        tlcksent = ft_selectdata(tlcksent,'foilim',suffix.selfreq);
+        tlckseq = ft_selectdata(tlckseq,'foilim',suffix.selfreq);
       end 
     end
     
@@ -86,17 +100,22 @@ for k = 1:Nsubj
     %% poststim
     %%% time selection
     if isfield(suffix,'toi')
-      tlcksent = ft_selectdata(tlcksent,'toilim',suffix.toi);
-      tlckseq  = ft_selectdata(tlckseq,'toilim',suffix.toi);
+      if isfield(suffix,'tavg')
+        tlcksent = ft_selectdata(tlcksent,'toilim',suffix.toi,'avgovertime','yes');
+        tlckseq  = ft_selectdata(tlckseq,'toilim',suffix.toi,'avgovertime','yes');
+      else  % no averaging across time points
+        tlcksent = ft_selectdata(tlcksent,'toilim',suffix.toi);
+        tlckseq  = ft_selectdata(tlckseq,'toilim',suffix.toi);
+      end
     end
-    % cannot squeeze data before baseline has been selected, otherwise
-    % ft_selectdata cannot correct select timepoints
+
+    %% squeeze data
+    % If only one frequency band, squeeze data
+    % If squeeze data before baseline selection ft_selectdata cannot correct select timepoints
     
     if isfield(suffix,'selfreq') && suffix.selfreq(1) == suffix.selfreq(2)
       tlcksent.avg = squeeze(tlcksent.avg);
-      tlcksent.var = squeeze(tlcksent.var);
       tlckseq.avg = squeeze(tlckseq.avg);
-      tlckseq.var = squeeze(tlckseq.var);
       
       bslsent.avg = squeeze(bslsent.avg);
       bslseq.avg = squeeze(bslseq.avg);
@@ -138,15 +157,21 @@ for k = 1:Nsubj
     if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3     
       tmp = tlcksent.avg;
       tlcksent.avg = tmp - repmat(nanmean(bslsent.avg,3),[1,1,size(tmp,3)]); % subtract baseline (repmat)
-
       tmp = tlckseq.avg;
       tlckseq.avg = tmp - repmat(nanmean(bslseq.avg,3),[1,1,size(tmp,3)]);
-    % for 2D matrix: chan_time  (single freq)
-    else                         
+      
+    % for 2D matrix: chan_time  (single freq. multiple time points)
+    elseif numel(tlcksent.time) > 1                         
       tmp = tlcksent.avg;
       tlcksent.avg = tmp - nanmean(bslsent.avg,2)*ones(1,size(tmp,2));
       tmp = tlckseq.avg;
-      tlckseq.avg = tmp - nanmean(bslseq.avg,2)*ones(1,size(tmp,2));
+      tlckseq.avg  = tmp - nanmean(bslseq.avg,2)*ones(1,size(tmp,2));
+      
+    elseif numel(tlcksent.time) == 1 % 2D (single time point, multiple freq)
+      tmp = tlcksent.avg;
+      tlcksent.avg = tmp - nanmean(bslsent.avg,3);    
+      tmp = tlckseq.avg;
+      tlckseq.avg  = tmp - nanmean(bslseq.avg,3);
     end
   end
  
@@ -155,8 +180,10 @@ for k = 1:Nsubj
   if isfield(tlckseq, 'freq') && ndims(tlckseq.avg) == 3 % this dimord is wrong for stats on only 1 freq (selected from matrix of source x freq x time)
     sourcemodel.freq  = tlckseq.freq;
     sourcemodel.dimord = 'pos_freq_time';
-  else
+  elseif numel(tlcksent.time) > 1
     sourcemodel.dimord = 'pos_time';
+  elseif numel(tlcksent.time) == 1
+    sourcemodel.dimord = 'pos';
   end
   
   %% create data structure for statistics
@@ -165,8 +192,11 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = (tlckseq.avg);
   if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
-  else 
+  elseif numel(tlcksent.time) > 1
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+  elseif numel(tlcksent.time) == 1
+    sourcemodel.freq     = tlcksent.freq;
+    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
   end
   tmp(newinside,:,:)    = sourcemodel.avg.pow; % 'newinside' is a variable that loads along with the leadfield.
   sourcemodel.avg.pow = tmp;
@@ -177,8 +207,11 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = (tlcksent.avg); 
   if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
-  else 
+  elseif strcmp(sourcemodel.dimord,'pos_time')
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+  elseif strcmp(sourcemodel.dimord,'pos')
+    sourcemodel.freq     = tlcksent.freq;
+    tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
   end
   tmp(newinside,:,:)    = sourcemodel.avg.pow;
   sourcemodel.avg.pow = tmp;
@@ -230,7 +263,6 @@ cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
 stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
 
-k = 1;
 
 
 % Commented out because this functions wasn't written to take into account
