@@ -34,15 +34,17 @@ if ~isempty(range)
   % tmp can be posxfreqxtime or posxtime or posxfreq. in case it is 3D
   % require range to be a cell-array, where the first cell selects
   % frequencies, and the second cell selects time points
-  if ndims(tmp)==3
+  if ndims(tmp)==3 && size(tmp,1) == 11000
     if ~iscell(range), error('the input argument range should be a cell-array'); end
     comp = setsubfield(comp, fieldname, nanmean(nanmean(tmp(:,range{1},range{2}),3),2));
     comp.time = mean(comp.time(range{2}));
     comp.freq = mean(comp.freq(range{1}));
-  else
+  elseif ndims(tmp) == 2 && size(tmp,1) == 11000 % 2D 
     % comp = setsubfield(comp,mean(tmp(:,range),2),fieldname); % inarg in wrong order
     comp = setsubfield(comp, fieldname, mean(tmp(:,range),2));
-    comp.time = mean(comp.time(range));
+    if numel(comp.time) >1 % not necessary if data is posxfreq (only if posxtime)
+      comp.time = mean(comp.time(range));
+    end
   end
   
   source = mous_bfica_sourceinterpolate(comp, fieldname, inside);
@@ -93,7 +95,7 @@ if ndims(tmp)==2
     source(k) = ft_sourceinterpolate(cfgi, sourcemodel, mri);
   end
 %elseif % FIXME: make it work for 3D array: ndims(tmp)==3
-elseif ndims(tmp) == 3
+elseif ndims(tmp) == 3 && size(tmp,1) == 11000
   for k = 1:size(tmp,3)
     % sourcemodel.avg.pow = 11000 x 1
     % tmp  = 11000 x 16 x 14 
