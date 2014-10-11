@@ -73,11 +73,11 @@ for k = 1:Nsubj
       % nonequal number of trials in tlckRCend and tlckRCafter
       % this doesn't affect the group variance (based on new calculated
       % averages)
-      tmp = tlckRCend;
-      tlcksent = tmp.avg - tlckRCafter;
+      tlcksent = tlckRCend;
+      tlcksent.avg = tlcksent.avg - tlckRCafter.avg;
       
-      tmp = tlckMXend;
-      tlckseq = tmp.avg - tlckMXafter;
+      tlckseq = tlckMXend;
+      tlckseq.avg = tlckseq.avg - tlckMXafter.avg;
       clear -vars tlckMX* tlckRC* tstat*
     end
     
@@ -160,18 +160,19 @@ for k = 1:Nsubj
       tmp = tlckseq.avg;
       tlckseq.avg = tmp - repmat(nanmean(bslseq.avg,3),[1,1,size(tmp,3)]);
       
-    % for 2D matrix: chan_time  (single freq. multiple time points)
-    elseif numel(tlcksent.time) > 1                         
+    % for 2D matrix: chan_time  or chan_freq
+%     elseif numel(tlcksent.time) > 1         
+    elseif (numel(tlcksent.time) > 1 && numel(tlcksent.freq) == 1) || (numel(tlcksent.time) == 1 && numel(tlcksent.freq) > 1)
       tmp = tlcksent.avg;
       tlcksent.avg = tmp - nanmean(bslsent.avg,2)*ones(1,size(tmp,2));
       tmp = tlckseq.avg;
       tlckseq.avg  = tmp - nanmean(bslseq.avg,2)*ones(1,size(tmp,2));
       
-    elseif numel(tlcksent.time) == 1 % 2D (single time point, multiple freq)
+    elseif numel(tlcksent.time) == 1 && numel(tlcksent.freq) == 1
       tmp = tlcksent.avg;
-      tlcksent.avg = tmp - nanmean(bslsent.avg,3);    
+      tlcksent.avg = tmp - nanmean(bslsent.avg,2);    
       tmp = tlckseq.avg;
-      tlckseq.avg  = tmp - nanmean(bslseq.avg,3);
+      tlckseq.avg  = tmp - nanmean(bslseq.avg,2);
     end
   end
  
@@ -180,9 +181,11 @@ for k = 1:Nsubj
   if isfield(tlckseq, 'freq') && ndims(tlckseq.avg) == 3 % this dimord is wrong for stats on only 1 freq (selected from matrix of source x freq x time)
     sourcemodel.freq  = tlckseq.freq;
     sourcemodel.dimord = 'pos_freq_time';
-  elseif numel(tlcksent.time) > 1
+  elseif numel(tlcksent.time) > 1 && numel(tlcksent.freq) == 1
     sourcemodel.dimord = 'pos_time';
-  elseif numel(tlcksent.time) == 1
+  elseif numel(tlcksent.time) == 1 && numel(tlcksent.freq) > 1
+    sourcemodel.dimord = 'pos_freq';
+  elseif numel(tlcksent.time) == 1 && numel(tlcksent.freq) == 1
     sourcemodel.dimord = 'pos';
   end
   
@@ -192,9 +195,9 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = (tlckseq.avg);
   if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
-  elseif numel(tlcksent.time) > 1
+  elseif (numel(tlcksent.time) > 1 && numel(tlcksent.freq) == 1) || (numel(tlcksent.time) == 1 && numel(tlcksent.freq) > 1)
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
-  elseif numel(tlcksent.time) == 1
+  elseif numel(tlcksent.time) == 1 && numel(tlcksent.freq) == 1
     sourcemodel.freq     = tlcksent.freq;
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
   end
@@ -207,9 +210,9 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = (tlcksent.avg); 
   if isfield(tlckseq,'freq') && ndims(tlckseq.avg) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
-  elseif strcmp(sourcemodel.dimord,'pos_time')
+  elseif (numel(tlcksent.time) > 1 && numel(tlcksent.freq) == 1) || (numel(tlcksent.time) == 1 && numel(tlcksent.freq) > 1)
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
-  elseif strcmp(sourcemodel.dimord,'pos')
+  elseif numel(tlcksent.time) == 1 && numel(tlcksent.freq) == 1
     sourcemodel.freq     = tlcksent.freq;
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
   end
@@ -261,8 +264,18 @@ cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
 cfg.ivar = 1;
 cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
-stat = ft_sourcestatistics(cfg, sent{:}, seq{:});
+stat = ft_sourcestatistics(cfg, sent{:}, seq{:});  % RC = sent;  MX = seq
 
+% switch suffix.sourcedata
+%   case {'sourcedatasentseq_low' 'sourcedatasentseq_medium' 'sourcedatasentseq_high' 'sourcedatasentseqtar_low' 'sourcedatasentseqtar_medium' 'sourcedatasentseqtar_high'}
+%     varargout{1} = stat;
+%     varargout{2} = Nsubj;
+%     varargout{3} = avgsent;
+%     varargout{4} = avgseq;
+%     varargout{5} = semsent;
+%     varargout{6} = semseq;
+%   case {'sourcedataRCendafter_low' 'sourcedataRCendafter_medium' 'sourcedataRCendafter_high'}
+% end
 
 
 % Commented out because this functions wasn't written to take into account
