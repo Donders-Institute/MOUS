@@ -130,11 +130,19 @@ for k = 1:Nsubj
         tmp = statseqpar.stat;
         statseqpar.stat = tmp - repmat(nanmean(bslseq.stat,3),[1,1,size(tmp,3)]); 
         
-    elseif (numel(statseqpar.time) > 1 && numel(tlcksent.freq) == 1) || (numel(statseqpar.time) == 1 && numel(statseqpar.freq) > 1) 
-        tmp = statsentpar.stat;
-        statsentpar.stat = tmp - nanmean(bslsent.stat,2)*ones(1,size(tmp,2));
-        tmp = statseqpar.stat;
-        statseqpar.stat = tmp - nanmean(bslseq.stat,2)*ones(1,size(tmp,2));
+    elseif (numel(statseqpar.time) > 1 && numel(statseqpar.freq) == 1) || (numel(statseqpar.time) == 1 && numel(statseqpar.freq) > 1) 
+        if ndims(bslsent.stat) == 3  % in the case of choosing multiple frequencies at one time point.
+          tmp = statsentpar.stat;
+          statsentpar.stat = tmp - nanmean(bslsent.stat,3);          
+          tmp = statseqpar.stat;
+          statseqpar.stat = tmp - nanmean(bslsent.stat,3);
+           
+        elseif ndims(bslsent.stat) == 2 % choosing one frequency, one time point
+          tmp = statsentpar.stat;
+          statsentpar.stat = tmp - nanmean(bslsent.stat,2)*ones(1,size(tmp,2));
+          tmp = statseqpar.stat;
+          statseqpar.stat = tmp - nanmean(bslseq.stat,2)*ones(1,size(tmp,2));
+        end
         
     elseif numel(statseqpar.time) == 1 && numel(statseqpar.freq) == 1
         tmp = statsentpar.stat;
@@ -146,6 +154,7 @@ for k = 1:Nsubj
   
   %% update dimord
   sourcemodel.time = statsentpar.time;
+  sourcemodel.freq = statsentpar.freq;
   if isfield(statsentpar, 'freq') && ndims(statsentpar.stat) == 3 
     sourcemodel.freq  = statsentpar.freq;
     sourcemodel.dimord = 'pos_freq_time';
@@ -164,8 +173,10 @@ for k = 1:Nsubj
   %tmp                 = zeros(prod(sourcemodel.dim), numel(sourcemodel.time));
   if isfield(statsentpar,'freq') && ndims(statsentpar.stat) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
-  elseif (numel(statseqpar.time) > 1 && numel(statseqpar.freq) == 1) || (numel(statseqpar.time) == 1 && numel(statseqpar.freq) > 1)
+  elseif (numel(statseqpar.time) > 1 && numel(statseqpar.freq) == 1) 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+  elseif (numel(statseqpar.time) == 1 && numel(statseqpar.freq) > 1)
+    tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.freq));
   elseif numel(statseqpar.time) == 1 && numel(statseqpar.freq) == 1 % single freq point, single time point 
     sourcemodel.freq     = statsentpar.freq;
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
@@ -179,8 +190,10 @@ for k = 1:Nsubj
   sourcemodel.avg.pow = statseqpar.stat;
   if isfield(statseqpar,'freq') && ndims(statseqpar.stat) == 3
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2),numel(sourcemodel.time));
-  elseif (numel(statseqpar.time) > 1 && numel(statseqpar.freq) == 1) || (numel(statseqpar.time) == 1 && numel(statseqpar.freq) > 1)
+  elseif (numel(statseqpar.time) > 1 && numel(statseqpar.freq) == 1) 
     tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.time));
+  elseif (numel(statseqpar.time) == 1 && numel(statseqpar.freq) > 1)
+    tmp                 = zeros(prod(sourcemodel.dim),numel(sourcemodel.freq));
   elseif numel(statseqpar.time) == 1 && numel(statseqpar.freq) == 1
     sourcemodel.freq     = statseqpar.freq;
     tmp                 = zeros(prod(sourcemodel.dim),size(sourcemodel.avg.pow,2));
@@ -232,6 +245,7 @@ cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
 cfg.ivar = 1;
 cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
+cfg.numrandomization = 2;
 stat = ft_sourcestatistics(cfg, dat{:}, dat2{:});  % sent = dat;  seq = dat2;
 
 
