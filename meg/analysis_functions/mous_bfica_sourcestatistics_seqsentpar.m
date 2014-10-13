@@ -1,4 +1,4 @@
-function [stat, Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix, baselineflag, cfg, rootdir, findx)
+function [stat, Nsubj, avgdat, avgdat2, semdat, semdat2] = mous_bfica_sourcestatistics_seqsentpar(subj, suffix, baselineflag, cfg, rootdir, findx)
 
 suffixstruct = isstruct(suffix);
 
@@ -192,6 +192,40 @@ for k = 1:Nsubj
 
 end % end subject loop
 
+for k = 1:Nsubj
+  if k==1
+    sumdat    = dat{k}.avg.pow;
+    sumdat2   = dat2{k}.avg.pow;
+    ssqdat    = dat{k}.avg.pow.^2;
+    ssqdat2   = dat2{k}.avg.pow.^2;
+    allinside = dat{k}.inside;
+  else
+    sumdat    = sumdat + dat{k}.avg.pow;
+    sumdat2   = sumdat2  + dat2{k}.avg.pow;
+    ssqdat    = ssqdat + dat{k}.avg.pow.^2;
+    ssqdat2   = ssqdat2  + dat2{k}.avg.pow.^2;
+    allinside = intersect(allinside, dat{k}.inside);
+  end  
+end
+alloutside = setdiff(1:size(dat{1}.pos,1), allinside);
+
+for k = 1:Nsubj
+  dat{k}.inside = allinside(:)';
+  dat{k}.outside = alloutside(:)';
+  dat2{k}.inside  = allinside(:)';
+  dat2{k}.outside = alloutside(:)';
+end
+
+% compute mean per condition and sem
+avgdat = sumdat./Nsubj;
+vardat = (ssqdat - sumdat.^2./Nsubj)./(Nsubj-1);
+semdat = sqrt(vardat./Nsubj);
+
+avgdat2  = sumdat2./Nsubj;
+vardat2 = (ssqdat2 - sumdat2.^2./Nsubj)./(Nsubj-1);
+semdat2  = sqrt(vardat2./Nsubj);
+
+%% stats
 cfg.method = 'montecarlo';
 cfg.statistic = 'depsamplesT';
 cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
