@@ -44,6 +44,9 @@ if isfield(suffix,'toi')
   a = num2str(suffix.toi(1)); a = [a(1) a(3)];
   b = num2str(suffix.toi(2)); b = [b(1) b(3)];
   suffend = [a,b,'s'];
+  if isfield(suffix,'tavg')
+    suffend = [suffend,'avg'];
+  end
 else
   suffend = '';
 end
@@ -56,12 +59,11 @@ if isfield(suffix,'selfreq')
     suffixfreq = [num2str(suffix.selfreq(1)),'to',num2str(suffix.selfreq(2)),'Hz'];
   end
   
-  if isfield(suffix,'avg') && strcmp(suffix.avg,'yes')
-    suffixfreq = [suffixfreq,'avg'];
-    suffend = [suffend,'_',suffixfreq];
-  else
-    suffend = suffixfreq;
+  if isfield(suffix,'favg') && strcmp(suffix.avg,'yes')
+    suffixfreq = [suffixfreq,'favg'];
   end
+  
+  suffend = [suffend,'_',suffixfreq];
 end
   
 % earlylate
@@ -82,13 +84,13 @@ if ~isempty(strfind(suffix.sourcedata,'sourcedataearlylate'))
 
 % RCendafter vs. MXendafter
 elseif ~isempty(strfind(suffix.sourcedata,'RCendafter'))
-  [stat, Nsubj, avgRCendafter, avgMXendafter, semRCendafter, semRCendafter] = mous_bfica_sourcestatistics(subjectnames, suffix, bslflag, cfg, rootdir);
+  [stat, Nsubj, avgRCendafter, avgMXendafter, semRCendafter, semMXendafter] = mous_bfica_sourcestatistics(subjectnames, suffix, bslflag, cfg, rootdir);
   save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgRCendafter','avgMXendafter','semRCendafter','semMXendafter','-v7.3');    
   
 % sentseq / sentseqtar
 elseif (~isempty(strfind(suffix.sourcedata,'sourcedatasentseq')) && isempty(regexp(suffix.sourcedata,'par'))) || (~isempty(strfind(suffix.sourcedata,'sourcedatasentseqtar')) && isempty(regexp(suffix.sourcedata,'par')))
   [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics(subjectnames, suffix, bslflag, cfg, rootdir); %
-  save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');    
+  save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj.mat'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');    
 
 % parametric (word position)
 elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentseqpar'))
@@ -111,8 +113,8 @@ elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentseqpar'))
     end
   end
 
-  [stat,Nsubj] = mous_bfica_sourcestatistics_seqsentpar(subjectnames, suffix, 1, cfg, rootdir);
-  save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','-v7.3');  
+  [stat,Nsubj,avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics_seqsentpar(subjectnames, suffix, 1, cfg, rootdir);
+  save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');  
 
 % condition vs. bsl/zero  - use flag
 elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentvbz')) || ~isempty(strfind(suffix.sourcedata,'sourcedataseqvbz'))
