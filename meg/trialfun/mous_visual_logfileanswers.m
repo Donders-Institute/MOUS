@@ -79,11 +79,26 @@ for j = 1:numel(subjectname)
         end
         
         if j == 1
-          subjavg = zeros(1,numel(subjectname));
+          subjavg = zeros(numel(subjectname),3);
         end
+        % all questions
         wrong = sum(QuestionNr(:,2));
         allq  = size(QuestionNr,1);
-        subjavg(j) = ((allq-wrong)/allq)*100; % percentage correct per person
+        subjavg(j,1) = ((allq-wrong)/allq)*100; % percentage correct per person
+        
+        % sent
+        i = find(ismember(QuestionNr(:,4),[4 3]));
+        tmp = QuestionNr(i,:);
+        wrong = sum(tmp(:,2));
+        allq  = size(tmp,1);
+        subjavg(j,2) = ((allq-wrong)/allq)*100;
+        
+        % word lists
+        i = find(ismember(QuestionNr(:,4),[1 2]));
+        tmp = QuestionNr(i,:);
+        wrong = sum(tmp(:,2));
+        allq  = size(tmp,1);
+        subjavg(j,3) = ((allq-wrong)/allq)*100;
 
         %% Save data
         if j == 1
@@ -93,8 +108,7 @@ for j = 1:numel(subjectname)
         end
 end
 
-subjavg = subjavg';
-grpdesc(1) = mean(subjavg);
-grpdesc(2) = std(subjavg);
+grpdesc(1,:) = mean(subjavg);
+grpdesc(2,:) = std(subjavg);
 
-save('QuestionResponses_vis_meg_13Oct2014','SingleTrialResponse_vis_meg','subjavg','grpdesc');
+save('QuestionResponses_vis_meg_14Oct2014','SingleTrialResponse_vis_meg','subjavg','grpdesc');
