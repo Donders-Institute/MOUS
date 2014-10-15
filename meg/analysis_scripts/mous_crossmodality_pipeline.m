@@ -6,14 +6,22 @@ clear all
 % load in the data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% I lost track of where I can find the ordinal word position fitted beta
-% weights for fmri, so this needs to change.
-fmridir  = '/project/3011020.09/MRI/XXXX/mri_task/ffxstats';
+condition = 'sent';
+condition2 = 'Zinnen';
+
+%sent vs baseline
+fmridir  = '/project/3011020.09/MRI/XXXX/mri_task/ffxstats'; %sent vs baseline
 fmriname = 'con_0012.img';
+megname  = ['meg_mne_allwords_02-nextword_' condition];
 
-megname  = 'meg_mne_allwords_02-nextword_sent';
+%sentence progression vs baseline (only 100 subjects exist)
+fmridir  = '/project/3011020.09/hubfon/conImg1stLevel_Visual/';
+fmriname = ['con_' condition2 'LTZero_LinearIncrease_XXXX'];
+megname  =  [ 'meg_processed_{_mne_allwords_02-nextword_' condition '_parametric_blc}'];
 
-subj = mous_db_getfilename('all','subjectname');
+
+[subj,s] = setdiff(mous_db_getfilename('allV','subjectname'), mous_db_getfilename('bad','subjectname'));
+
 ok   = true(numel(subj),1);
 
 for k = 1:numel(subj)
@@ -26,7 +34,7 @@ for k = 1:numel(subj)
   
   try,
     mous_db_getdata(subj{k}, megname);
-    
+    % mous_db_getdata(subj{k},['meg_mne_allwords_02-nextword_' condition]);
     % do a dspm here: note that this may not work in parametric results
     % data because the avg.noise may be absent: in that case (if we think
     % the normalization with the baseline noise is appropriate) the noise
@@ -40,6 +48,8 @@ for k = 1:numel(subj)
 end
 
 % only take the subjects for whom we have both fMRI and MEG data
+% subjects 1116 and 1117 are missing both fmri constant repsonse and progression data
+
 S = S(ok);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
