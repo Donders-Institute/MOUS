@@ -17,7 +17,7 @@ if nargin<5
 end
 
 if ischar(subjectname)
-  comp = mous_db_getdata(subjectname, 'meg_processed_{bfICA_ica}');
+  comp = mous_db_getdata(subjectname, 'meg_bfica_{_bfica_ica}');
 else
   comp = subjectname;
 end
