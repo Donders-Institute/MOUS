@@ -91,7 +91,7 @@ K_fmri = fmri'*fmri;
 
 % run using cross-validation
 opt.eta   = 0.5;
-opt.kappa = -2;
+opt.kappa = -1;
 opt.stand = true;
 opt.nfold = 10;
 [n_meg, n_fmri, r, opt_kappa] = mous_kcca_kfoldcv(meg',fmri',opt);
