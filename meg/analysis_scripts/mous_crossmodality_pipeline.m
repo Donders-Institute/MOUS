@@ -15,9 +15,9 @@ fmriname = 'con_0012.img';
 megname  = ['meg_mne_allwords_02-nextword_' condition];
 
 %sentence progression vs baseline (only 100 subjects exist)
-fmridir  = '/project/3011020.09/hubfon/conImg1stLevel_Visual/';
-fmriname = ['con_' condition2 'LTZero_LinearIncrease_XXXX'];
-megname  =  [ 'meg_processed_{_mne_allwords_02-nextword_' condition '_parametric_blc}'];
+%fmridir  = '/project/3011020.09/hubfon/conImg1stLevel_Visual/';
+%fmriname = ['con_' condition2 'LTZero_LinearIncrease_XXXX'];
+%megname  =  [ 'meg_processed_{_mne_allwords_02-nextword_' condition '_parametric_blc}'];
 
 
 [subj,s] = setdiff(mous_db_getfilename('allV','subjectname'), mous_db_getfilename('bad','subjectname'));
@@ -26,19 +26,21 @@ ok   = true(numel(subj),1);
 
 for k = 1:numel(subj)
   try,
-    tmp = ft_read_mri(fullfile(strrep(fmridir,'XXXX',subj{k}),fmriname));
+    tmp = ft_read_mri(fullfile(strrep(fmridir,'XXXX',subj{k}),fmriname)); 
+    %tmp = ft_read_mri(fullfile(fmridir,[strrep(fmriname,'XXXX',subj{k}),'.img']));
     S(k).fmri = tmp.anatomy(:);
   catch
     ok(k) = false;
   end
   
   try,
-    mous_db_getdata(subj{k}, megname);
+    %mous_db_getdata(subj{k}, megname);
+    source = mous_db_getdata(subj{k}, megname);
     % mous_db_getdata(subj{k},['meg_mne_allwords_02-nextword_' condition]);
     % do a dspm here: note that this may not work in parametric results
     % data because the avg.noise may be absent: in that case (if we think
     % the normalization with the baseline noise is appropriate) the noise
-    % should be grabbed from the corresponding mne sentence source
+    % should be grabbed from the corresponding mne sentence m
     % structure
     tmp = spdiags(1./sqrt(source.avg.noise),0,8196,8196)*source.avg.pow;
     S(k).meg = reshape(tmp(:,1:240),[],1);
@@ -85,7 +87,15 @@ K_fmri = fmri'*fmri;
 % www.davidroihardoon.com/Professional/Code.html
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %[nalpha, nbeta, r, Kx, Ky] = kcanonca_reg_ver2(K_meg,K_fmri, eta, kapa, sl, nor, Rx, Ry);
-[n_meg, n_fmri, r] = kcanonca_reg_ver2(K_meg,K_fmri, 0.1, 0.1);
+%[n_meg, n_fmri, r] = kcanonca_reg_ver2(K_meg,K_fmri, 0.1, 0.1);
+
+% run using cross-validation
+opt.eta   = 0.5;
+opt.kappa = -2;
+opt.stand = true;
+opt.nfold = 10;
+[n_meg, n_fmri, r, opt_kappa] = mous_kcca_kfoldcv(meg',fmri',opt);
+
 
 
 
