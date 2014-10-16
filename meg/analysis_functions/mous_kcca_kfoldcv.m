@@ -86,8 +86,8 @@ for i = 1:opt.nfold
     projte2 = K2te*nbeta;
     
     % just use the last component
-    pte1(te) = projte1(end);
-    pte2(te) = projte2(end);
+    pte1(te) = projte1(:,end);
+    pte2(te) = projte2(:,end);
     fprintf('Fold %d: rank=%d, kappa=%2.2f, train corr=%2.2f\n',i,size(nalpha,2),kappa,r(end));
 end
     
@@ -116,17 +116,16 @@ function opt_kappa = opt_kappa_cv(K1,K2,eta)
 
 % Locating optimal regularisation value for kcca
 % using nested cross-validation.
-% currently this script uses leave-one-out on the inner loop.
-% This is quite inefficient and should really be changed.
-Ntr = size(K1,1);
+Ntr   = size(K1,1);
+Nfold = 10;
 
 kappa = 0:0.1:1;
 
 va_r = zeros(length(kappa),1);
 for cnt = 1:length(kappa)   
     pva1 = zeros(Ntr,1); pva2 = zeros(Ntr,1);
-    for j = 1:Ntr
-        [tr,va] = cv_index(Ntr,j,Ntr);
+    for j = 1:Nfold
+        [tr,va] = cv_index(Ntr,j,10);
         
         % note: kernels are already centred
         % unfortunately we need to recompute the GSD every time
@@ -134,8 +133,8 @@ for cnt = 1:length(kappa)
         
         projva1  = K1(va,tr)*nalpha;
         projva2  = K2(va,tr)*nbeta;
-        pva1(va) = projva1(end);
-        pva2(va) = projva2(end);
+        pva1(va) = projva1(:,end);
+        pva2(va) = projva2(:,end);
     end
     va_r(cnt) = corr(pva1,pva2);
 end
