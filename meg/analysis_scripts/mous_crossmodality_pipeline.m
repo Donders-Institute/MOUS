@@ -9,7 +9,7 @@ fprintf('Computing kcc for fmri and meg data\n')
 condition = 'sent';
 condition2 = 'Zinnen';
 
-doParametric = 0;
+doParametric = 1;
 
 if doParametric
     %sentence progression vs baseline (only 100 subjects exist)
@@ -22,40 +22,45 @@ else
     fmriname = 'con_0012.img';
     megname  = ['meg_mne_allwords_02-nextword_' condition];
 end
-k= 1;
 
 [subj,s] = setdiff(mous_db_getfilename('allV','subjectname'), mous_db_getfilename('bad','subjectname'));
+Nsubj = numel(subj);
 
 ok   = true(numel(subj),1);
 
 for k = 1:numel(subj)
-  try,
-    tmp = ft_read_mri(fullfile( strrep([fmridir fmriname], 'XXXX', subj{k}))); 
-    S(k).fmri = tmp.anatomy(:);
-  catch
-    ok(k) = false;
-  end
-  
-  try,
-    %mous_db_getdata(subj{k}, megname);
-    source = mous_db_getdata(subj{k}, megname);
-    % mous_db_getdata(subj{k},['meg_mne_allwords_02-nextword_' condition]);
-    % do a dspm here: note that this may not work in parametric results
-    % data because the avg.noise may be absent: in that case (if we think
-    % the normalization with the baseline noise is appropriate) the noise
-    % should be grabbed from the corresponding mne sentence m
-    % structure
-    if doParametric
-        % load the noise cov from the all words mne
-        mne = mous_db_getdata(subj{k}, ['meg_mne_allwords_02-nextword_' condition]);
-        source.avg.noise = mne.avg.noise;
-        source.avg.pow = source.stat;
+    try,
+        tmp = ft_read_mri(fullfile( strrep([fmridir fmriname], 'XXXX', subj{k})));
+        S(k).fmri = tmp.anatomy(:);
+    catch
+        ok(k) = false;
     end
-    tmp = spdiags(1./sqrt(source.avg.noise),0,8196,8196)*source.avg.pow;
-    S(k).meg = reshape(tmp(:,1:240),[],1);
-  catch
-    ok(k) = false;
-  end
+    
+    try,
+        %mous_db_getdata(subj{k}, megname);
+        source = mous_db_getdata(subj{k}, megname);
+        % mous_db_getdata(subj{k},['meg_mne_allwords_02-nextword_' condition]);
+        % do a dspm here: note that this may not work in parametric results
+        % data because the avg.noise may be absent: in that case (if we think
+        % the normalization with the baseline noise is appropriate) the noise
+        % should be grabbed from the corresponding mne sentence m
+        % structure
+        if doParametric
+%            try,
+                % load the noise cov from the all words mne
+                mne = mous_db_getdata(subj{k}, ['meg_mne_allwords_02-nextword_' condition]);
+                source.avg.noise = mne.avg.noise;
+                source.avg.pow = source.stat.stat;
+%             catch
+%                 ok(k) = false;
+%             end
+        end
+        tmp = spdiags(1./sqrt(source.avg.noise),0,8196,8196)*source.avg.pow;
+        S(k).meg = reshape(tmp(:,1:240),[],1);
+        clear tmp
+    catch
+        ok(k) = false;
+    end
 end
 
 % only take the subjects for whom we have both fMRI and MEG data
