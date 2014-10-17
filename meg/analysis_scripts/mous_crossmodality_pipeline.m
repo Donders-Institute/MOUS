@@ -6,25 +6,32 @@ fprintf('Computing kcc for fmri and meg data\n')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % load in the data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-condition = 'sent';
-condition2 = 'Zinnen';
 
-doParametric = 1;
+%condition = 'sent';
+%condition2 = 'Zinnen';
+%
+%doParametric = 1; % it is a bit silly to hard code it here, because it defies the purpose
+% of the general purpose pipeline, i.e. to be able to influence the behaviour of the script
+% by specifying parameter(s) outside it.
+
+if ~exist('condition', 'var'),  condition  = 'sent';   end
+if ~exist('condition2', 'var'), condition2 = 'Zinnen'; end
+if ~exist('doParametric', 'var'), doParametric = 1;    end
 
 if doParametric
-    %sentence progression vs baseline (only 100 subjects exist)
-    fmridir  = '/project/3011020.09/hubfon/conImg1stLevel_Visual/';
-    fmriname = ['con_' condition2 'LTZero_LinearIncrease_XXXX.img'];
-    megname  =  [ 'meg_processed_{_mne_allwords_02-nextword_' condition '_parametric_blc}'];
+  %sentence progression vs baseline (only 100 subjects exist)
+  fmridir  = '/project/3011020.09/hubfon/conImg1stLevel_Visual/';
+  fmriname = ['con_' condition2 'LTZero_LinearIncrease_XXXX.img'];
+  megname  =  [ 'meg_mne_allwords_02-nextword_' condition '_parametric_blc'];
 else
-    %sent vs baseline
-    fmridir  = '/project/3011020.09/MRI/XXXX/mri_task/ffxstats/'; %sent vs baseline
-    fmriname = 'con_0012.img';
-    megname  = ['meg_mne_allwords_02-nextword_' condition];
+  %sent vs baseline
+  fmridir  = '/project/3011020.09/MRI/XXXX/mri_task/ffxstats/'; %sent vs baseline
+  fmriname = 'con_0012.img';
+  megname  = ['meg_mne_allwords_02-nextword_' condition];
 end
 
-[subj,s] = setdiff(mous_db_getfilename('allV','subjectname'), mous_db_getfilename('bad','subjectname'));
-Nsubj = numel(subj);
+[subj,s] = setdiff(mous_db_getfilename('allV','subjectname'), mous_db_getfilename('bad','subjectname')); % the setdiff should not be necessary, because mous_db_getfilename should only return the non-bad subjects
+Nsubj    = numel(subj);
 
 ok   = true(numel(subj),1);
 
@@ -69,7 +76,7 @@ end
 S = S(ok);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% get the kernels
+% get the data in the right shape
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 meg  = cat(2,S(:).meg);
 fmri = cat(2,S(:).fmri);
@@ -89,10 +96,6 @@ i_fmri = sum(isfinite(fmri),2)==size(fmri,2);
 meg  = meg(i_meg,:);
 fmri = fmri(i_fmri,:);
 
-% compute the kernels
-K_meg  = meg'*meg;
-K_fmri = fmri'*fmri;
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % do the correlation analysis
 %
@@ -100,8 +103,6 @@ K_fmri = fmri'*fmri;
 % which can be downloaded from
 % www.davidroihardoon.com/Professional/Code.html
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%[nalpha, nbeta, r, Kx, Ky] = kcanonca_reg_ver2(K_meg,K_fmri, eta, kapa, sl, nor, Rx, Ry);
-%[n_meg, n_fmri, r] = kcanonca_reg_ver2(K_meg,K_fmri, 0.1, 0.1);
 
 % run using cross-validation
 opt.eta   = 0.5;
@@ -109,7 +110,4 @@ opt.kappa = -2;
 opt.stand = true;
 opt.nfold = 10;
 [n_meg, n_fmri, r, opt_kappa] = mous_kcca_kfoldcv(meg',fmri',opt);
-
-
-
 
