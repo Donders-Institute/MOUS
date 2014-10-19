@@ -1,4 +1,4 @@
-function [pte1, pte2, r, opt_kappa] = mous_kcca_kfoldcv(X1,X2,opt)
+function [pte1, pte2, r, opt_kappa, test_corr, K1, K2] = mous_kcca_kfoldcv(X1,X2,opt)
 
 % Script to wrap kcca in a k-fold cross-validation loop
 % options: 
@@ -9,13 +9,22 @@ function [pte1, pte2, r, opt_kappa] = mous_kcca_kfoldcv(X1,X2,opt)
 %               -2 = optimise using nested CV
 %   opt.stand : standardize the kernels?
 %   opt.nfold : number of cross-validation folds
+%   opt.nrand : permute N times the order of observations in kernel space
+%               to get a null distribution of the test_corr variable 
+
 
 if size(X1,1) ~= size(X2,1)
     fprintf('Error: input matrices have non-compatible dimensions\n');
     return;
-else
-    N = size(X1,1);
+elseif all(size(X1)==size(X1,1))
+    % assume with square matrices that the input data are already the
+    % kernels
+    opt.computekernel = 0;
+    K1 = X1;
+    K2 = X2;
 end
+N = size(X1,1);
+
 
 %%%%%%%%%%%%%%%
 % parse options
@@ -34,8 +43,17 @@ end
 if ~exist('opt','var') || (exist('opt','var') && ~isfield(opt,'nfold'))
     opt.nfold = 10;
 end
+if ~exist('opt','var') || (exist('opt','var') && ~isfield(opt,'computekernel'))
+    opt.computekernel = 1;
+end
+if ~exist('opt','var') || (exist('opt','var') && ~isfield(opt,'nrand'))
+    opt.nrand = 0;
+end
+if ~exist('opt','var') || (exist('opt','var') && ~isfield(opt,'verbose'))
+    opt.verbose = 1;
+end
 
-if ~opt.stand
+if ~opt.stand && opt.computekernel
     K1 = X1*X1';
     K2 = X2*X2';
 end
@@ -49,7 +67,7 @@ for i = 1:opt.nfold
     [tr,te] = cv_index(N,i,opt.nfold); 
     
     % centre kernels
-    if opt.stand
+    if opt.stand && opt.computekernel
         X1z = (X1 - ones(N,1)*mean(X1)) ./ (ones(N,1)*std(X1));
         X2z = (X2 - ones(N,1)*mean(X2)) ./ (ones(N,1)*std(X2));
         K1 = X1z*X1z';
@@ -88,11 +106,24 @@ for i = 1:opt.nfold
     % just use the last component
     pte1(te) = projte1(:,end);
     pte2(te) = projte2(:,end);
-    fprintf('Fold %d: rank=%d, kappa=%2.2f, train corr=%2.2f\n',i,size(nalpha,2),kappa,r(end));
+    if opt.verbose, fprintf('Fold %d: rank=%d, kappa=%2.2f, train corr=%2.2f\n',i,size(nalpha,2),kappa,r(end)); end
 end
     
 test_corr = corr(pte1,pte2);
-fprintf('CV complete. Test corr=%2.2f\n',test_corr); 
+if opt.verbose, fprintf('CV complete. Test corr=%2.2f\n',test_corr); end
+
+if opt.nrand>0,
+  % get a permutation distribution of the test_corr using nrand
+  % randomizations
+  tmpopt = opt;
+  tmpopt.nrand = 0;
+  test_corr(opt.nrand+1) = 0;
+  for k = 1:opt.nrand
+    indx = randperm(N);
+    [~,~,~,~,test_corr(k+1)] = mous_kcca_kfoldcv(K1(indx,indx),K2,tmpopt);
+  end
+end
+
 end
 
 %%%%%%%%%%%%%%%%%%
