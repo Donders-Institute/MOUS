@@ -52,7 +52,7 @@ end
 if ~exist('opt','var') || (exist('opt','var') && ~isfield(opt,'verbose'))
     opt.verbose = 1;
 end
-if ~exist('opt','var') || (exist('opt','var') && ~isfield(opt,'allcomponents'))
+if ~exist('opt','var') || (exist('opt','allcomponents') && ~isfield(opt,'allcomponents'))
     opt.allcomponents = 0;
 end
 
@@ -127,15 +127,14 @@ for i = 1:opt.nfold
     if opt.verbose, fprintf('Fold %d: rank=%d, kappa=%2.2f, train corr=%2.2f\n',i,size(nalpha,2),kappa,r(end)); end
 end
     
+% trim projection matrices
 if opt.allcomponents
-    % trim projection matrices
     pte1 = pte1(:,1:maxdim);
     pte2 = pte2(:,1:maxdim);
 end
 
 test_corr = diag(corr(pte1,pte2));
-
-if opt.verbose, fprintf('CV complete. Test corr=%2.2f\n',max(test_corr)); end
+if opt.verbose, fprintf('CV complete. Max test corr=%2.2f\n',max(test_corr)); end
 
 if opt.nrand>0,
   % get a permutation distribution of the test_corr using nrand
