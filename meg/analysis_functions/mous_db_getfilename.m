@@ -69,7 +69,7 @@ end
 % Subject Replacements
 badsubjects = {'V1014';'V1018';'V1021';'V1023';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1067';'V1082';'V1091';'V1096';'V1112';...
                'A2001';'A2012';'A2018';'A2022';'A2023';'A2026';'A2043';'A2044';'A2045';'A2048';'A2054';'A2060';'A2074';'A2081';'A2082';'A2087';'A2093';...
-               'A2100';'A2107';'A2112';'A2118';'AP02'};
+               'A2100';'A2107';'A2112';'A2115';'A2118';'A2123';'AP02'};
            
            
 % subjects with more than one dataset because MEG acquisition PC crashed           
@@ -406,4 +406,3 @@ if infoflag & ~isempty(filename)
 else
   info = [];
 end
-
