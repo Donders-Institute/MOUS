@@ -41,7 +41,17 @@ if isempty(sent) || isempty(seq)
       %HACK
       source = stat;
     end
-    
+    if strcmp(param, 'avg.dspm') && ~issubfield(source, param)
+      if issubfield(source, 'avg.noise') && issubfield(source, 'avg.pow')
+        fprintf('computing dspm from the power and the noise fields\n');
+        source.avg.dspm = spdiags(1./sqrt(source.avg.noise),0,8196,8196)*source.avg.pow;
+      else
+        error('the parameter ''avg.dspm'' is not found in the data and cannot be computed');
+      end
+    elseif ~issubfield(source, param);
+      error('the parameter %s is not found in the data and cannot be computed',param);
+    end
+      
     if k==1
       if ~isfield(source, 'pos')
         load('cortex_inflated_8196reg');
