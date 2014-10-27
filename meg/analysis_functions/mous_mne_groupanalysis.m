@@ -79,15 +79,26 @@ if isempty(sent) || isempty(seq)
     clear source;
     
     if numel(suffix)>1
-      suffix2 = suffix{2};
+        suffix2 = suffix{2};
     else
-      suffix2 = strrep(suffix{1},'sent', 'seq');
+        suffix2 = strrep(suffix{1},'sent', 'seq');
     end
     mous_db_getdata(subj{k}, suffix2, rootdir);
     if ~exist('source', 'var')
-      %HACK
-      source = stat;
+        %HACK
+        source = stat;
     end
+    if strcmp(param, 'avg.dspm') && ~issubfield(source, param)
+        if issubfield(source, 'avg.noise') && issubfield(source, 'avg.pow')
+            fprintf('computing dspm from the power and the noise fields\n');
+            source.avg.dspm = spdiags(1./sqrt(source.avg.noise),0,8196,8196)*source.avg.pow;
+        else
+            error('the parameter ''avg.dspm'' is not found in the data and cannot be computed');
+        end
+    elseif ~issubfield(source, param);
+        error('the parameter %s is not found in the data and cannot be computed',param);
+    end
+    
     tmptmp = ft_preproc_smooth(getsubfield(source, param), 4);
     tmp    = setsubfield(tmp, param, tmptmp(:,1:4:endtim));
     seq{k} = tmp;
