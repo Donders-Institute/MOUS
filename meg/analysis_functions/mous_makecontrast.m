@@ -39,7 +39,7 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 % sequence trigger values: 3 4 7 8
 
 switch contrast
-  case {'sent-seq', 'sent-seqTarget', 'sentMX-sentRC','sent-seqFirstword','early-late'}
+  case {'sent-seq', 'sent-seqTarget', 'sentMX-sentRC','sent-seqFirstword','early-late','RCend-RCafter'}
     %if  nargin<3  
     % need extra input arguments to differentiate between VIS and AUD
     % could try to infer from trialinfo i.e. VIS has all words present but
@@ -68,15 +68,9 @@ switch contrast
       sel2 = find(ismember(T,[1 2]));  % RC
     elseif strcmp(contrast,'RCend-RCafter')
       [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
-    elseif strcmp(contrast, 'early-late')
-      % take words 2 to 4 and n-3 to n-1: NOTE this only works
-      % for visual subjects. Assume trialinfo organized as:
-      % sentence, ordinal word, condition, total number of words
-      sel1 = find(ismember(data.trialinfo(:,2),[2 3 4]));                     % early
-      sel2 = find(ismember(data.trialinfo(:,4)-data.trialinfo(:,2),[1 2 3])); % late
     end
     
-    if numel(sel1)~=numel(sel2) % balance numtrials btw sent and seq
+    if numel(sel1)~=numel(sel2) % balance numtrials for the above contrasts
       n1=numel(sel1);
       n2=numel(sel2);
       n=min(n1,n2);
@@ -84,7 +78,22 @@ switch contrast
       x2=randperm(n2);
       sel1=sel1(sort(x1(1:n)));
       sel2=sel2(sort(x2(1:n)));
+    end 
+      
+    if strcmp(contrast, 'RCearlylate-MXearlylate')  
+      [dat1, dat2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RCMX');
+      [sel1, sel2]  = mous_makecontrast(dat1); % RCearly, RClate
+      [sel3, sel4]  = mous_makecontrast(dat2); % MXearly, MXlate
+    elseif strcmp(contrast, 'RConset-RCoffset')
+      [sel1, sel2]  = mous_RCMXbalanced_RConoffset(data, toilop. 'RConoff');
+    elseif strcmp(contrast, 'early-late')
+      % take words 2 to 4 and n-3 to n-1: NOTE this only works
+      % for visual subjects. Assume trialinfo organized as:
+      % sentence, ordinal word, condition, total number of words
+      sel1 = find(ismember(data.trialinfo(:,2),[2 3 4]));                     % early
+      sel2 = find(ismember(data.trialinfo(:,4)-data.trialinfo(:,2),[1 2 3])); % late
     end
+ 
     
     switch ft_datatype(data)
       case 'raw'
@@ -100,7 +109,7 @@ switch contrast
           dat1 = cat(2,data.trial{sel1});
           dat2 = cat(2,data.trial{sel2});
           Tstat = yuent(dat1,dat2,0.2,2);
-          if ~strcmp(contrast,'RCend-RCafter')
+          if ~strcmp(contrast,'RCend-RCafter') || ~strcmp(contrast,'RCearlylate-MXearlylate')
             varargout{3} = Tstat;
           else
             varargout{5} = Tstat;
@@ -111,7 +120,7 @@ switch contrast
           end
         end
         
-        if strcmp(contrast,'RCend-RCafter')
+        if strcmp(contrast,'RCend-RCafter') || strcmp(contrast,'RCearlylate-MXearlylate')
           cfg.trials = sel3;
           tlck3      = ft_timelockanalysis(cfg,data);
           cfg.trials = sel4;
@@ -196,7 +205,7 @@ switch contrast
         tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof(1,:);
       end
     end
-    if k<15, tlck.trial((k+1):15,:,:) = nan; tlck.trial2((k+1):15,:,:) = nan; end
+    if size(tlck.trial,1)<15, tlck.trial((end+1):15,:,:) = nan; tlck.trial2((end+1):15,:,:) = nan; end
     tlck.dimord = 'rpt_chan_time';
       
     if ft_senstype(tlck, 'ctf275_planar')
