@@ -73,7 +73,7 @@ for n=1:Nsubj
     fmri.norm = NaN(size(fmri.pow));
     fmri.norm(fov(n,:)) = fmri.pow(fov(n,:));
 
-%  asdiceded on wrokshop nov. 5th we should not normalize    
+%  as decided on wrokshop nov. 5th we should not normalize    
 %     %normalize fmri with the mean across the volume
 %     fmri.norm = fmri.norm-nanmean(fmri.norm);
 %     fmri.norm = fmri.norm/nanstd(fmri.norm);  %normalize the distribution
@@ -96,6 +96,7 @@ for n=1:Nsubj
     % a) use the noise normalized dspm
     if ~doLinInc 
     tmp = spdiags(1./sqrt(meg.avg.noise),0,8196,8196)*meg.avg.pow;
+    else
         tmp = meg.stat;
     end
     bigmeg(n,:,:) = tmp(:,1:240);
