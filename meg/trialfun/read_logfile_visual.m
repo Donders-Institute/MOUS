@@ -1,6 +1,7 @@
 function [newtext, stimuli, wordduration] = read_logfile_visual(subjectname)
 
 % READ_LOGFILE_VISUAL reads in the logfile for a particular visual dataset.
+% nielam 2013
 % 
 % Use as
 % 
