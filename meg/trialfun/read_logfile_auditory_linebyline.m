@@ -1,4 +1,8 @@
 function [newtext] = read_logfile_auditory_linebyline(subjectname)
+
+% this function is created specifically for mous_auditory_logfileanswers.
+% nielam 2013
+% to extract all information from logfiles see read_logfile_audio.m
     %% Read in logfile
     filename = mous_db_getfilename(subjectname,'meg_raw_log');
     
