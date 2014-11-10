@@ -315,3 +315,37 @@ elseif numel(fixdatsmp)<numel(fixlogsmp)
 else
   warning('did not manage to merge event information from log file with the event information from the triggers, returning only triggers'); 
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The following section provides a manual override of specified events:
+% this relates to a couple of '14' events that were incorrectly timed when
+% trying to automatically decode the level-issue of some of the subjects
+
+if ~isempty(strfind(dataset, 'A2006'))
+  samplelist = [];
+  % trial number 163, somewhere around 2517855 does not contain proper
+  % sound data, discard this set of events: 20141110
+  smp = [event.sample];
+  sel = find(smp>=2517855&smp<=2536382);
+  event(sel) = [];
+elseif ~isempty(strfind(dataset, 'A2037'))
+  samplelist = [39257 477660 2496883 3359090];  
+elseif ~isempty(strfind(dataset, 'A2039'))
+  samplelist = [11196 519056 957019 1036136 1917162 2011699 2563157 3036179];  
+elseif ~isempty(strfind(dataset, 'A2047'))
+  samplelist = [755370 3640358];  
+elseif ~isempty(strfind(dataset, 'A2050'))
+  samplelist = [300972 1334332 1680118 2027245 2273916 2423850 2913411 3238499];  
+elseif ~isempty(strfind(dataset, 'A2065'))
+  samplelist = [274826];  
+else
+  samplelist = [];
+end
+
+if ~isempty(samplelist)
+  for k = 1:numel(event)
+    if event(k).value==14 && sum(ismember(event(k).sample,samplelist))
+      event(k).sample = event(k+1).sample;
+    end
+  end
+end
