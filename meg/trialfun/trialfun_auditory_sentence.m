@@ -32,7 +32,11 @@ cfg.trialdef         = ft_getopt(cfg, 'trialdef');
 cfg.trialdef.prestim = ft_getopt(cfg.trialdef, 'prestim', 1);
 
 % read in event information
-event = mous_read_event_audio(cfg.dataset);
+if isempty(strfind(cfg.dataset, 'A2036'))
+  event = mous_read_event_audio(cfg.dataset);
+else
+  event = mous_read_event_audio_A2036(cfg.dataset);
+end
 
 % select the UPPT001 events
 type = {event.type};
@@ -135,12 +139,11 @@ for k = 1:numel(selfix)-1
   %tmp = [fixsmp endsmp -offset k condition critsmp-offset-fixsmp]; % visual stimuli
   %begsmp = first onset - 1s.
   if isfinite(begsmp) && isfinite(endsmp)
-    tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset currwav];
+    tmp = [begsmp endsmp -offset k fstwrd condition critsmp-offset-begsmp currwav];
     trl = cat(1,trl,tmp);
   end
 
 end
-
 
 % do NOT add wavid after trl matrix has been formed because numel(wavid)
 % and size(trl,1) do not always match up.  This inequality is because when
