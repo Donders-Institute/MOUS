@@ -1,8 +1,8 @@
-function [event] = mous_read_event_audio(dataset, bits)
+function [event] = mous_read_event_audio_A2036(dataset, bits)
 
-% this function tries to deal with triggers recorded in level-mode. The
-% bitsi box can be configured to do so. This function behaves as
-% ft_read_event, but tries to fix the levelmode issue. It works reasonably
+% This function tries to deal with triggers recorded in level-mode, specifically
+% for subject A2036, who in addition has two scenario files from which trials
+% were created. It works reasonably
 % well, in that the downstream code manages to reconstruct a large part of
 % the trials correctly.
 
@@ -34,7 +34,7 @@ if numel(eventlog) == 1;
   eventlog = eventlog{1};
 elseif numel(eventlog) == 2 && ~isequal(eventlog{1}, eventlog{2})
   % this is probably weird, but concatenate the two
-  % only for A2036 which as 2 scenarios
+  % only for A2036 which has 2 scenarios
   eventlog = [eventlog{1} eventlog{2}];
 elseif numel(eventlog) > 2
   error('eventlog has >1 element because subject has >1 logfile and this problem has not been fixed yet');
@@ -320,4 +320,13 @@ elseif numel(fixdatsmp)<numel(fixlogsmp)
   event = event(ix);
 else
   warning('did not manage to merge event information from log file with the event information from the triggers, returning only triggers'); 
+end
+
+% manual override to fix 2 event samples that are wrong
+for k = 1:numel(event)
+  if event(k).sample==86040 && event(k).value==14
+    event(k).sample=event(k+1).sample;
+  elseif event(k).sample==1981447 && event(k).value==14
+    event(k).sample=event(k+1).sample;
+  end
 end
