@@ -75,10 +75,11 @@ switch method
     % tlck.grad.label = sourcemodel.tissuelabel;
     
   case 'surface'
-    
+    p   = fileparts(which('mous_bfica_parcellate'));  % location of atlas depends on user
+    labelfile = ft_getopt(varargin, 'labelfile', fullfile(p(1:end-18),'templates','atlas_subparc.dlabel.nii'));
     frequency = ft_getopt(varargin, 'frequency', tlck.freq([1 end]));
     filename  = ft_getopt(varargin, 'filename');
-    labelfile = ft_getopt(varargin, 'labelfile', '/home/language/jansch/projects/mous/meg/templates/atlas_subparc.dlabel.nii');
+%     labelfile = ft_getopt(varargin, 'labelfile', '/home/language/jansch/projects/mous/meg/templates/atlas_subparc.dlabel.nii');
     scale     = ft_getopt(varargin, 'scale', 1); % scaling. NOTE: if ~=1 this needs to be the same for all subjects when later statistics are planned, use with extreme care
     if isempty(filename)
       error('the input should contain a filename');
