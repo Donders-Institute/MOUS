@@ -1,9 +1,11 @@
-function [delay, stimid] = mous_estimate_audiodelay(subjectname)
+function [delay, stimid, phi, trial, time] = mous_estimate_audiodelay(subjectname)
 
 stimid = zeros(0,1);
 delay  = zeros(0,1);
+allphi = zeros(0, 1201);
 
 filename = mous_db_getfilename(subjectname, 'meg_ds_task');
+cnt = 0;
 for k = 1:numel(filename)
   
   % get the trl-matrix
@@ -12,7 +14,9 @@ for k = 1:numel(filename)
   trl = trialfun_auditory_sentence(cfg);
   
   % loop over trials
+  phi = zeros(size(trl,1), 1201);
   for m = 1:size(trl,1)
+    cnt = cnt+1;
     
     % get the audio data for the specified trial
     cfg.trl        = trl(m,:);
@@ -21,7 +25,10 @@ for k = 1:numel(filename)
     cfg.demean     = 'yes';
     cfg.padding    = 10;
     cfg.dftfilter  = 'yes';
-    cfg.dftfreq    = [49.7:0.1:50.3 99.7:0.1:100.3];
+    cfg.dftfreq    = [49.7:0.1:50.3 99.7:0.1:100.3 149.7:0.1:150.3 199.7:0.1:200.3 249.7:0.1:250.3 299.7:0.1:300.3];
+    %cfg.dftfreq    = (99.7:0.1:100.3);
+    cfg.hpfilter   = 'yes';
+    cfg.hpfreq     = 60;
     megaudio       = ft_preprocessing(cfg);
     
     % get the downsampled audio data
@@ -37,6 +44,9 @@ for k = 1:numel(filename)
     megaudio.trial{1} = [megaudio.trial{1}(:,1:nsmp);data.trial{1}(:,1:nsmp)];
     megaudio.time{1}  = megaudio.time{1}(1:nsmp);
     megaudio.label    = [megaudio.label;data.label];
+    
+    trial{cnt} = megaudio.trial{1};
+    time{cnt}  = megaudio.time{1};
     
     % cut into 0.5 s epochs
     cfgr         = [];
@@ -62,18 +72,21 @@ for k = 1:numel(filename)
   end
   
   % regression to get the slope
-  N      = 301;
-  X      = [ones(1,1201+1-N-150);freq.freq(N:end-150)];
+  %N      = 301;
+  N      = 691;
+  X      = [ones(1,1201+1-N-200);freq.freq(N:end-200)];
   X(2,:) = X(2,:)-mean(X(2,:));
-  beta   = phi(:,N:end-150)/X;
+  beta   = phi(:,N:end-200)/X;
   
   tmpdelay  = beta(:,2)*1000./(2*pi);
   tmpid     = trl(:,end);
   
   delay  = cat(1,delay,tmpdelay);
   stimid = cat(1,stimid,tmpid);
+  allphi = cat(1,allphi,phi);
 end
+phi = allphi;
 
 %if nargout==0
-  mous_db_putdata(subjectname,'meg_qualitycheck_audiodelay', 'delay', 'stimid');
+  mous_db_putdata(subjectname,'meg_qualitycheck_audiodelay', 'delay', 'stimid', 'phi', 0);
 %end

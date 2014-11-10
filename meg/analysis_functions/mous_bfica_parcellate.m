@@ -87,7 +87,7 @@ switch method
     % select the frequency range
     if numel(frequency)==1
       findx    = nearest(tlck.freq, frequency);
-      tlck.avg = squeeze(tlck.avg(:,findx,:));
+      tlck.avg = squeeze(tlck.avg(:,findx,:)).*scale;
     else
       findx1   = nearest(tlck.freq, frequency(1));
       findx2   = nearest(tlck.freq, frequency(2));
