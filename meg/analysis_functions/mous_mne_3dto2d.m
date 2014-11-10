@@ -56,7 +56,7 @@ switch method
     system(sprintf('%s/wb_command -volume-to-surface-mapping %s %s %s -trilinear', wbpath, niftiname, targetright, giftiname2));
     system(sprintf('%s/wb_command -cifti-create-dense-timeseries %s -left-metric %s -right-metric %s', wbpath, ciftiname, giftiname1, giftiname2));
     
-    source2d = [];
+    source2d = ciftiname;
     
   otherwise
     error('unknown method of interpolation requested');
