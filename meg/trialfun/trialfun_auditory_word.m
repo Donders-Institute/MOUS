@@ -10,7 +10,7 @@ function [trl] = trialfun_auditory_word(cfg)
 % the cfg needs to contain the following option:
 %   cfg.dataset = string, name of the dataset
 %
-% the trl-matrix has 6 columns:
+% the trl-matrix has 9 columns:
 %   column 1: begin sample of word: speech word onset trigger - 500 ms).
 %             Offset allows for pre-sent/seq baseline
 %   column 2: end sample = beg sample + 800 ms, or next word onset
@@ -21,11 +21,12 @@ function [trl] = trialfun_auditory_word(cfg)
 %   column 5: trigger corresponding to the word
 %   column 6: Number of samples between the trigger and the  onset of the first word
 %   column 7: number of samples between word on and offset
-%   column 8: wordcount based on logfile (presentation triggers don't hold word position info
-%   2012 | NL
+%   column 8: ordinal word position based on the logfile
+%   column 9: id-number of the wavfile used.
  
 prestim  = ft_getopt(cfg.trialdef, 'prestim', 0.5);
 poststim = ft_getopt(cfg.trialdef, 'poststim', 0.8-1./1200); 
+adjustdelay = istrue(ft_getopt(cfg.trialdef, 'adjustdelay', 'yes'));
 
 % read in event information
 hdr   = ft_read_header(cfg.dataset);   % if running code locally, change to "cfg.dataset{1}"
@@ -59,7 +60,7 @@ subjectname = cfg.dataset(idx:idx+4);
 tarloc      = mous_audio_gettarloc(subjectname);
 
 % create trl
-trl    = zeros(0,8);
+trl    = zeros(0,9);
 for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequence; % -1 because last trigger is a dummy
   
   sel = selfix(k):selfix(k+1); % (2) start and end of a trial defined by two consecutive 20 triggers.
@@ -76,7 +77,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   
   % get the each word's on-,offset, trigger and sample info
   firstword = [];
-  tmptrl    = zeros(0,8);
+  tmptrl    = zeros(0,9);
   for kk = 1:numel(tmpval)-1     % triggers for audio on- and offset, 1st and target word onset
     trg1 = tmpval(kk);         % loop through the triggers
     trg2 = tmpval(kk+1);
@@ -95,6 +96,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
       end
       
       wordcount = wordcount + 1;
+      wavfileid = str2double(type{selfix(k)+1}(1:3));
       
       if isempty(wordcount)
         % something fishy is going on
@@ -104,7 +106,7 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
         wordcount = 1;
       elseif wordcount > 1  % get target position (info from logfile)
         % get soundfile filename of current trial
-        wavfileid = str2double(type{selfix(k)+1}(1:3)); 
+         
         if isnan(wavfileid)
           error('unable to find target position for subject %s in trial %d', subjectname,k)
         end   
@@ -123,8 +125,8 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
         wordcount = nan;
       end
                  
-      %         1         2         3       4 5          6                    7                      8        
-      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
+      %         1         2         3       4 5          6                   7                       8         9 
+      tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount wavfileid];
       
       tmptrl = cat(1,tmptrl,tmp);
     end  
@@ -147,3 +149,16 @@ if numel(sel)>0
   trl(sel,:) = [];
 end
 
+if adjustdelay,
+  % adjust the timing for the delay between the trigger and the actual
+  % presentation of the sound, added (as default) on 20141111
+  fprintf('adjusting the timing for the audio delay\n');
+  [p,f,e] = fileparts(cfg.dataset);
+  f       = mous_db_getfilename(f(1:5), 'meg_qualitycheck_audiodelay');
+  tmp     = load(f{1});
+  for k = 1:size(trl,1)
+    indx = find(tmp.stimid==trl(k,9));
+    D    = round(tmp.delay(indx(1)).*0.001.*1200); % in samples
+    trl(k,1:2) = trl(k,1:2)+D;
+  end
+end

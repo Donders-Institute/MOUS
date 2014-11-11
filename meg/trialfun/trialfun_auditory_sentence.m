@@ -11,7 +11,7 @@ function [trl,val] = trialfun_auditory_sentence(cfg)
 %
 % timepoint zero is the speech onset of the first word!
 % 
-% the trl-matrix has 7 columns:
+% the trl-matrix has 8 columns:
 %   column 1: begin sample: speech onset of first word - offset of 1s
 %             this is the auditory version of the begsmp in the visual
 %             version
