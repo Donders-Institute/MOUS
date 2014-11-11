@@ -1,12 +1,17 @@
 function [cfg, M] = mous_sourcemovie(cfg, source, source2)
 
-% FT_SOURCEMOVIE displays the source reconstruction on a cortical mesh
-% and allows the user to scroll through time with a movie
+% MOUS_SOURCEMOVIE displays the source reconstruction on a cortical mesh
+% and allows the user to scroll through time with a movie. It has been
+% adapted from ft_sourcemovie 
 %
 % Use as
-%   ft_sourcemovie(cfg, source)
+%   mous_sourcemovie(cfg, source)
 % where the input source data is obtained from FT_SOURCEANALYSIS and cfg is
-% a configuratioun structure that should contain
+% a configuration structure that should contain
+% 
+%   mous_sourcemovie(cfg, source, source2)
+% where source is a parcellation (e.g., atlas of 400 parcels), while
+% source2 contains the parcellated data (struct variable).
 %
 %  cfg.funparameter    = string, functional parameter that is color coded (default = 'avg.pow')
 %  cfg.maskparameter   = string, functional parameter that is used for opacity (default = [])
