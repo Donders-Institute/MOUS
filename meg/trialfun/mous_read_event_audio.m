@@ -329,15 +329,26 @@ if ~isempty(strfind(dataset, 'A2006'))
   sel = find(smp>=2517855&smp<=2536382);
   event(sel) = [];
 elseif ~isempty(strfind(dataset, 'A2037'))
-  samplelist = [39257 477660 2496883 3359090];  
+  samplelist = [39257 477660 2496883 3359090 1932324];  
 elseif ~isempty(strfind(dataset, 'A2039'))
   samplelist = [11196 519056 957019 1036136 1917162 2011699 2563157 3036179];  
 elseif ~isempty(strfind(dataset, 'A2047'))
-  samplelist = [755370 3640358];  
+  samplelist = [3640358];
+  
+  % trial number 47, somewhere around 755370 does not contain proper
+  % sound data, discard this set of events: 20141110
+  smp = [event.sample];
+  sel = find(smp>=755370&smp<=767849);
+  event(sel) = [];
 elseif ~isempty(strfind(dataset, 'A2050'))
-  samplelist = [300972 1334332 1680118 2027245 2273916 2423850 2913411 3238499];  
+  samplelist = [300972 1334332 1680118 2027245 2273916 2423850 2913411 3238499 3443891];  
 elseif ~isempty(strfind(dataset, 'A2065'))
-  samplelist = [274826];  
+  samplelist = [];
+  % trial number 20, somewhere around 274826 does not contain proper
+  % sound data, discard this set of events: 20141110
+  smp = [event.sample];
+  sel = find(smp>=274826&smp<=300165);
+  event(sel) = [];
 else
   samplelist = [];
 end
