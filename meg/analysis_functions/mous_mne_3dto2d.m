@@ -52,9 +52,11 @@ switch method
     targetright = strrep(targetleft, '.L.', '.R.');
     
     wbpath = '/project/3011020.09/workbench/bin_rh_linux64';
+    tstep  = sprintf('%2.2f',source3d.time(2)-source3d.time(1));
+    tstart = sprintf('%2.2f',source3d.time(1));
     system(sprintf('%s/wb_command -volume-to-surface-mapping %s %s %s -trilinear', wbpath, niftiname, targetleft, giftiname1));
     system(sprintf('%s/wb_command -volume-to-surface-mapping %s %s %s -trilinear', wbpath, niftiname, targetright, giftiname2));
-    system(sprintf('%s/wb_command -cifti-create-dense-timeseries %s -left-metric %s -right-metric %s', wbpath, ciftiname, giftiname1, giftiname2));
+    system(sprintf('%s/wb_command -cifti-create-dense-timeseries %s -left-metric %s -right-metric %s -timestep %s -timestart %s', wbpath, ciftiname, giftiname1, giftiname2,tstep,tstart));
     
     source2d = ciftiname;
     
