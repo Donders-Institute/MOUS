@@ -112,6 +112,7 @@ switch method
     sourcemodel = ft_convert_units(sourcemodel, 'mm');
     
     % do the interpolation to the cortical sheet using workbench
+    sourcemodel.time = tlck.time;
     ciftiname = mous_mne_3dto2d(sourcemodel, 'filename', filename, 'method', 'wb', 'parameter', 'pow');
     ciftiname2 = strrep(ciftiname, 'dtseries', 'ptseries');
     
