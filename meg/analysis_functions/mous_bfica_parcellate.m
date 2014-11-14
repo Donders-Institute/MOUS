@@ -77,7 +77,11 @@ switch method
   case 'surface'
     p   = fileparts(which('mous_bfica_parcellate'));  % location of atlas depends on user
     labelfile = ft_getopt(varargin, 'labelfile', fullfile(p(1:end-18),'templates','atlas_subparc.dlabel.nii'));
-    frequency = ft_getopt(varargin, 'frequency', tlck.freq([1 end]));
+    if isfield(tlck, 'freq')
+      frequency = ft_getopt(varargin, 'frequency', tlck.freq([1 end]));
+    else
+      frequency = nan;
+    end
     filename  = ft_getopt(varargin, 'filename');
 %     labelfile = ft_getopt(varargin, 'labelfile', '/home/language/jansch/projects/mous/meg/templates/atlas_subparc.dlabel.nii');
     scale     = ft_getopt(varargin, 'scale', 1); % scaling. NOTE: if ~=1 this needs to be the same for all subjects when later statistics are planned, use with extreme care
@@ -86,7 +90,10 @@ switch method
     end
     
     % select the frequency range
-    if numel(frequency)==1
+    if numel(frequency)==1 && ~isfinite(frequency)
+      % don't do anything but scaling
+      tlck.avg = tlck.avg.*scale;
+    elseif numel(frequency)==1
       findx    = nearest(tlck.freq, frequency);
       tlck.avg = squeeze(tlck.avg(:,findx,:)).*scale;
     else
@@ -94,7 +101,7 @@ switch method
       findx2   = nearest(tlck.freq, frequency(2));
       tlck.avg = squeeze(mean(tlck.avg(:,findx1:findx2,:),2)).*scale;
     end
-    tlck = rmfield(tlck, 'freq');
+    try, tlck = rmfield(tlck, 'freq'); end
     
     % 'map' the data onto the inside voxels
     try, sourcemodel = rmfield(sourcemodel, {'xgrid' 'ygrid' 'zgrid'}); end
