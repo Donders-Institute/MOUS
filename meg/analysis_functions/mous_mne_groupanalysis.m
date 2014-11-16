@@ -135,8 +135,10 @@ cfg.tri       = sourcemodel.tri;
 
 cfg.atlas    = ft_getopt(cfg, 'atlas', [] );
 if(~isempty(cfg.atlas))
-    cfg.roi          = ft_getopt(cfg, 'roi', 'L_44_B05');
+    cfg.roi          = ft_getopt(cfg, 'roi', 'L_44_B05'); %fixme
     cfg.avgoverroi   = ft_getopt(cfg, 'avgoverroi', 'yes');
+    cfg.inputcoord      = 'mni';
+    cfg.hemisphere   = ft_getopt(cfg, 'hemisphere','both');
 end
 
 if isfield(cfg, 'latency'),
