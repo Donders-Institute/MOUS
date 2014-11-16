@@ -133,6 +133,12 @@ if strcmp(cfg.correctm,'cluster')
 end
 cfg.tri       = sourcemodel.tri;
 
+cfg.atlas    = ft_getopt(cfg, 'atlas', [] );
+if(~isempty(cfg.atlas))
+    cfg.roi          = ft_getopt(cfg, 'roi', 'L_44_B05');
+    cfg.avgoverroi   = ft_getopt(cfg, 'avgoverroi', 'yes');
+end
+
 if isfield(cfg, 'latency'),
   % ft_sourcestatistics does not work with latency yet, so do it here
   for k = 1:numel(sent)
