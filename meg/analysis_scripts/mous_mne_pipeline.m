@@ -336,8 +336,8 @@ if domne_parcellate
   end
   mous_db_getdata(subjectname, suffix_erfdata);%, rootdir);
   tlck = senWord_AG;
-  sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
-  sel2 = 1:nearest(tlck.time, 0.8);
+  sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label)); 
+  sel2 = nearest(tlck.time,-0.1):nearest(tlck.time, 0.6);
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
   if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
@@ -348,7 +348,7 @@ if domne_parcellate
   %tlck= mous_db_getdata(subjectname, strrep(suffix_erfdata,'sent','seq'));%, rootdir);
   tlck = seqWord_AG;
   sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
-  sel2 = 1:nearest(tlck.time, 0.8);
+  sel2 = nearest(tlck.time,-0.1):nearest(tlck.time, 0.6);
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
   if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
@@ -363,11 +363,10 @@ if domne_parcellate
   end
   mous_db_getdata(subjectname, suffix_mne);
   
-%  load atlas_conte69_8196reg_LR_brodmann_subparc;
-  load atlas_conte69_8196reg_LR;
-  
-  atlas.parcellation = atlas.parcellation2;
-  atlas.parcellationlabel = atlas.parcellation2label;
+  load atlas_conte69_8196reg_LR_brodmann_subparc;
+  %load atlas_conte69_8196reg_LR;
+  %atlas.parcellation = atlas.parcellation2;
+  %atlas.parcellationlabel = atlas.parcellation2label;
   
   tlck = mous_mne_parcellate(source,tlck,atlas, 'svdmethod', 'projectavg');
   U            = tlck.U; 
