@@ -52,8 +52,12 @@ switch method
     targetright = strrep(targetleft, '.L.', '.R.');
     
     wbpath = '/project/3011020.09/workbench/bin_rh_linux64';
-    tstep  = sprintf('%2.2f',source3d.time(2)-source3d.time(1));
-    tstart = sprintf('%2.2f',source3d.time(1));
+    % potentially first (two) is baseline: [(-0.15,) -0.1, 0.25 0.35 0.45]
+    % workbench assumes equal time steps therefore [-0.l, 0.25 0.35 0.45
+    % will look like 0.25 0.35 0.45 0.55] 
+    tmp = find(sign(source3d.time) > 0);
+    tstep  = sprintf('%2.2f',source3d.time(tmp(2))-source3d.time(tmp(1)));  
+    tstart = sprintf('%2.2f',source3d.time(tmp(1))); 
     system(sprintf('%s/wb_command -volume-to-surface-mapping %s %s %s -trilinear', wbpath, niftiname, targetleft, giftiname1));
     system(sprintf('%s/wb_command -volume-to-surface-mapping %s %s %s -trilinear', wbpath, niftiname, targetright, giftiname2));
     system(sprintf('%s/wb_command -cifti-create-dense-timeseries %s -left-metric %s -right-metric %s -timestep %s -timestart %s', wbpath, ciftiname, giftiname1, giftiname2,tstep,tstart));
