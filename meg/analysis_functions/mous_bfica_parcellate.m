@@ -98,12 +98,12 @@ switch method
       tlck.avg = tlck.avg.*scale;
     elseif numel(frequency)==1
       findx    = nearest(tlck.freq, frequency);
-      findy    = find(ismember(tlck.time, time));
+      findy    = find(ismember(tlck.time*100, time*100)); % multiply -0.10*100 to work around matlab rounding.
       tlck.avg = squeeze(tlck.avg(:,findx,findy)).*scale;
     else
       findx1   = nearest(tlck.freq, frequency(1));
       findx2   = nearest(tlck.freq, frequency(2));
-      findy    = find(ismember(tlck.time, time));
+      findy    = find(ismember(tlck.time*100, time*100));
       tlck.avg = squeeze(mean(tlck.avg(:,findx1:findx2,findy),2)).*scale;
     end
     try, tlck = rmfield(tlck, 'freq'); end
