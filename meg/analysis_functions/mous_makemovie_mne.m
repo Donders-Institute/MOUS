@@ -107,8 +107,15 @@ end
 
 %% use the inflated cortex for display purposes: THIS DOES NOT WORK IF THE DATA IS REPRESENTED ON A DIFFERENT MESH
 load cortex_inflated_8196reg
+%load cortex_midthickness_8196reg
 
 s      = sourcemodel;
+if ~isfield(s, 'sulc')
+  s.sulc = ones(8196,1)*0.5;
+end
+if ~isfield(s, 'curv')
+  s.curv = ones(8196,1)*0.5;
+end
 s.sulc = s.sulc - min(s.sulc) + 0.3;
 s.sulc = s.sulc./max(s.sulc);
 
