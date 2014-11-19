@@ -79,9 +79,9 @@ if isempty(sent) || isempty(seq)
     clear source;
     
     if numel(suffix)>1
-        suffix2 = suffix{2};
+      suffix2 = suffix{2};
     else
-        suffix2 = strrep(suffix{1},'sent', 'seq');
+      suffix2 = strrep(suffix{1},'sent', 'seq');
     end
     mous_db_getdata(subj{k}, suffix2, rootdir);
     if ~exist('source', 'var')
