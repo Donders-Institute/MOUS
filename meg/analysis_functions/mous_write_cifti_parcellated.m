@@ -1,6 +1,6 @@
 function mous_write_cifti_parcellated(filename, data, varargin)
 
-% MOUS_WRITE_CIFTI_PARCELLATED writes a parcelalted cifti surface file
+% MOUS_WRITE_CIFTI_PARCELLATED writes a parcellated cifti surface file
 % 
 % Use as
 %   mous_write_cifti_parcellated(filename, data, varargin)

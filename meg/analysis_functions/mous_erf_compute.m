@@ -1,4 +1,4 @@
-function [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG, stdev] = mous_erf_compute(subjectname, data)
+function [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG, stdev] = mous_erf_compute(subjectname, data, baseln)
 
 % This function performs ERF analyses on preprocessed data for one subject
 % To run across subjects use qsub
@@ -12,7 +12,10 @@ function [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_C
 % The trial fun is only used to generate the correct input file 
 
 % deal with the data loading outside the function
-baseln = -0.2;
+% specify a baseline if needed
+if nargin<3
+  baseln = -0.2;
+end
 
 % identify the trials for the conditions (ref: trialfun in mous_preprocessing pipeline)
 % implement later in this script (or in a script at an earlier/latter stage
