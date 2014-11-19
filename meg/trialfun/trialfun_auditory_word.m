@@ -158,7 +158,11 @@ if adjustdelay,
   tmp     = load(f{1});
   for k = 1:size(trl,1)
     indx = find(tmp.stimid==trl(k,9));
-    D    = round(tmp.delay(indx(1)).*0.001.*1200); % in samples
-    trl(k,1:2) = trl(k,1:2)+D;
+    if ~isempty(indx)
+      D    = round(tmp.delay(indx(1)).*0.001.*1200); % in samples
+      trl(k,1:2) = trl(k,1:2)+D;
+    else
+      % apparently something went wrong with the decoding of the triggers
+    end
   end
 end

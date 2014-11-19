@@ -47,7 +47,6 @@ wavid = type(~cellfun('isempty',strfind(type,'wav')));
 % create a vector with the event values and sample numbers
 val  = [event(fp).value];
 smp  = [event(fp).sample];
-type = type(fp);
 
 % parse it into the constituent trials; 20 == fixation cross
 selfix = find(val==20);
@@ -59,9 +58,7 @@ end
 
 trl    = zeros(0,8);
 for k = 1:numel(selfix)-1
-  % FIXATION CROSS - keep track of the '20' trigger
-  fixsmp = smp(selfix(k));
-    
+  
   sel = selfix(k):selfix(k+1);
     
   % create a sequence of triggers within the trial
@@ -75,12 +72,28 @@ for k = 1:numel(selfix)-1
     doaudioonset = false;
   end
   
-  % get FIRST WORD onset  
+  % get FIRST WORD onset, there are a few occasions where this is missed,
+  % in which case it could be that there's a sequence of triggers which are
+  % -both even valued
+  % -where the first of the pair should be one higher
+  
   for kk = 1:numel(tmpval)
     trg1 = tmpval(kk);
+    if kk<numel(tmpval)
+      trg2 = tmpval(kk+1);
+    else 
+      trg2 = nan;
+    end
+    
     begsmp = nan;
     if trg1 == 14
       onset = tmpsmp(kk);
+    end
+  
+    if isfinite(trg2) && mod(trg1,2)==0 && mod(trg2,2)==0 && trg1<=8 && trg2<=8 && trg2-trg1==2
+      % NOTE: this is extremely fishy, added on 20141111: keep eyes open
+      % for side effects
+      trg1 = trg1+1;
     end
     
     if trg1 == 1 || trg1 == 3 || trg1 == 5 || trg1 == 7  % Don't need to a second cdtn to check because first word's trigger don't overlap with target's trigger
