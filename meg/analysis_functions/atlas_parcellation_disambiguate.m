@@ -37,12 +37,17 @@ for k = 1:numel(sel)
     % get the parcels' indices for the neighbours
     selval  = P(selnghb);
     
-    if sum(ismember(selval,exclude))>=sum(~ismember(selval,exclude))
+    if sum(ismember(selval,exclude))>=sum(~ismember(selval,exclude))&&0
       % don't do anything if the majority of the neighbours are of the
       % 'exclude-type', unless it's only bordering the medial wall
             
     else
-      Pnew(indx(m)) = mode(selval(~ismember(selval,exclude)));
+      tmpval = mode(selval(~ismember(selval,exclude)));
+      if isfinite(tmpval)
+        Pnew(indx(m)) = tmpval;
+      else
+        Pnew(indx(m)) = mode(selval);
+      end
     end
   end
   
