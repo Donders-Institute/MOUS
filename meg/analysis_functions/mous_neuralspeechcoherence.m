@@ -27,12 +27,11 @@ cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
 cfg.bsfilter   = 'yes';  % temporary replacement for job of dftfilter
-cfg.bsfreq     = [48 52];
-cfg.bsfilttype = 'firls';
+cfg.bsfreq     = [49 51];
+cfg.bsfilttype = 'firws';
 % cfg.bsfiltdev  = 0.001;
-% cfg.dftfilter  = 'yes'; % 
+% cfg.dftfilter  = 'yes'; 
 % cfg.padding    = 2;     % duration: length of trial + extra on each side;  trial length varies...
-% last option
 data           = ft_preprocessing(cfg);
 
 cfg.channel    = 'UADC003';
@@ -56,7 +55,6 @@ speech          = ft_resampledata(cfg,speech);
 data = ft_appenddata([],data,speech);
 
 %% cut the data into 2 second fragments to make life easier later on
-cfg = [];
 cfg.length = 2;
 cfg.overlap = 0.5;
 data = ft_redefinetrial(cfg, data);
@@ -69,7 +67,7 @@ data = ft_redefinetrial(cfg, data);
 cfg = [];
 cfg.method     = 'mtmfft';  % assumes stable power, but we know this isn't true
 cfg.output     = 'powandcsd';
-cfg.foilim     = [40 60];
+cfg.foilim     = [2 60];
 cfg.tapsmofrq  = 1;         % 2 Hz smoothing
 cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';
@@ -95,11 +93,11 @@ mous_db_putdata(subj,'meg_other_neuralspeechenvecoh','coherencelow','coherencehi
 %% getting .wav files relevant to subject
 cfg                  = [];
 cfg.parameter        = 'cohspctrm';
-% cfg.xlim             = [5 80];
+% cfg.xlim             = [5 40];
 % cfg.ylim             = [0 0.2];
 cfg.refchannel       = 'UADC003';
 cfg.layout           = 'CTF275.lay';
-cfg.showlabels       = 'yes';
+% cfg.showlabels       = 'yes';
 figure; ft_multiplotER(cfg, coherencelow)
 
 
