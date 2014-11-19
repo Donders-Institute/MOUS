@@ -82,6 +82,9 @@ switch method
     else
       frequency = nan;
     end
+    if isfield(tlck,'time')
+      time      = ft_getopt(varargin, 'time', tlck.time([1 end]));
+    end
     filename  = ft_getopt(varargin, 'filename');
 %     labelfile = ft_getopt(varargin, 'labelfile', '/home/language/jansch/projects/mous/meg/templates/atlas_subparc.dlabel.nii');
     scale     = ft_getopt(varargin, 'scale', 1); % scaling. NOTE: if ~=1 this needs to be the same for all subjects when later statistics are planned, use with extreme care
@@ -95,24 +98,26 @@ switch method
       tlck.avg = tlck.avg.*scale;
     elseif numel(frequency)==1
       findx    = nearest(tlck.freq, frequency);
-      tlck.avg = squeeze(tlck.avg(:,findx,:)).*scale;
+      findy    = find(ismember(tlck.time*100, time*100)); % multiply -0.10*100 to work around matlab rounding.
+      tlck.avg = squeeze(tlck.avg(:,findx,findy)).*scale;
     else
       findx1   = nearest(tlck.freq, frequency(1));
       findx2   = nearest(tlck.freq, frequency(2));
-      tlck.avg = squeeze(mean(tlck.avg(:,findx1:findx2,:),2)).*scale;
+      findy    = find(ismember(tlck.time*100, time*100));
+      tlck.avg = squeeze(mean(tlck.avg(:,findx1:findx2,findy),2)).*scale;
     end
     try, tlck = rmfield(tlck, 'freq'); end
     
     % 'map' the data onto the inside voxels
     try, sourcemodel = rmfield(sourcemodel, {'xgrid' 'ygrid' 'zgrid'}); end
-    sourcemodel.pow = zeros(size(sourcemodel.pos,1), numel(tlck.time));
+    sourcemodel.pow = zeros(size(sourcemodel.pos,1), numel(tlck.time(findy)));
     sourcemodel.pow(inside,:) = tlck.avg;
     
     % ensure correct units
     sourcemodel = ft_convert_units(sourcemodel, 'mm');
     
     % do the interpolation to the cortical sheet using workbench
-    sourcemodel.time = tlck.time;
+    sourcemodel.time = tlck.time(findy);
     ciftiname = mous_mne_3dto2d(sourcemodel, 'filename', filename, 'method', 'wb', 'parameter', 'pow');
     ciftiname2 = strrep(ciftiname, 'dtseries', 'ptseries');
     
