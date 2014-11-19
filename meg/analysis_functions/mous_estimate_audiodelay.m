@@ -11,6 +11,7 @@ for k = 1:numel(filename)
   % get the trl-matrix
   cfg.dataset = filename{k};
   cfg.trialdef.prestim = 'audioonset';
+  cfg.trialdef.poststim = 0;
   trl = trialfun_auditory_sentence(cfg);
   
   % loop over trials
