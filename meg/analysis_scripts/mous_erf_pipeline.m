@@ -21,9 +21,16 @@ if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                     
 if ~exist('doerf_rc',         'var'), doerf_rc         = 0;                           end
 if ~exist('doerf_mix',        'var'), doerf_mix        = 0;                           end
 if ~exist('doerf_rc_onoff',   'var'), doerf_rc_onoff   = 0;                           end
-if ~exist('length',           'var'), length           = '02-nextword';               end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
+
+if strcmp(subjectname(1), 'V') && ~exist('length', 'var'), length = '02-nextword';    end
+if strcmp(subjectname(1), 'A') && ~exist('length', 'var'), length = '02-10'; end
+
+% this is the old default, added 20141111, to allow for a flexible
+% (shorter) baseline for the auditory data: NOTE: consider recomputing the
+% visual with the same baseline length
+if ~exist('baseln', 'var'), baseln = -0.2; end;
 
 % define parameters used for both doerf_main and doerf_parametric
 % N.B.Neither wordtype / trialfunreflected in inputname therefore removed
@@ -68,7 +75,7 @@ if doerf_main
   end
   data = ft_preprocessing(cfg2, data);
   
-  [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG, stdev] = mous_erf_compute(subjectname, data);
+  [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG, stdev] = mous_erf_compute(subjectname, data, baseln);
   
   % update outputdata filename
   if ~isempty(condition)
@@ -76,8 +83,8 @@ if doerf_main
     outname2 = strcat(outname2(1:end-2),condition,planar);
   end
   
-  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', outrootdir, 1);
-  mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',outrootdir);
+  mous_db_putdata(subjectname, outname1, 'senWord_AG', 'seqWord_AG', outrootdir, 0);
+  mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',outrootdir, 0);
 end  % end doerf_main
 
 if doerf_parametric

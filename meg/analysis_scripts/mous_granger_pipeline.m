@@ -74,89 +74,93 @@ if dopreproc_sub
   % get the filename of the raw data
   filename    = mous_db_getfilename(subjectname, 'meg_ds_task');
 
-  % get the description of the artifacts
-  mous_db_getdata(subjectname, 'meg_artifact_cfg');
-  try
-    mous_db_getdata(subjectname, 'meg_artifact_cfg_manual');
-  catch
-    cfgmanual.visual.artifact = [];
-    cfgmanual.artfctdef.type = [];
-  end
-  
-  trl = mous_defineTrial(filename{1}, -0.2, 0.6, 'visual_word'); %FIXME only for V* for now
-  trl = mous_artifact_remove(trl, filename{1}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
-
-  T        = trl(:,[4 8]);
-  nw(:,1)  = unique(T(:,1));
-  for k = 1:size(nw,1)
-    nw(k,2) = max(T(T(:,1)==nw(k,1),2));
-  end
-  
-  % create 4 sets of trial indices:
-  % word 2-4 sentence
-  % word (n-3)-(n-1) sentence
-  % word 2-4 sequence
-  % word (n-3)-(n-1) sequence
-  sel1 = zeros(0,1);
-  sel2 = zeros(0,1);
-  sel3 = zeros(0,1);
-  sel4 = zeros(0,1);
-  
-  for k = 1:size(trl,1)
-    T      = trl(k,4:end);
-    sel    = find(nw(:,1)==T(1));
-    wordok = [2 3 4 nw(sel,2)-(3:-1:1)];
-    if ~ismember(T(5), wordok)
-      continue;
+  for j = 1:numel(filename)
+    
+    if numel(filename)>1
+      
+      mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(j)]);
+      cfgmanual.visual.artifact = [];
+      cfgmanual.artfctdef.type  = [];
+    else
+      
+      % get the description of the artifacts
+      mous_db_getdata(subjectname, 'meg_artifact_cfg');
+      try
+        mous_db_getdata(subjectname, 'meg_artifact_cfg_manual');
+      catch
+        cfgmanual.visual.artifact = [];
+        cfgmanual.artfctdef.type = [];
+      end
+      
+    end
+    trl = mous_defineTrial(filename{j}, -0.2, 0.6, 'visual_word'); %FIXME only for V* for now
+    trl = mous_artifact_remove(trl, filename{j}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
+    
+    T        = trl(:,[4 8]);
+    nw       = unique(T(:,1));
+    for k = 1:size(nw,1)
+      nw(k,2) = max(T(T(:,1)==nw(k,1),2));
     end
     
-    if ismember(T(2), [1 2 5 6])
-      % it's a sentence word
-      if ismember(T(5), wordok(1:3))
-        % it's and early word
-        sel1 = [sel1;k];
-      else
-        sel2 = [sel2;k];
+    % create 4 sets of trial indices:
+    % word 2-4 sentence
+    % word (n-3)-(n-1) sentence
+    % word 2-4 sequence
+    % word (n-3)-(n-1) sequence
+    sel1 = zeros(0,1);
+    sel2 = zeros(0,1);
+    sel3 = zeros(0,1);
+    sel4 = zeros(0,1);
+    
+    for k = 1:size(trl,1)
+      T      = trl(k,4:end);
+      sel    = find(nw(:,1)==T(1));
+      wordok = [2 3 4 nw(sel,2)-(3:-1:1)];
+      if ~ismember(T(5), wordok)
+        continue;
       end
-    elseif ismember(T(2), [3 4 7 8])
-      % it's a wordlist word
-      if ismember(T(5), wordok(1:3))
-        % it's and early word
-        sel3 = [sel3;k];
-      else
-        sel4 = [sel4;k];
+      
+      if ismember(T(2), [1 2 5 6])
+        % it's a sentence word
+        if ismember(T(5), wordok(1:3))
+          % it's and early word
+          sel1 = [sel1;k];
+        else
+          sel2 = [sel2;k];
+        end
+      elseif ismember(T(2), [3 4 7 8])
+        % it's a wordlist word
+        if ismember(T(5), wordok(1:3))
+          % it's and early word
+          sel3 = [sel3;k];
+        else
+          sel4 = [sel4;k];
+        end
       end
     end
+    
+    cfg            = [];
+    cfg.dataset    = filename{j};
+    cfg.trl        = trl([sel1(:);sel2(:);sel3(:);sel4(:)],:);
+    cfg.continuous = 'yes';
+    cfg.channel    = 'MEG';
+    cfg.dftfilter  = 'yes';
+    cfg.dftfreq    = [50 100 150 200 250 300]; cfg.dftfreq = [cfg.dftfreq cfg.dftfreq+0.5 cfg.dftfreq-0.5];
+    cfg.padding    = 2;
+    cfg.demean     = 'yes';
+    cfg.detrend    = 'yes';
+    tmpdata        = ft_preprocessing(cfg);
+    
+    nsmp    = cellfun('size', tmpdata.trial, 2);
+    tmpdata = ft_selectdata(tmpdata, 'rpt', find(nsmp==480));
+    if j==1,
+      data = tmpdata;
+    else
+      data = ft_appenddata([], data, tmpdata);
+    end
+    
   end
-  
-%   N   = min([numel(sel1) numel(sel2) numel(sel3) numel(sel4)]);
-%   tmp = randperm(numel(sel1));sel1 = sort(sel1(tmp(1:N)));
-%   tmp = randperm(numel(sel2));sel2 = sort(sel2(tmp(1:N)));
-%   tmp = randperm(numel(sel3));sel3 = sort(sel3(tmp(1:N)));
-%   tmp = randperm(numel(sel4));sel4 = sort(sel4(tmp(1:N)));
-%   
-  %data = ft_selectdata(data, 'rpt', [sel1(:);sel2(:);sel3(:);sel4(:)]);
-  %sel1 = (1:N);
-  %sel2 = (1:N)+N;
-  %sel3 = (1:N)+2*N;
-  %sel4 = (1:N)+3*N;
-
-  
-  cfg            = [];
-  cfg.dataset    = filename{1};
-  cfg.trl        = trl([sel1(:);sel2(:);sel3(:);sel4(:)],:);
-  cfg.continuous = 'yes';
-  cfg.channel    = 'MEG';
-  cfg.dftfilter  = 'yes';
-  cfg.dftfreq    = [50 100 150 200 250 300]; cfg.dftfreq = [cfg.dftfreq cfg.dftfreq+0.5 cfg.dftfreq-0.5];
-  cfg.padding    = 2;
-  cfg.demean     = 'yes';
-  cfg.detrend    = 'yes';
-  data           = ft_preprocessing(cfg);
-  
-  nsmp = cellfun('size', data.trial, 2);
-  data = ft_selectdata(data, 'rpt', find(nsmp==480));
-  
+ 
   cfg            = [];
   cfg.covariance = 'yes';
   tlck           = ft_timelockanalysis(cfg, data);
@@ -236,15 +240,15 @@ if dofreq_sub
  
   % get the original trl description to extract the number of words per
   % stimulus
-  nw       = [];
-  filename = mous_db_getfilename(subjectname, 'meg_ds_task');
-  trl      = mous_defineTrial(filename{1}, -0.2, 0.6, 'visual_word');
-  T        = trl(:,[4 8]);
-  nw(:,1)  = unique(T(:,1));
-  for k = 1:size(nw,1)
-    nw(k,2) = max(T(T(:,1)==nw(k,1),2));
-  end
-  
+%   nw       = [];
+%   filename = mous_db_getfilename(subjectname, 'meg_ds_task');
+%   trl      = mous_defineTrial(filename{1}, -0.2, 0.6, 'visual_word');
+%   T        = trl(:,[4 8]);
+%   nw(:,1)  = unique(T(:,1));
+%   for k = 1:size(nw,1)
+%     nw(k,2) = max(T(T(:,1)==nw(k,1),2));
+%   end
+%   
   % create 4 sets of trial indices:
   % word 2-4 sentence
   % word (n-3)-(n-1) sentence
@@ -256,8 +260,13 @@ if dofreq_sub
   sel4 = zeros(0,1);
   for k = 1:numel(data.trial)
     T      = data.trialinfo(k,:);
-    sel    = find(nw(:,1)==T(1));
-    wordok = [2 3 4 nw(sel,2)-(3:-1:1)];
+    %sel    = find(nw(:,1)==T(1));
+    %wordok = [2 3 4 nw(sel,2)-(3:-1:1)];
+    wordok = [2 3 4 7:13]; % use a more lenient definition of the words that
+    % are allowed, which is based on the assumption
+    % that the correct n-4,n-3,n-2 selection has taken place at the
+    % preprocessing step. this is to accommodate the fact that a few
+    % datasets consists of >1 *.ds directories
     if ~ismember(T(5), wordok)
       continue;
     end
@@ -395,7 +404,8 @@ if dogranger_earlylate
   cfg.method   = 'granger';
   cfg.granger.sfmethod = 'bivariate';
   cfg.granger.checkconvergence = false;
-   g            = ft_checkdata(g, 'cmbrepresentation', 'full');
+  g            = ft_connectivityanalysis(cfg, csd_all);
+  g            = ft_checkdata(g, 'cmbrepresentation', 'full');
   
   warning off; g = ft_struct2single(g); warning on;
   mous_db_putdata(subjectname, 'meg_granger_granger_sent_early', 'g', rootdir);
