@@ -2,6 +2,7 @@ if ~exist('domne_main',       'var'), domne_main       = 0; end
 if ~exist('domne_parametric', 'var'), domne_parametric = 0; end
 if ~exist('domne_parcellate', 'var'), domne_parcellate = 0; end
 if ~exist('domne_parcellate2', 'var'), domne_parcellate2 = 0; end
+if ~exist('atlas', 'var'), atlas = 'atlas_conte69_8196reg_LR_brodmann_subparc'; end
 if ~exist('domne_denoise', 'var'),    domne_denoise    = 0; end
 if ~exist('dodspm', 'var'),           dodspm           = 0; end     
 if ~exist('domne_earlylate', 'var'), domne_earlylate = 0; end
@@ -63,9 +64,9 @@ if domne_main,
   % because the area weighting is relative, i.e. the scale of the numbers shouldn't matter.
   % Yet, I am not 100% sure. FIXME
  
-  load atlas_conte69_8196reg
-  sourcemodel.inside  = find(atlas.parcellation3==1);% & atlas.parcellation2~=1);
-  sourcemodel.outside = find(atlas.parcellation3==2);% | atlas.parcellation2==1);
+  load atlas_conte69_8196reg_LR_brodmann_subparc
+  sourcemodel.inside  = find(atlas.parcellation ~= 2);% & atlas.parcellation2~=1);
+  sourcemodel.outside = find(atlas.parcellation==2);% | atlas.parcellation2==1);
   sourcemodelorig     = sourcemodel;
   
   % load the volume conductor model of the head
@@ -363,7 +364,7 @@ if domne_parcellate
   end
   mous_db_getdata(subjectname, suffix_mne);
   
-  load atlas_conte69_8196reg_LR_brodmann_subparc;
+  load(atlas);
   %load atlas_conte69_8196reg_LR;
   %atlas.parcellation = atlas.parcellation2;
   %atlas.parcellationlabel = atlas.parcellation2label;
