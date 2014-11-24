@@ -2,7 +2,6 @@ if ~exist('domne_main',       'var'), domne_main       = 0; end
 if ~exist('domne_parametric', 'var'), domne_parametric = 0; end
 if ~exist('domne_parcellate', 'var'), domne_parcellate = 0; end
 if ~exist('domne_parcellate2', 'var'), domne_parcellate2 = 0; end
-if ~exist('atlas', 'var'), atlas = 'atlas_conte69_8196reg_LR_brodmann_subparc'; end
 if ~exist('domne_denoise', 'var'),    domne_denoise    = 0; end
 if ~exist('dodspm', 'var'),           dodspm           = 0; end     
 if ~exist('domne_earlylate', 'var'), domne_earlylate = 0; end
@@ -65,7 +64,7 @@ if domne_main,
   % Yet, I am not 100% sure. FIXME
  
   load atlas_conte69_8196reg_LR_brodmann_subparc
-  sourcemodel.inside  = find(atlas.parcellation ~= 2);% & atlas.parcellation2~=1);
+  sourcemodel.inside  = find(atlas.parcellation~=2);% & atlas.parcellation2~=1);
   sourcemodel.outside = find(atlas.parcellation==2);% | atlas.parcellation2==1);
   sourcemodelorig     = sourcemodel;
   
@@ -336,24 +335,53 @@ if domne_parcellate
     error('you need to specify the file suffix for the timelocked data');
   end
   mous_db_getdata(subjectname, suffix_erfdata);%, rootdir);
-  tlck = senWord_AG;
-  sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label)); 
+  if exist('senWord_AG', 'var')
+    tlck = senWord_AG;
+    tmp  = seqWord_AG;
+  elseif exist('stat', 'var')
+    tmp1 = stat;
+    tmp1.avg = stat.stat;
+    tmp1.dof = ones(size(tmp1.avg)); % dummy variable, needed below, for weighting the conditions
+  
+    % assume the need to load in another file where the 'sent' is replaced
+    % with 'seq', and that the required variable is called 'stat'
+    mous_db_getdata(subjectname, strrep(suffix_erfdata, 'sent', 'seq'));
+    tmp2 = stat;
+    tmp2.avg = stat.stat;
+    tmp2.dof = ones(size(tmp2.avg));
+    
+    tlck = tmp1;
+    tmp  = tmp2;
+    clear tmp1 tmp2;
+  else
+    error('cannot do the parcellation on the requested data');
+  end
+  sel  = match_str(tlck.label, ft_channelselection('MEG',tlck.label)); 
   sel2 = nearest(tlck.time,-0.1):nearest(tlck.time, 0.6);
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
   if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
+  if isfield(tlck, 'stat'),   tlck.stat   = tlck.stat(sel,sel2);     end;
+  if isfield(tlck, 'prob'),   tlck.prob   = tlck.prob(sel,sel2);     end;
+  if isfield(tlck, 'mask'),   tlck.mask   = tlck.mask(sel,sel2);     end;
+  if isfield(tlck, 'cirange'),   tlck.cirange   = tlck.cirange(sel,sel2);     end;
+  
   if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
   tlck.time = tlck.time(sel2);
   tlcksent = tlck;
   
-  %tlck= mous_db_getdata(subjectname, strrep(suffix_erfdata,'sent','seq'));%, rootdir);
-  tlck = seqWord_AG;
-  sel = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
+  tlck = tmp;
+  sel  = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
   sel2 = nearest(tlck.time,-0.1):nearest(tlck.time, 0.6);
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
   if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
   if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
+  if isfield(tlck, 'stat'),   tlck.stat   = tlck.stat(sel,sel2);     end;
+  if isfield(tlck, 'prob'),   tlck.prob   = tlck.prob(sel,sel2);     end;
+  if isfield(tlck, 'mask'),   tlck.mask   = tlck.mask(sel,sel2);     end;
+  if isfield(tlck, 'cirange'),   tlck.cirange   = tlck.cirange(sel,sel2);     end;
+  
   tlck.time = tlck.time(sel2);
   tlckseq = tlck;
   
@@ -364,11 +392,7 @@ if domne_parcellate
   end
   mous_db_getdata(subjectname, suffix_mne);
   
-  load(atlas);
-  %load atlas_conte69_8196reg_LR;
-  %atlas.parcellation = atlas.parcellation2;
-  %atlas.parcellationlabel = atlas.parcellation2label;
-  
+  load atlas_conte69_8196reg_LR_brodmann_subparc;
   tlck = mous_mne_parcellate(source,tlck,atlas, 'svdmethod', 'projectavg');
   U            = tlck.U; 
   S            = tlck.S;
