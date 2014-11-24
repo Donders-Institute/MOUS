@@ -339,16 +339,16 @@ if domne_parcellate
     tlck = senWord_AG;
     tmp  = seqWord_AG;
   elseif exist('stat', 'var')
-    tmp1 = stat;
-    tmp1.avg = stat.stat;
-    tmp1.dof = ones(size(tmp1.avg)); % dummy variable, needed below, for weighting the conditions
+    tmp1 = tlck;
+    %tmp1.avg = stat.stat;
+    %tmp1.dof = ones(size(tmp1.avg)); % dummy variable, needed below, for weighting the conditions
   
     % assume the need to load in another file where the 'sent' is replaced
     % with 'seq', and that the required variable is called 'stat'
     mous_db_getdata(subjectname, strrep(suffix_erfdata, 'sent', 'seq'));
-    tmp2 = stat;
-    tmp2.avg = stat.stat;
-    tmp2.dof = ones(size(tmp2.avg));
+    tmp2 = tlck;
+    %tmp2.avg = stat.stat;
+    %tmp2.dof = ones(size(tmp2.avg));
     
     tlck = tmp1;
     tmp  = tmp2;
@@ -367,6 +367,7 @@ if domne_parcellate
   if isfield(tlck, 'cirange'),   tlck.cirange   = tlck.cirange(sel,sel2);     end;
   
   if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
+  if isfield(tlck, 'trial2'), tlck.trial2 = tlck.trial2(:,:,sel2); end;
   tlck.time = tlck.time(sel2);
   tlcksent = tlck;
   
@@ -376,12 +377,13 @@ if domne_parcellate
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
   if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
-  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
   if isfield(tlck, 'stat'),   tlck.stat   = tlck.stat(sel,sel2);     end;
   if isfield(tlck, 'prob'),   tlck.prob   = tlck.prob(sel,sel2);     end;
   if isfield(tlck, 'mask'),   tlck.mask   = tlck.mask(sel,sel2);     end;
   if isfield(tlck, 'cirange'),   tlck.cirange   = tlck.cirange(sel,sel2);     end;
   
+  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
+  if isfield(tlck, 'trial2'), tlck.trial2 = tlck.trial2(:,:,sel2); end;
   tlck.time = tlck.time(sel2);
   tlckseq = tlck;
   
