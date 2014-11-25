@@ -86,6 +86,8 @@ switch contrast
       [sel3, sel4]  = mous_makecontrast(dat2); % MXearly, MXlate
     elseif strcmp(contrast, 'RConset-RCoffset')
       [sel1, sel2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RConoff');
+    elseif strcmp(contrast,'subjMC-verbRC')
+      [sel1, sel2, sel3, sel4, sel5, sel6] = mous_subjMCvsverbRC(data);  %subjMC, verbRC in RC+ sentences; in RC- sentences, in RC+ word lists
     elseif strcmp(contrast, 'early-late')
       % take words 2 to 4 and n-3 to n-1: NOTE this only works
       % for visual subjects. Assume trialinfo organized as:
