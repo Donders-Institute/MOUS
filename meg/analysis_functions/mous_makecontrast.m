@@ -170,77 +170,88 @@ switch contrast
     end
     
   case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc','wordsenttar_parametric','wordseqtar_parametric','wordsenttar_parametric_blc','wordseqtar_parametric_blc',}
-    Xcond = data.trialinfo(:,3);
-    if regexp(contrast,    'wordsent_para')  % regexp = parametric(_blc)
-      sel   = find(ismember(Xcond,[1 2 5 6]));  
-    elseif regexp(contrast,'wordseq_para')   
-      sel   = find(ismember(Xcond,[3 4 7 8]));  
-    elseif regexp(contrast,'wordsenttar_para')  
-      sel   = find(ismember(Xcond,[2 6]));
-    elseif regexp(contrast,'wordseqtar_para')
-      sel   = find(ismember(Xcond,[4 8]));
-    end
     
-    data  = ft_selectdata(data, 'rpt', sel);
-    Xword = data.trialinfo(:,2);
-    
-    cfg              = [];
-    cfg.vartrllength = 2;
-    %if strcmp(contrast, 'wordsent_parametric_blc') || strcmp(contrast, 'wordseq_parametric_blc')
-    if regexp(contrast, 'blc')  % generalised for any kind of baseline subtraction
-      cfg.preproc.baselinewindow = [-inf 0];
-      cfg.preproc.demean         = 'yes';
-    end
-    
-    uXword = unique(Xword);
-    for k = 1:numel(uXword)
-      sel = find(Xword==uXword(k));
-      cfg.trials   = sel;
-      tmp          = ft_timelockanalysis(cfg, data);
-      if k==1
-        tlck = tmp;
-        tlck.trial  = shiftdim(tlck.avg,-1);
-        tlck.trial2 = shiftdim(tlck.dof(1,:),-1); %!!!! keep track of the dof
-      elseif uXword(k)<13
-        tlck.trial(uXword(k),:,1:size(tmp.avg,2))  = tmp.avg;
-        tlck.time(1:size(tmp.avg,2))       = tmp.time;
-        tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof(1,:);
-      end
-    end
-    if size(tlck.trial,1)<15, tlck.trial((end+1):15,:,:) = nan; tlck.trial2((end+1):15,:,:) = nan; end
-    tlck.dimord = 'rpt_chan_time';
-      
-    if ft_senstype(tlck, 'ctf275_planar')
-      tmp = ft_combineplanar([], tlck);
-    else
-      tmp = tlck;
-    end
-    tmp.trial = tmp.trial(2:10,:,:); % use only the first 10 words
-    
-    if exist('M', 'var')
-      % M is assumed to be a projection matrix, e.g. a spatial filter
-      selchan = match_str(tmp.label, ft_channelselection('MEG', tmp.label));
-      siz     = size(tmp.trial);
-      tmpdat  = reshape(permute(tmp.trial, [2 1 3]), [siz(2) siz(1)*siz(3)]);
-      tmpdat  = M*tmpdat(selchan,:);
-      tmpdat  = ipermute(reshape(tmpdat, [size(M,1) siz(1) siz(3)]), [2 1 3]);
-      tmp.trial = abs(tmpdat);
-      
-      tmp.label = cell(size(M,1),1);
-      for k = 1:size(M,1)
-        tmp.label{k} = ['chan',num2str(k,'%04d')];
-      end
-      
-      % do a baseline correction (again) if requested
-      if regexp(contrast, 'blc')  % generalised for any kind of baseline subtraction
-        sel = nearest(tmp.time, 0);
-        tmp.trial = tmp.trial - repmat(mean(tmp.trial(:,:,1:sel),3),[1 1 size(tmp.trial,3)]);
-      end
+    switch ft_datatype(data)
+      case 'timelock'
+        % assume that the input data has a field, called trial, that
+        % contains the averages per word
+        tlck = data;
+        tmp  = tlck;
+        
+      otherwise
+        % assume single 'trial' data, i.e. an estimate per word
+        Xcond = data.trialinfo(:,3);
+        if regexp(contrast,    'wordsent_para')  % regexp = parametric(_blc)
+          sel   = find(ismember(Xcond,[1 2 5 6]));
+        elseif regexp(contrast,'wordseq_para')
+          sel   = find(ismember(Xcond,[3 4 7 8]));
+        elseif regexp(contrast,'wordsenttar_para')
+          sel   = find(ismember(Xcond,[2 6]));
+        elseif regexp(contrast,'wordseqtar_para')
+          sel   = find(ismember(Xcond,[4 8]));
+        end
+        
+        data  = ft_selectdata(data, 'rpt', sel);
+        Xword = data.trialinfo(:,2);
+        
+        cfg              = [];
+        cfg.vartrllength = 2;
+        %if strcmp(contrast, 'wordsent_parametric_blc') || strcmp(contrast, 'wordseq_parametric_blc')
+        if regexp(contrast, 'blc')  % generalised for any kind of baseline subtraction
+          cfg.preproc.baselinewindow = [-inf 0];
+          cfg.preproc.demean         = 'yes';
+        end
+        
+        uXword = unique(Xword);
+        for k = 1:numel(uXword)
+          sel = find(Xword==uXword(k));
+          cfg.trials   = sel;
+          tmp          = ft_timelockanalysis(cfg, data);
+          if k==1
+            tlck = tmp;
+            tlck.trial  = shiftdim(tlck.avg,-1);
+            tlck.trial2 = shiftdim(tlck.dof(1,:),-1); %!!!! keep track of the dof
+          elseif uXword(k)<13
+            tlck.trial(uXword(k),:,1:size(tmp.avg,2))  = tmp.avg;
+            tlck.time(1:size(tmp.avg,2))       = tmp.time;
+            tlck.trial2(uXword(k),:,1:size(tmp.avg,2)) = tmp.dof(1,:);
+          end
+        end
+        if size(tlck.trial,1)<15, tlck.trial((end+1):15,:,:) = nan; tlck.trial2((end+1):15,:,:) = nan; end
+        tlck.dimord = 'rpt_chan_time';
+        
+        if ft_senstype(tlck, 'ctf275_planar')
+          tmp = ft_combineplanar([], tlck);
+        else
+          tmp = tlck;
+        end
+        tmp.trial = tmp.trial(2:10,:,:); % use only the first 10 words
+        
+        if exist('M', 'var')
+          % M is assumed to be a projection matrix, e.g. a spatial filter
+          selchan = match_str(tmp.label, ft_channelselection('MEG', tmp.label));
+          siz     = size(tmp.trial);
+          tmpdat  = reshape(permute(tmp.trial, [2 1 3]), [siz(2) siz(1)*siz(3)]);
+          tmpdat  = M*tmpdat(selchan,:);
+          tmpdat  = ipermute(reshape(tmpdat, [size(M,1) siz(1) siz(3)]), [2 1 3]);
+          tmp.trial = abs(tmpdat);
+          
+          tmp.label = cell(size(M,1),1);
+          for k = 1:size(M,1)
+            tmp.label{k} = ['chan',num2str(k,'%04d')];
+          end
+          
+          % do a baseline correction (again) if requested
+          if regexp(contrast, 'blc')  % generalised for any kind of baseline subtraction
+            sel = nearest(tmp.time, 0);
+            tmp.trial = tmp.trial - repmat(mean(tmp.trial(:,:,1:sel),3),[1 1 size(tmp.trial,3)]);
+          end
+        end
     end
     
     % fit glm
     cfg                 = [];
-    cfg.design          = -4:4; % zero mean
+    cfg.design          = (1:size(tmp.trial,1))-mean(1:size(tmp.trial,1)); % zero mean
     cfg.statistic       = 'glm';
     cfg.glm.statistic   = 'beta';
     cfg.glm.standardise = 0;
