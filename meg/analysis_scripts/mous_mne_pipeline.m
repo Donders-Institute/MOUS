@@ -318,17 +318,17 @@ if domne_parametric_rc
   %do rc  sent and seq
   sel1 = sort(sel1(1:n));
   sel2 = sort(sel2(1:n));
-  data = ft_selectdata(data, 'rpt', [sel1(:);sel2(:)]);
-  data = ft_selectdata(data, 'toilim', [-inf 0.6]);
+  data1 = ft_selectdata(data, 'rpt', [sel1(:);sel2(:)]);
+  data1 = ft_selectdata(data1, 'toilim', [-inf 0.6]);
   
   % move around the columns in the trialinfo field so that the condition
   % trigger ends up in the third column and the word ordinal indicator in
   % the second
   % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
-  data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
+  data1.trialinfo = data1.trialinfo(:,[1 5 2 3 4]);
   
-  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
-  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
+  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data1, 'wordsent_parametric_blc', [], F);
+  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data1, 'wordseq_parametric_blc',  [], F);
   
   tlck = ft_struct2single(tlck_sent);
   stat = stat_sent;
@@ -344,17 +344,17 @@ if domne_parametric_rc
   %do mix  sent and seq
   sel3 = sort(sel3(1:n));
   sel4 = sort(sel4(1:n));
-  data = ft_selectdata(data, 'rpt', [sel3(:);sel4(:)]);
-  data = ft_selectdata(data, 'toilim', [-inf 0.6]);
+  data2 = ft_selectdata(data, 'rpt', [sel3(:);sel4(:)]);
+  data2 = ft_selectdata(data2, 'toilim', [-inf 0.6]);
   
   % move around the columns in the trialinfo field so that the condition
   % trigger ends up in the third column and the word ordinal indicator in
   % the second
   % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
-  data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
+  data2.trialinfo = data2.trialinfo(:,[1 5 2 3 4]);
   
-  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
-  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
+  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data2, 'wordsent_parametric_blc', [], F);
+  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data2, 'wordseq_parametric_blc',  [], F);
   
   tlck = ft_struct2single(tlck_sent);
   stat = stat_sent;
