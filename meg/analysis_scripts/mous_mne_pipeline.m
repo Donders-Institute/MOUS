@@ -87,7 +87,7 @@ if domne_main,
   sourcemodel  = ft_prepare_leadfield(cfg);
   
   
-  %% Compute MNE for each condition
+   %% Compute MNE for each condition
   
   % this is a bit clunky, but in order to make the pipeline general purpose
   % (i.e. using uniform variable names), it has to try out the possible
@@ -167,7 +167,7 @@ if domne_main,
   
   cfg            = [];
   cfg.demean     = 'yes';
-  cfg.baselinewindow = [-0.1 0];
+  cfg.baselinewindow = [-0.2 0];
   cfg.projectmom = 'yes';
   cfg.zscore     = 'no';
   
@@ -274,6 +274,102 @@ if domne_parametric
   mu   = single(mu_seq);
   mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
 end
+
+if domne_parametric_rc
+  % this part assumes that it can use precomputed MNE filters, and that the
+  % filters have been computed on the same data as the one that will be
+  % projected
+  
+  if ~exist('suffix_rawdata', 'var')
+    suffix_rawdata = 'meg_erf_allwords_02-nextword';
+    % error('you need to specify the file suffix for the preprocessed data');
+  end
+  mous_db_getdata(subjectname, suffix_rawdata, rootdir);
+  
+  if ~exist('suffix_mne', 'var')
+    suffix_mne = strrep(suffix_rawdata, 'erf', 'mne');
+    suffix_mne = cat(2, suffix_mne, '_sent');
+    % error('you need to specify the file suffix for the mne data');
+  end
+  %IMPORTANT: always use the sent condition in the suffix, because this is
+  %assumed later on. Otherwise the conditions will be swapped, and because
+  %as of 2014-06-19 only the sentence condition file contains the spatial
+  %filters
+  mous_db_getdata(subjectname, suffix_mne, rootdir);
+  
+  % create the spatial filter matrix
+  F = zeros(8196, size(source.avg.filter{source.inside(1)},2));
+  for k = 1:numel(source.inside)
+    F(source.inside(k),:) = source.avg.ori{source.inside(k)}*source.avg.filter{source.inside(k)};
+  end
+ 
+  % make the number of trials per condition equal
+  sel1 = find(ismember(data.trialinfo(:,2),[5 6])); % rc sent
+  sel2 = find(ismember(data.trialinfo(:,2),[7 8])); % rc seq
+  sel3 = find(ismember(data.trialinfo(:,2),[1 2])); % mix sent
+  sel4 = find(ismember(data.trialinfo(:,2),[3 4])); % mix seq
+  
+  n1(1) = numel(sel1); sel1 = sel1(randperm(n1(1)));
+  n1(2) = numel(sel2); sel2 = sel2(randperm(n1(2)));
+  n1(3) = numel(sel3); sel3 = sel3(randperm(n1(3)));
+  n1(4) = numel(sel4); sel4 = sel4(randperm(n1(4)));
+  
+  n  = min(n1);
+  %do rc  sent and seq
+  sel1 = sort(sel1(1:n));
+  sel2 = sort(sel2(1:n));
+  data = ft_selectdata(data, 'rpt', [sel1(:);sel2(:)]);
+  data = ft_selectdata(data, 'toilim', [-inf 0.6]);
+  
+  % move around the columns in the trialinfo field so that the condition
+  % trigger ends up in the third column and the word ordinal indicator in
+  % the second
+  % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
+  data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
+  
+  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
+  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
+  
+  tlck = ft_struct2single(tlck_sent);
+  stat = stat_sent;
+  stat = rmfield(stat, {'prob', 'mask', 'cirange'});
+  mu   = single(mu_sent);
+  mous_db_putdata(subjectname, [suffix_mne,'_rc_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  tlck = ft_struct2single(tlck_seq);
+  stat = stat_seq;
+  stat = rmfield(stat, {'prob', 'mask', 'cirange'});
+  mu   = single(mu_seq);
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_rc_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  
+  %do mix  sent and seq
+  sel3 = sort(sel3(1:n));
+  sel4 = sort(sel4(1:n));
+  data = ft_selectdata(data, 'rpt', [sel3(:);sel4(:)]);
+  data = ft_selectdata(data, 'toilim', [-inf 0.6]);
+  
+  % move around the columns in the trialinfo field so that the condition
+  % trigger ends up in the third column and the word ordinal indicator in
+  % the second
+  % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
+  data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
+  
+  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
+  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
+  
+  tlck = ft_struct2single(tlck_sent);
+  stat = stat_sent;
+  stat = rmfield(stat, {'prob', 'mask', 'cirange'});
+  mu   = single(mu_sent);
+  mous_db_putdata(subjectname, [suffix_mne,'_mix_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  tlck = ft_struct2single(tlck_seq);
+  stat = stat_seq;
+  stat = rmfield(stat, {'prob', 'mask', 'cirange'});
+  mu   = single(mu_seq);
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_mix_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  
+  
+end
+
 if domne_earlylate
   % do a quick and dirty (don't use mous_makecontrast) comparison by
   % projecting the sensor ERFs throught the spatial filter, and save the
@@ -393,8 +489,12 @@ if domne_parcellate
     error('you need to specify the file suffix for the mne data');
   end
   mous_db_getdata(subjectname, suffix_mne);
-  
-  load atlas_conte69_8196reg_LR_brodmann_subparc;
+  if ~exist('atlas', 'var')
+      load atlas_conte69_8196reg_LR_brodmann_subparc;
+  else
+      load(atlas)
+  end
+
   tlck = mous_mne_parcellate(source,tlck,atlas, 'svdmethod', 'projectavg');
   U            = tlck.U; 
   S            = tlck.S;
