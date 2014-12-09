@@ -169,7 +169,10 @@ switch contrast
       otherwise
     end
     
-  case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc','wordsenttar_parametric','wordseqtar_parametric','wordsenttar_parametric_blc','wordseqtar_parametric_blc',}
+  case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc',...
+          'wordsent_rc_parametric_blc' 'wordsent_mix_parametric_blc' 'wordseq_rc_parametric_blc' 'wordseq_mix_parametric_blc',...
+          'wordsent_rc_parametric' 'wordsent_mix_parametric' 'wordseq_rc_parametric' 'wordseq_mix_parametric',...
+          'wordsenttar_parametric','wordseqtar_parametric','wordsenttar_parametric_blc','wordseqtar_parametric_blc',}
     
     switch ft_datatype(data)
       case 'timelock'
@@ -182,13 +185,21 @@ switch contrast
         % assume single 'trial' data, i.e. an estimate per word
         Xcond = data.trialinfo(:,3);
         if regexp(contrast,    'wordsent_para')  % regexp = parametric(_blc)
-          sel   = find(ismember(Xcond,[1 2 5 6]));
+            sel   = find(ismember(Xcond,[1 2 5 6]));
         elseif regexp(contrast,'wordseq_para')
-          sel   = find(ismember(Xcond,[3 4 7 8]));
+            sel   = find(ismember(Xcond,[3 4 7 8]));
         elseif regexp(contrast,'wordsenttar_para')
-          sel   = find(ismember(Xcond,[2 6]));
+            sel   = find(ismember(Xcond,[2 6]));
         elseif regexp(contrast,'wordseqtar_para')
-          sel   = find(ismember(Xcond,[4 8]));
+            sel   = find(ismember(Xcond,[4 8]));
+        elseif regexp(contrast,'wordsent_rc_para')
+            sel   = find(ismember(Xcond,[5 6]));
+        elseif regexp(contrast,'wordseq_rc_para')
+            sel   = find(ismember(Xcond,[7 8]));    
+        elseif regexp(contrast,'wordsent_mix_para')
+            sel   = find(ismember(Xcond,[1 2]));
+        elseif regexp(contrast,'wordseq_mix_para')
+            sel   = find(ismember(Xcond,[3 4]));
         end
         
         data  = ft_selectdata(data, 'rpt', sel);
