@@ -23,6 +23,7 @@ if ~exist('doerf_mix',        'var'), doerf_mix        = 0;                     
 if ~exist('doerf_rc_onoff',   'var'), doerf_rc_onoff   = 0;                           end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
+if ~exist('contrast',         'var'), contrast         = 'wordsent_parametric_blc';   end
 
 if strcmp(subjectname(1), 'V') && ~exist('length', 'var'), length = '02-nextword';    end
 if strcmp(subjectname(1), 'A') && ~exist('length', 'var'), length = '02-10'; end
@@ -97,57 +98,61 @@ if doerf_parametric
   % the second
   % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
   data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
-  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric_blc');
+ 
+  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, contrast);  
+  tlck = tlck_sent;
+  stat = stat_sent;
+  mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
+  
+  contrast = strrep(contrast, 'sent', 'seq');
   [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc');
-  
-  tlck = tlck_sent;
-  stat = stat_sent;
-  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc'], 'tlck', 'stat', outrootdir);
   tlck = tlck_seq;
   stat = stat_seq;
-  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc'], 'tlck', 'stat', outrootdir);
+  mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
   
-  % parametric without basline
-  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric');
+  % parametric without basline 
+  contrast = strrep(contrast, '_blc', '');
   [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric');
-  
-  tlck = tlck_sent;
-  stat = stat_sent;
-  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric'], 'tlck', 'stat', outrootdir);
   tlck = tlck_seq;
   stat = stat_seq;
-  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric'], 'tlck', 'stat', outrootdir);
-  
-  
-  % convert to planar
-  cfg        = [];
-  cfg.method = 'distance';
-  neighbours = ft_prepare_neighbours(cfg, data);
-  
-  cfg              = [];
-  cfg.planarmethod = 'sincos';
-  cfg.neighbours   = neighbours;
-  data             = ft_megplanar(cfg, data);
-  [tlckp_sent, statp_sent, statp2_sent] = mous_makecontrast(data, 'wordsent_parametric_blc');
-  [tlckp_seq,  statp_seq,  statp2_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc');
-  
-  tlck = tlckp_sent;
-  stat = statp_sent;
-  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 1);
-  tlck = tlckp_seq;
-  stat = statp_seq;
-  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 1);
-  
-  % parametric without basline
-  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric');
-  [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric');
-  
+  mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
+
+  contrast = strrep(contrast, 'seq', 'sent');
+  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric'); 
   tlck = tlck_sent;
   stat = stat_sent;
-  mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_planar'], 'tlck', 'stat', outrootdir);
-  tlck = tlck_seq;
-  stat = stat_seq;
-  mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_planar'], 'tlck', 'stat', outrootdir);
+  mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
+  
+  
+%   % convert to planar
+%   cfg        = [];
+%   cfg.method = 'distance';
+%   neighbours = ft_prepare_neighbours(cfg, data);
+%   
+%   cfg              = [];
+%   cfg.planarmethod = 'sincos';
+%   cfg.neighbours   = neighbours;
+%   data             = ft_megplanar(cfg, data);
+%   [tlckp_sent, statp_sent, statp2_sent] = mous_makecontrast(data, 'wordsent_parametric_blc');
+%   [tlckp_seq,  statp_seq,  statp2_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc');
+%   
+%   tlck = tlckp_sent;
+%   stat = statp_sent;
+%   mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 1);
+%   tlck = tlckp_seq;
+%   stat = statp_seq;
+%   mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_blc_planar'], 'tlck', 'stat', outrootdir, 1);
+%   
+%   % parametric without basline
+%   [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric');
+%   [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric');
+%   
+%   tlck = tlck_sent;
+%   stat = stat_sent;
+%   mous_db_putdata(subjectname, [inputdata,'_wordsent_parametric_planar'], 'tlck', 'stat', outrootdir);
+%   tlck = tlck_seq;
+%   stat = stat_seq;
+%   mous_db_putdata(subjectname, [inputdata,'_wordseq_parametric_planar'], 'tlck', 'stat', outrootdir);
 end
 
 if doerf_rc
