@@ -1,4 +1,4 @@
-function [pte1, pte2, r, opt_kappa, test_corr, K1, K2] = mous_kcca_kfoldcv(X1,X2,opt)
+function [pte1, pte2, r, opt_kappa, test_corr, nalpha, nbeta, K1, K2] = mous_kcca_kfoldcv(X1,X2,opt)
 
 % Script to wrap kcca in a k-fold cross-validation loop
 % options: 
@@ -24,7 +24,6 @@ elseif all(size(X1)==size(X1,1))
     K2 = X2;
 end
 N = size(X1,1);
-
 
 %%%%%%%%%%%%%%%
 % parse options
@@ -61,12 +60,25 @@ if ~opt.stand && opt.computekernel
     K2 = X2*X2';
 end
 
+%%%%%%%%%%%%%%%%
+% initialisation
+%%%%%%%%%%%%%%%%
+Npf       = max(sum(cv_index(N,1,opt.nfold)), sum(cv_index(N,opt.nfold,opt.nfold)));
+opt_kappa = zeros(opt.nfold,1);
+nalpha    = cell(opt.nfold,1);
+nbeta     = cell(opt.nfold,1);
+r         = cell(opt.nfold,1);
+mindim    = inf;
+diffdim   = false;
+if opt.allcomponents
+    pte1 = zeros(N,Npf); pte2 = zeros(N,Npf); 
+else
+    pte1 = zeros(N,1);   pte2 = zeros(N,1); 
+end
+
 %%%%%%%%%%%%%%%%%%%%
 % begin main CV loop
 %%%%%%%%%%%%%%%%%%%%
-maxdim = 0;
-Npf    = max(sum(cv_index(N,1,opt.nfold)), sum(cv_index(N,opt.nfold,opt.nfold)));
-pte1   = zeros(N,Npf); pte2 = zeros(N,Npf); opt_kappa = zeros(opt.nfold,1);
 for i = 1:opt.nfold
     % configure training and test indices
     [tr,te] = cv_index(N,i,opt.nfold); 
@@ -103,38 +115,42 @@ for i = 1:opt.nfold
     opt_kappa(i) = kappa;
     
     %run kCCA
-    [nalpha, nbeta,r] = kcanonca_reg_ver2(K1tr,K2tr,eta,kappa,1,2,Rx,Ry);
+    [nalpha{i}, nbeta{i}, r{i}] = kcanonca_reg_ver2(K1tr,K2tr,eta,kappa,1,2,Rx,Ry);
     
-    projte1 = K1te*nalpha;
-    projte2 = K2te*nbeta;
-    
+    projte1 = K1te*nalpha{i};
+    projte2 = K2te*nbeta{i};
+   
     if opt.allcomponents
-        pte1(te,1:size(projte1,2)) = projte1;
-        pte2(te,1:size(projte2,2)) = projte2;
+        % save all components
+        pte1(te,size(pte1,2)-size(projte1,2)+1:end) = projte1;
+        pte2(te,size(pte2,2)-size(projte2,2)+1:end) = projte2;
     else
-        % just use the last component
-        pte1(te) = projte1(:,end);
-        pte2(te) = projte2(:,end);
+        % just save the last component
+        pte1(te)  = projte1(:,end);
+        pte2(te)  = projte2(:,end);
+        nalpha{i} = nalpha{i}(:,end);
+        nbeta{i}  = nbeta{i}(:,end);
+        r{i}      = r{i}(end);
     end
     
     % keep track of number of components
-    if i > 1 && (maxdim ~= size(projte1,2) || maxdim ~= size(projte1,2))
-        warning('Estimated dimensionality differs between CV folds');
-    else
-        maxdim = max([maxdim, size(projte1,2), size(projte2,2)]);
+    if i > 1 && (mindim ~= size(projte1,2) || mindim ~= size(projte1,2))
+        diffdim = true;
     end
+    mindim = min([mindim, size(projte1,2), size(projte2,2)]);
         
-    if opt.verbose, fprintf('Fold %d: rank=%d, kappa=%2.2f, train corr=%2.2f\n',i,size(nalpha,2),kappa,r(end)); end
+    if opt.verbose, fprintf('Fold %d: rank=%d, kappa=%2.2f, train corr=%2.2f\n',i,size(nalpha,2),kappa,r{i}(end)); end
 end
     
 if opt.allcomponents
     % trim projection matrices
-    pte1 = pte1(:,1:maxdim);
-    pte2 = pte2(:,1:maxdim);
+    pte1 = pte1(:,size(pte1,2)-mindim+1:end);
+    pte2 = pte2(:,size(pte2,2)-mindim+1:end);
 end
 
 test_corr = diag(corr(pte1,pte2));
 
+if diffdim,     warning('Dimensionality differs between CV folds');       end
 if opt.verbose, fprintf('CV complete. Test corr=%2.2f\n',max(test_corr)); end
 
 if opt.nrand>0,
