@@ -99,26 +99,27 @@ if doerf_parametric
   % FIXME this is hard coded expected based on XXX_erf_allwords_01-10
   data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
  
+  % parametric with basline
   [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, contrast);  
   tlck = tlck_sent;
   stat = stat_sent;
   mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
   
   contrast = strrep(contrast, 'sent', 'seq');
-  [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc');
+  [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, contrast);
   tlck = tlck_seq;
   stat = stat_seq;
   mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
   
   % parametric without basline 
   contrast = strrep(contrast, '_blc', '');
-  [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, 'wordseq_parametric');
+  [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, contrast);
   tlck = tlck_seq;
   stat = stat_seq;
   mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
 
   contrast = strrep(contrast, 'seq', 'sent');
-  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, 'wordsent_parametric'); 
+  [tlck_sent, stat_sent, stat2_sent] = mous_makecontrast(data, contrast); 
   tlck = tlck_sent;
   stat = stat_sent;
   mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
