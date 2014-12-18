@@ -5,7 +5,7 @@ if ~exist('domne_parcellate2', 'var'), domne_parcellate2 = 0; end
 if ~exist('domne_denoise', 'var'),    domne_denoise    = 0; end
 if ~exist('dodspm', 'var'),           dodspm           = 0; end     
 if ~exist('domne_earlylate', 'var'), domne_earlylate = 0; end
-
+if ~exist('domne_parametric_rc', 'var'), domne_parametric_rc = 0; end
 
 if ~exist('rootdir', 'var')
   rootdir = '/project/3011020.09/MEG';
@@ -423,6 +423,7 @@ if domne_earlylate
 end
 
 if domne_parcellate
+    
   % this part assumes that it can use precomputed MNE filters, and that the
   % filters have been computed on the same data as the one that will be
   % projected
@@ -453,7 +454,7 @@ if domne_parcellate
     error('cannot do the parcellation on the requested data');
   end
   sel  = match_str(tlck.label, ft_channelselection('MEG',tlck.label)); 
-  sel2 = nearest(tlck.time,-0.1):nearest(tlck.time, 0.6);
+  sel2 = nearest(tlck.time,-0.2):nearest(tlck.time, 0.6);
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
   if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
@@ -469,7 +470,7 @@ if domne_parcellate
   
   tlck = tmp;
   sel  = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
-  sel2 = nearest(tlck.time,-0.1):nearest(tlck.time, 0.6);
+  sel2 = nearest(tlck.time,-0.2):nearest(tlck.time, 0.6);
   tlck.label = tlck.label(sel);
   if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
   if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
@@ -489,7 +490,7 @@ if domne_parcellate
     error('you need to specify the file suffix for the mne data');
   end
   mous_db_getdata(subjectname, suffix_mne);
-  if ~exist('atlas', 'var')
+  if ~exist('parcel_atlas', 'var')
       load atlas_conte69_8196reg_LR_brodmann_subparc;
   else
       load(atlas)
