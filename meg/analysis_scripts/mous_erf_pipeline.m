@@ -21,6 +21,7 @@ if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                     
 if ~exist('doerf_rc',         'var'), doerf_rc         = 0;                           end
 if ~exist('doerf_mix',        'var'), doerf_mix        = 0;                           end
 if ~exist('doerf_rc_onoff',   'var'), doerf_rc_onoff   = 0;                           end
+if ~exist('doerf_dependency', 'var'), doerf_dependency = 0;                           end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
 if ~exist('contrast',         'var'), contrast         = 'wordsent_parametric_blc';   end
@@ -363,4 +364,75 @@ if doerf_rc_onoff
   mous_db_putdata(subjectname, [inputdata,'_wordsentRC_early_planar'], 'tlck', outrootdir);
   tlck = tlckp_late;
   mous_db_putdata(subjectname, [inputdata,'_wordsentRC_late_planar'], 'tlck', outrootdir);
+end
+
+if doerf_dependency
+  mous_db_getdata(subjectname, inputdata, inrootdir);
+  [trialinfo,b,n,uT,ix] = extract_dependency(data.trialinfo);
+  
+  % stratify the trials according to matching numbers in the ordinal word
+  % position histograms for the sentences versus the equivalent sequences
+  % HARDCODED ASSUMPTION: trialinfo(:,5) is ordinal word position,
+  % trialinfo(:,7) is dependency indicator
+  for k = 1:numel(uT)
+    for m = 1:size(n,2)
+      sel{k,m} = find(trialinfo(:,5)==m&trialinfo(:,7)==uT(k));
+    end
+  end
+  N = numel(uT)/2;
+  for k = 1:N
+    for m = 1:size(n,2)
+      n_tmp = min(numel(sel{k,m}),numel(sel{k+N,m}));
+      sel1  = sel{k,m}(randperm(numel(sel{k,m})));
+      sel2  = sel{k+N,m}(randperm(numel(sel{k+N,m})));
+      sel{k,m} = sort(sel1(1:n_tmp));
+      sel{k+N,m} = sort(sel2(1:n_tmp));
+    end
+  end
+  sel   = sel(:);
+  n_sel = cellfun(@numel, sel);
+  sel   = sel(n_sel>0);
+  dataorig = data;
+  data     = ft_selectdata(dataorig, 'rpt', sort(cat(1,sel{:})));
+  [trialinfo,b,n,uT,ix] = extract_dependency(data.trialinfo);
+  
+  cfg = [];
+  cfg.preproc.demean = 'yes';
+  cfg.preproc.baselinewindow = [-0.1 0];
+  cfg.vartrllength = 2;
+  cfg.channel = 'MEG';
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[1 5]));
+  tlck(1)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[2 6]));
+  tlck(2)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[4 5 6]));
+  tlck(3)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[8 40]));
+  tlck(4)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[16 48]));
+  tlck(5)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[32 40 48]));
+  tlck(6)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+
+  cfgplanar              = [];
+  cfgplanar.planarmethod = 'sincos';
+  cfg_neighb.method      = 'distance';
+  cfg_neighb.neighbourdist = 3;
+  cfgplanar.neighbours   = ft_prepare_neighbours(cfg_neighb, data);
+  
+  cfgbaseline          = [];
+  cfgbaseline.baseline = [-0.1 0];
+  cfgbaseline.channel  = 'MEG';
+  
+  for k = 1:6
+    tlck_p(k) = ft_combineplanar([], ft_timelockbaseline(cfgbaseline, ft_megplanar(cfgplanar, tlck(k))));
+  end
+  
+  mous_db_putdata(subjectname, [inputdata,'_dependency_sent'], 'tlck', 'tlck_p', outrootdir);
 end
