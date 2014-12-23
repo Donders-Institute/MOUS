@@ -5,7 +5,7 @@ function [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_C
 
 % NL, AH 1-6-2012. Mod: 9-17-2012 (NL)
 
-%% Parameters
+% Parameters
 % Window length: long/
 % wordType = target/ all/firstWord
 % trialfun = auditory_word /visual_word
