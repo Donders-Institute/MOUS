@@ -1,7 +1,8 @@
 function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 
 % MOUS_MAKECONTRAST extracts the average across observations for a specific
-% set of defined conditions.
+% set of defined conditions, or computes the slope parameter of the linear
+% fit across words
 %
 % Input arguments:
 %   data      = data structure, type raw or freq
@@ -18,16 +19,17 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 % if trialinfo is specified, this takes prevalence (first column is
 % condition)
 %
-% supprted contrasts are:
-%   sent-seq = sentence versus word list, all words in the data
-%   sent-seqTarget = sentence versus word list, target words
+% defined contrasts are:
+%   sent-seq          = sentence versus word list, all words in the data
+%   sent-seqTarget    = sentence versus word list, target words
 %   sent-seqFirstword = sentence versus word list, first word
-%   sentMX-sentRC = sentence 'mixed clauses' versus Relative Clauses
-%   early-late    = beginning vs. end of sentence (or word list)
-%   comb-bsl      = sent+seq vs. baseline
+%   sentMX-sentRC     = sentence 'mixed clauses' versus Relative Clauses
+%   early-late        = beginning vs. end of sentence (or word list)
+%   comb-bsl          = sent+seq vs. baseline
 %
-%   wordsent_parametric
-%   wordsent_parametric_blc
+% defined slope parameter estimates are
+%   wordsent_parametric     = sentence 
+%   wordsent_parametric_blc = sentence, with subtraction of slope in baseline
 %   wordseq_parametric
 %   wordseq_parametric_blc
 %   wordsenttar_parametric
@@ -51,35 +53,45 @@ switch contrast
       T = trialinfo(:,1);
     end
     
-    cfg              = [];
-    cfg.vartrllength = 2;
-
-    if strcmp(contrast, 'sent-seq')
-      sel1 = find(ismember(T,[1 2 5 6]));
-      sel2 = find(ismember(T,[3 4 7 8]));
-    elseif strcmp(contrast, 'sent-seqTarget')
-      sel1 = find(ismember(T,[2 6]));
-      sel2 = find(ismember(T,[4 8]));      
-    elseif strcmp(contrast, 'sent-seqFirstword')
-      sel1 = find(ismember(T,[1 5]) & data.trialinfo(:,2) == 1); 
-      sel2 = find(ismember(T,[3 7]) & data.trialinfo(:,2) == 1);   
-    elseif strcmp(contrast, 'sentMX-sentRC')
-      sel1 = find(ismember(T,[5 6]));  % MIX
-      sel2 = find(ismember(T,[1 2]));  % RC
-    elseif strcmp(contrast,'RCend-RCafter')
-      [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % decode the trialinfo field to make a selection of trials per 
+    % sub condition
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    switch contrast
+      case 'sent-seq'
+        sel1 = find(ismember(T,[1 2 5 6]));
+        sel2 = find(ismember(T,[3 4 7 8]));
+      case 'sent-seqTarget'
+        sel1 = find(ismember(T,[2 6]));
+        sel2 = find(ismember(T,[4 8]));      
+      case 'sent-seqFirstword'    
+        sel1 = find(ismember(T,[1 5]) & data.trialinfo(:,2) == 1); 
+        sel2 = find(ismember(T,[3 7]) & data.trialinfo(:,2) == 1);   
+      case 'sentMX-sentRC'
+        sel1 = find(ismember(T,[5 6]));  % MIX
+        sel2 = find(ismember(T,[1 2]));  % RC
+      case 'RCend-RCafter'
+        % use an lower level function for the definition of trials
+        [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
+      case 'early-late'
+        % take words 2 to 4 and n-3 to n-1: NOTE this only works
+        % for visual subjects. Assume trialinfo organized as:
+        % sentence, ordinal word, condition, total number of words
+        sel1 = find(ismember(data.trialinfo(:,2),[2 3 4]));                     % early
+        sel2 = find(ismember(data.trialinfo(:,4)-data.trialinfo(:,2),[1 2 3])); % late
     end
     
     if numel(sel1)~=numel(sel2) % balance numtrials for the above contrasts
-      n1=numel(sel1);
-      n2=numel(sel2);
-      n=min(n1,n2);
-      x1=randperm(n1);
-      x2=randperm(n2);
-      sel1=sel1(sort(x1(1:n)));
-      sel2=sel2(sort(x2(1:n)));
+      n1   = numel(sel1);
+      n2   = numel(sel2);
+      n    = min(n1,n2);
+      x1   = randperm(n1);
+      x2   = randperm(n2);
+      sel1 = sel1(sort(x1(1:n)));
+      sel2 = sel2(sort(x2(1:n)));
     end 
-      
+    
+    %###########FIXME FOR NIETZCHE: PLEASE CLEAN THIS UP#########################%   
     if strcmp(contrast, 'RCearlylate-MXearlylate')  
       [dat1, dat2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RCMX');
       [sel1, sel2]  = mous_makecontrast(dat1); % RCearly, RClate
@@ -88,17 +100,17 @@ switch contrast
       [sel1, sel2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RConoff');
     elseif strcmp(contrast,'subjMC-verbRC')
       [sel1, sel2, sel3, sel4, sel5, sel6] = mous_subjMCvsverbRC(data);  %subjMC, verbRC in RC+ sentences; in RC- sentences, in RC+ word lists
-    elseif strcmp(contrast, 'early-late')
-      % take words 2 to 4 and n-3 to n-1: NOTE this only works
-      % for visual subjects. Assume trialinfo organized as:
-      % sentence, ordinal word, condition, total number of words
-      sel1 = find(ismember(data.trialinfo(:,2),[2 3 4]));                     % early
-      sel2 = find(ismember(data.trialinfo(:,4)-data.trialinfo(:,2),[1 2 3])); % late
     end
  
-    
+     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % select and average 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     switch ft_datatype(data)
       case 'raw'
+        cfg              = [];
+        cfg.vartrllength = 2;
         cfg.trials = sel1;
         tlck1      = ft_timelockanalysis(cfg, data);
         cfg.trials = sel2;
@@ -131,15 +143,19 @@ switch contrast
           varargout{4} = tlck4;        
         end
       case 'freq'
-        % convert to planar
-        cfg = [];
+        
+        % convert to planar gradient representation
+        cfg        = [];
         cfg.method = 'distance';
         neighbours = ft_prepare_neighbours(cfg, data);
-        cfg = [];
+        
+        cfg              = [];
         cfg.planarmethod = 'sincos';
         cfg.neighbours   = neighbours;
         data             = ft_megplanar(cfg, data);
-        
+       
+        % I understand the rationale for the below snippet
+        % of code, but I wonder about it's necessity 
         if any(data.freq>=50)
 %           cfg = [];
 %           cfg.frequency  = [49 51];
@@ -154,13 +170,13 @@ switch contrast
           sel2    = setdiff(sel2,exclude);
         end
         
-        cfg = [];
+        cfg        = [];
         cfg.trials = sel1;
         freq1      = ft_freqdescriptives(cfg, data);
         cfg.trials = sel2;
         freq2      = ft_freqdescriptives(cfg, data);
         
-        % combine planar
+        % combine planar gradients
         freq1 = ft_combineplanar([],freq1);
         freq2 = ft_combineplanar([],freq2);
       
