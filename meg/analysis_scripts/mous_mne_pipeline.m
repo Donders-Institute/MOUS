@@ -470,8 +470,8 @@ if domne_parcellate
   end
   mous_db_getdata(subjectname, suffix_erfdata);%, rootdir);
   if exist('senWord_AG', 'var')
-    tlck = senWord_AG;
-    tmp  = seqWord_AG;
+    tlck(1) = senWord_AG;
+    tlck(2) = seqWord_AG;
   elseif exist('stat', 'var')
     tmp1 = tlck;
     %tmp1.avg = stat.stat;
@@ -484,45 +484,43 @@ if domne_parcellate
     %tmp2.avg = stat.stat;
     %tmp2.dof = ones(size(tmp2.avg));
     
-    tlck = tmp1;
-    tmp  = tmp2;
+    tlck(1) = tmp1;
+    tlck(2) = tmp2;
     clear tmp1 tmp2;
+  elseif exist('tlck', 'var')
+    % do nothing
   else
     error('cannot do the parcellation on the requested data');
   end
-  sel  = match_str(tlck.label, ft_channelselection('MEG',tlck.label)); 
-  sel2 = nearest(tlck.time,-0.2):nearest(tlck.time, 0.6);
-  tlck.label = tlck.label(sel);
-  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
-  if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
-  if isfield(tlck, 'stat'),   tlck.stat   = tlck.stat(sel,sel2);     end;
-  if isfield(tlck, 'prob'),   tlck.prob   = tlck.prob(sel,sel2);     end;
-  if isfield(tlck, 'mask'),   tlck.mask   = tlck.mask(sel,sel2);     end;
-  if isfield(tlck, 'cirange'),   tlck.cirange   = tlck.cirange(sel,sel2);     end;
   
-  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
-  if isfield(tlck, 'trial2'), tlck.trial2 = tlck.trial2(:,:,sel2); end;
-  tlck.time = tlck.time(sel2);
-  tlcksent = tlck;
+  for k = 1:numel(tlck)
+    sel  = match_str(tlck(k).label, ft_channelselection('MEG',tlck(k).label));
+    sel2 = nearest(tlck(k).time,-0.2):nearest(tlck(k).time, 0.6);
+    tlck(k).label = tlck(k).label(sel);
+    if isfield(tlck(k), 'avg'),    tlck(k).avg    = tlck(k).avg(sel,sel2);      end;
+    if isfield(tlck(k), 'dof'),    tlck(k).dof    = tlck(k).dof(sel,sel2);      end;
+    if isfield(tlck(k), 'stat'),   tlck(k).stat   = tlck(k).stat(sel,sel2);     end;
+    if isfield(tlck(k), 'prob'),   tlck(k).prob   = tlck(k).prob(sel,sel2);     end;
+    if isfield(tlck(k), 'mask'),   tlck(k).mask   = tlck(k).mask(sel,sel2);     end;
+    if isfield(tlck(k), 'cirange'),   tlck(k).cirange   = tlck(k).cirange(sel,sel2);     end;
+    
+    if isfield(tlck(k), 'trial'), tlck(k).trial = tlck(k).trial(:,sel,sel2); end;
+    if isfield(tlck(k), 'trial2'), tlck(k).trial2 = tlck(k).trial2(:,:,sel2); end;
+    tlck(k).time = tlck(k).time(sel2);
+  end
   
-  tlck = tmp;
-  sel  = match_str(tlck.label, ft_channelselection('MEG',tlck.label));
-  sel2 = nearest(tlck.time,-0.2):nearest(tlck.time, 0.6);
-  tlck.label = tlck.label(sel);
-  if isfield(tlck, 'avg'),   tlck.avg   = tlck.avg(sel,sel2);     end;
-  if isfield(tlck, 'dof'),   tlck.dof   = tlck.dof(sel,sel2);     end;
-  if isfield(tlck, 'stat'),   tlck.stat   = tlck.stat(sel,sel2);     end;
-  if isfield(tlck, 'prob'),   tlck.prob   = tlck.prob(sel,sel2);     end;
-  if isfield(tlck, 'mask'),   tlck.mask   = tlck.mask(sel,sel2);     end;
-  if isfield(tlck, 'cirange'),   tlck.cirange   = tlck.cirange(sel,sel2);     end;
-  
-  if isfield(tlck, 'trial'), tlck.trial = tlck.trial(:,sel,sel2); end;
-  if isfield(tlck, 'trial2'), tlck.trial2 = tlck.trial2(:,:,sel2); end;
-  tlck.time = tlck.time(sel2);
-  tlckseq = tlck;
-  
-  tlck.avg = (tlcksent.avg.*tlcksent.dof+tlckseq.avg.*tlckseq.dof)./(tlcksent.dof+tlckseq.dof);
-  
+  tlck(end+1) = tlck(1);
+  for k = 1:numel(tlck)-1
+    if k==1
+      tlck(end).avg = tlck(1).avg.*tlck(1).dof;
+      tlck(end).dof = tlck(1).dof;
+    else
+      tlck(end).avg = tlck(end).avg+tlck(k).avg.*tlck(k).dof;
+      tlck(end).dof = tlck(end).dof+tlck(k).dof;
+    end
+  end
+  tlck(end).avg = tlck(end).avg./tlck(end).dof;
+ 
   if ~exist('suffix_mne', 'var')
     error('you need to specify the file suffix for the mne data');
   end
@@ -533,29 +531,37 @@ if domne_parcellate
       load(atlas)
   end
 
-  tlck = mous_mne_parcellate(source,tlck,atlas, 'svdmethod', 'projectavg');
-  U            = tlck.U; 
-  S            = tlck.S;
-  N            = tlck.N;
-  atlas.filter = tlck.F;
+  tmp = mous_mne_parcellate(source,tlck(end),atlas, 'svdmethod', 'projectavg');
+  U            = tmp.U; 
+  S            = tmp.S;
+  N            = tmp.N;
+  atlas.filter = tmp.F;
   
-  tlck            = mous_mne_parcellate(source,tlcksent,atlas);
-  tlck.U          = U;
-  tlck.S          = S;
-  tlck.N          = N;
-  tlck.suffix_mne = suffix_mne;
-  tlck.suffix     = suffix_erfdata;
-  if ~exist('suffix_output', 'var')
-    error('you need to specify the file suffix for the output data');
+  data = tlck(1:end-1);
+  clear tlck;
+  for k = 1:numel(data)
+    tmp            = mous_mne_parcellate(source,data(k),atlas);
+    tmp.U          = U;
+    tmp.S          = S;
+    tmp.N          = N;
+    tmp.suffix_mne = suffix_mne;
+    tmp.suffix     = suffix_erfdata;
+    if ~exist('suffix_output', 'var')
+      error('you need to specify the file suffix for the output data');
+    end
+    if ~isempty(strfind(suffix_output, 'sent')) && numel(data)==2 && k==1
+      tlck = tmp;
+      mous_db_putdata(subjectname, suffix_output, 'tlck', rootdir);
+    elseif ~isempty(strfind(suffix_output, 'sent')) && numel(data)==2 k==2
+      tlck = tmp;
+      mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);
+    else
+      tlck(k) = tmp;
+    end
   end
-  mous_db_putdata(subjectname, suffix_output, 'tlck', rootdir);
-  tlck            = mous_mne_parcellate(source,tlckseq,atlas);
-  tlck.U          = U;
-  tlck.S          = S;
-  tlck.N          = N;
-  tlck.suffix_mne = suffix_mne;
-  tlck.suffix     = suffix_erfdata;
-  mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);
+  if numel(tlck)>1
+    mous_db_putdata(subjectname, suffix_output, 'tlck', rootdir);
+  end
 end
 if domne_denoise
   % this assume domne_parametric and domne_parcellate to be done. it
