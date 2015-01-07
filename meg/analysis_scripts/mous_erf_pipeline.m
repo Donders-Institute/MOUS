@@ -21,6 +21,7 @@ if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                     
 if ~exist('doerf_rc',         'var'), doerf_rc         = 0;                           end
 if ~exist('doerf_mix',        'var'), doerf_mix        = 0;                           end
 if ~exist('doerf_rc_onoff',   'var'), doerf_rc_onoff   = 0;                           end
+if ~exist('doerf_auditory_chop', 'var'), doerf_auditory_chop = 0;                           end
 if ~exist('doerf_dependency', 'var'), doerf_dependency = 0;                           end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
@@ -554,4 +555,27 @@ if doerf_dependency
   % save the results
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   mous_db_putdata(subjectname, [inputdata,'_dependency_sent_doublestratified'], 'tlck', 'tlck_p', outrootdir);
+end
+
+if doerf_auditory_chop
+  % this section performs a chopping up of the auditory sentences into the
+  % individual words: EXPERIMENTAL CODE BY JM
+  if strcmp(subjectname(1), 'V')
+    error('this only works with audio subjects');
+  end
+  
+  tlck = mous_auditory_chop(subjectname);
+  
+  cfgplanar              = [];
+  cfgplanar.planarmethod = 'sincos';
+  cfg_neighb.method      = 'distance';
+  cfg_neighb.neighbourdist = 3;
+  cfgplanar.neighbours   = ft_prepare_neighbours(cfg_neighb, tlck);
+  
+  cfgbaseline          = [];
+  cfgbaseline.baseline = [-0.1 0];
+  cfgbaseline.channel  = 'MEG';
+  tlck_p = ft_combineplanar([], ft_timelockbaseline(cfgbaseline, ft_megplanar(cfgplanar, tlck)));
+  
+  mous_db_putdata(subjectname, 'meg_erf_chopped', 'tlck', 'tlck_p', outrootdir);
 end
