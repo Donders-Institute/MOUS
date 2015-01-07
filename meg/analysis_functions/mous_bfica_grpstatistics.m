@@ -24,11 +24,12 @@ end
 
 % statistical test parameters 
 cfg     = [];
-cfg.correctm            = 'cluster';
-cfg.clusterthreshold    = 'parametric'; %cfg.clusterthreshold = 'parametric_common'; % estimate threshold from the randomization distribution. The threshold is common to all channel-time-frequency points
-cfg.clusteralpha        = 0.01;
-cfg.numrandomization    = 2000; % 600 for 30 1200 for 68 subjs;  %2000 for 102 subjs
-%  cfg.correcttail         = 'prob';  % uncommented to allow all clusters to be visualised
+cfg.correctm           = 'cluster';
+cfg.clusterthreshold   = 'parametric'; %cfg.clusterthreshold = 'parametric_common'; % estimate threshold from the randomization distribution. The threshold is common to all channel-time-frequency points
+cfg.clusteralpha       = 0.01;
+cfg.numrandomization   = 2000;     % 600 for 30 1200 for 68 subjs;  %2000 for 102 subjs
+cfg.tail               = 0;        % 2 sided test
+cfg.correcttail        = 'alpha';  % test with alpha = 0.025
 
 % save folder (modality determined)
 if strcmp(subjectnames{1}(1),'A')     % auditory single subject data in nielam dir.
@@ -41,10 +42,11 @@ end
 
 % select time window for analysing
 if isfield(suffix,'toi')
-  a = num2str(suffix.toi(1)); a = [a(1) a(3)];
-  b = num2str(suffix.toi(2)); b = [b(1) b(3)];
-  suffend = [a,b,'s'];
-  if isfield(suffix,'tavg')
+  a = num2str(suffix.toi(1)); a = [a(1) a(3) a(4)];
+  b = num2str(suffix.toi(2)); b = [b(1) b(3) b(4)];
+%   suffend = [a,b,'s'];  % if 025-035
+  suffend = [a,'s'];    % 025 only
+  if isfield(suffix,'tavg') 
     suffend = [suffend,'avg'];
   end
 else
@@ -59,7 +61,7 @@ if isfield(suffix,'selfreq')
     suffixfreq = [num2str(suffix.selfreq(1)),'to',num2str(suffix.selfreq(2)),'Hz'];
   end
   
-  if isfield(suffix,'favg') && strcmp(suffix.avg,'yes')
+  if isfield(suffix,'favg') && strcmp(suffix.favg,'yes')
     suffixfreq = [suffixfreq,'favg'];
   end
   
@@ -90,7 +92,7 @@ elseif ~isempty(strfind(suffix.sourcedata,'RCendafter'))
 % sentseq / sentseqtar
 elseif (~isempty(strfind(suffix.sourcedata,'sourcedatasentseq')) && isempty(regexp(suffix.sourcedata,'par'))) || (~isempty(strfind(suffix.sourcedata,'sourcedatasentseqtar')) && isempty(regexp(suffix.sourcedata,'par')))
   [stat,Nsubj,avgsent,avgseq,semsent,semseq] = mous_bfica_sourcestatistics(subjectnames, suffix, bslflag, cfg, rootdir); %
-  save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj.mat'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');    
+  save([savedir,mod,'sentseq/',suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj.mat'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');    
 
 % parametric (word position)
 elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentseqpar'))
@@ -114,7 +116,7 @@ elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentseqpar'))
   end
 
   [stat,Nsubj,avgsent, avgseq, semsent, semseq] = mous_bfica_sourcestatistics_seqsentpar(subjectnames, suffix, 1, cfg, rootdir);
-  save([savedir,mod,suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');  
+  save([savedir,mod,'sentseqpar/',suffix.sourcedata,'_',savebsl,'_',suffend,'_',num2str(Nsubj),'subj'],'stat','Nsubj','avgsent','avgseq','semsent','semseq','-v7.3');  
 
 % condition vs. bsl/zero  - use flag
 elseif ~isempty(strfind(suffix.sourcedata,'sourcedatasentvbz')) || ~isempty(strfind(suffix.sourcedata,'sourcedataseqvbz'))
