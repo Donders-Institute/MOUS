@@ -47,7 +47,7 @@ if isfield(suffix,'toi')
 %   suffend = [a,b,'s'];  % if 025-035
   suffend = [a,'s'];    % 025 only
   if isfield(suffix,'tavg') 
-    suffend = [suffend,'avg'];
+    suffend = [suffend,'tavg'];
   end
 else
   suffend = '';
