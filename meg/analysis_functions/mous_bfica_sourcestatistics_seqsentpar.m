@@ -245,7 +245,6 @@ cfg.design = [ones(1,Nsubj) ones(1,Nsubj)*2;1:Nsubj 1:Nsubj];
 cfg.ivar = 1;
 cfg.uvar = 2;
 cfg.parameter = 'avg.pow';
-cfg.numrandomization = 2;
 stat = ft_sourcestatistics(cfg, dat{:}, dat2{:});  % sent = dat;  seq = dat2;
 
 
