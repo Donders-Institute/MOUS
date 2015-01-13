@@ -21,6 +21,7 @@ if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                     
 if ~exist('doerf_rc',         'var'), doerf_rc         = 0;                           end
 if ~exist('doerf_mix',        'var'), doerf_mix        = 0;                           end
 if ~exist('doerf_rc_onoff',   'var'), doerf_rc_onoff   = 0;                           end
+if ~exist('doerf_auditory_chop', 'var'), doerf_auditory_chop = 0;                           end
 if ~exist('doerf_dependency', 'var'), doerf_dependency = 0;                           end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
@@ -369,6 +370,7 @@ end
 if doerf_dependency
   mous_db_getdata(subjectname, inputdata, inrootdir);
   [trialinfo,b,n,uT,ix] = extract_dependency(data.trialinfo);
+  nsmp = cellfun(@numel, data.time);
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % stratify the trials according to matching numbers in the ordinal word
@@ -377,19 +379,40 @@ if doerf_dependency
   
   % HARDCODED ASSUMPTION: trialinfo(:,5) is ordinal word position,
   % trialinfo(:,7) is dependency indicator
+  sel    = cell(numel(uT),size(n,2));
+  numsmp = sel;
   for k = 1:numel(uT)
     for m = 1:size(n,2)
-      sel{k,m} = find(trialinfo(:,5)==m & trialinfo(:,7)==uT(k));
+      sel{k,m}    = find(trialinfo(:,5)==m & trialinfo(:,7)==uT(k));
+      numsmp{k,m} = nsmp(sel{k,m});
     end
   end
   N = numel(uT)/2;
   for k = 1:N
     for m = 1:size(n,2)
       n_tmp = min(numel(sel{k,m}), numel(sel{k+N,m}));
-      sel1  = sel{k,  m}(randperm(numel(sel{k,  m})));
-      sel2  = sel{k+N,m}(randperm(numel(sel{k+N,m})));
-      sel{k,  m} = sort(sel1(1:n_tmp));
-      sel{k+N,m} = sort(sel2(1:n_tmp));
+      [numsmp{k,  m},jx1] = sort(numsmp{k,  m},'descend');
+      [numsmp{k+N,m},jx2] = sort(numsmp{k+N,m},'descend');
+      sel{k,  m} = sel{k,  m}(jx1);
+      sel{k+N,m} = sel{k+N,m}(jx2);
+      u1 = unique(numsmp{k,m});
+      u2 = unique(numsmp{k+N,m});
+      for m1 = 1:numel(u1)
+        tmp  = find(numsmp{k,m}==u1(m1));
+        tmp2 = tmp(randperm(numel(tmp)));
+        sel{k,  m}(tmp) = sel{k,  m}(tmp2);
+      end
+      for m2 = 1:numel(u2)
+        tmp  = find(numsmp{k+N,m}==u2(m2));
+        tmp2 = tmp(randperm(numel(tmp)));
+        sel{k+N,m}(tmp) = sel{k+N,m}(tmp2);
+      end
+      sel1  = sel{k,  m};%(randperm(numel(sel{k,  m})));
+      sel2  = sel{k+N,m};%(randperm(numel(sel{k+N,m})));
+      [sel{k,  m},ix1] = sort(sel1(1:n_tmp));
+      [sel{k+N,m},ix2] = sort(sel2(1:n_tmp));
+      numsmp{k,  m} = numsmp{k,  m}(ix1);
+      numsmp{k+N,m} = numsmp{k+N,m}(ix2);
     end
   end
   sel   = sel(:);
@@ -449,4 +472,110 @@ if doerf_dependency
   % save the results
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   mous_db_putdata(subjectname, [inputdata,'_dependency_sent'], 'tlck', 'tlck_p', outrootdir);
+  clear tlck tlck_p;
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % do a further stratification, to be able to compare [1 5] vs [2 6]
+  % directly
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  sel    = cell(4,size(n,2));
+  numsmp = sel;
+  nsmp   = cellfun(@numel, data.time);
+  for m = 1:size(n,2)
+    sel{1,m}    = find(trialinfo(:,5)==m & ismember(trialinfo(:,7),[1 5]));
+    numsmp{1,m} = nsmp(sel{1,m});
+    sel{2,m}    = find(trialinfo(:,5)==m & ismember(trialinfo(:,7),[2 6]));
+    numsmp{1,m} = nsmp(sel{2,m});
+    sel{3,m}    = find(trialinfo(:,5)==m & ismember(trialinfo(:,7),[8 40]));
+    numsmp{1,m} = nsmp(sel{3,m});
+    sel{4,m}    = find(trialinfo(:,5)==m & ismember(trialinfo(:,7),[16 48]));
+    numsmp{1,m} = nsmp(sel{4,m});
+  end
+  for m = 1:size(n,2)
+    n_tmp = min([numel(sel{1,m}), numel(sel{2,m}), numel(sel{3,m}), numel(sel{4,m})]);
+    sel{1,m} = sel{1,m}(randperm(numel(sel{1,m})));
+    sel{2,m} = sel{2,m}(randperm(numel(sel{2,m})));
+    sel{3,m} = sel{3,m}(randperm(numel(sel{3,m})));
+    sel{4,m} = sel{4,m}(randperm(numel(sel{4,m})));
+    
+    sel{1,m} = sort(sel{1,m}(1:n_tmp));
+    sel{2,m} = sort(sel{2,m}(1:n_tmp));
+    sel{3,m} = sort(sel{3,m}(1:n_tmp));
+    sel{4,m} = sort(sel{4,m}(1:n_tmp));
+    
+  end
+  sel   = sel(:);
+  n_sel = cellfun(@numel, sel);
+  sel   = sel(n_sel>0);
+  dataorig = data;
+  data     = ft_selectdata(dataorig, 'rpt', sort(cat(1,sel{:})));
+  [trialinfo,b,n,uT,ix] = extract_dependency(data.trialinfo);
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % compute the axial gradient ERFs
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  cfg                = [];
+  cfg.preproc.demean = 'yes';
+  cfg.preproc.baselinewindow = [-0.1 0];
+  cfg.vartrllength   = 2;
+  cfg.channel        = 'MEG';
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[1 5]));
+  tlck(1)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[2 6]));
+  tlck(2)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[8 40]));
+  tlck(3)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = find(ismember(trialinfo(:,end),[16 48]));
+  tlck(4)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % compute the planar gradient ERFs
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  cfgplanar              = [];
+  cfgplanar.planarmethod = 'sincos';
+  cfg_neighb.method      = 'distance';
+  cfg_neighb.neighbourdist = 3;
+  cfgplanar.neighbours   = ft_prepare_neighbours(cfg_neighb, data);
+  
+  cfgbaseline          = [];
+  cfgbaseline.baseline = [-0.1 0];
+  cfgbaseline.channel  = 'MEG';
+  
+  for k = 1:4
+    tlck_p(k) = ft_combineplanar([], ft_timelockbaseline(cfgbaseline, ft_megplanar(cfgplanar, tlck(k))));
+  end
+ 
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % save the results
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  mous_db_putdata(subjectname, [inputdata,'_dependency_sent_doublestratified'], 'tlck', 'tlck_p', outrootdir);
+end
+
+if doerf_auditory_chop
+  % this section performs a chopping up of the auditory sentences into the
+  % individual words: EXPERIMENTAL CODE BY JM
+  if strcmp(subjectname(1), 'V')
+    error('this only works with audio subjects');
+  end
+  
+  tlck = mous_auditory_chop(subjectname);
+  
+  cfgplanar              = [];
+  cfgplanar.planarmethod = 'sincos';
+  cfg_neighb.method      = 'distance';
+  cfg_neighb.neighbourdist = 3;
+  cfgplanar.neighbours   = ft_prepare_neighbours(cfg_neighb, tlck);
+  
+  cfgbaseline          = [];
+  cfgbaseline.baseline = [-0.1 0];
+  cfgbaseline.channel  = 'MEG';
+  tlck_p = ft_combineplanar([], ft_timelockbaseline(cfgbaseline, ft_megplanar(cfgplanar, tlck)));
+  
+  mous_db_putdata(subjectname, 'meg_erf_chopped', 'tlck', 'tlck_p', outrootdir);
 end

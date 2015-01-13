@@ -30,6 +30,7 @@ function [trl,val] = trialfun_auditory_sentence(cfg)
 
 cfg.trialdef         = ft_getopt(cfg, 'trialdef');
 cfg.trialdef.prestim = ft_getopt(cfg.trialdef, 'prestim', 1);
+adjustdelay          = istrue(ft_getopt(cfg.trialdef, 'adjustdelay', 'yes'));
 
 % read in event information
 if isempty(strfind(cfg.dataset, 'A2036'))
@@ -168,3 +169,23 @@ end
 %     trl(k, 8) = str2double(wavid{k}(1:3));
 %   end
 % end
+
+% the following has been added on 20150106
+if adjustdelay,
+  % adjust the timing for the delay between the trigger and the actual
+  % presentation of the sound, added (as default) on 20141111
+  fprintf('adjusting the timing for the audio delay\n');
+  [p,f,e] = fileparts(cfg.dataset);
+  f       = mous_db_getfilename(f(1:5), 'meg_qualitycheck_audiodelay');
+  tmp     = load(f{1});
+  for k = 1:size(trl,1)
+    indx = find(tmp.stimid==trl(k,8));
+    if ~isempty(indx)
+      D    = round(tmp.delay(indx(1)).*0.001.*1200); % in samples
+      trl(k,1:2) = trl(k,1:2)+D;
+    else
+      % apparently something went wrong with the decoding of the triggers
+    end
+  end
+end
+
