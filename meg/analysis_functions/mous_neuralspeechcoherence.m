@@ -1,4 +1,4 @@
-function mous_neuralspeechcoherence(subjectname)
+function [data, coherence] = mous_neuralspeechcoherence(subjectname)
 % This function calculates the coherence between the neural signal to the
 % speech envelope
 
@@ -67,8 +67,8 @@ cfg.tapsmofrq  = 1;         % 2 Hz smoothing
 % cfg.tapsmofrq  = 2;           % 4 Hz smoothing
 cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';     % keeptrials?? we don't use them
-cfg.channel    = {'MEG' 'UADC003'};
-cfg.channelcmb = {'MEG' 'UADC003'};
+cfg.channel    = {'MEG' 'UADC003' 'audio_avg'};
+cfg.channelcmb = {'MEG' 'UADC003';'MEG' 'audio_avg'};
 freq           = ft_freqanalysis(cfg,data);
 
 %% calculate coherence 
@@ -77,7 +77,10 @@ cfg = [];
 cfg.method      = 'coh';
 cfg.channelcmb  = {'MEG' 'UADC003'};
 coherence       = ft_connectivityanalysis(cfg,freq);
-mous_db_putdata(subjectname,'meg_other_neuspeechcoh_tapsmofrq1_trialdur2','coherence','data','/project/3011020.09/MEG/',1);
+% NOTE: please don't save the data within the function, but pass output
+% arguments
+% ALSO: why save the time domain data as well (lots of space needed)
+%mous_db_putdata(subjectname,'meg_other_neuspeechcoh_tapsmofrq1_trialdur2','coherence','data','/project/3011020.09/MEG/',1);
 
 
 function [data, speech] = computedata(dataset, artfctcfg)
@@ -90,8 +93,9 @@ cfg.trialdef.prestim  = 'audioonset';
 cfg.trialdef.poststim = 0.2;
 cfg = ft_definetrial(cfg);
 
-%% remove artifacts
+%% define audio onset to be time point 0, and remove artifacts
 trl = cfg.trl;
+trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); % don't do the horizontal EOG
 
 %% preprocess neural data and speech audio file
@@ -102,6 +106,7 @@ cfg.channel    = 'MEG';
 cfg.bsfilter   = 'yes';  % temporary replacement for job of dftfilter
 cfg.bsfreq     = [49 51];
 cfg.bsfilttype = 'firws';
+cfg.usefftfilt = 'yes';
 data           = ft_preprocessing(cfg);
 
 cfg.channel    = 'UADC003';
@@ -111,12 +116,29 @@ cfg.rectify    = 'yes';  % XOR: hilbert transform or rectify (in data make -ve v
 % cfg.boxcar     = 0.025;  % remove boxcar!
 speech         = ft_preprocessing(cfg);
 
+% load in the audioenvelopes as constructed from the wav files.
+previous_sentid = 0;
+for k = 1:numel(data.trial)
+  sentid = num2str(data.trialinfo(k,5),'%03d');
+  if previous_sentid ~= sentid
+    load(fullfile('/project/3011020.09/MEG/misc/audiostimuli',['audiodata_envelope',sentid]));
+  end
+  i1 = nearest(audio.time{1},data.time{k}(1));
+  i2 = nearest(audio.time{1},data.time{k}(end));
+  i3 = nearest(data.time{k},audio.time{1}(1));
+  i4 = nearest(data.time{k},audio.time{1}(end));
+  speech.trial{k}(2,:) = 0;
+  speech.trial{k}(2,i3:i4) = audio.trial{1}(end,i1:i2);
+  previous_sentid = sentid;
+end
+speech.label = [speech.label;{'audio_avg'}];
+
 %% downsample
 % ASK:  why downsample and then concatenate dataset
 %       is it not better to concatenate prior to downsampling?
 cfg = [];
 cfg.detrend     = 'no';
-cfg.demean      = 'yes';  
+cfg.demean      = 'no';  
 cfg.resamplefs  = 300;
 data            = ft_resampledata(cfg,data);
 speech          = ft_resampledata(cfg,speech);
