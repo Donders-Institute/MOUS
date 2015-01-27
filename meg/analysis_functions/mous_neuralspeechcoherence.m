@@ -1,4 +1,4 @@
-function [data, coherence] = mous_neuralspeechcoherence(subjectname)
+function [coherence1, coherence2] = mous_neuralspeechcoherence(subjectname)
 % This function calculates the coherence between the neural signal to the
 % speech envelope
 
@@ -53,34 +53,39 @@ cfg.length  = 2;
 cfg.overlap = 0.5; % 0 to 1 (exclusive)
 data = ft_redefinetrial(cfg, data);
 
+%% divide data
+cfg = [];
+cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
+data1  = ft_selectdata(cfg,data);
+
+cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
+data2  = ft_selectdata(cfg,data);
+
 %% calculate power- and cross-spectra
 %  mtmfft:   fourier spectra; contains amplitude and phase
 %            Cross-spectral density matrix inferred from fourier matrix
 %            (infer CSD from fourier coefficients)
 %  powandcsd:  cross-spectra, power-spectra; 
-
 cfg = [];
 cfg.method     = 'mtmfft';  % assumes stable power, but we know this isn't true
 cfg.output     = 'powandcsd'; 
 cfg.foilim     = [0 60];         % calculate fourier for each frequency showing a peak in coherence spectrum
-cfg.tapsmofrq  = 1;         % 2 Hz smoothing
-% cfg.tapsmofrq  = 2;           % 4 Hz smoothing
+cfg.tapsmofrq  = 1;           % 2 Hz smoothing
+% cfg.tapsmofrq  = 2;         % 4 Hz smoothing
 cfg.taper      = 'dpss';
-cfg.keeptrials = 'yes';     % keeptrials?? we don't use them
+cfg.keeptrials = 'yes';     
 cfg.channel    = {'MEG' 'UADC003' 'audio_avg'};
 cfg.channelcmb = {'MEG' 'UADC003';'MEG' 'audio_avg'};
-freq           = ft_freqanalysis(cfg,data);
+freq1          = ft_freqanalysis(cfg,data1);
+freq2          = ft_freqanalysis(cfg,data2);
 
 %% calculate coherence 
 % mkdir('nscoh') %neuralspeechcoherence
 cfg = [];
-cfg.method      = 'coh';
-cfg.channelcmb  = {'MEG' 'UADC003'};
-coherence       = ft_connectivityanalysis(cfg,freq);
-% NOTE: please don't save the data within the function, but pass output
-% arguments
-% ALSO: why save the time domain data as well (lots of space needed)
-%mous_db_putdata(subjectname,'meg_other_neuspeechcoh_tapsmofrq1_trialdur2','coherence','data','/project/3011020.09/MEG/',1);
+cfg.method     = 'coh';
+cfg.channelcmb = {'MEG' 'UADC003'; 'MEG' 'audio_avg'}; % Specify channel and channelref
+coherence1      = ft_connectivityanalysis(cfg,freq1);
+coherence2      = ft_connectivityanalysis(cfg,freq2);
 
 
 function [data, speech] = computedata(dataset, artfctcfg)
@@ -96,7 +101,7 @@ cfg = ft_definetrial(cfg);
 %% define audio onset to be time point 0, and remove artifacts
 trl = cfg.trl;
 trl(:,3) = 0;
-trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); % don't do the horizontal EOG
+trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
 cfg.trl        = trl;
@@ -134,42 +139,9 @@ end
 speech.label = [speech.label;{'audio_avg'}];
 
 %% downsample
-% ASK:  why downsample and then concatenate dataset
-%       is it not better to concatenate prior to downsampling?
 cfg = [];
 cfg.detrend     = 'no';
 cfg.demean      = 'no';  
 cfg.resamplefs  = 300;
 data            = ft_resampledata(cfg,data);
 speech          = ft_resampledata(cfg,speech);
-
-%% plot and inspect peaks in coherence spectrum
-%   manual inspection is probably better?
-% only project frequencies with large coherence into source space
-
-% 
-% %%%%%%%%%%%%%%%%
-% %%% Plotting %%%
-% %%%%%%%%%%%%%%%%
-%% sensor level plotting
-% cfg                  = [];
-% cfg.parameter        = 'cohspctrm';
-% cfg.xlim             = [0 60];
-% % cfg.ylim             = [0 0.2];
-% % cfg.showlabels       = 'yes';
-% cfg.refchannel       = 'UADC003';
-% cfg.channel          = {'MRC32' 'MRC42' 'MRP23' 'MRP34' 'MRP35'};
-% cfg.layout           = 'CTF275.lay';
-% figure; ft_singleplotER(cfg, coherence)
-% title('taps2')
-
-% % source level plotting
-% 
-% % interpolate prior to plotting
-% 
-% % plot
-% cfg = [];
-% cfg.method        = 'ortho';
-% cfg.funparameter  = 'avg.pow';
-% ft_sourceplot(cfg,sourcecoh4);
-% % ft_sourceplot(cfg,source_coh6);
