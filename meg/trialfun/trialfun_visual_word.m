@@ -62,14 +62,35 @@ if selfix(end)<numel(val)
   selfix(end+1) = numel(val);  %  
 end                            
 
-trl    = zeros(0,8);
+trl    = zeros(0,8);trl    = zeros(0,8);
 for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequence; duration of k = duration of a sent/seql; # of k's = # of words in the current trial
                                % -1 because last trigger is a dummy
-  
   sel = selfix(k):selfix(k+1); % (2) create a sequence of triggers marking words within a trial. Trial boundary: one 20 (fixationcross) to another 20.
                             
   tmpval = val(sel);
   tmpsmp = smp(sel);           % last sample of tmpsmp is sample of the last word (which is an empty word) in the trial
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % Fix error in word list: a trigger for a sentword is embedded in seqword triggers
+  % nielam 26.01.2015
+  % e.g., [7 15 7 15 8 2 15 7 15]  '2' does not belong
+  % remove wrong trigger, and use preceding trigger as word onset
+  % timing from preceding trigger to '15' is suitable for a word duration
+  % problematic subjects: V1001,11,19,35,88,103
+  i1  = find(ismember(tmpval,[1 3 5 7]));
+  med = median(tmpval(i1));
+
+  % Remove trigger from word lists only; code need not be subject specific
+  if ismember(med,[3 7])  
+  idx = find(ismember(tmpval,[1 2 5 6]),1); % search for senttrigger, only take first '1' or '2'
+                                            % subsequent '1' or '2' could be a response
+    if ~isempty(idx)
+      tmpval(idx) = [];
+      tmpsmp(idx) = [];
+    end
+  end
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
   
   % get the first word on/off sequence
   firstword = [];

@@ -3,11 +3,13 @@
 
 clear all;
 
-% read the file provided by Nietzsche
-%[data_num,data_txt,data_raw] = xlsread('Mous_categories.xls','','','basic'); 
-[data_num,data_txt,data_raw] = xlsread('Hulpwerkwoorden MOUS-checked (without color codes).xlsx','','','basic');
+
+% word categories updated by Maarten and JM; Nietzsche executed this script
+% again to update mous_stimuli.mat - 29.01.0215
+[data_num,data_txt,data_raw] = xlsread('mous_stimuli_wordcategories.xls','','','basic'); 
+
 % load in the stimuli struct-array
-load mous_stimuli;
+load('/project/3011020.09/MEG/misc/mous_stimuli.mat');
 
 % the first column in data_num codes for the stimulus ids
 ids = data_num(:,1);
@@ -38,24 +40,28 @@ for k = 1:numel(stimuli)
   end
 end
 
-% 516, 676, and 871 are not OK.
-% JM manually checked it against Laura's xls file (available on bigU)
+%% commented out below 
+%  because the excel sheet has been updated to reflect the changes below
+% % 516, 676, and 871 are not OK.
+% % JM manually checked it against Laura's xls file (available on bigU)
+% 
+% % do a manual fix
+% 
+% % 516: the last word 'alweer', should get a 2
+% stimuli(516).wordtype(end+1) = 2;
+% 
+% % 676: the last word 'opa', should get a 3
+% stimuli(676).wordtype(end+1) = 3;
+% 
+% % 871: the first word vlak (with value 2) is not in the wordtype list
+% stimuli(871).wordtype = [2 stimuli(871).wordtype];
 
-% do a manual fix
-
-% 516: the last word 'alweer', should get a 2
-stimuli(516).wordtype(end+1) = 2;
-
-% 676: the last word 'opa', should get a 3
-stimuli(676).wordtype(end+1) = 3;
-
-% 871: the first word vlak (with value 2) is not in the wordtype list
-stimuli(871).wordtype = [2 stimuli(871).wordtype];
+%% savefile
+save('/project/3011020.09/MEG/misc/mous_stimuli.mat','stimuli');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TO DO: identify the auxiliairy verb and code this with a 5
-% THIS HAS BEEN DONE 20150126
-
+%% TO DO: identify the auxiliairy verb and code this with a 0
+% update: auxiliary verb coded by MvH using code '5'
 
 % 'Toen de barkeeper die de irritante klant bediende wegliep gingen de deuren open'
 % 'Toen de manke dronkaard die de barkeeper betaalde lachte viel de kruk om'
