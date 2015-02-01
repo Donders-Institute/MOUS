@@ -1517,3 +1517,761 @@ Toen de gemene dictator arriveerde schreeuwden de burgers leuzen van protest
 6    4  4      5        1          0           8  6       8      9   10     
 6    4  4      5        1          0           8  6       6      9   10     
                                                                             
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% below this line the stimuli were classified as OK
+
+3                                                       
+De rector die de stoere puber strafte was erg onredelijk
+1  2      3   4  5      6     7       8   9   10        
+2  8      2   6  6      7     3       0   10  8         
+                                                        
+4                                                              
+De inbreker die de gekrenkte pastoor smeekte was ten einde raad
+1  2        3   4  5         6       7       8   9   10    11  
+2  8        2   6  6         7       3       10  10  8     8   
+                                                               
+6                                                                              
+Vorige maandag kreeg de medicus die de vreemde pokken behandelde zelf de pokken
+1      2       3     4  5       6   7  8       9      10         11   12 13    
+2      3       0     5  3       5   9  9       10     6          10   13 10    
+                                                                               
+12                                                                          
+De arts die de vieze bandage verschoonde trok eerst plastic handschoenen aan
+1  2    3   4  5     6       7           8    9     10      11           12 
+2  8    2   6  6     7       3           0    8     11      8            8  
+                                                                            
+16                                                                                  
+Maandag heeft de scholier die de meester treitert alweer punaises op de stoel gelegd
+1       2     3  4        5   6  7       8        9      10       11 12 13    14    
+2       0     4  2        4   7  8       5        8      8        10 13 11    2     
+                                                                                    
+18                                                                       
+De politieman die de agressieve kraker arresteert gaat hardhandig te werk
+1  2          3   4  5          6      7          8    9          10 11  
+2  8          2   6  6          7      3          0    11         11 8   
+                                                                         
+19                                                  
+De staker die de angstige dames bekogelt gaat te ver
+1  2      3   4  5        6     7        8    9  10 
+2  8      2   6  6        7     3        10   10 8  
+                                                    
+20                                                                
+De journalist die de beroemde bondscoach interviewt wil veel weten
+1  2          3   4  5        6          7          8   9    10   
+2  8          2   6  6        7          3          0   8    8    
+                                                                  
+22                                                                                      
+De goochelaar die de vrijwilliger uit het enthousiaste publiek instrueert is onduidelijk
+1  2          3   4  5            6   7   8            9       10         11 12         
+2  11         2   5  10           5   9   9            6       3          0  11         
+                                                                                        
+25                                                        
+Dat meisje die de boterham zonder pindakaas wil is verwend
+1   2      3   4  5        6      7         8   9  10     
+2   9      2   5  8        5      6         3   0  9      
+                                                          
+28                                                           
+De speurhond die de illegale drugs opspoort krijgt een koekje
+1  2         3   4  5        6     7        8      9   10    
+2  8         2   6  6        7     3        0      10  8     
+                                                             
+30                                                                        
+Vandaag is de laatste kandidaat die de examinator overtuigt erg imponerend
+1       2  3  4       5         6   7  8          9         10  11        
+2       0  5  5       2         5   8  9          6         11  2         
+                                                                          
+31                                                               
+De spits die de trainer opstelde had een cruciale training gemist
+1  2     3   4  5       6        7   8   9        10       11    
+2  7     2   5  6       3        0   10  10       7        7     
+                                                                 
+33                                                              
+De employee die de ontsnapte dieven beschrijft is erg nauwkeurig
+1  2        3   4  5         6      7          8  9   10        
+2  8        2   6  6         7      3          0  10  8         
+                                                                
+34                                                 
+De wrede president die de onderdaan beveelt is boos
+1  2     3         4   5  6         7       8  9   
+3  3     8         3   6  7         4       0  8   
+                                                   
+38                                                               
+Het vrouwtje dat verlaten poezen opvangt heeft ruzie met de buren
+1   2        3   4        5      6       7     8     9   10 11   
+2   7        2   5        6      3       0     7     8   11 9    
+                                                                 
+40                                                         
+Het elfje dat de sterke beren betoverde was erg vriendelijk
+1   2     3   4  5      6     7         8   9   10         
+2   8     2   6  6      3     8         0   10  8          
+                                                           
+44                                                                                   
+De gewelddadige schutter die jullie directeur doodde is al eerder veroordeeld geweest
+1  2            3        4   5      6         7      8  9  10     11          12     
+3  3            8        3   6      7         4      0  12 11     12          8      
+                                                                                     
+45                                                                  
+De ruiter die zijn geliefde paarden streelde was de winnaar geworden
+1  2      3   4    5        6       7        8   9  10      11      
+2  8      2   6    6        7       3        0   10 8       8       
+                                                                    
+47                                                          
+De opgesloten peuters die de ouders alarmeren zijn in paniek
+1  2          3       4   5  6      7         8    9  10    
+3  3          8       3   6  7      4         0    8  9     
+                                                            
+50                                                              
+Zijn bazin die bang is voor de starre diplomaat rent de deur uit
+1    2     3   4    5  6    7  8      9         10   11 12   13 
+2    10    2   5    3  2    9  9      6         0    12 10   10 
+                                                                
+51                                                                  
+De opzichter die de nuchtere boswachter uitbuit is een onaardige man
+1  2         3   4  5        6          7       8  9   10        11 
+2  8         2   6  6        7          3       0  11  11        8  
+                                                                    
+54                                                                 
+Ik sprak gisteren nog met Hans die de scheve torens ontworpen heeft
+1  2     3        4   5   6    7   8  9      10     11        12   
+2  0     4        2   2   5    6   10 10     11     12        7    
+                                                                   
+57                                                                
+De grootvader die de slinkse deugniet doorhad voelde zich bedrogen
+1  2          3   4  5       6        7       8      9    10      
+2  8          2   6  6       7        3       0      8    8       
+                                                                  
+59                                                       
+De judoka die de dwaze belager vloerde was niet te houden
+1  2      3   4  5     6       7       8   9    10 11    
+2  8      2   6  6     7       3       0   8    8  10    
+                                                         
+60                                                                 
+De bedrieger die de simpele taxateur misleidde voelde zich schuldig
+1  2         3   4  5       6        7         8      9    10      
+2  8         2   6  6       7        3         0      8    8       
+                                                                   
+61                                                              
+Mijn tante Agaat die de wedstrijd won had gladde pieren gebruikt
+1    2     3     4   5  6         7   8   9      10     11      
+2    8     2     3   6  7         4   0   10     8      8       
+                                                                
+62                                                                         
+De naaktlopers die de mensen in het Haagse bordeel vermaken hebben het koud
+1  2           3   4  5      6  7   8      9       10       11     12  13  
+2  11          2   5  10     5  9   9      6       3        0      11  11  
+                                                                           
+63                                                           
+De ontwerper die de koningin kleding verkoopt is erg creatief
+1  2         3   4  5        6       7        8  9   10      
+2  8         2   5  7        7       3        0  10  8       
+                                                             
+64                                                       
+De etaleur nam de plastic paspop die in de gang stond mee
+1  2       3   4  5       6      7   8  9  10   11    12 
+2  3       0   6  6       3      6   11 10 8    7     3  
+                                                         
+66                                                             
+De kapper die de drukke teamleider bijknipt heeft veel ervaring
+1  2      3   4  5      6          7        8     9    10      
+2  8      2   6  6      7          3        0     10   8       
+                                                               
+68                                                                                
+De behulpzame serveerster die de eenvoudige boerin hielp hield netjes de deur open
+1  2          3           4   5  6          7      8     9     10     11 12   13  
+3  3          9           3   7  7          8      4     0     9      12 13   9   
+                                                                                  
+69                                                   
+In de winkel die ik zag werden hippe brillen verkocht
+1  2  3      4   5  6   7      8     9       10      
+7  3  1      3   6  4   0      9     7       7       
+                                                     
+71                                                        
+Ik neem de boer die het kleine biggetje voert niet serieus
+1  2    3  4    5   6   7      8        9     10   11     
+2  0    4  2    4   8   8      9        5     11   2      
+                                                          
+73                                                                  
+Richard die de oudere dieren verzorgde ging geld voor hen verzamelen
+1       2   3  4      5      6         7    8    9    10  11        
+7       1   5  5      6      2         0    7    8    9   7         
+                                                                    
+76                                                           
+De buurman van mijn zus die een heftige psychose had is beter
+1  2       3   4    5   6   7   8       9        10  11 12   
+2  11      2   5    3   5   9   9       10       6   0  11   
+                                                             
+80                                                 
+Ik nam een lekker biertje dat gemaakt was van gerst
+1  2   3   4      5       6   7       8   9   10   
+2  0   5   5      2       5   8       6   5   9    
+                                                   
+81                                                                       
+De oudere broer van de eigenaar die de eerste bezoekers ontving knipoogde
+1  2      3     4   5  6        7   8  9      10        11      12       
+3  3      12    3   6  4        6   10 10     11        7       0        
+                                                                         
+84                                                              
+De verkoper die de moderne telefoon aanprees verdiende veel geld
+1  2        3   4  5       6        7        8         9    10  
+2  8        2   6  6       7        3        0         10   8   
+                                                                
+89                                                        
+Mijn groene zijden pyjama die in de kast ligt mag je lenen
+1    2      3      4      5   6  7  8    9    10  11 12   
+4    4      4      10     4   9  8  6    5    0   10 10   
+                                                          
+96                                                                               
+Sonja keek verbaasd naar moeder die de overige biscuitjes in de prullenbak gooide
+1     2    3        4    5      6   7  8       9          10 11 12         13    
+2     0    2        3    4      5   9  9       13         9  12 10         6     
+                                                                                 
+97                                                                          
+De politieagent die de agressieve peetoom arresteert gaat hardhandig te werk
+1  2            3   4  5          6       7          8    9          10 11  
+2  8            2   6  6          7       3          0    11         11 8   
+                                                                            
+98                                                           
+De agent die de snelste was had de naakte kraker gearresteerd
+1  2     3   4  5       6   7   8  9      10     11          
+2  7     2   5  6       3   0   10 10     7      7           
+                                                             
+99                                                              
+De reporter die de vermoeide ballerina interviewt wil veel weten
+1  2        3   4  5         6         7          8   9    10   
+2  8        2   6  6         7         3          0   8    8    
+                                                                
+100                                                            
+De moeder die extra dekens voor haar dochter vraagt is kansloos
+1  2      3   4     5      6    7    8       9      10 11      
+2  10     2   5     9      5    8    6       3      0  10      
+                                                               
+103                                                                 
+Mijn moeder verkoopt haar oude auto die geen passende trekhaak heeft
+1    2      3        4    5    6    7   8    9        10       11   
+2    3      0        6    6    3    6   10   10       11       7    
+                                                                    
+104                                                            
+De nieuwe propellor die was besteld door de mechanicus was rood
+1  2      3         4   5   6       7    8  9          10  11  
+3  3      10        3   4   5       6    9  7          0   10  
+                                                               
+109                                                         
+Het belegde bruine bolletje dat op het aanrecht ligt is vers
+1   2       3      4        5   6  7   8        9    10 11  
+4   4       4      10       4   9  8   6        5    0  10  
+                                                            
+111                                                      
+Zij schrok van de schreeuw die de wilde barbaar uitbracht
+1   2      3   4  5        6   7  8     9       10       
+2   0      2   5  3        5   9  9     10      6        
+                                                         
+115                                                    
+in het luxueuze banket dat net gebracht was zat een tor
+1  2   3        4      5   6   7        8   9   10  11 
+9  4   4        1      4   7   8        5   0   11  9  
+                                                       
+117                                                             
+De oude agent die het verdachte pakketje ontving opende het niet
+1  2    3     4   5   6         7        8       9      10  11  
+3  3    9     3   7   7         8        4       0      9   9   
+                                                                
+118                                                                           
+Ondanks zware tegenslag die iedereen ervaart gaan de meeste mensen gewoon door
+1       2     3         4   5        6       7    8  9      10     11     12  
+7       3     1         3   6        4       0    10 10     7      7      7   
+                                                                              
+121                                                                    
+Vandaag is de gevatte brunette die de zangeres beoordeelt erg partijdig
+1       2  3  4       5        6   7  8        9          10  11       
+2       0  5  5       2        5   8  9        6          11  2        
+                                                                       
+122                                                                       
+Toch is de bloemist die de geschikte sollicitant uitnodigt erg vriendelijk
+1    2  3  4        5   6  7         8           9         10  11         
+2    0  4  2        4   8  8         9           5         11  2          
+                                                                          
+124                                                              
+Vera die het hondje wilde aaien liet de jonge puppy erg schrikken
+1    2   3   4      5     6     7    8  9     10    11  12       
+7    1   4   5      2     5     0    10 10    7     12  7        
+                                                                 
+125                                                                  
+Op de vorige pagina stond een verkeerde zin die over eendenjacht ging
+1  2  3      4      5     6   7         8   9   10   11          12  
+5  4  4      1      0     8   8         5   8   12   10          9   
+                                                                     
+126                                                                 
+De blinde typiste die ondanks haar handicap werkte wist het antwoord
+1  2      3       4   5       6    7        8      9    10  11      
+3  3      9       3   8       7    5        4      0    11  9       
+                                                                    
+128                                                          
+Moeder keek boos naar de kleuter die een flinke pruillip trok
+1      2    3    4    5  6       7   8   9      10       11  
+2      0    2    3    6  4       6   10  10     11       7   
+                                                             
+129                                                         
+Het nieuwe doelwit dat de tijger had gekozen liep het bos in
+1   2      3       4   5  6      7   8       9    10  11  12
+3   3      9       3   6  7      4   7       0    11  9   9 
+                                                            
+133                                                          
+De leerling die werd verhoord had de vermiste decaan vermoord
+1  2        3   4    5        6   7  8        9      10      
+2  6        2   3    4        0   9  9        6      6       
+                                                             
+135                                                      
+De vergeten dichter die de wrede lezer vreest is wanhopig
+1  2        3       4   5  6     7     8      9  10      
+3  3        9       3   7  7     8     4      0  9       
+                                                         
+136                                                                
+De beschermheer van Delhi die de heilige tempel bouwde is gestorven
+1  2            3   4     5   6  7       8      9      10 11       
+2  10           2   3     2   8  8       9      5      0  10       
+                                                                   
+138                                                                   
+De magere dronkelap die de uitsmijter ontloopt heeft iets te verbergen
+1  2      3         4   5  6          7        8     9    10 11       
+3  3      8         3   6  7          4        0     10   8  10       
+                                                                      
+139                                                             
+Een geschreven brief die in de brievenbus valt zie ik nog zelden
+1   2          3     4   5  6  7          8    9   10 11  12    
+3   3          9     3   8  7  5          4    0   9  12  9     
+                                                                
+150                                                           
+Op de gammele tandem die niet verzekerd was kwamen we niet ver
+1  2  3       4      5   6    7         8   9      10 11   12 
+9  4  4       1      4   7    8         5   0      9  9    9  
+                                                              
+154                                                                       
+Het ideale breekijzer dat voor vele mannen onmisbaar is ligt in de winkels
+1   2      3          4   5    6    7      8         9  10   11 12 13     
+3   3      10         3   9    7    5      9         4  0    10 13 11     
+                                                                          
+157                                                                
+De schone parkiet die de madam inspireert zit opgesloten in de kooi
+1  2      3       4   5  6     7          8   9          10 11 12  
+3  3      8       3   6  7     4          0   8          9  12 10  
+                                                                   
+163                                                     
+Mijn gebakken ei dat een kapotte dooier had was heerlijk
+1    2        3  4   5   6       7      8   9   10      
+3    3        9  3   7   7       8      4   0   9       
+                                                        
+165                                                            
+De collega's en omstanders troosten de bange techneut die huilt
+1  2         3  4          5        6  7     8        9   10   
+2  3         5  3          0        8  8     5        8   9    
+                                                               
+166                                                   
+De dikke darmen die van het varken afkomen zijn gevuld
+1  2     3      4   5   6   7      8       9    10    
+3  3     9      3   8   7   5      4       0    9     
+                                                      
+168                                                                   
+Hij struikelde over de behangrol die de onhandige behanger liet vallen
+1   2          3    4  5         6   7  8         9        10   11    
+2   0          2    5  3         5   9  9         10       6    10    
+                                                                      
+170                                                      
+Hij die niet wil luisteren moet nu op dikke blaren zitten
+1   2   3    4   5         6    7  8  9     10     11    
+6   1   4    2   4         0    8  11 10    8      6     
+                                                         
+171                                                          
+De snelle drummer die een band zocht plaatste een advertentie
+1  2      3       4   5   6    7     8        9   10         
+3  3      8       3   6   7    4     0        10  8          
+                                                             
+172                                                            
+Het stevige korte penseel dat de voorkeur van Joris had was weg
+1   2       3     4       5   6  7        8   9     10  11  12 
+4   4       4     11      4   7  10       7   8     5   0   11 
+                                                               
+180                                                                           
+in dat kamp voor tieners was geen enkele begeleider die verstand van zaken had
+1  2   3    4    5       6   7    8      9          10  11       12  13    14 
+6  3   1    3    4       0   9    9      6          9   14       11  12    10 
+                                                                              
+181                                                          
+Hij redde de bejaarde die zich in de droge beschuit verslikte
+1   2     3  4        5   6    7  8  9     10       11       
+2   0     4  2        4   11   11 10 10    7        5        
+                                                             
+184                                                                
+Rosa die de prachtige bruiloft bedacht had moest huilen van vreugde
+1    2   3  4         5        6       7   8     9      10  11     
+8    1   5  5         7        7       2   0     8      9   10     
+                                                                   
+185                                                                 
+De grote bruine panda die met uitsterven bedreigd wordt rekent op u 
+1  2     3      4     5   6   7          8        9     10     11 12
+4  4     4      10    4   8   8          9        5     0      10 11
+                                                                    
+188                                                                  
+Ton die dit prachtige paradijs had ontdekt wilde het verborgen houden
+1   2   3   4         5        6   7       8     9   10        11    
+8   1   5   5         6        2   6       0     8   11        8     
+                                                                     
+189                                                                       
+De vers gemaakte salade die deze bedorven tomaat verpest heeft gooi ik weg
+1  2    3        4      5   6    7        8      9       10    11   12 13 
+4  3    4        11     4   8    8        10     10      5     0    11 11 
+                                                                          
+190                                                                  
+Onze verhitte discussie die op niks uitdraaide heeft weinig zin gehad
+1    2        3         4   5  6    7          8     9      10  11   
+3    3        8         3   7  5    4          0     10     11  8    
+                                                                     
+191                                                               
+De kopers van het perceel dat een vaste bestemming had kwamen niet
+1  2      3   4   5       6   7   8     9          10  11     12  
+2  11     2   5   3       5   9   9     10         6   0      11  
+                                                                  
+193                                                                        
+Verse beetgare pasta die overgoten wordt met rode saus is niet te versmaden
+1     2        3     4   5         6     7   8    9    10 11   12 13       
+3     3        10    3   6         4     6   9    7    0  10   10 12       
+                                                                           
+194                                                                        
+Martine die het glimmende dressoir net gepoetst had vond een gouden ketting
+1       2   3   4         5        6   7        8   9    10  11     12     
+9       1   5   5         8        7   8        2   0    12  12     9      
+                                                                           
+200                                                                   
+De oogarts van Anne die goedkope brillen aanbiedt is ook rijk geworden
+1  2       3   4    5   6        7       8        9  10  11   12      
+2  9       2   3    2   7        8       5        0  9   12   9       
+                                                                      
+216                                                                    
+De actiegroep signaleert een nieuw probleem voor de natuur in Waterland
+1  2          3          4   5     6        7    8  9      10 11       
+2  3          0          6   6     3        6    9  7      9  10       
+                                                                       
+217                                                      
+in de laatste race eindigde het olympisch paard als derde
+1  2  3       4    5        6   7         8     9   10   
+5  4  4       1    0        8   8         5     5   9    
+                                                         
+218                                                                
+Bij het openbare debat werd iedereen duidelijk wat de bedoeling was
+1   2   3        4     5    6        7         8   9  10        11 
+5   4   4        1     0    5        5         5   10 11        8  
+                                                                   
+220                                                   
+Hij gaf zijn eigen bestaan op voor zijn bruid in India
+1   2   3    4     5       6  7    8    9     10 11   
+2   0   5    5     2       2  2    9    7     9  10   
+                                                      
+225                                                                           
+Meer dan duizend arbeiders werken in het moderne bedrijf tegenover het station
+1    2   3       4         5      6  7   8       9       10        11  12     
+4    1   2       5         0      5  9   9       6       9         12  10     
+                                                                              
+226                                                
+Anke geeft de groene plant wat water met een gieter
+1    2     3  4      5     6   7     8   9   10    
+2    0     5  5      2     7   2     2   10  8     
+                                                   
+227                                                         
+De wijnglazen staan op de bovenste plank in het keukenkastje
+1  2          3     4  5  6        7     8  9   10          
+2  3          0     3  7  7        4     7  10  8           
+                                                            
+228                                                       
+De moedige trimmers bereikten eindelijk de top van de berg
+1  2       3        4         5         6  7   8   9  10  
+3  3       4        0         4         7  4   7   10 8   
+                                                          
+232                                                                  
+De zakenvrouw droeg een mooie grijze pantalon tijdens de voorstelling
+1  2          3     4   5     6      7        8       9  10          
+2  3          0     7   7     7      3        7       10 8           
+                                                                     
+237                                                                    
+De schilder kleurde de details in met een klein penseel van varkenshaar
+1  2        3       4  5       6  7   8   9     10      11  12         
+2  3        0       5  3       3  3   10  10    7       10  11         
+                                                                       
+238                                                         
+Dorien werd helemaal gek van de druppende kraan in de keuken
+1      2    3        4   5   6  7         8     9  10 11    
+2      0    4        2   2   8  8         5     8  11 9     
+                                                            
+239                                                           
+De firma viert haar tienjarig bestaan met een gigantisch feest
+1  2     3     4    5         6       7   8   9          10   
+2  3     0     6    6         3       6   10  10         7    
+                                                              
+240                                             
+Het zieke meisje had flinke koorts door de griep
+1   2     3      4   5      6      7    8  9    
+3   3     4      0   6      4      6    9  7    
+                                                
+241                                                          
+Ik hielp de lastige klant geduldig met zijn eerste bestelling
+1  2     3  4       5     6        7   8    9      10        
+2  0     5  5       2     2        6   10   10     7         
+                                                             
+246                                                                              
+De twee auto's waren betrokken bij een frontale botsing op de gevaarlijke autoweg
+1  2    3      4     5         6   7   8        9       10 11 12          13     
+3  3    4      0     4         5   9   9        6       9  13 13          10     
+                                                                                 
+253                                                                      
+Bij het spelen lette het orkest goed op kleine bewegingen van de dirigent
+1   2   3      4     5   6      7    8  9      10         11  12 13      
+4   3   1      0     6   4      4    4  10     8          10  13 11      
+                                                                         
+254                                                            
+na de verkiezingen was de PvdA de grootste partij van Nederland
+1  2  3            4   5  6    7  8        9      10  11       
+4  3  1            0   6  4    9  9        4      9   10       
+                                                               
+258                                                                             
+Ondanks dat er kleine danspasjes werden gemaakt struikelde Roos over haar voeten
+1       2   3  4      5          6      7       8          9    10   11   12    
+8       1   6  5      6          2      6       0          8    8    12   10    
+                                                                                
+259                                                                
+De bouw van het schuurtje bleek nog een behoorlijk karwei voor Hans
+1  2    3   4   5         6     7   8   9          10     11   12  
+2  6    2   5   3         0     6   10  10         6      10   11  
+                                                                   
+260                                                                            
+De minister was benieuwd naar het totale percentage van de kiezers in Friesland
+1  2        3   4        5    6   7      8          9   10 11      12 13       
+2  3        0   3        4    8   8      5          8   11 9       11 12       
+                                                                               
+264                                                 
+Op zijn werk drinkt Peter heel wat koffie met suiker
+1  2    3    4      5     6    7   8      9   10    
+4  3    1    0      4     7    8   4      8   9     
+                                                    
+265                                                               
+De botsing vond plaats op een riskante kruising net buiten de stad
+1  2       3    4      5  6   7        8        9   10     11 12  
+2  3       0    3      3  8   8        5        10  8      12 10  
+                                                                  
+270                                                                                
+Halverwege de spannende wedstrijd houden de agenten een aantal vechtende pubers aan
+1          2  3         4         5      6  7       8   9      10        11     12 
+5          4  4         1         0      7  5       9   5      11        9      5  
+                                                                                   
+273                                                                                    
+Vanwege de massale stakingen in het slachthuis stijgen de huidige prijzen van het vlees
+1       2  3       4         5  6   7          8       9  10      11      12  13  14   
+8       4  4       1         4  7   5          0       11 11      8       11  14  12   
+                                                                                       
+276                                                                              
+Bij de opening van de nieuwe sporthal kregen de talrijke bezoekers een consumptie
+1   2  3       4   5  6      7        8      9  10       11        12  13        
+8   3  1       3   7  7      4        0      11 11       8         13  8         
+                                                                                 
+277                                                                      
+Tijdens de heftige discussie stellen de gedreven advocaten lastige vragen
+1       2  3       4         5       6  7        8         9       10    
+5       4  4       1         0       8  8        5         10      5     
+                                                                         
+281                                                                         
+Vanwege de enorme behoefte aan ijslollies voert de fabrikant de productie op
+1       2  3      4        5   6          7     8  9         10 11        12
+7       4  4      1        4   5          0     9  7         11 7         7 
+                                                                            
+283                                                     
+De gruwelijk verwende tieners kopen een ketting van goud
+1  2         3        4       5     6   7       8   9   
+4  3         4        5       0     7   5       7   8   
+                                                        
+285                                                          
+De in lompen gehulde bedelaar steelt fruit van de groenteboer
+1  2  3      4       5        6      7     8   9  10         
+5  4  2      5       6        0      6     7   10 8          
+                                                             
+289                                                                          
+De behoorlijk dronken bestuurder verzint een flauw smoesje voor de politieman
+1  2          3       4          5       6   7     8       9    10 11        
+4  3          4       5          0       8   8     5       8    11 9         
+                                                                             
+299                                                    
+Een heftige drang om te spijbelen overvalt me al meteen
+1   2       3     4  5  6         7        8  9  10    
+3   3       7     3  4  5         0        7  7  7     
+                                                       
+300                                                 
+Van de drie vocalisten maakte Karin de meeste indruk
+1   2  3    4          5      6     7  8      9     
+5   4  4    1          0      5     9  9      5     
+                                                    
+301                                                                
+Ook bij de Nederlandse dijken is een dergelijk probleem vastgesteld
+1   2   3  4           5      6  7   8         9        10         
+2   6   5  5           2      0  9   9         6        6          
+                                                                   
+302                                                      
+Ik kom net terug uit de heropende dierentuin in Amsterdam
+1  2   3   4     5   6  7         8          9  10       
+2  0   2   2     2   8  8         5          8  9        
+                                                         
+306                                                                       
+De vroegere afhankelijke positie past het veranderde Griekenland niet meer
+1  2        3            4       5    6   7          8           9    10  
+4  4        4            5       0    8   8          5           10   5   
+                                                                          
+313                                                               
+Soms hebben we alle vertrouwen in de Nederlandse politiek verloren
+1    2      3  4    5          6  7  8           9        10      
+2    0      2  5    2          5  9  9           6        2       
+                                                                  
+314                                                           
+Zelfs een grove dwaling zorgde niet voor een mentale inzinking
+1     2   3     4       5      6    7    8   9       10       
+4     4   4     5       0      5    5    10  10      7        
+                                                              
+315                                                                             
+Het besluit gaat over de voorgenomen destructie van de kerncentrale in Dodewaard
+1   2       3    4    5  6           7          8   9  10           11 12       
+2   3       0    3    7  7           4          7   10 8            10 11       
+                                                                                
+328                                                                
+Het was een prachtige derde overwinning op Hawaii in drie jaar tijd
+1   2   3   4         5     6           7  8      9  10   11   12  
+2   0   6   6         6     2           6  7      2  11   9    11  
+                                                                   
+339                                                       
+Het zachte klimaat hield aan tot bijna halverwege de maand
+1   2      3       4     5   6   7     8          9  10   
+3   3      4       0     4   4   8     6          10 8    
+                                                          
+341                                                         
+Vanwege de jonge plantjes zit de plastic emmer vol met aarde
+1       2  3     4        5   6  7       8     9   10  11   
+5       4  4     1        0   8  8       5     5   9   10   
+                                                            
+342                                                      
+De hond kwam aanlopen met een plastic diadeem in zijn bek
+1  2    3    4        5   6   7       8       9  10   11 
+2  3    0    3        4   8   8       5       8  11   9  
+                                                         
+347                                                                                                      
+Na het uitvallen van de elektriciteit verlichtte Carolien haar gezellige terras met kaarsen en lampionnen
+1  2   3         4   5  6             7          8        9    10        11     12  13      14 15        
+7  3   1         3   6  4             0          7        11   11        7      11  14      12 14        
+                                                                                                         
+348                                                                             
+De barones nodigde een aantal gasten uit voor een heerlijk diner met dure wijnen
+1  2       3       4   5      6      7   8    9   10       11    12  13   14    
+2  3       0       5   3      5      3   3    11  11       8     11  14   12    
+                                                                                
+349                                                                            
+De handen van de moordenaar zaten onder het druipende bloed van het slachtoffer
+1  2      3   4  5          6     7     8   9         10    11  12  13         
+2  6      2   5  3          0     6     10  10        7     10  13  11         
+                                                                               
+353                                                                               
+De deftige pakjes van oma worden op zolder bewaard in een grote kist van eikenhout
+1  2       3      4   5   6      7  8      9       10 11  12    13   14  15       
+3  3       6      3   4   0      9  7      6       9  13  13    10   13  14       
+                                                                                  
+354                                                                   
+De toneelbouwers waren erg tevreden met hun mooie decor voor het drama
+1  2             3     4   5        6   7   8     9     10   11  12   
+2  3             0     5   3        5   9   9     6     9    12  10   
+                                                                      
+356                                                                    
+De auto kwam langs de snelweg stil te staan zonder brandstof in de tank
+1  2    3    4     5  6       7    8  9     10     11        12 13 14  
+2  3    0    3     6  4       3    3  8     9      10        11 14 12  
+                                                                       
+357                                                                                    
+De toeristen hadden veel moeite met het opzetten van hun kleine tentje tijdens de storm
+1  2         3      4    5      6   7   8        9   10  11     12     13      14 15   
+2  3         0      5    3      5   8   6        8   12  12     9      12      15 13   
+                                                                                       
+365                                                                        
+De brute beroving werd vastgelegd door een verborgen camera boven de ingang
+1  2     3        4    5          6    7   8         9      10    11 12    
+3  3     4        0    4          5    9   9         6      9     12 10    
+                                                                           
+366                                                                   
+Midden in de stationshal hangt een grote poster met een zilveren lijst
+1      2  3  4           5     6   7     8      9   10  11       12   
+2      5  4  2           0     8   8     5      8   12  12       9    
+                                                                      
+367                                                                                 
+De winst van die verkoper is erg hoog vanwege zijn vlotte babbel over zijn producten
+1  2     3   4   5        6  7   8    9       10   11     12     13   14   15       
+2  6     2   5   3        0  8   6    8       12   12     9      12   15   13       
+                                                                                    
+371                                                                                  
+De atleet werd beschuldigd van het gebruik van illegale doping vlak voor de wedstrijd
+1  2      3    4           5   6   7       8   9        10     11   12   13 14       
+2  3      0    3           4   7   5       7   10       8      12   10   14 12       
+                                                                                     
+372                                                                                     
+De schat werd van de zeebodem naar boven gehaald door drie ervaren duikers uit Duitsland
+1  2     3    4   5  6        7    8     9       10   11   12      13      14  15       
+2  3     0    9   6  4        6    7     3       9    13   13      10      13  14       
+                                                                                        
+374                                                                  
+De gemene dader bewaart zijn goudvoorraad in een kluis onder de grond
+1  2      3     4       5    6            7  8   9     10    11 12   
+3  3      4     0       6    4            6  9   7     9     12 10   
+                                                                     
+377                                                                                     
+Naar aanleiding van de melding kreeg de fanatieke politie een anonieme tip over de dader
+1    2          3   4  5       6     7  8         9       10  11       12  13   14 15   
+6    1          2   5  3       0     9  9         6       12  12       6   12   15 13   
+                                                                                        
+382                                                                     
+Voor het chique dineetje goot Inge de wijn over in een karaf van kristal
+1    2   3      4        5    6    7  8    9    10 11  12    13  14     
+5    4   4      1        0    5    8  5    5    5  12  10    12  13     
+                                                                        
+383                                                                            
+Na het breken van de antieke vaas toonden de kinderen weinig berouw aan hun oma
+1  2   3      4   5  6       7    8       9  10       11     12     13  14  15 
+8  3   1      3   7  7       4    0       10 8        12     8      12  15  13 
+                                                                               
+385                                                                      
+De voorzitter werd door het voltallige bestuur ontslagen wegens wangedrag
+1  2          3    4    5   6          7       8         9      10       
+2  3          0    8    7   7          4       3         8      9        
+                                                                         
+386                                                 
+Door de wind vallen de dorre bladeren in het zwembad
+1    2  3    4      5  6     7        8  9   10     
+4    3  1    0      7  7     4        7  10  8      
+                                                    
+390                                                                 
+In de verre toekomst reizen de mensen wellicht per vliegende schotel
+1  2  3     4        5      6  7      8        9   10        11     
+5  4  4     1        0      7  5      5        5   11        9      
+                                                                    
+396                                                                      
+Aan het einde van ieder schooljaar logeren de trouwe dochters bij hun oma
+1   2   3     4   5     6          7       8  9      10       11  12  13 
+7   3   1     3   6     4          0       10 10     7        10  13  11 
+                                                                         
+398                                                                                     
+in die vrijstaande boerderij met royale achtertuin wonen de kennissen van mijn schoonzus
+1  2   3           4         5   6      7          8     9  10        11  12   13       
+8  4   4           1         4   7      5          0     10 8         10  13   11       
+                                                                                        
+400                                                                                     
+Voor de voornaamste resultaten van het onderzoek kun je de bekende publicatie raadplegen
+1    2  3           4          5   6   7         8   9  10 11      12         13        
+8    4  4           1          4   7   5         0   8  12 12      13         8         
+                                                                                        
+402                                                                 
+Bij het zien van het vieze beest raken de moeders helemaal overstuur
+1   2   3    4   5   6     7     8     9  10      11       12       
+8   3   1    3   7   7     4     0     10 8       12       8        
+                                                                    
+404                                                                
+Na een zware tocht door de bergen bereiken de wandelaars de camping
+1  2   3     4     5    6  7      8        9  10         11 12     
+8  4   4     1     4    7  5      0        10 8          12 8      

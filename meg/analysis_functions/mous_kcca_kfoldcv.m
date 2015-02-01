@@ -88,6 +88,7 @@ for i = 1:opt.nfold
         X1z = (X1 - ones(N,1)*mean(X1(tr,:))) ./ (ones(N,1)*std(X1(tr,:)));
         X2z = (X2 - ones(N,1)*mean(X2(tr,:))) ./ (ones(N,1)*std(X2(tr,:)));
         K1 = X1z*X1z';
+        %figure;imagesc(K1);
         K2 = X2z*X2z';
         K1tr = K1(tr,tr); K1te = K1(te,tr);
         K2tr = K2(tr,tr); K2te = K2(te,tr);
@@ -115,7 +116,7 @@ for i = 1:opt.nfold
     opt_kappa(i) = kappa;
     
     %run kCCA
-    [nalpha{i}, nbeta{i}, r{i}] = kcanonca_reg_ver2(K1tr,K2tr,eta,kappa,1,2,Rx,Ry);
+    [nalpha{i}, nbeta{i}, r{i}] = kcanonca_reg_ver2(K1tr,K2tr,eta,kappa,0,2,Rx,Ry);
     
     projte1 = K1te*nalpha{i};
     projte2 = K2te*nbeta{i};
@@ -158,10 +159,11 @@ if opt.nrand>0,
   % randomizations
   tmpopt = opt;
   tmpopt.nrand = 0;
-  test_corr(opt.nrand+1) = 0;
+  test_corr(end, opt.nrand+1) = 0;
   for k = 1:opt.nrand
     indx = randperm(N);
-    [~,~,~,~,test_corr(k+1)] = mous_kcca_kfoldcv(K1(indx,indx),K2,tmpopt);
+    [~,~,~,~,tmp] = mous_kcca_kfoldcv(K1(indx,indx),K2,tmpopt);
+    test_corr(1:numel(tmp),k+1) = tmp(:);
   end
 end
 
@@ -201,7 +203,7 @@ for cnt = 1:length(kappa)
         
         % note: kernels are already centred
         % unfortunately we need to recompute the GSD every time
-        [nalpha, nbeta] = kcanonca_reg_ver2(K1(tr,tr),K2(tr,tr),eta,kappa(cnt),1,2);
+        [nalpha, nbeta] = kcanonca_reg_ver2(K1(tr,tr),K2(tr,tr),eta,kappa(cnt),0,2);
         
         projva1  = K1(va,tr)*nalpha;
         projva2  = K2(va,tr)*nbeta;

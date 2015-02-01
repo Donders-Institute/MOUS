@@ -3,6 +3,7 @@
 
 clear all;
 
+
 % word categories updated by Maarten and JM; Nietzsche executed this script
 % again to update mous_stimuli.mat - 29.01.0215
 [data_num,data_txt,data_raw] = xlsread('mous_stimuli_wordcategories.xls','','','basic'); 
