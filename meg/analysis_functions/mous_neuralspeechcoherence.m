@@ -1,4 +1,4 @@
-function [coherence1, coherence2] = mous_neuralspeechcoherence(subjectname)
+function [coherence1, coherence2] = mous_neuralspeechcoherence(subjectname, foi)
 % This function calculates the coherence between the neural signal to the
 % speech envelope
 
@@ -44,6 +44,21 @@ elseif numel(dataset) > 1
   speech.grad = ft_average_sens(tmpsens2, 'weights', weights2);   
 end
 
+%% convert to planar gradient
+%  can only convert after freqanalysis if contain complex-value
+%  fourierspctra (and not only powspctrm)
+% dataori = data;
+
+cfg = [];
+cfg.method       = 'template';
+cfg.neighbours   = ft_prepare_neighbours(cfg,data);
+cfg.planarmethod = 'sincos';
+data            = ft_megplanar(cfg,data);
+
+% combine vertical and horizontal components 
+% else, have 2 components for each sensor, each has x-spctra to speech signal 
+cfg = [];
+data             = ft_combineplanar(cfg,data); % compute planar gradient magnitude for ERF/TFR
 %% concatenate into one dataset
 data = ft_appenddata([],data,speech);
 
@@ -61,6 +76,7 @@ data1  = ft_selectdata(cfg,data);
 cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
 data2  = ft_selectdata(cfg,data);
 
+
 %% calculate power- and cross-spectra
 %  mtmfft:   fourier spectra; contains amplitude and phase
 %            Cross-spectral density matrix inferred from fourier matrix
@@ -69,7 +85,7 @@ data2  = ft_selectdata(cfg,data);
 cfg = [];
 cfg.method     = 'mtmfft';  % assumes stable power, but we know this isn't true
 cfg.output     = 'powandcsd'; 
-cfg.foilim     = [0 60];         % calculate fourier for each frequency showing a peak in coherence spectrum
+cfg.foilim     = foi;         % calculate fourier for each frequency showing a peak in coherence spectrum
 cfg.tapsmofrq  = 1;           % 2 Hz smoothing
 % cfg.tapsmofrq  = 2;         % 4 Hz smoothing
 cfg.taper      = 'dpss';
@@ -108,10 +124,10 @@ cfg.trl        = trl;
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
-cfg.bsfilter   = 'yes';  % temporary replacement for job of dftfilter
-cfg.bsfreq     = [49 51];
-cfg.bsfilttype = 'firws';
-cfg.usefftfilt = 'yes';
+% cfg.bsfilter   = 'yes';  % temporary replacement for job of dftfilter
+% cfg.bsfreq     = [49 51];
+% cfg.bsfilttype = 'firws';
+% cfg.usefftfilt = 'yes';
 data           = ft_preprocessing(cfg);
 
 cfg.channel    = 'UADC003';
