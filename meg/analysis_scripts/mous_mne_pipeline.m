@@ -559,7 +559,7 @@ if domne_parcellate
       tlck(k) = tmp;
     end
   end
-  if numel(tlck)>1
+  if numel(tlck)>1 || numel(data)==1
     mous_db_putdata(subjectname, suffix_output, 'tlck', rootdir);
   end
 end
