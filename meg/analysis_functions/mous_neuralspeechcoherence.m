@@ -1,4 +1,4 @@
-function [coherence1, coherence2] = mous_neuralspeechcoherence(subjectname, foi)
+function [coherence1, coherence2, coherence3, coherence4] = mous_neuralspeechcoherence(subjectname, foi)
 % This function calculates the coherence between the neural signal to the
 % speech envelope
 
@@ -45,36 +45,34 @@ elseif numel(dataset) > 1
 end
 
 %% convert to planar gradient
-%  can only convert after freqanalysis if contain complex-value
-%  fourierspctra (and not only powspctrm)
-% dataori = data;
+tmplabel = data.label;  % use later when combining planar gradient components
 
 cfg = [];
 cfg.method       = 'template';
 cfg.neighbours   = ft_prepare_neighbours(cfg,data);
 cfg.planarmethod = 'sincos';
-data            = ft_megplanar(cfg,data);
+dataPL           = ft_megplanar(cfg,data);
 
-% combine vertical and horizontal components 
-% else, have 2 components for each sensor, each has x-spctra to speech signal 
-cfg = [];
-data             = ft_combineplanar(cfg,data); % compute planar gradient magnitude for ERF/TFR
 %% concatenate into one dataset
-data = ft_appenddata([],data,speech);
+dataAX = ft_appenddata([],data,speech);  % axial gradiometers, for subj-specific frequency search
+dataPL = ft_appenddata([],dataPL,speech);  % planar gradiometers, for grp-level averaging
 
 %% cut the data into fragments with overlap (increase data - like welch method)
 cfg = [];
 cfg.length  = 2;  
 cfg.overlap = 0.5; % 0 to 1 (exclusive)
-data = ft_redefinetrial(cfg, data);
+dataAX = ft_redefinetrial(cfg, dataAX);
+dataPL = ft_redefinetrial(cfg, dataPL);
 
 %% divide data
 cfg = [];
 cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
-data1  = ft_selectdata(cfg,data);
+data1  = ft_selectdata(cfg,dataAX); % axial
+data3  = ft_selectdata(cfg,dataPL); % planar
 
 cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
-data2  = ft_selectdata(cfg,data);
+data2  = ft_selectdata(cfg,dataAX); % axial
+data4  = ft_selectdata(cfg,dataPL); % planar
 
 
 %% calculate power- and cross-spectra
@@ -92,16 +90,56 @@ cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';     
 cfg.channel    = {'MEG' 'UADC003' 'audio_avg'};
 cfg.channelcmb = {'MEG' 'UADC003';'MEG' 'audio_avg'};
-freq1          = ft_freqanalysis(cfg,data1);
-freq2          = ft_freqanalysis(cfg,data2);
+freq1          = ft_freqanalysis(cfg,data1); % axial
+freq2          = ft_freqanalysis(cfg,data2); 
+
+freq3          = ft_freqanalysis(cfg,data3); % planar
+freq4          = ft_freqanalysis(cfg,data4);
 
 %% calculate coherence 
-% mkdir('nscoh') %neuralspeechcoherence
 cfg = [];
 cfg.method     = 'coh';
 cfg.channelcmb = {'MEG' 'UADC003'; 'MEG' 'audio_avg'}; % Specify channel and channelref
-coherence1      = ft_connectivityanalysis(cfg,freq1);
-coherence2      = ft_connectivityanalysis(cfg,freq2);
+coherence1     = ft_connectivityanalysis(cfg,freq1); % axial
+coherence2     = ft_connectivityanalysis(cfg,freq2);
+coherence3     = ft_connectivityanalysis(cfg,freq3); % planar
+coherence4     = ft_connectivityanalysis(cfg,freq4);
+
+
+%% combine planar gradient's vertical (dV) and horizontal (dH) components
+%  - Freq and Coherence calculation are non-linear (power = take abs)
+%  - If combine components prior to freq/coherence calculation we lose
+%  coherence estimate 
+%  - Combining sensor_dV and sensor_dH using pythagoras leads to a loss
+%  (canceling out) of the coherence estimate.  
+%  - Use of pythagoras works for ERFs/TFRs signal; For ERF (because it's
+%  caluclate is a linear step, one can actually convert and combine prior
+%  to ERF calculation, but not for TFR and coherence calculations).
+%  - Combine dV and dH components by doing an average. 
+%    An alternative is to use max(dV, dH)
+
+%%% SENT %%%
+% select sensors of interest
+sensize = size(coherence3.labelcmb,1)/4; % 273; dv and dH for each audio signal
+tmp1 = coherence3.cohspctrm(sensize*2+1:sensize*3,:);
+tmp2 = coherence3.cohspctrm(sensize*3+1:end,:);
+
+% compute average between dV and dH for combined planar gradient components
+coherence3.cohspctrm = (tmp1+tmp2)./2;
+coherence3.labelcmb  = coherence3.labelcmb(sensize*2+1:sensize*3,:);
+coherence3.labelcmb(1:sensize,1) = tmplabel;
+
+
+%%% WORD LIST %%%
+% select sensors of interest
+sensize = size(coherence4.labelcmb,1)/4; % 273; dv and dH for each audio signal
+tmp1 = coherence4.cohspctrm(sensize*2+1:sensize*3,:);
+tmp2 = coherence4.cohspctrm(sensize*3+1:end,:);
+
+% compute average between dV and dH for combined planar gradient components
+coherence4.cohspctrm = (tmp1+tmp2)./2;
+coherence4.labelcmb  = coherence4.labelcmb(sensize*2+1:sensize*3,:);
+coherence4.labelcmb(1:sensize,1) = tmplabel;
 
 
 function [data, speech] = computedata(dataset, artfctcfg)
