@@ -1,4 +1,4 @@
-function varargout = mous_makecontrast(data, contrast, trialinfo, M)
+function varargout = mous_makecontrast(data, contrast, trialinfo, M, rseed)
 
 % MOUS_MAKECONTRAST extracts the average across observations for a specific
 % set of defined conditions, or computes the slope parameter of the linear
@@ -10,6 +10,7 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 %   trialinfo = NxM matrix with trial specific information
 %   M         = optional matrix, that is left multiplied with the data
 %                 matrix, e.g. minimum norm spatial filter
+%   rseed     = options value: seed that defines the randomly selected trials per subject 
 %
 % data.trialinfo is assumed to be defined as:
 %  column 1: sentence index
@@ -25,8 +26,9 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 %   sent-seqFirstword = sentence versus word list, first word
 %   sentMX-sentRC     = sentence 'mixed clauses' versus Relative Clauses
 %   early-late        = beginning vs. end of sentence (or word list)
-%   comb-bsl          = sent+seq vs. baseline
-%
+%   deplong-depshort  = verb in RC with a long dependency to subject in  main clause vs.  verb with short dependency
+%   RCearlylate-MXearlylate = Word position by Complexity
+
 % defined slope parameter estimates are
 %   wordsent_parametric     = sentence 
 %   wordsent_parametric_blc = sentence, with subtraction of slope in baseline
@@ -40,23 +42,29 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M)
 % sentence trigger values: 1 2 5 6
 % sequence trigger values: 3 4 7 8
 
+%%%%%%%%%%%%
+% CONTRASTS 
+%%%%%%%%%%%%
 switch contrast
-  case {'sent-seq', 'sent-seqTarget', 'sentMX-sentRC','sent-seqFirstword','early-late','RCend-RCafter'}
+  case {'sent-seq', 'sent-seqTarget', 'sentMX-sentRC','sent-seqFirstword','early-late',...
+        'RCend-RCafter', 'RCearlylate-MXearlylate','RConset-RCoffset', 'subjMC-verbRC','RC_deplong-depshort'}
+    
     %if  nargin<3  
-    % need extra input arguments to differentiate between VIS and AUD
-    % could try to infer from trialinfo i.e. VIS has all words present but
-    % AUD doesn't (given triggers). However, we may soon update the
-    % trialinfo with info from logfile, so subjectname is most reliable
-    if nargin<4
+        % need extra input arguments to differentiate between VIS and AUD
+        % could try to infer from trialinfo i.e. VIS has all words present but
+        % AUD doesn't (given triggers). However, we may soon update the
+        % trialinfo with info from logfile, so subjectname is most reliable
+    if nargin<4  
       T = data.trialinfo(:,3);
     else 
-      T = trialinfo(:,1);
+      T = trialinfo(:,1); 
     end
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % decode the trialinfo field to make a selection of trials per 
     % sub condition
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % CONTRASTS THAT REQUIRE MATCHING 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     switch contrast
       case 'sent-seq'
         sel1 = find(ismember(T,[1 2 5 6]));
@@ -70,10 +78,7 @@ switch contrast
       case 'sentMX-sentRC'
         sel1 = find(ismember(T,[5 6]));  % MIX
         sel2 = find(ismember(T,[1 2]));  % RC
-      case 'RCend-RCafter'
-        % use an lower level function for the definition of trials
-        [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
-      case 'early-late'
+      case 'early-late' 
         % take words 2 to 4 and n-3 to n-1: NOTE this only works
         % for visual subjects. Assume trialinfo organized as:
         % sentence, ordinal word, condition, total number of words
@@ -81,31 +86,49 @@ switch contrast
         sel2 = find(ismember(data.trialinfo(:,4)-data.trialinfo(:,2),[1 2 3])); % late
     end
     
-    if numel(sel1)~=numel(sel2) % balance numtrials for the above contrasts
-      n1   = numel(sel1);
-      n2   = numel(sel2);
-      n    = min(n1,n2);
-      x1   = randperm(n1);
-      x2   = randperm(n2);
-      sel1 = sel1(sort(x1(1:n)));
-      sel2 = sel2(sort(x2(1:n)));
+    % balance trials if not involving a contrast between RC/MX
+    % if <numel(...)> goes first, then this statement cannot be executed
+    if ((strcmp(contrast,'sent-seq')) || (strcmp(contrast,'sent-seqTarget')) ||...
+       (strcmp(contrast,'sent-seqFirstword')) || (strcmp(contrast,'sentMX-sentRC')) ||...
+       (strcmp(contrast,'early-late'))) && numel(sel1)~=numel(sel2);                           
+        n1   = numel(sel1);
+        n2   = numel(sel2);
+        n    = min(n1,n2);
+        x1   = randperm(n1);
+
+        x2   = randperm(n2);
+        sel1 = sel1(sort(x1(1:n)));
+        sel2 = sel2(sort(x2(1:n)));    
     end 
     
-    %###########FIXME FOR NIETZCHE: PLEASE CLEAN THIS UP#########################%   
-    if strcmp(contrast, 'RCearlylate-MXearlylate')  
-      [dat1, dat2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RCMX');
-      [sel1, sel2]  = mous_makecontrast(dat1); % RCearly, RClate
-      [sel3, sel4]  = mous_makecontrast(dat2); % MXearly, MXlate
-    elseif strcmp(contrast, 'RConset-RCoffset')
-      [sel1, sel2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RConoff');
-    elseif strcmp(contrast,'subjMC-verbRC')
-      [sel1, sel2, sel3, sel4, sel5, sel6] = mous_subjMCvsverbRC(data);  %subjMC, verbRC in RC+ sentences; in RC- sentences, in RC+ word lists
-    end
- 
-     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % select and average 
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
+    % CONTRASTS NOT NEEDING MATCHING
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    switch contrast
+      case 'RC_deplong-depshort'
+        [sel1, sel2]  = mous_dependencyshortvslong(data);
+      case 'RCearlylate-MXearlylate'
+        if isempty(rseed), error('you must have a randomseed');  end
+        [sel1, sel2, sel3, sel4]  = mous_RCMXbalanced_RConoffset(data, 'RCMX',rseed);
+
+      case 'RConset-RCoffset'
+        if isempty(rseed), error('you must have a randomseed');  end
+        [sel1, sel2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RConoff');
+      case 'subjMC-verbRC'
+        if isempty(rseed), error('you must have a randomseed');  end
+        %subjMC, verbRC in RC+ sentences (sel1 sel2)
+        %               in RC- sentences (sel3 sel4)
+        %               in RC+ word list (sel5 sel6)
+        [sel1, sel2, sel3, sel4, sel5, sel6] = mous_subjMCvsverbRC(data,rseed);  
+      case 'RCend-RCafter'
+        if isempty(rseed), error('you must have a randomseed');  end
+        % use another function for the definition of trials
+        [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
+    end 
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % select and average for contrasts
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     switch ft_datatype(data)
       case 'raw'
@@ -117,48 +140,58 @@ switch contrast
         tlck2      = ft_timelockanalysis(cfg, data);       
         varargout{1} = tlck1;
         varargout{2} = tlck2;
-        
+
         if all(cellfun('size',data.time,2)==1)
           % compute T contrast, too
           dat1 = cat(2,data.trial{sel1});
           dat2 = cat(2,data.trial{sel2});
           Tstat = yuent(dat1,dat2,0.2,2);
-          if ~strcmp(contrast,'RCend-RCafter') || ~strcmp(contrast,'RCearlylate-MXearlylate')
-            varargout{3} = Tstat;
-          else
+          varargout{3} = Tstat;
+
+          if strcmp(contrast,'RCend-RCafter') || strcmp(contrast,'RCearlylate-MXearlylate') ||...
+             strcmp(contrast,'RConset-RCoffset') || strcmp(contrast,'subjMC-verbRC')
+            cfg.trials = sel3;
+            tlck3      = ft_timelockanalysis(cfg,data);
+            cfg.trials = sel4;
+            tlck4      = ft_timelockanalysis(cfg,data);
+            varargout{3} = tlck3;  % overwrite initial varargout{3} value
+            varargout{4} = tlck4;   
+
             varargout{5} = Tstat;
             dat1 = cat(2,data.trial{sel3});
             dat2 = cat(2,data.trial{sel4});
             Tstat = yuent(dat1,dat2,0.2,2);
             varargout{6} = Tstat;
+            
+            if strcmp(contrast,'subjMC-verbRC')
+              % N.B. not calculating Tstat
+              cfg.trials = sel5;
+              tlck5      = ft_timelockanalysis(cfg,data);
+              cfg.trials = sel6;
+              tlck6      = ft_timelockanalysis(cfg,data);
+              varargout{5} = tlck5;
+              varargout{6} = tlck6;
+            end 
           end
         end
-        
-        if strcmp(contrast,'RCend-RCafter') || strcmp(contrast,'RCearlylate-MXearlylate')
-          cfg.trials = sel3;
-          tlck3      = ft_timelockanalysis(cfg,data);
-          cfg.trials = sel4;
-          tlck4      = ft_timelockanalysis(cfg,data);
-          varargout{3} = tlck3;
-          varargout{4} = tlck4;        
-        end
+
       case 'freq'
-        
+
         % convert to planar gradient representation
         cfg        = [];
         cfg.method = 'distance';
         neighbours = ft_prepare_neighbours(cfg, data);
-        
+
         cfg              = [];
         cfg.planarmethod = 'sincos';
         cfg.neighbours   = neighbours;
         data             = ft_megplanar(cfg, data);
-       
+
         % I understand the rationale for the below snippet
         % of code, but I wonder about it's necessity 
         if any(data.freq>=50)
-%           cfg = [];
-%           cfg.frequency  = [49 51];
+    %           cfg = [];
+    %           cfg.frequency  = [49 51];
           tmp = ft_selectdata(data,'foilim',[49 51]);
           cfg = [];
           cfg.keeptrials = 'yes';
@@ -169,27 +202,27 @@ switch contrast
           sel1    = setdiff(sel1,exclude);
           sel2    = setdiff(sel2,exclude);
         end
-        
+
         cfg        = [];
         cfg.trials = sel1;
         freq1      = ft_freqdescriptives(cfg, data);
         cfg.trials = sel2;
         freq2      = ft_freqdescriptives(cfg, data);
-        
+
         % combine planar gradients
         freq1 = ft_combineplanar([],freq1);
         freq2 = ft_combineplanar([],freq2);
-      
+
         varargout{1} = freq1;
         varargout{2} = freq2;
       otherwise
-    end
-    
-  case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordseq_parametric' 'wordseq_parametric_blc',...
-          'wordsent_rc_parametric_blc' 'wordsent_mix_parametric_blc' 'wordseq_rc_parametric_blc' 'wordseq_mix_parametric_blc',...
-          'wordsent_rc_parametric' 'wordsent_mix_parametric' 'wordseq_rc_parametric' 'wordseq_mix_parametric',...
-          'wordsenttar_parametric','wordseqtar_parametric','wordsenttar_parametric_blc','wordseqtar_parametric_blc',}
-    
+    end  % calculation for contrasts
+
+  case {'wordsent_parametric', 'wordsent_parametric_blc', 'wordseq_parametric', 'wordseq_parametric_blc',...
+      'wordsent_rc_parametric_blc', 'wordsent_mix_parametric_blc', 'wordseq_rc_parametric_blc', 'wordseq_mix_parametric_blc',...
+      'wordsent_rc_parametric', 'wordsent_mix_parametric', 'wordseq_rc_parametric', 'wordseq_mix_parametric',...
+      'wordsenttar_parametric', 'wordseqtar_parametric', 'wordsenttar_parametric_blc', 'wordseqtar_parametric_blc'};
+
     switch ft_datatype(data)
       case 'timelock'
         % assume that the input data has a field, called trial, that
@@ -200,24 +233,25 @@ switch contrast
       otherwise
         % assume single 'trial' data, i.e. an estimate per word
         Xcond = data.trialinfo(:,3);
-        if regexp(contrast,    'wordsent_para')  % regexp = parametric(_blc)
+        switch contrast
+          case {'wordsent_parametric' 'wordsent_parametric_blc'}
             sel   = find(ismember(Xcond,[1 2 5 6]));
-        elseif regexp(contrast,'wordseq_para')
+          case {'wordseq_parametric' 'wordseq_parametric_blc'}
             sel   = find(ismember(Xcond,[3 4 7 8]));
-        elseif regexp(contrast,'wordsenttar_para')
+          case {'wordsenttar_parametric' 'wordsenttar_parametric_blc'}
             sel   = find(ismember(Xcond,[2 6]));
-        elseif regexp(contrast,'wordseqtar_para')
+          case {'wordseqtar_parametric' 'wordseqtar_parametric_blc'}
             sel   = find(ismember(Xcond,[4 8]));
-        elseif regexp(contrast,'wordsent_rc_para')
+          case {'wordsent_rc_parametric' 'wordsent_rc_parametric_blc'}
             sel   = find(ismember(Xcond,[5 6]));
-        elseif regexp(contrast,'wordseq_rc_para')
+          case {'wordseq_rc_parametric' 'wordseq_rc_parametric_blc'}
             sel   = find(ismember(Xcond,[7 8]));    
-        elseif regexp(contrast,'wordsent_mix_para')
+          case {'wordsent_mix_parametric' 'wordsent_mix_parametric_blc'}
             sel   = find(ismember(Xcond,[1 2]));
-        elseif regexp(contrast,'wordseq_mix_para')
+          case {'wordseq_mix_parametric' 'wordseq_mix_parametric_blc'}
             sel   = find(ismember(Xcond,[3 4]));
         end
-        
+       
         data  = ft_selectdata(data, 'rpt', sel);
         Xword = data.trialinfo(:,2);
         
@@ -276,7 +310,7 @@ switch contrast
         end
     end
     
-    % fit glm
+    % fit glm (for parametric contrasts)
     cfg                 = [];
     cfg.design          = (1:size(tmp.trial,1))-mean(1:size(tmp.trial,1)); % zero mean
     cfg.statistic       = 'glm';
@@ -299,5 +333,5 @@ switch contrast
     varargout{2} = stat;
     varargout{3} = stat2;
     varargout{4} = mu;
-  otherwise
+  otherwise 
 end
