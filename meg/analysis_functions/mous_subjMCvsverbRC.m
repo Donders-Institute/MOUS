@@ -1,4 +1,4 @@
-function [subjMC_RC, verbRC_RC, subjMC_MX, verbRC_MX, subjMC_RCWL, verbRC_RCWL]= mous_subjMCvsverbRC(data, rseed)
+function [verbshrtdep, verblongdep]= mous_subjMCvsverbRC(data, rseed)
          
 % In all sentences with a relative clause this function selects
 % i)  subjMC_RC:  subject in the main clause (senRCsubjmc), 
@@ -51,6 +51,13 @@ expMX = trialinfo(sel,:);
 sel  = find(ismember(trialinfo(:,3),[3 4]));  
 expRCWL = trialinfo(sel,:);
 
+%% extract verbRC_RC trials
+uq      = unique(expRC(:,6));
+for k = 1:numel(uq)
+  sent_subjpstn(k) = stimuli(uq(k)).id*100 + stimuli(uq(k)).verb2subjMC;
+end
+idx    = find(ismember(expRC(:,7),sent_subjpstn)); % some of allsubjRC may not be in expRC due to artifact rejection
+verb2subjMC_RC   = expRC(idx,:);
 
 %% extract subjMC_RC trials
 % select all subjMC_RC: use stimID-subjpstn pair
@@ -61,32 +68,17 @@ end
 idx    = find(ismember(expRC(:,7),sent_subjpstn)); % some of allsubjRC may not be in expRC due to artifact rejection
 subjMC_RC = expRC(idx,:);
 
-%% extract verbRC_RC trials
-uq      = unique(expRC(:,6));
-for k = 1:numel(uq)
-  sent_subjpstn(k) = stimuli(uq(k)).id*100 + stimuli(uq(k)).verb2subjMC;
-end
-idx    = find(ismember(expRC(:,7),sent_subjpstn)); % some of allsubjRC may not be in expRC due to artifact rejection
-verb2subjMC_RC = expRC(idx,:);
-
-%% remove RC sentences that do not have a subj-verb pair
-%  23.01 w/JM - this might be too conservative 
-%  since will average across trials
-% [~,iverb, isubj] = intersect(verb2subjMC_RC(:,6),subjMC_RC(:,6));
-% verb2subjMC_RC = verb2subjMC_RC(iverb,:);
-% subjMC_RC      = subjMC_RC(isubj,:);
-
 %% remove RC sentences that ~senttype = [0 0 0 0] 
+senttype = [stimuli(verb2subjMC_RC(:,6)).sentencetype];   % get senttype for remaining RC sentences
+senttype = reshape(senttype,[4,size(verb2subjMC_RC,1)])'; 
+i        = any(senttype,2);                                 % identify special senttype
+verb2subjMC_RC     = verb2subjMC_RC(~i,:);               % remove special senttype
+
 senttype = [stimuli(subjMC_RC(:,6)).sentencetype];   % get senttype for remaining RC sentences
 senttype = reshape(senttype,[4,size(subjMC_RC,1)])'; 
 i = any(senttype,2);                                 % identify special senttype
 subjMC_RC      = subjMC_RC(~i,:);
 
-senttype = [stimuli(verb2subjMC_RC(:,6)).sentencetype];   % get senttype for remaining RC sentences
-senttype = reshape(senttype,[4,size(verb2subjMC_RC,1)])'; 
-i = any(senttype,2);                                 % identify special senttype
-verb2subjMC_RC = verb2subjMC_RC(~i,:);               % remove special senttype
- 
 %% balance number of subjMC and verb2subjMC trials
 %  This is different than removing sentences which don't have both subjM
 %  and verb2subjMC
@@ -94,7 +86,7 @@ verb2subjMC_RC = verb2subjMC_RC(~i,:);               % remove special senttype
 n1 = size(subjMC_RC,1);
 n2 = size(verb2subjMC_RC,1);
 nmin = min(n1,n2); % find lower number of trial
-ndif = n1-n2; % find excess number to remove
+ndif = abs(n1-n2); % find excess number to remove
 
 randomseed(rseed);
 idx = randperm(nmin,ndif); % randomly select trials to remove
@@ -105,8 +97,7 @@ elseif n1<n2               % verb2subjMC has more trials
 end
 
 %% get subjMC_MX match
-%  23.01 w/JM no need to match subject and verb at the sentence level
-%  i.e.  subjMC and verb2subjMC from all sentences are included, not just
+%  23.01 w/JM: subjMC and verb2subjMC from all sentences are included, not just
 %  those that have a partner in the same sentence.
 
 % create a sentencelength-wordposition column for easy matching
@@ -134,7 +125,7 @@ end
 % Enter Psuedomatch if using same sentence length for RC and MX produces no
 % matches between conditions. This means lengthtry starts at +1 from
 % shortest sentence length available
-subjMC_RC(end,10) = false;
+% subjMC_RC(end,10) = false; For Testing purpose only
 
 if sum(subjMC_RC(:,10)) < size(subjMC_RC,1)
 idx = find(subjMC_RC(:,10) == false); % create matrix of unmatched RC's
@@ -147,7 +138,47 @@ senlen = min(subjMC_RC(:,8))+1:max(expMXtmp(:,8)); % 2nd shortest to longest sen
         subjMC_RCtmp(k,10) = true;
         [chosen, subjMC_RCtmp,expMXtmp]  = getmatch(subjMC_RCtmp,expMXtmp,k,lengthtry,chosen,rseed); % k = current trial
         
-        if sum(subjMC_RCtmp(:,10)) == size(subjMC_RC,1)
+        if sum(subjMC_RCtmp(:,10)) == size(subjMC_RCtmp,1)
+          break;  % exit search when all matches have been found
+        end
+        
+      end
+    end
+  end
+end
+
+subjMC_MX = chosen;
+%% get match to find verb2subjMC_MX
+verb2subjMC_RC(:,10)     = false;   % mark true for each completed match
+
+% perfect match
+senadd = 0;
+for k = 1:size(verb2subjMC_RC,1)
+  if ~isempty(find(verb2subjMC_RC(k,9) == expMXtmp(:,9))); % only perform match if there are options
+    if k == 1
+      chosen = []; % create subjMC_MX matrix
+    end
+    verb2subjMC_RC(k,10) = true;
+    [chosen, verb2subjMC_RC,expMXtmp]  = getmatch(verb2subjMC_RC,expMXtmp,k,senadd,chosen,rseed); % k = current trial
+  end
+end
+
+% pseudomatch
+% verb2subjMC_RC(end,10) = false; % For Testing purpose only
+% chosen(end,:) = [];
+
+if sum(verb2subjMC_RC(:,10)) < size(verb2subjMC_RC,1)
+idx = find(verb2subjMC_RC(:,10) == false); % create matrix of unmatched RC's
+verb2subjMC_RCtmp = verb2subjMC_RC(idx,:);  
+senlen = min(verb2subjMC_RC(:,8))+1:max(expMXtmp(:,8)); % 2nd shortest to longest sentences
+  
+  for lengthtry = 1:senlen   
+    for k = 1:size(verb2subjMC_RCtmp,1)  % go through unmatched options
+      if ~isempty(find(verb2subjMC_RCtmp(k,9)+lengthtry*100 == expMXtmp(:,9))); % only perform match if there are options
+        verb2subjMC_RCtmp(k,10) = true;
+        [chosen, verb2subjMC_RCtmp,expMXtmp]  = getmatch(verb2subjMC_RCtmp,expMXtmp,k,lengthtry,chosen,rseed); % k = current trial
+        
+        if sum(verb2subjMC_RCtmp(:,10)) == size(verb2subjMC_RCtmp,1)
           break;  % exit search when all matches have been found
         end
         
@@ -156,47 +187,104 @@ senlen = min(subjMC_RC(:,8))+1:max(expMXtmp(:,8)); % 2nd shortest to longest sen
   end
   
 end
-
-% use remaining trials from expMC to find verbs.
-
-
-%% get verb2subjMC_MX match
-% perfect match for verb2subj_MX
-subjMC_RCtmp = subjMC_RC;
-expRCWLtmp   = expRCWL;
-
-%% FIXME: copy code from above
-% test code
-% run for all subjects
-% pseudo mathc for verb2subj_MX
-
+verb2subjMC_MX = chosen;
 
 %% get subjMC_RCWL match
-% perfect match
-% pseudo match
+% restart counter for RCWL matches 
+subjMC_RC(:,10)     = false;
+subjMC_RC(:,9)      =      subjMC_RC(:,8)*100 + subjMC_RC(:,2);
+verb2subjMC_RC(:,9) = verb2subjMC_RC(:,8)*100 + verb2subjMC_RC(:,2);
+expRCWL(:,9)        = expRCWL(:,8)*100 + expRCWL(:,2);
 
+% create copies for use in matching
+% subjMC_RCtmp = subjMC_RC;
+expRCWLtmp     = expRCWL;
+
+% perfect match for subjMC_MX
+senadd = 0;
+for k = 1:size(subjMC_RC,1)
+  if ~isempty(find(subjMC_RC(k,9) == expRCWLtmp(:,9))); % only perform match if there are options
+    if k == 1
+      chosen = []; % create subjMC_MX matrix
+    end
+    subjMC_RC(k,10) = true;
+    [chosen, subjMC_RC,expRCWLtmp]  = getmatch(subjMC_RC,expRCWLtmp,k,senadd,chosen,rseed); % k = current trial
+  end
+end
+
+% Pseudomatch 
+if sum(subjMC_RC(:,10)) < size(subjMC_RC,1)
+idx = find(subjMC_RC(:,10) == false); % create matrix of unmatched RC's
+subjMC_RCtmp = subjMC_RC(idx,:);  
+senlen = min(subjMC_RC(:,8))+1:max(expRCWLtmp(:,8)); % 2nd shortest to longest sentences
+  
+  for lengthtry = 1:senlen   
+    for k = 1:size(subjMC_RCtmp,1)  % go through unmatched options
+      if ~isempty(find(subjMC_RCtmp(k,9)+lengthtry*100 == expRCWLtmp(:,9))); % only perform match if there are options
+        subjMC_RCtmp(k,10) = true;
+        [chosen, subjMC_RCtmp,expRCWLtmp]  = getmatch(subjMC_RCtmp,expRCWLtmp,k,lengthtry,chosen,rseed); % k = current trial
+        
+        if sum(subjMC_RCtmp(:,10)) == size(subjMC_RCtmp,1)
+          break;  % exit search when all matches have been found
+        end
+        
+      end
+    end
+  end
+end
+
+subjMC_RCWL = chosen;
 
 %% get verb2subj_RCWL match
-% perfect match
-% pseudo match
+verb2subjMC_RC(:,10)     = false;   % mark true for each completed match
 
+% perfect match
+senadd = 0;
+for k = 1:size(verb2subjMC_RC,1)
+  if ~isempty(find(verb2subjMC_RC(k,9) == expRCWLtmp(:,9))); % only perform match if there are options
+    if k == 1
+      chosen = []; % create subjMC_MX matrix
+    end
+    verb2subjMC_RC(k,10) = true;
+    [chosen, verb2subjMC_RC,expRCWLtmp]  = getmatch(verb2subjMC_RC,expRCWLtmp,k,senadd,chosen,rseed); % k = current trial
+  end
+end
+
+% pseudomatch
+% verb2subjMC_RC(end,10) = false; % For Testing purpose only
+% chosen(end,:) = [];
+
+if sum(verb2subjMC_RC(:,10)) < size(verb2subjMC_RC,1)
+idx = find(verb2subjMC_RC(:,10) == false); % create matrix of unmatched RC's
+verb2subjMC_RCtmp = verb2subjMC_RC(idx,:);  
+senlen = min(verb2subjMC_RC(:,8))+1:max(expRCWLtmp(:,8)); % 2nd shortest to longest sentences
+  
+  for lengthtry = 1:senlen   
+    for k = 1:size(verb2subjMC_RCtmp,1)  % go through unmatched options
+      if ~isempty(find(verb2subjMC_RCtmp(k,9)+lengthtry*100 == expRCWLtmp(:,9))); % only perform match if there are options
+        verb2subjMC_RCtmp(k,10) = true;
+        [chosen, verb2subjMC_RCtmp,expRCWLtmp]  = getmatch(verb2subjMC_RCtmp,expRCWLtmp,k,lengthtry,chosen,rseed); % k = current trial
+        
+        if sum(verb2subjMC_RCtmp(:,10)) == size(verb2subjMC_RCtmp,1)
+          break;  % exit search when all matches have been found
+        end
+        
+      end
+    end
+  end
+  
+end
+verb2subjMC_RCWL = chosen;
 
 %% get indices that match up to original (full) dataset
   % index of each trial from each condition in original (full) dataset
-  [c,i1] = intersect(data.trialinfo(:,8),       subjMC_RC(:,8));       
-  [c,i2] = intersect(data.trialinfo(:,8),  verb2subjMC_RC(:,8));
-  [c,i3] = intersect(data.trialinfo(:,8),       subjMC_MX(:,8)); 
-  [c,i4] = intersect(data.trialinfo(:,8),  verb2subjMC_MX(:,8)); 
-  [c,i5] = intersect(data.trialinfo(:,8),     subjMC_RCWL(:,8)); 
-  [c,i6] = intersect(data.trialinfo(:,8),verb2subjMC_RCWL(:,8)); 
-
-  [c,subjMC_RC]        = intersect(data.trialinfo(:,8),       subjMC_RC(:,8));       
-  [c,verb2subjMC_RC]   = intersect(data.trialinfo(:,8),  verb2subjMC_RC(:,8));
-  [c,subjMC_MX]        = intersect(data.trialinfo(:,8),       subjMC_MX(:,8)); 
-  [c,verb2subjMC_MX]   = intersect(data.trialinfo(:,8),  verb2subjMC_MX(:,8)); 
-  [c,subjMC_RCWL]      = intersect(data.trialinfo(:,8),     subjMC_RCWL(:,8)); 
-  [c,verb2subjMC_RCWL] = intersect(data.trialinfo(:,8),verb2subjMC_RCWL(:,8)); 
-  
+  [c,subjMC_RC]        = intersect(data.trialinfo(:,7),       subjMC_RC(:,7));       
+  [c,verb2subjMC_RC]   = intersect(data.trialinfo(:,7),  verb2subjMC_RC(:,7));
+  [c,subjMC_MX]        = intersect(data.trialinfo(:,7),       subjMC_MX(:,7)); 
+  [c,verb2subjMC_MX]   = intersect(data.trialinfo(:,7),  verb2subjMC_MX(:,7)); 
+  [c,subjMC_RCWL]      = intersect(data.trialinfo(:,7),     subjMC_RCWL(:,7)); 
+  [c,verb2subjMC_RCWL] = intersect(data.trialinfo(:,7),verb2subjMC_RCWL(:,7)); 
+ 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % subfunction for matching %
@@ -212,6 +300,5 @@ function [chosenlist, setlist, optionlist] = getmatch(setlist,optionlist,cnt,add
     else
       chosenlist  = [chosenlist; optionlist(tmp(1),:)];  
     end 
-%     setlist(cnt,:)       = [];    % toss out trial in setlist for a found match
     optionlist(tmp(1),:) = [];    % toss out used trial from option list     
 end 
