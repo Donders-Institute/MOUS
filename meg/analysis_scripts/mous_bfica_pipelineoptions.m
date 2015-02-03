@@ -39,3 +39,8 @@ if ~exist('rootdir', 'var'), rootdir = '/project/3011020.09/MEG'; end
 if ~exist('suff', 'var'),      suff      = ''; end
 if ~exist('frequency', 'var'), frequency = 20; end
 if ~exist('toi', 'var'),       toi = 0.4;      end
+
+
+% this allows for setting the random number generator to a fixed starting
+% point
+if ~exist('rseed', 'var'), rseed = randomseed([]); end
