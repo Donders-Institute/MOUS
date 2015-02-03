@@ -1,7 +1,7 @@
  % execute script that sets some variables if they have not been specified
 mous_bfica_pipelineoptions;
 % 
-% randomseed(Randomseed);
+randomseed(rseed);
 
 if doecg,
   [polarity, threshold, p] = mous_bfica_ecg(subjectname);
@@ -271,8 +271,8 @@ if dosource_contrasts,
 %        tstatelrc(:,toilop), tstatelmx(:,toilop)] = mous_makecontrast(sourcedata,'RCearlylate-MXearlylate',[],[],rseed);
 %      
       % subjMC-verbRC
-      [tlckverbshortdep(toilop),  tlckverblongdep(toilop),...
-       tstatverbdep(:,toilop)] = mous_makecontrast(sourcedata,'depshort-deplong');
+      [tlckverbshortdep(toilop), tlckverblongdep(toilop),...
+      tstatverbdep(:,toilop)] = mous_makecontrast(sourcedata,'RC_deplong-depshort');
 
 %       % RCend vs RCafter
 %       [tlckRCend(toilop), tlckRCafter(toilop), tlckMXend(toilop), tlckMXafter(toilop),...
