@@ -71,8 +71,9 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   tmpsmp = smp(sel);           % last sample of tmpsmp is sample of the last word (which is an empty word) in the trial
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % Fix error in word list: a trigger for a sentword is embedded in seqword triggers
-  % nielam 26.01.2015
+  % Fix error in word list RC,MX, and sentence MX
+  % a trigger for a sentword is embedded in seqword triggers
+  % nielam 26.01.2015; 02.03.2015
   % e.g., [7 15 7 15 8 2 15 7 15]  '2' does not belong
   % remove wrong trigger, and use preceding trigger as word onset
   % timing from preceding trigger to '15' is suitable for a word duration
@@ -80,10 +81,21 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   i1  = find(ismember(tmpval,[1 3 5 7]));
   med = median(tmpval(i1));
 
-  % Remove trigger from word lists only; code need not be subject specific
-  if ismember(med,[3 7])  
-  idx = find(ismember(tmpval,[1 2 5 6]),1); % search for senttrigger, only take first '1' or '2'
-                                            % subsequent '1' or '2' could be a response
+  % Remove trigger from word list (3,7) and Mix sentences (5); code need not be subject specific
+  if med == 3      % should only have 3,4
+    idx = find(ismember(tmpval,[1 2 5 6 7 8]),1);
+    if ~isempty(idx)
+      tmpval(idx) = [];
+      tmpsmp(idx) = [];
+    end
+  elseif med == 5  % should only have 5,6
+    idx = find(ismember(tmpval,[1 2 3 4 7 8]),1);
+    if ~isempty(idx)
+      tmpval(idx) = [];
+      tmpsmp(idx) = [];
+    end
+  elseif med == 7 % should only have 7,8
+    idx = find(ismember(tmpval,[1 2 3 4 5 6]),1); 
     if ~isempty(idx)
       tmpval(idx) = [];
       tmpsmp(idx) = [];
