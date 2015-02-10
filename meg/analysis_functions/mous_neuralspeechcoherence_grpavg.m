@@ -7,36 +7,16 @@ for k = 1:numel(subj)
   dat{k} = sentcoh;
 end
 
- % append data
+% append data
+% each additional subject is added as a new 'rpt'
+% rpt is a dimension in the data
 cfg           = [];
 cfg.parameter = 'cohspctrm';
 cfg.appenddim = 'rpt';      % fool ft_app
 datgrp  = ft_appendfreq(cfg,dat{:});
 
-% average data
+% average data using ft_selectdata
 cfg            = [];
 cfg.avgoverrpt = 'yes';
 datgrp         = ft_selectdata(cfg,datgrp);
 
-
-%% old code
-%   if k == 1
-%     datgrp = dat;
-%   else
-%     cfg           = [];
-%     cfg.parameter = 'cohspctrm';
-%     cfg.appenddim = 'rpt';      % fool ft_appendfreq, need to fix checkchan
-%     datgrp        = ft_appendfreq(cfg,dat,datgrp);
-%   end
-      
-% datgrp.cohspctrm = datgrp.cohspctrm./numel(subj);
-% notavg  = cell(1,102);
-% numchan = zeros(1,102);
-% label   = cell(1,102);
-
-%   if size(dat.cohspctrm,1) == 273
-%   else
-%     notavg{k}  = subj{k};
-%     numchan(k) = size(dat.cohspctrm,1);
-%     label{k}   = setdiff(dat.labelcmb(:,1),datgrp.labelcmb(:,1));
-%   end
