@@ -54,9 +54,10 @@ switch contrast
         % could try to infer from trialinfo i.e. VIS has all words present but
         % AUD doesn't (given triggers). However, we may soon update the
         % trialinfo with info from logfile, so subjectname is most reliable
-    if nargin<4  
+     
+    if nargin<4 || (nargin>4 && isempty(trialinfo)) % only applies contrast specified in first line
       T = data.trialinfo(:,3);
-    else 
+    else
       T = trialinfo(:,1); 
     end
     
