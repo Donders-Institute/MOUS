@@ -166,8 +166,13 @@ if domne_main,
     % this part computes the sum of squares of the leadfields, and uses the
     % inverse of it for depth weighting.
     Lss = zeros(8192,1)+nan;
-    for k = 1:numel(sourcemodel.inside)
-      indx = sourcemodel.inside(k);
+    if islogical(sourcemodel.inside)
+      inside = find(sourcemodel.inside);
+    else
+      inside = sourcemodel.inside;
+    end
+    for k = 1:numel(inside)
+      indx = inside(k);
       lf   = sourcemodel.leadfield{indx};
       Lss(indx,:) = sum(sum(lf.^2));
     end
@@ -176,7 +181,7 @@ if domne_main,
     Lss(Lss>minLss.*weightlim.^2) = minLss.*weightlim.^2;
     
     A = ((vertex_area(:).^2).*Lss(:)).^weightexp;
-    A = repmat(A(sourcemodel.inside),[1 3])';
+    A = repmat(A(inside),[1 3])';
     
     % create a source covariance matrix that is equivalent to the area(^2)
     % times the 1./leadfield-sum-of-square to the power of weightexp
