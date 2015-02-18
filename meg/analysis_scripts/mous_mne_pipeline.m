@@ -219,10 +219,14 @@ if domne_main,
   sd_Sent        = ft_sourcedescriptives(cfg, source_sent);
   sd_Seq         = ft_sourcedescriptives(cfg, source_seq);
   
-  source         = source_sent;
-  for k = 1:numel(source.inside)
-    mom = (source.avg.mom{source.inside(k)} + source_seq.avg.mom{source.inside(k)})./2;
-    source.avg.mom{source.inside(k)} = mom;
+  source         = source_sent; 
+  inside         = source.inside;
+  if islogical(inside),
+    inside = find(inside);
+  end
+  for k = 1:numel(inside)
+    mom = (source.avg.mom{inside(k)} + source_seq.avg.mom{inside(k)})./2;
+    source.avg.mom{inside(k)} = mom;
   end
   sd              = ft_sourcedescriptives(cfg, source);
   sd_Seq.avg.ori  = sd.avg.ori;
@@ -282,9 +286,13 @@ if domne_parametric
   mous_db_getdata(subjectname, suffix_mne, rootdir);
   
   % create the spatial filter matrix
-  F = zeros(8196, size(source.avg.filter{source.inside(1)},2));
-  for k = 1:numel(source.inside)
-    F(source.inside(k),:) = source.avg.ori{source.inside(k)}*source.avg.filter{source.inside(k)};
+  inside         = source.inside;
+  if islogical(inside),
+    inside = find(inside);
+  end
+  F = zeros(8196, size(source.avg.filter{inside(1)},2));
+  for k = 1:numel(inside)
+    F(inside(k),:) = source.avg.ori{inside(k)}*source.avg.filter{inside(k)};
   end
  
   % make the number of trials per condition equal
@@ -342,9 +350,13 @@ if domne_parametric_rc
   mous_db_getdata(subjectname, suffix_mne, rootdir);
   
   % create the spatial filter matrix
-  F = zeros(8196, size(source.avg.filter{source.inside(1)},2));
-  for k = 1:numel(source.inside)
-    F(source.inside(k),:) = source.avg.ori{source.inside(k)}*source.avg.filter{source.inside(k)};
+  inside = source.inside;
+  if islogical(inside)
+    inside = find(inside);
+  end
+  F = zeros(8196, size(source.avg.filter{inside(1)},2));
+  for k = 1:numel(inside)
+    F(inside(k),:) = source.avg.ori{inside(k)}*source.avg.filter{inside(k)};
   end
  
   % make the number of trials per condition equal
@@ -424,9 +436,13 @@ if domne_earlylate
   end
   
   mous_db_getdata(subjectname, suffix_mne);
-  F = zeros(8196, size(source.avg.filter{source.inside(1)},2));
-  for kk = 1:numel(source.inside)
-    k = source.inside(kk);
+  inside = source.inside;
+  if islogical(inside)
+    inside = find(inside);
+  end 
+  F = zeros(8196, size(source.avg.filter{inside(1)},2));
+  for kk = 1:numel(inside)
+    k = inside(kk);
     F(k,:) = source.avg.ori{k}*source.avg.filter{k};
   end
   
