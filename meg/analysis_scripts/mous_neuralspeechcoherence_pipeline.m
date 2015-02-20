@@ -7,8 +7,10 @@ mous_neuralspeechcoherence_pipelineoptions;
 % 1. speech envelope
 % 2. phase  - not yet developed
 
-tmp  = tokenize(foi,'');
-suff = [num2str(tmp{1}(1)),'-',num2str(tmp{1}(2)),'Hz']; 
+if isnumeric(foi)
+  tmp  = tokenize(foi,'');
+  suff = [num2str(tmp{1}(1)),'-',num2str(tmp{1}(2)),'Hz']; 
+end
 
 %% compute sensor-level coherence
 %  Determine which frequencies have coherence
@@ -38,10 +40,31 @@ if dosensavg
         'cohgrpavg');        
 end
 %% compute source-level data
-% Call once for each frequency of interest
-if dosource
-  [x]   = mous_neuralspeechcoherence_sourcedata(subjectname,foi);
-  mous_db_putdata(subjectname,['meg_coh_sourcedata',suff],'sentcoh','wlcoh',rootdir);  
-end
+% 
+% First call to source-level computation requires preprocessing raw data,
+% which will be subsequently used for all other frequencies of interest
 
+% foi is a string for source-level data (for dosens, it is a number)
+% Not every subject has a peak in each frequency range (delta, theta, alpha, beta)
+% the frequency ranges in foi are determined prior to beginning
+% source-level computations
+
+[subjlist,~] = mous_db_getfilename('allA','subjectname');
+load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2');
+idx      = find(ismember(subjlist,subjectname));
+tmp      = peakfreqfirst(idx,1:4);
+foi      = foi(~isnan(tmp));        % defined when calling pipeline
+tmp      = tmp(~isnan(tmp));
+
+if dosource
+  [sentcoh, wlcoh, preproc]  = mous_neuralspeechcoherence_sourcedata(subjectname,foi{1});
+  mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{1}],'sentcoh','wlcoh',rootdir,1);  
+  
+  if numel(foi) > 1
+    for k = 2:numel(foi)
+      [sentcoh, wlcoh]  = mous_neuralspeechcoherence_sourcedata(subjectname,foi{k},preproc);
+      mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{k}],'sentcoh','wlcoh',rootdir,1);  
+    end
+  end
+end
 
