@@ -233,8 +233,13 @@ if domne_main,
   sd_Sent.avg.ori = sd.avg.ori;
   
   % replace the pow with the orientation from the combined data
-  for k = 1:numel(sd.inside)
-    indx = sd.inside(k);
+  
+ if islogical(sd.inside),
+    inside = find(sd.inside);
+ end
+  
+  for k = 1:numel(inside)
+    indx = inside(k);
     sd_Sent.avg.pow(indx,:) = abs(sd.avg.ori{indx}*source_sent.avg.mom{indx});
     sd_Seq.avg.pow(indx,:)  = abs(sd.avg.ori{indx}*source_seq.avg.mom{indx});
   end
