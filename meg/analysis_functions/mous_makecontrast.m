@@ -1,4 +1,4 @@
-function varargout = mous_makecontrast(data, contrast, trialinfo, M, rseed)
+function varargout = mous_makecontrast(data, contrast, trialinfo, M, rseed, condition)
 
 % MOUS_MAKECONTRAST extracts the average across observations for a specific
 % set of defined conditions, or computes the slope parameter of the linear
@@ -102,29 +102,30 @@ switch contrast
         sel2 = sel2(sort(x2(1:n)));    
     end 
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
-    % CONTRASTS NOT NEEDING MATCHING
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%           
+    % CONTRASTS MATCHED INSIDE SPECIFIC FUNCTION
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     switch contrast
-      case 'RC_deplong-depshort'
-        [sel1, sel2]  = mous_dependencyshortvslong(data);
       case 'RCearlylate-MXearlylate'
         if isempty(rseed), error('you must have a randomseed');  end
-        [sel1, sel2, sel3, sel4]  = mous_RCMXbalanced_RConoffset(data, 'RCMX',rseed);
-
-      case 'RConset-RCoffset'
-        if isempty(rseed), error('you must have a randomseed');  end
-        [sel1, sel2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RConoff');
+        trialinfo = data.trialinfo;
+        [sel1, sel2, sel3, sel4]  =mous_wrdpstncomplexity(trialinfo,condition, rseed); % condition = 'sent' or 'wl'
       case 'subjMC-verbRC'
         if isempty(rseed), error('you must have a randomseed');  end
         %subjMC, verbRC in RC+ sentences (sel1 sel2)
         %               in RC- sentences (sel3 sel4)
         %               in RC+ word list (sel5 sel6)
         [sel1, sel2, sel3, sel4, sel5, sel6] = mous_subjMCvsverbRC(data,rseed);  
-      case 'RCend-RCafter'
-        if isempty(rseed), error('you must have a randomseed');  end
-        % use another function for the definition of trials
-        [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
+        
+%       case 'RC_deplong-depshort'
+%         [sel1, sel2]  = mous_dependencyshortvslong(data);        
+%       case 'RConset-RCoffset'
+%         if isempty(rseed), error('you must have a randomseed');  end
+%         [sel1, sel2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RConoff');
+%       case 'RCend-RCafter'
+%         if isempty(rseed), error('you must have a randomseed');  end
+%         % use another function for the definition of trials
+%         [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
     end 
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
