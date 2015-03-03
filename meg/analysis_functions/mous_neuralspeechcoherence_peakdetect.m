@@ -63,7 +63,7 @@ for k = 1:102
   thres    = 0.1;
 
   for chancnt = 1:numchan
-    [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres,1);  % peak index in data>thres & value of peak 
+    [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak 
     tmp    = sentcoh.freq(p);   % determine frequency from peak value
 
     if ~isempty(p)              
@@ -79,11 +79,12 @@ for k = 1:102
   numpeak(k,:)            = sum(fcohpeak,1);
 end                        % subjloop
 
-save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect','numpeak');
+save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage1','numpeak');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% standardize and smooth at the single-subject level, then do a second round of peak detection
 %  after first round, the peaks are still not that clear
+
 
 [subj,s]       = mous_db_getfilename('allA','subjectname');
 freq           = 0:0.5:100;
@@ -105,14 +106,16 @@ for k = 1:102
   sentcoh.cohspctrm = ft_preproc_smooth(numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),2); 
   cohallsubj(k,:)   = sentcoh.cohspctrm; % smoothed and standardized data from all subjs
   
-  thres    = 2;  
-  [p,v]  = peakdetect2NL(sentcoh.cohspctrm,thres,1); % p = peak index, v = value of peak
+%   thres    = 2;  % first attempt
+  thres  = 5;      % second attempt
+%   thres  = 4;      % third attempt
+  [p,v]  = peakdetect3NL(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
   tmp    = sentcoh.freq(p); % determine frequency from peak value
   if ~isempty(p)            % keep count which frequencies have peaks in a binary matrix (1 = peak)
     peakallsubj(k,:) = ismember(sentcoh.freq,tmp);
   end
     
-end                         % subj loop
+end      % subj loop
 
 %% determine peaks after 2nd round
 %  Subjects with a peak within the prescribed frequency ranges, log peak
@@ -166,7 +169,7 @@ for sc = 1:102
   end
 end
 
-save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2','peakfreqfirst','peakfreqsecond');
+save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3','peakfreqfirst','peakfreqsecond','cohallsubj');
 
 
 %% plot histogram of peak frequencies
@@ -212,6 +215,28 @@ end
 
 %% notes
 
+% thres2
+% delta  97
+% theta  72
+% alpha  85 
+% beta   101
+
+% thres4
+% delta  97
+% theta  69
+% alpha  70
+% beta   96
+
+
+% thres5
+% delta  98
+% theta  69
+% alpha  66 
+% beta   95
+
+
+
+
 % 1 prefer a preproc_smoothing of 2 over 3, or 4.
 % figure;plot(sentcoh.freq,numpeak(102,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)))
 % hold on;plot(sentcoh.freq,ft_preproc_smooth(numpeak(102,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),2),'r')
@@ -230,61 +255,10 @@ end
 
 % redefine trials to improve spectral estimation
 % vanPelt et al.(2012) had 50% overlap for 600 ms epochs
-cfg = [];
-cfg.length  = 2;    
-cfg.overlap = 0.5; 
+% cfg = [];
+% cfg.length  = 2;    
+% cfg.overlap = 0.5; 
 
-%% how to determine 'same peak' across channels 
-% Problem:  local maxima in defined frequency range in each channel ~= same local
-% maxima between channels
-% Solution1: consider as same peak if overlaps within 1 Hz. 
-%           Test if this is too wide.
-% Solution2: consider same peak, as long as there is one peak with defined
-%            frequency range of interest
-
-% sentcoh.labelcmb(137) = MRC15
-% sentcoh.labelcmb(187) = MRF65
-
-% peakdetect2
-% get data above threshold
-% group data points together if they are less than the minimum distance
-% find a max peak for each group of data points
-
-% peakdetect3
-% get data above threshold
-% find all peaks using deriative 
-  % if index in difference between data points >0 and difference between data points <0 
-  % are both true, then we have a peak
-% from all detected peaks, remove those that are less than the defined
-% minimum distance apart.
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% when using all sensors %%%
-% retain peaks that are in >5 sensors (and within 1 Hz of each other?)
-% leads to 0:0.5:10 all are consistent peaks
-% 
-% numpeak = sum(fcohpeak,1);
-% idx     = find(numpeak >5); 
-% consistentpeak = sentcoh.freq(idx)
-% 
-% % retina peaks that are in >10 sensors
-% numpeak = sum(fcohpeak,1);
-% idx     = find(numpeak >10); 
-% consistentpeak = sentcoh.freq(idx)
-% % axialgrad:  61 peaks; almost every peak from 0 to 11
-% % planargrad:  0 0.5 1.5 2 | 4 4.5 5 5.5. 6.5 | 9 10 11.5 12 | 36.5
-% 
-% numpeak = sum(fcohpeak,1);
-% idx     = find(numpeak >20); 
-% consistentpeak = sentcoh.freq(idx)
-% %axial: 0 0.5 1.5 2 | 4 5.5. 6.5 7 8 9 11 12 | 21.5 22.5 26 31.5 |and more
-% %olanar: 0.5 1.5  | 4  6.5 | 9 | nothing
-% 
-% numpeak = sum(fcohpeak,1);
-% idx     = find(numpeak >25); 
-% consistentpeak = sentcoh.freq(idx)
 
 
 
