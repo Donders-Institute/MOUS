@@ -97,14 +97,21 @@ end
 % Answer (JM): yes they are. Do:
 for k = 1:numel(stimuli)
   if ~isempty(stimuli(k).id)
-    m(k,1) = max(stimuli(k).stack_depth);
+    [m(k,1),ix(k,1)] = max(stimuli(k).stack_depth);
   else
     m(k,1) = nan;
+    ix(k,1) = nan;
   end
 end
 n = histc([m(1:204) m(205:408)],0.5:1:4.5);
 figure;bar(1:4,n(1:4,:));
 legend({'RC+';'RC-'});
+title('maximum stack depth');
+
+n = histc([ix(1:204) ix(205:408)],0.5:1:13.5);
+figure;bar(1:13,n(1:13,:));
+legend({'RC+';'RC-'});
+title('ordinal word position at maximal depth');
 
 % Storing non-inserted elements vs storing structure - different or same storing mechanism?
 
