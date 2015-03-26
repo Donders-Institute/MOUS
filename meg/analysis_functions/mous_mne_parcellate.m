@@ -6,6 +6,7 @@ hastrial = isfield(tlck, 'trial');
 
 parcelparam = ft_getopt(varargin, 'parcelparam', 'parcellation');
 svdmethod   = ft_getopt(varargin, 'svdmethod',   'projectfilt');
+R           = ft_getopt(varargin, 'R', []);
 
 parc      = parcellation.(parcelparam);
 parclabel = parcellation.([parcelparam,'label']);
@@ -32,7 +33,7 @@ if isfield(parcellation, 'filter')
 else  
   F = zeros(nparc, size(source.avg.filter{source.inside(1)},2));
   U = cell(nparc,1);
-  S = zeros(nparc, 1);
+  S = zeros(nparc, 10)+nan;
   N = S;
   for k = 1:nparc
     sel = intersect(find(parc==k), source.inside);
@@ -42,13 +43,25 @@ else
         case 'projectfilt'
           dat = f;%*tlck.avg;
         case 'projectavg'
-          dat = f*tlck.avg;
+          %dat = f*tlck.avg;
+          dat = f*tlck.avg(:,nearest(tlck.time,0):end);
       end
       c   = dat*dat';
       [u,s,v] = svd(c);
-      U{k} = u(:,1)';
-      F(k,:) = u(:,1)'*f;
-      S(k,1) = s(1)./sum(diag(s));
+      ix      = 1:min(size(s,1),10);
+      S(k,ix) = cumsum(diag(s(ix,ix)))./sum(diag(s));
+      
+      if ~isempty(R)
+        iy = find(S(k,:)>R,1,'first');
+        if isempty(iy), iy = 1; end
+      else
+        iy = 1;
+      end
+      
+      U{k} = u(:,1:iy)';
+      for m = 1:iy
+        F(k,:,m) = u(:,m)'*f;
+      end
       if isfield(source.avg, 'noisecov')
         n = blkdiag(source.avg.noisecov{sel});
         n = u(:,1)'*n*u(:,1);
@@ -65,8 +78,18 @@ else
   end
 end
 
-avg = F*tlck.avg;
+if size(F,3)==1
+  avg = F*tlck.avg;
+else
+  avg = zeros(size(F,1),0);
+  for m = 1:size(F,3)
+    avg = cat(2,avg,F(:,:,m)*tlck.avg);
+  end
+end
 if hastrial
+  if size(F,3)>1
+    error('multiple trials in combination with more than one component is not allowed');
+  end
   for m= 1:ntrial
     trial(m,:,:) = F*shiftdim(tlck.trial(m,:,:));
   end  
