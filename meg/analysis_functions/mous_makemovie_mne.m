@@ -49,8 +49,12 @@ makecolorbar = ft_getopt(varargin, 'colorbar', 0);
 xparam       = ft_getopt(varargin, 'xparam', 'time');
 plotroi      = ft_getopt(varargin, 'plotroi', false);
 framerate    = ft_getopt(varargin, 'framerate', 2);
-
+cmap         = ft_getopt(varargin, 'cmap');
 makecolorbar = istrue(makecolorbar);
+
+if isempty(cmap) || ischar(cmap)
+  cmap = colormap(cmap);
+end
 
 if ~isfield(source, xparam)
   if strcmp(xparam, 'time')
@@ -109,7 +113,7 @@ end
 load cortex_inflated_8196reg
 %load cortex_midthickness_8196reg
 
-s      = sourcemodel;
+s      = ft_struct2double(sourcemodel);
 if ~isfield(s, 'sulc')
   s.sulc = ones(8196,1)*0.5;
 end
@@ -214,7 +218,7 @@ s.tri = tri_reindex(s.tri(usetri,:));
 s.sulc = s.sulc(usepnt);
 s.curv = s.curv(usepnt);
 
-h = figure; view([0 0]); hold on; set(h, 'color', 'k');
+h = figure; view([0 0]); hold on; set(h, 'color', 'k');%colormap(h, cmap);
 ft_plot_mesh(s, 'edgecolor', 'none', 'vertexcolor', repmat(s.sulc, [1 3]));
 if isnumeric(source.(textstringparameter))
   textstring = [textstringbase,num2str(mean(source.(textstringparameter)(1)),'%1.2f')];
