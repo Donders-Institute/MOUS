@@ -9,12 +9,12 @@ function varargout = unparcellate(data, parcellation, parameter, parcelparam, va
 %
 % Required inputs:
 %
-%   data = structure (or matrix) containing the parcellated functional data
-%   parcellation = structure describing the parcellation, i.e. the parcel
-%                  membership for each of the vertices
-%   parameter = string (or cell-array with labels) that specifies the
-%               parameter to be used (if data is a structure) or how to
-%               interpret the rows in the data matrix (if data is a matrix)
+%   data          = structure (or matrix) containing the parcellated functional data
+%   parcellation  = structure describing the parcellation, i.e. the parcel
+%                   membership for each of the vertices
+%   parameter     = string (or cell-array with labels) that specifies the
+%                   parameter to be used (if data is a structure) or how to
+%                   interpret the rows in the data matrix (if data is a matrix)
 %
 % Additional inputs are key-value pairs and pertain to bivariate data with
 % a 'labelcmb' specified in the input argument 'parameter'.
@@ -28,6 +28,11 @@ function varargout = unparcellate(data, parcellation, parameter, parcelparam, va
 %
 %   If the input was bivariate data with a labelcmb, an optional second
 %   output argument gives a list of the reference parcels.
+
+% Undocumented input key-value pair:
+%   output = 'data' (default), or 'projection matrix', only works without 'labelcmb' in input 
+
+output = ft_getopt(varargin, 'output', 'data');
 
 if isstruct(data)
   tmp = getsubfield(data, parameter);
@@ -43,17 +48,56 @@ elseif size(parameter,2)==2
 end
 
 if isfield(data, 'label')
-  % univariate data or 'chan_chan_xxx' bivariate data
-  fun = zeros(size(parcellation.pos, 1), size(tmp, 2))+nan;
-  for k = 1:numel(data.label)
-    sel = match_str(parcellation.([parcelparam,'label']), data.label{k});
-    if ~isempty(sel)
-      sel = parcellation.(parcelparam)==sel;
-      fun(sel,:) = repmat(tmp(k,:), [sum(sel) 1]);
-    end
-  end
+  % the data is chan_xxx or chan_chan_xxx
   
-  varargout{1} = fun;
+  switch output
+    case 'data'
+      dimord = getdimord(data, parameter);
+      dimtok = tokenize(dimord, '_');
+      dimsiz = getdimsiz(data, parameter);
+      % replace the number of parcels by the number of vertices in a parcel
+      dimsiz(strcmp(dimtok, 'chan')) = size(parcellation.pos,1);
+      
+      fun = nan(dimsiz);
+      
+      [parcelindx, chanindx] = match_str(parcellation.([parcelparam,'label']), data.label);
+      
+      if strcmp(dimtok{1}, 'chan') && strcmp(dimtok{2}, 'chan')
+        % chan_chan_xxx
+        for i=1:numel(parcelindx)
+          for j=1:numel(parcelindx)
+            p1 = parcellation.(parcelparam)==parcelindx(i);
+            p2 = parcellation.(parcelparam)==parcelindx(j);
+            c1 = chanindx(i);
+            c2 = chanindx(j);
+            fun(p1,p2,:) = repmat(tmp(c1,c2,:), [sum(p1) sum(p2) 1]);
+          end
+        end
+      elseif strcmp(dimtok{1}, 'chan')
+        % chan_xxx
+        for i=1:numel(parcelindx)
+          p1 = parcellation.(parcelparam)==parcelindx(i);
+          c1 = chanindx(i);
+          fun(p1,:) = repmat(tmp(c1,:), [sum(p1) 1]);
+        end
+      end
+      varargout{1} = fun;
+      
+    case 'projection matrix'
+      [parcelindx, chanindx] = match_str(parcellation.([parcelparam,'label']), data.label);
+      ix = zeros(0,1);
+      iy = zeros(0,1);
+      for i=1:numel(parcelindx)
+        ix = cat(1,ix,find(parcellation.(parcelparam)==parcelindx(i)));
+        iy = cat(1,iy,ones(sum(parcellation.(parcelparam)==parcelindx(i)),1).*chanindx(i));
+      end
+      fun = sparse(ix,iy,ones(numel(ix),1));
+      
+      varargout{1} = fun;
+      varargout{2} = data.label(chanindx);
+      
+    otherwise
+  end
   
 elseif isfield(data, 'labelcmb')
   % bivariate data
