@@ -22,6 +22,8 @@ data = ft_selectdata(data, 'rpt', sel);
 cfg = [];
 cfg.covariance   = 'yes';
 cfg.channel      = 'MEG';
+cfg.preproc.demean = 'yes';
+cfg.preproc.baselinewindow = [-0.1 0];
 tlck = ft_timelockanalysis(cfg, data);
 tlck.grad = ft_convert_units(tlck.grad, 'm');
 

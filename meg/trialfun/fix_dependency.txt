@@ -68,7 +68,7 @@ De alcoholist die de bekende psycholoog behandelde heeft weer een terugval
 Jochem die altijd te hoog springt tijdens basketbal heeft zijn enkel bezeerd
 1      2   3      4  5    6       7       8         9     10   11    12
 6      1   4      5  6    0       6       7         6     0    12    10
-9      1   4      5  6    3       6       7         0     11   9     9
+9      1   4      5  6    2       6       7         0     11   9     9
 
 24
 De voorganger die het snoezige kleintje doopt houdt haar stevig vast
@@ -296,7 +296,7 @@ De flinke bonus die werd uitgedeeld aan het bestuur werd opgemerkt
 De vrouw die zwanger was werd in kritieke toestand opgenomen in het ziekenhuis
 1  2     3   4       5   6    7  8        9        10        11 12  13        
 2  0     2   5       3   0    10 9        7        6         10 13  11        
-1  6     2   5       3   0    10 9        7        6         10 13  11
+2  6     2   5       3   0    10 9        7        6         10 13  11
 
 151                                                                 
 De Hollandse bossen die prachtig zijn bezoekt de Zwitserse man graag
@@ -422,7 +422,7 @@ De bloemist bezorgde bij Lisa een prachtig boeket rode rozen
 Om niet herkend te worden droeg de overvaller een blonde pruik met krullen
 1  2    3       4  5      6     7  8          9   10     11    12  13     
 3  3    0       3  4      0     8  6          11  11     6     11  12     
-3  3    5       3  4      0     8  6          11  11     6     11  12     
+6  3    5       3  4      0     8  6          11  11     6     11  12     
 
 255                                                                  
 Waarschijnlijk maken duiven de grootste rotzooi op het centrale plein
@@ -656,7 +656,7 @@ De schilder die de knappe prinses tekent zit onder de verf
 De raadsman die de wrede delinquent bijstond was op de radio
 1  2        3   4  5     6          7        8   9  10 11   
 2  0        2   6  6     8          6        3   8  11 9    
-2  8        2   6  6     7          6        0   8  11 9    
+2  8        2   6  6     7          3        0   8  11 9    
 
 48                                                                     
 De ouders die de angstige dochters bevrijden gingen opgelucht naar huis
@@ -764,7 +764,7 @@ De tamme poema die op de Veluwe loopt is niet gevaarlijk
 De resultaten die er niet om logen lieten een sterke tendens zien
 1  2          3   4  5    6  7     8      9   10     11      12  
 2  8          2   8  6    8  6     0      11  11     12      8   
-2  8          2   7  6    7  6     0      11  11     12      8   
+2  8          2   7  6    7  3     0      11  11     12      8   
                                                                                                    
 130                                                                         
 Toen de choreograaf die de trage danser uitschold de reden hoorde schrok hij
@@ -980,7 +980,7 @@ Lezers hebben daar in groten getale bezwaar tegen gemaakt
 Het is een schrijnende situatie waaraan de Nederlandse politiek nauwelijks iets doet
 1   2  3   4           5        6       7  8           9        10         11   12  
 2   0  5   5           2        5       9  9           12       9          12   6   
-2   0  5   5           2        5       9  9           12       9          11   6   
+2   0  5   5           2        5       9  9           12       9          12   6   
                                                                   
 210                                                                     
 Ook in Nederland staat het strenge toezicht op accountants ter discussie
@@ -998,7 +998,7 @@ Dit zijn geen regionale problemen zoals die op de Antillen
 Niet alle pillen en blauwe poeders kunnen zonder meer worden ingevoerd
 1    2    3      4  5      6       7      8      9    10     11       
 7    3    4      1  6      4       9      9      9    0      9        
-2    3    7      6  6      7       0      9      9    7      7        
+2    3    7      6  6      7       0      9      7    7      7        
                                                                       
 213                                              
 Je haalt zo het complete bouwsel uit zijn verband
@@ -1335,7 +1335,7 @@ Het arbeidsethos is in centraal Bolivia heel anders dan in het zuiden
 De beruchte daders meldden zich zelf bij de politie
 1  2        3      4       5    6    7   8  9      
 3  3        4      6       6    6    4   8  6      
-3  3        4      0       4    4    4   8  6      
+3  3        4      0       4    4    4   9  6      
                                                    
 336                                                           
 Er komt een nationaal bestuur om de bureaucratie te bestrijden
@@ -1437,7 +1437,7 @@ De basketballers werden vanaf de kleine tribune begeleid door hun coach en train
 Vader zit altijd aan het hoofd van de rechte tafel tijdens het avondeten
 1     2   3      4   5   6     7   8  9      10    11      12  13       
 2     0   6      6   6   2     2   8  8      5     8       11  9        
-2     0   2      2   6   4     6   8  8      7     2       13  11        
+2     0   2      2   6   4     6   10 8      7     2       13  11        
 
 376                                                           
 Als avondeten eet ons gezin meestal pasta met een lekkere saus
@@ -1473,7 +1473,7 @@ Ondanks de inspanning van de arbeider werd het belangrijke project niet afgerond
 Vrolijk spelend op hun paarse trommels liepen de leerlingen naar school
 1       2       3  4   5      6        7      8  9          10   11    
 2       7       7  6   6      7        0      9  7          9    10    
-2       7       3  6   6      2        0      9  7          9    10    
+2       7       2  6   6      2        0      9  7          7    10    
                                                                         
 393                                                            
 De gasten vertrokken omdat de lakse bediende zeer onbeleefd was
@@ -1517,6 +1517,17 @@ Toen de gemene dictator arriveerde schreeuwden de burgers leuzen van protest
 6    4  4      5        1          0           8  6       8      9   10     
 6    4  4      5        1          0           8  6       6      9   10     
                                                                             
+4                                                              
+De inbreker die de gekrenkte pastoor smeekte was ten einde raad
+1  2        3   4  5         6       7       8   9   10    11  
+2  8        2   6  6         7       3       10  10  8     8   
+2  8        2   6  6         7       3       0   10  8     8
+                                                               
+19                                                  
+De staker die de angstige dames bekogelt gaat te ver
+1  2      3   4  5        6     7        8    9  10 
+2  8      2   6  6        7     3        10   10 8  
+2  8      2   6  6        7     3        0    10 8  
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % below this line the stimuli were classified as OK
@@ -2275,3 +2286,4 @@ Bij het zien van het vieze beest raken de moeders helemaal overstuur
 Na een zware tocht door de bergen bereiken de wandelaars de camping
 1  2   3     4     5    6  7      8        9  10         11 12     
 8  4   4     1     4    7  5      0        10 8          12 8      
+

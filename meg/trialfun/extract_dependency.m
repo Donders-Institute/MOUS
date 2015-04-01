@@ -1,4 +1,4 @@
-function [trialinfo,binid,n,uT,ix] = extract_dependency(trialinfo)
+function [trialinfo,binid,n,uT,ix,depjump,lexfreq] = extract_dependency(trialinfo)
 
 % EXTRACT_DEPENDENCY decodes syntactic dependency in the stimulus material
 % and assigns each epoch to one (or more) of the following conditions:
@@ -16,6 +16,8 @@ function [trialinfo,binid,n,uT,ix] = extract_dependency(trialinfo)
 stimuli = fix_dependency;
 
 T = nan+zeros(size(trialinfo,1),1);
+depjump = nan+zeros(size(trialinfo,1),1);
+lexfreq = nan+zeros(size(trialinfo,1),1);
 
 % assign for each of the sentence words
 sel = find(ismember(trialinfo(:,2), [1 2 5 6]));
@@ -26,17 +28,20 @@ for k = 1:numel(sel)
   
   dj = [stimuli(sentid).words.depjump];
   di = [stimuli(sentid).words.depind];
+  lf = [stimuli(sentid).words.lexfreq];
   nw = stimuli(sentid).numwords;
   
-  dj(di>1:nw) = -dj(di>1:nw);
+  dj(di<1:nw) = -dj(di<1:nw);
   
   di(find(di==0)) = find(di==0);
   
   T(sel(k)) = 0;
   if any(di==wordid), T(sel(k)) = 4;             end
-  if dj(wordid) < 0,  T(sel(k)) = T(sel(k)) + 1; end
-  if dj(wordid) > 0,  T(sel(k)) = T(sel(k)) + 2; end
+  if dj(wordid) > 0,  T(sel(k)) = T(sel(k)) + 1; end
+  if dj(wordid) < 0,  T(sel(k)) = T(sel(k)) + 2; end
   if T(sel(k))==0,    T(sel(k)) = nan;           end
+  depjump(sel(k)) = dj(wordid);
+  lexfreq(sel(k)) = lf(wordid);
 end
 
 % assign for each of the sequence words, 
