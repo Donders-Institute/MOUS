@@ -15,7 +15,7 @@ function mous_crossmeasuredata(subjectname, param)
 
 file = [param.ffxpath  param.ffxinput '.img']; 
 
-mri        = ft_read_mri(file, 'format', 'analyze_img');
+mri        = ft_read_mri(file, 'dataformat', 'analyze_img');
 mri.inside = isfinite(mri.anatomy); % ensure that voxels without data will not be used in the interpolation
 mri.pow    = mri.anatomy; % for one reason or another it does not work if I keep using anatomy for the correct interpolation of NaNs
 mri        = rmfield(mri, 'anatomy');
@@ -43,6 +43,16 @@ P           = sourcemodel.params;
 
 % Load the MEG data
 mous_db_getdata(subjectname,param.megsheet); %, rootdir);
+    if ~exist('source', 'var')
+        if strcmp(param.osc, 'sent')
+                  source = tlcksent;
+        elseif strcmp(param.osc , 'seq')
+            source = tlckseq;
+        else
+             error('specify the condition for the oscillation in the parameters');
+        end
+    end
+
 meg = ft_convert_units(source, 'mm'); clear source;
 
 % Warp the positions in the cortical sheet to the correct starting positions (after converting to mm)
@@ -59,8 +69,6 @@ pos3d_sn = ft_warp_apply(P, pos3d, 'individual2sn'); % for sanity check
 meg.pos = pos2d_sn;
 
 % Interpolate the fMRI data onto the MEG cortical sheet, using inverse distance weighting
-outname = mous_db_getfilename(subjectname,param.fmrioutput,0,param.outdir);
-
 cfg              = [];
 cfg.parameter    = 'pow'; % yes indeed
 cfg.interpmethod = 'nearest';
@@ -69,6 +77,6 @@ outside          = ~isfinite(tmp.pow);
 
 cfg.interpmethod =  'sphere_weighteddistance';
 cfg.sphereradius = 8; 
-cfg.outputfile   = outname{1}; %FIXME do the saving in the caller script, not in the function!
+cfg.outputfile   = param.fmrioutput; % param,fmrioutput = mous_db_getfilename(subjectname,'meg_megmri_{sentLTibsln_interpol}',0,param.outdir);
 ft_sourceinterpolate(cfg, mri, meg);  
 end
