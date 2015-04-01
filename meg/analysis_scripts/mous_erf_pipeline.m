@@ -21,10 +21,11 @@ if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                     
 if ~exist('doerf_rc',         'var'), doerf_rc         = 0;                           end
 if ~exist('doerf_mix',        'var'), doerf_mix        = 0;                           end
 if ~exist('doerf_rc_onoff',   'var'), doerf_rc_onoff   = 0;                           end
-if ~exist('doerf_auditory_chop', 'var'), doerf_auditory_chop = 0;                           end
-if ~exist('doerf_auditory_chop_parametric', 'var'), doerf_auditory_chop_parametric = 0;                           end
-if ~exist('doerf_auditory_chop_parametric', 'var'), doerf_auditory_chop_freq = 0;                           end
+if ~exist('doerf_auditory_chop', 'var'), doerf_auditory_chop = 0;                       end
+if ~exist('doerf_auditory_chop_parametric', 'var'), doerf_auditory_chop_parametric = 0; end
+if ~exist('doerf_auditory_chop_freq', 'var'), doerf_auditory_chop_freq = 0;       end
 if ~exist('doerf_dependency', 'var'), doerf_dependency = 0;                           end
+if ~exist('doerf_dependency_shortlong', 'var'), doerf_dependency_shortlong = 0;       end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
 if ~exist('contrast',         'var'), contrast         = 'wordsent_parametric_blc';   end
@@ -559,6 +560,105 @@ if doerf_dependency
   mous_db_putdata(subjectname, [inputdata,'_dependency_sent_doublestratified'], 'tlck', 'tlck_p', outrootdir);
 end
 
+if doerf_dependency_shortlong
+  % split the sentence words according to the length of the dependency
+  % jump, for the 'backward' pointing words, i.e. those words that resolve
+  % a syntactic relationship
+  
+  mous_db_getdata(subjectname, inputdata, inrootdir);
+  [trialinfo,b,n,uT,ix,depjump] = extract_dependency(data.trialinfo);
+  nsmp = cellfun(@numel, data.time);
+  
+  % the negative value depjump are pointing back.
+  sel = find(depjump==-1 | depjump==-2 | depjump<=-3);
+  
+  dataorig = data;
+  data     = ft_selectdata(dataorig, 'rpt', sel);
+  [trialinfo,b,n,uT,ix,depjump,lexfreq] = extract_dependency(data.trialinfo);
+  
+  % treat words that have been chopped up by an artifact as a single
+  % occurrence, not to loose too much data
+  [U, i1, i2] = unique(trialinfo(:,[5 6]), 'rows');
+  U_depjump   = depjump(i1);
+  U_lexfreq   = lexfreq(i1);
+  
+  sel1 = find(U_depjump==-1|U_depjump==-2); 
+  sel2 = find(U_depjump<=-3); 
+  
+  % the ordinal word position is coded in the 5th column of trialinfo,
+  % stratify:
+  X = [U(:,1) log(U_lexfreq)];
+  
+  cfg = [];
+  cfg.equalbinavg = 'no';
+  cfg.binedges{1} = 0.5:1:15.5;
+  cfg.binedges{2} = linspace(-4,11,6);
+  out = ft_stratify(cfg, X(sel1,:)', X(sel2,:)');
+  
+  cfg.binedges = 0.5:1:15.5;
+  out2 = ft_stratify(cfg, X(sel1,1)', X(sel2,1)'); % stratification based on word position alone
+  
+  sel1a = sel1(isfinite(out{1}(1,:)));
+  sel2a = sel2(isfinite(out{2}(1,:)));
+  sel1b = sel1(isfinite(out2{1}(1,:)));
+  sel2b = sel2(isfinite(out2{2}(1,:)));
+  
+  sel1a = find(ismember(trialinfo(:,[5 6]),U(sel1a,:),'rows'));
+  sel2a = find(ismember(trialinfo(:,[5 6]),U(sel2a,:),'rows'));
+  sel1b = find(ismember(trialinfo(:,[5 6]),U(sel1b,:),'rows'));
+  sel2b = find(ismember(trialinfo(:,[5 6]),U(sel2b,:),'rows'));
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % compute the axial gradient ERFs
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  cfg                = [];
+  cfg.preproc.demean = 'yes';
+  cfg.preproc.baselinewindow = [-0.1 0];
+  cfg.vartrllength   = 2;
+  cfg.channel        = 'MEG';
+ 
+  cfg.trials = sel1a;
+  tlck(1)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = sel2a;
+  tlck(2)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = sel1b;
+  tlck(3)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+  
+  cfg.trials = sel2b;
+  tlck(4)    = ft_selectdata(ft_timelockanalysis(cfg, data), 'toilim', [-0.1 0.6]);
+
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % compute the planar gradient ERFs
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  cfgplanar              = [];
+  cfgplanar.planarmethod = 'sincos';
+  cfg_neighb.method      = 'distance';
+  cfg_neighb.neighbourdist = 3;
+  neighbours1 = ft_prepare_neighbours(cfg_neighb, tlck(1));
+  
+  load('ctf275_neighb');
+  cfgplanar.neighbours   = neighbours;
+  
+  cfgbaseline          = [];
+  cfgbaseline.baseline = [-0.1 0];
+  cfgbaseline.channel  = 'MEG';
+  
+  for k = 1:numel(tlck)
+    tlck_p(k) = ft_combineplanar([], ft_timelockbaseline(cfgbaseline, ft_megplanar(cfgplanar, tlck(k))));
+  end
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % save the results
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  mous_db_putdata(subjectname, [inputdata,'_dependency_shortlong_sent'], 'tlck', 'tlck_p', 'out', 'out2', outrootdir);
+  clear tlck tlck_p;
+end
+
 if doerf_auditory_chop
   % this section performs a chopping up of the auditory sentences into the
   % individual words: EXPERIMENTAL CODE BY JM
@@ -613,8 +713,10 @@ if doerf_auditory_chop_freq
   %if strcmp(subjectname(1), 'V')
   %  error('this only works with audio subjects');
   %end
+  if isempty(condition)
+    condition = 'sent';
+  end
   
-  freq = mous_auditory_chop_freq(subjectname);
- 
-  mous_db_putdata(subjectname, 'meg_erf_chopped_freq', 'freq', outrootdir);
+  freq = mous_auditory_chop_freq(subjectname, condition);
+  mous_db_putdata(subjectname, ['meg_erf_chopped_freq_',condition], 'freq', outrootdir);
 end

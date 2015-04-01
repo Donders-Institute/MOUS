@@ -19,7 +19,8 @@ if ~exist('dogranger_sent', 'var'), dogranger_sent = 0; end
 if ~exist('dogranger_seq',  'var'), dogranger_seq  = 0; end
 if ~exist('dogranger_sub',  'var'), dogranger_sub  = 0; end
 if ~exist('dogranger_sub2',  'var'), dogranger_sub2  = 0; end
-if ~exist('dogranger_earlylate', 'var'), dogranger_earlylate = 0; end
+if ~exist('dogranger_earlylate',  'var'), dogranger_earlylate  = 0; end
+if ~exist('dogranger_earlylate2', 'var'), dogranger_earlylate2 = 0; end
 if ~exist('dograngerpow_earlylate', 'var'), dograngerpow_earlylate = 0; end
 if ~exist('dopow_sub2',     'var'), dopow_sub2     = 0; end
 
@@ -42,6 +43,7 @@ if dopreproc
   
   trl = mous_defineTrial(filename{1}, -0.2, 0.6, 'visual_word'); %FIXME only for V* for now
   trl = mous_artifact_remove(trl, filename{1}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
+  
 
   cfg            = [];
   cfg.dataset    = filename{1};
@@ -93,8 +95,11 @@ if dopreproc_sub
       end
       
     end
-    trl = mous_defineTrial(filename{j}, -0.2, 0.6, 'visual_word'); %FIXME only for V* for now
+    %trl = mous_defineTrial(filename{j}, -0.2, 0.6, 'visual_word'); %FIXME only for V* for now
+    trl = mous_defineTrial(filename{j}, 0.1, 0.6, 'visual_word'); %FIXME only for V* for now
     trl = mous_artifact_remove(trl, filename{j}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
+    
+    trl = trl(trl(:,2)-trl(:,1)+1==840,:); % only use the trials that are 'full'
     
     T        = trl(:,[4 8]);
     nw       = unique(T(:,1));
@@ -148,11 +153,11 @@ if dopreproc_sub
     cfg.dftfreq    = [50 100 150 200 250 300]; cfg.dftfreq = [cfg.dftfreq cfg.dftfreq+0.5 cfg.dftfreq-0.5];
     cfg.padding    = 2;
     cfg.demean     = 'yes';
-    cfg.detrend    = 'yes';
+    %cfg.detrend    = 'yes';
     tmpdata        = ft_preprocessing(cfg);
     
-    nsmp    = cellfun('size', tmpdata.trial, 2);
-    tmpdata = ft_selectdata(tmpdata, 'rpt', find(nsmp==480));
+    %nsmp    = cellfun('size', tmpdata.trial, 2);
+    %tmpdata = ft_selectdata(tmpdata, 'rpt', find(nsmp==480));
     if j==1,
       data = tmpdata;
     else
@@ -162,6 +167,8 @@ if dopreproc_sub
   end
  
   cfg            = [];
+  cfg.preproc.demean     = 'yes';
+  cfg.preproc.baselinewindow = [-0.1 0];
   cfg.covariance = 'yes';
   tlck           = ft_timelockanalysis(cfg, data);
   
@@ -225,9 +232,10 @@ if dofreq
 end
 
 if dofreq_sub
-  cfg         = [];
-  cfg.detrend = 'yes';
-  data        = ft_preprocessing(cfg, data);
+  %cfg         = [];
+  %cfg.detrend = 'yes';
+  %data        = ft_preprocessing(cfg, data);
+  data = ft_selectdata(data, 'toilim', [0.2 0.6-1/1200]);
   
   % do spectral analysis and save the results as chan_chan_freq
   % cross-spectral matrices, initially for conditions combined, and for the
@@ -474,6 +482,125 @@ if dogranger_earlylate
   warning off; g = ft_struct2single(g); warning on;
   mous_db_putdata(subjectname, 'meg_granger_granger_seq_late', 'g', rootdir);
 
+end
+
+if dogranger_earlylate2
+  
+  % do pairwise-parcel granger, using 2 components per parcel, rather than
+  % 1
+  
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % get the spatial filters: use the first 2 components
+  mous_db_getdata(subjectname, 'meg_granger_parcellation',   rootdir);
+  notsel = match_str(parcellation.label, {'L_???_01' 'L_MEDIAL.WALL_01' 'R_???_01' 'R_MEDIAL.WALL_01'});
+  for k = 1:numel(parcellation.label)
+    ncomp(k,1) = numel(parcellation.s{k});
+  end
+  notsel = [notsel(:);find(ncomp(:)<=10)];
+  
+  sel = setdiff(find(~cellfun(@isempty, parcellation.filter)), notsel);
+  tmp = parcellation.filter(sel);
+  F   = zeros(numel(sel)*2, size(tmp{1},2));
+  for k = 1:numel(tmp)
+    F((k-1)*2+(1:2),:) = tmp{k}(1:2,:);
+  end
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  %%%%%%%%%%%%
+  % prepare the chunkings
+  cmb = tril(ones(numel(sel)),-1);
+  cmb(cmb>0) = 1:sum(cmb(:));
+  chunk = cmb;
+  for k = 1:size(chunk,2)-1
+    chunk(k+1:end,k) = chunk(k+1:end,k)-chunk(k+1,k)+1;
+  end
+  chunk = ceil(chunk./100);
+  indx1 = {};
+  indx2 = {};
+  for k = 1:size(chunk,2)-1
+    tmp  = chunk(:,k);
+    utmp = unique(tmp);
+    utmp = utmp(2:end);
+    for m = 1:numel(utmp)
+      indx1{end+1} = k;
+      indx2{end+1} = find(tmp==utmp(m));
+    end
+  end
+      
+  % deal with which condition(s) to do the computation on
+  if ~exist('condition', 'var')
+    condition = {'sent_early' 'sent_late' 'seq_early' 'seq_late'};
+  elseif ischar(condition)
+    condition = {condition};
+  end
+  
+  for kk = 1:numel(condition)
+    
+    loadsuffix = ['meg_granger_csd_',condition{kk}];
+    
+    tmp     = mous_db_getdata(subjectname, loadsuffix, rootdir);
+    csd_all = ft_struct2double(tmp); clear tmp;
+    G       = zeros(numel(sel), numel(sel), 256);
+    G2      = zeros((numel(sel)-1)*numel(sel)*0.5, 256);
+    G_rev   = G;
+    
+    g        = [];
+    g.label  = parcellation.label(sel);
+    g.dimord = 'chan_chan_freq';
+    g.freq   = csd_all.freq(1:256);
+    
+    g_rev = g;
+    
+    g2        = [];
+    g2.dimord = 'chancmb_freq';
+    g2.freq   = csd_all.freq(1:256);
+    
+    labelcmb = cell(0,2);
+    cnt = 0;
+    for k = 1:numel(indx1)
+      tic;
+      fprintf('computing Granger for chunk %d/%d...', k, numel(indx1));
+      sel1 = (indx1{k}-1)*2+(1:2);
+      sel2 = [(indx2{k}(:)-1)*2+1;(indx2{k}(:)-1)*2+2];
+      sel2 = sort(sel2(:));
+      f1 = F(sel1,:);
+      f2 = F(sel2,:);
+      f  = [f1;f2];
+      
+      labelcmb = [labelcmb;repmat(g.label(indx1{k}),numel(indx2{k}),1) g.label(indx2{k})];
+      
+      tmp     = zeros(size(f,1),size(f,1),256)+1i.*zeros(size(f,1),size(f,1),256);
+      for j = 1:256
+        tmp(:,:,j) = f*csd_all.crsspctrm(:,:,j)*f';
+      end
+      cmbindx = [ones(numel(indx2{k}),1) ones(numel(indx2{k}),1)*2 (3:2:size(tmp,1))' (4:2:size(tmp,1))'];
+      
+      [tmpg, tmpg_toti] = do_granger4x4(tmp, csd_all.freq(1:256), cmbindx);
+      tmpg_rev          = do_granger4x4(conj(tmp), csd_all.freq(1:256), cmbindx);
+      
+      G(indx1{k},indx2{k},:) = shiftdim(tmpg(1,2,:,:));
+      G(indx2{k},indx1{k},:) = shiftdim(tmpg(2,1,:,:));
+      G_rev(indx1{k},indx2{k},:) = shiftdim(tmpg_rev(1,2,:,:));
+      G_rev(indx2{k},indx1{k},:) = shiftdim(tmpg_rev(2,1,:,:));
+      G2(cnt+(1:size(tmpg_toti,1)),:) = tmpg_toti;
+      cnt = cnt + size(tmpg_toti,1);
+      
+      toc;
+    end
+    g.grangerspctrm = G;
+    g2.totispctrm   = G2;
+    g_rev.grangerspctrm = G_rev;
+    warning off; 
+      g = ft_struct2single(g);
+      g2 = ft_struct2single(g2);
+      g_rev = ft_struct2single(g_rev);
+    warning on;
+    
+    savesuffix = ['meg_granger_granger_',condition{kk}];
+    mous_db_putdata(subjectname, savesuffix, 'g', 'g2', 'g_rev', rootdir, 1);
+  end
+  
 end
 
 if dograngerpow_earlylate
