@@ -1,8 +1,7 @@
 function [varargout] = mous_neuralspeechcoherence_sourcedata(subjectname,freq,varargin)
 % mous_neuralspeechcoherence_sourcedata computes source-level data for the
 % specified frequency(ies).
-% Raw data is preprocessed once, and then use for all frequencies of
-% interest
+% Raw data is preprocessed once, and then use for all coherence calculations 
 % NL 01-02-2015
 
 if nargin < 3
@@ -83,7 +82,7 @@ end
 
 % subj x freq range matrix
 [subj,~] = mous_db_getfilename('allA','subjectname');
-load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2');
+load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3');
 idx      = find(ismember(subj,subjectname));
 
 % get foi
