@@ -7,20 +7,20 @@ rootdir     = '/project/3011020.09/MEG/';
 subj  = mous_db_getfilename('allV', 'subjectname');
 [f,s] = mous_db_getfilename('allV','meg_bfica_sourcedatasentseq_low',rootdir);
 subj  = subj(s);
-subj  = subj(2:end);  % first subject has no Wordlist-RC trials
+% subj  = subj(2:end);  % first subject has no Wordlist-RC trials
 Nsubj = numel(subj);
 
-savedir  = '/project/3011020.09/nielam/groupresults/bfica/visual/complexity/';
+savedir  = '/project/3011020.09/nielam/groupresults/bfica/visual/';
 
 % Input file specfications:
 % sourcedata
 savename1 = 'sourcedatasentseq';
-sourcedat1 = '_bfica_sourcedata_sent_';
-sourcedat2 = '_bfica_sourcedata_seq_';
+sourcedat1 = '_bfica_sourcedatasent_';
+sourcedat2 = '_bfica_sourcedataseq_';
 
 savename2 = 'sourcedatasentseqpar';
-sourcedat3 = '_bfica_sourcedata_sentpar_';
-sourcedat4 = '_bfica_sourcedata_seqpar_';
+sourcedat3 = '_bfica_sourcedatasentpar_';
+sourcedat4 = '_bfica_sourcedataseqpar_';
 
 % TOI
 time = [0.25 0.35 0.45];
