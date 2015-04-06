@@ -25,7 +25,8 @@ end
 % spmparams  = load(filename);
 if isempty(spmparams)
   % try to guess where to get them
-  filename  = fullfile('/home/language/juludd/MOUS/preprocdata/',subjectname,'Structural',[subjectname,'coregMNI_sn.mat']);
+  %filename  = fullfile('/home/language/juludd/MOUS/preprocdata/',subjectname,'Structural',[subjectname,'coregMNI_sn.mat']);
+  filename  = fullfile('/project/3011020.09/MRI/',subjectname,'mri_anatomy/preprocdata',[subjectname,'coregMNI_sn.mat']);
   spmparams = load(filename);
 end
 
@@ -79,7 +80,7 @@ outside          = tmp.pow==0;
 % put the original inside back
 mri.inside = inside_orig;
 
-cfg.interpmethod =  'sphere_weighteddistance';
+cfg.interpmethod = 'nearest';%'sphere_weighteddistance';
 cfg.sphereradius = 5; 
 mri2d              = ft_sourceinterpolate(cfg, mri, meg); 
 mri2d.pow(outside) = nan;
