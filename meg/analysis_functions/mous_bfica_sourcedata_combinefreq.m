@@ -5,7 +5,7 @@ function mous_bfica_sourcedata_combinefreq(subjectname, prefix, freqs, savesuffi
 
 % VARIABLES
 % prefix = name of single-subject level contrast
-% freqs  = frequency range
+% freqs  = frequency range e.g., 40:4:80
 % savesuffix: 'low','medium','high' i.e. 2.5-12.5, 12-32, 40-100Hz for MOUS
 
 if strcmp(subjectname(1),'V')
@@ -17,53 +17,78 @@ else
 end 
 
 switch prefix
+  
+  case {'sourcedata_earlylateSEN_matched_', 'sourcedata_earlylateWL_matched_'}
+    if regexp(prefix,'SEN')
+      suffix = 'sen';
+    else
+      suffix = 'wl';
+    end
+      tlckearly = appendstuff(subjectname, prefix, freqs, rootdir, ['tlckearly',suffix]);
+      tlcklate = appendstuff(subjectname, prefix, freqs, rootdir, ['tlcklate',suffix]);
+    mous_db_putdata(subjectname,['meg_bfica_',prefix,savesuffix],'tlckearly', 'tlcklate',rootdir,1);
+  
+  case {'sourcedata_sent_earlylateRC_matched_', 'sourcedata_sent_earlylateMX_matched_', ...
+        'sourcedata_wl_earlylateRC_matched_',    'sourcedata_wl_earlylateMX_matched_' }
+    if regexp(prefix,'RC')
+      suffix = 'RC';
+    else
+      suffix = 'MX';
+    end
+      tlckearly = appendstuff(subjectname, prefix, freqs, rootdir, ['tlckearly',suffix]);
+      tlcklate = appendstuff(subjectname, prefix, freqs, rootdir, ['tlcklate',suffix]);
+    mous_db_putdata(subjectname,['meg_bfica_',prefix,savesuffix],'tlckearly', 'tlcklate',rootdir,1);
+  
   case 'sourcedatasentseq'
     tlcksent  = appendstuff(subjectname, prefix, freqs, rootdir,'tlcksent');
     tlckseq   = appendstuff(subjectname, prefix, freqs, rootdir, 'tlckseq');
-    tstat = appendstuff(subjectname, prefix,     freqs, rootdir,'tstat');        
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksent','tlckseq','tstat',rootdir);
+%     tstat = appendstuff(subjectname, prefix,     freqs, rootdir,'tstat');        
+%     mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksent','tlckseq','tstat',rootdir,1);
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksent','tlckseq',rootdir,1);
     
   case 'sourcedatasentseqtar'
     tlcksenttar  = appendstuff(subjectname, prefix,  freqs, rootdir,'tlcksenttar');
     tlckseqtar   = appendstuff(subjectname, prefix,  freqs, rootdir, 'tlckseqtar');
     tstattar = appendstuff(subjectname, prefix,      freqs, rootdir,'tstattar');        
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksenttar','tlckseqtar','tstattar',rootdir);
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksenttar','tlckseqtar','tstattar',rootdir,1);
     
-  case 'sourcedatasentseq_firstword'
+  case 'sourcedatasentseqfirstword'
     tlcksentfirst  = appendstuff(subjectname, prefix, freqs, rootdir,'tlcksentfirst');
     tlckseqfirst   = appendstuff(subjectname, prefix, freqs, rootdir, 'tlckseqfirst');
     tstatfirst = appendstuff(subjectname, prefix,     freqs, rootdir,'tstatfirst');        
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentfirst','tlckseqfirst','tstatfirst',rootdir);
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentfirst','tlckseqfirst','tstatfirst',rootdir,1);
   
   case 'sourcedatasentMXRC'
     tlcksentMX    = appendstuff(subjectname, prefix, freqs, rootdir, 'tlcksentMX');
     tlcksentRC    = appendstuff(subjectname, prefix, freqs, rootdir, 'tlcksentRC');
-    tstat    = appendstuff(subjectname, prefix, freqs, rootdir, 'tstat');
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentMX','tlcksentRC','tstat');
+    tstat    = appendstuff(subjectname, prefix, freqs, rootdir, 'tstatmxrc');
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentMX','tlcksentRC','tstat',1);
    
+    %FIXME: combine sentpar and seqpar into one matfile
+    % then change mous_bfica_freqstatistics4parcel.m
   case 'sourcedatasentpar'    
     tlcksentpar  = appendstuff(subjectname, prefix, freqs, rootdir, 'tlcksentpar');
     statsentpar  = appendstuff(subjectname, prefix, freqs, rootdir,'statsentpar');
     stat2sentpar = appendstuff(subjectname, prefix, freqs, rootdir, 'stat2sentpar');
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentpar','statsentpar','stat2sentpar',rootdir); 
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentpar','statsentpar','stat2sentpar',rootdir,1); 
     
   case 'sourcedataseqpar'    
     tlckseqpar   = appendstuff(subjectname, prefix,  freqs, rootdir, 'tlckseqpar');
     statseqpar  = appendstuff(subjectname, prefix,  freqs, rootdir,'statseqpar');
     stat2seqpar = appendstuff(subjectname, prefix,  freqs, rootdir,'stat2seqpar');
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlckseqpar','statseqpar','stat2seqpar',rootdir);   
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlckseqpar','statseqpar','stat2seqpar',rootdir,1);   
     
-  case 'sourcedatasentpartar'    
+  case 'sourcedatasentpartar'     %FIXME: combine sentpartar and seqpartar into one matfile
     tlcksentpartar  = appendstuff(subjectname, prefix,  freqs, rootdir, 'tlcksentpartar');
     statsentpartar  = appendstuff(subjectname, prefix,  freqs, rootdir,'statsentpartar');
     stat2sentpartar = appendstuff(subjectname, prefix,  freqs, rootdir, 'stat2sentpartar');
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentpartar','statsentpartar','stat2sentpartar',rootdir); 
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlcksentpartar','statsentpartar','stat2sentpartar',rootdir,1); 
     
   case 'sourcedataseqpartar'    
     tlckseqpartar   = appendstuff(subjectname, prefix,  freqs, rootdir, 'tlckseqpartar');
     statseqpartar  = appendstuff(subjectname, prefix,   freqs, rootdir,'statseqpartar');
     stat2seqpartar = appendstuff(subjectname, prefix,   freqs, rootdir,'stat2seqpartar');
-    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlckseqpartar','statseqpartar','stat2seqpartar',rootdir); 
+    mous_db_putdata(subjectname, ['meg_bfica_',prefix,'_',savesuffix],'tlckseqpartar','statseqpartar','stat2seqpartar',rootdir,1); 
     
   otherwise
     error('unknown prefix specified');

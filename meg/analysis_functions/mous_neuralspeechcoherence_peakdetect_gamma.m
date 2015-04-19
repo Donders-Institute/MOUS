@@ -33,35 +33,50 @@
         % prominent peaks which are smoothed into one.
 
 
-[subj,s] = mous_db_getfilename('allA','subjectname');
-allfreq = 0:0.5:100;
+[subj,~] = mous_db_getfilename('allA','subjectname');
+if strcmp(freq,'low')
+  allfreq = 0:0.5:100;
+elseif strcmp(freq,'high')
+  allfreq = 0:0.5:20;
+end
 numpeak = zeros(numel(subj),numel(allfreq)); % subj x frequencies
 
 %% first round of peak detection (rough)
 for k = 1:102
-  mous_db_getdata(subj{k},'meg_coh_sensor_0-100Hz_axial','/project/3011020.09/MEG/');
-  
-  % first set of channels are coherence with MEG speech signal, not original audio signal
-  if size(sentcoh.labelcmb,1) == 548
-    sentcoh.cohspctrm = sentcoh.cohspctrm(275:end,:);
-    sentcoh.labelcmb  = sentcoh.labelcmb(275:end,:);
-    coi               = 1:274;
-  else
-    sentcoh.cohspctrm = sentcoh.cohspctrm(274:end,:);
-    sentcoh.labelcmb  = sentcoh.labelcmb(274:end,:);
-    coi               = 1:273;
+  if strcmp(freq,'low')
+    mous_db_getdata(subj{k},'meg_coh_sensor_0-100Hz_axial','/project/3011020.09/MEG/');
+    
+    % Difficult to determine subject specific threshold
+    % using heuristic of 0.1; option to not set a threshold. 
+    thres    = 0.1;
+    
+    % first set of channels are coherence with MEG speech signal, not original audio signal
+    if size(sentcoh.labelcmb,1) == 548
+      sentcoh.cohspctrm = sentcoh.cohspctrm(275:end,:);
+      sentcoh.labelcmb  = sentcoh.labelcmb(275:end,:);
+      coi               = 1:274;
+    else
+      sentcoh.cohspctrm = sentcoh.cohspctrm(274:end,:);
+      sentcoh.labelcmb  = sentcoh.labelcmb(274:end,:);
+      coi               = 1:273;
+    end   
+    
+  elseif strcmp(freq,'high')
+    mous_db_getdata(subj{k},'meg_coh_sensor_0-20Hz_gamma30-50Hz_alltrialstaps2_AXandPL');
+    sentcoh = cohAX;  % gamma uses sentence and word list trial
+    coi     = 1:size(cohAX.labelcmb,1);
+    
+    % threshold 
+    thres   = 0.02;
   end
-
+ 
   % allocate memory
-  numchan  = size(sentcoh.cohspctrm,1);
+  numchan  = size(sentcoh.cohspctrm,1); % 273/274
   peak     = zeros(numchan,12); % assume not more than 12 peaks detected per channel
   val      = zeros(numchan,12); % keep count which frequencies have peaks in a binary matrix (1 = peak)
   fcohpeak = zeros(numchan,numel(sentcoh.freq)); % binary matrix to record pre/absence of peak
 
-  % Difficult to determine subject specific threshold
-  % using heuristic of 0.1; option to not set a threshold. 
-  thres    = 0.1;
-
+  % peak detection
   for chancnt = 1:numchan
     [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak 
     tmp    = sentcoh.freq(p);   % determine frequency from peak value
@@ -79,36 +94,56 @@ for k = 1:102
   numpeak(k,:)            = sum(fcohpeak,1);
 end                        % subjloop
 
-save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage1','numpeak');
+if strcmp(freq,'low')
+  save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage1','numpeak');
+elseif strcmp(freq,'high')
+  save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_gammaenvelopecoh_stage1','numpeak');
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% standardize and smooth at the single-subject level, then do a second round of peak detection
 %  after first round, the peaks are still not that clear
 
 
-[subj,s]       = mous_db_getfilename('allA','subjectname');
-freq           = 0:0.5:100;
-peakallsubj    = zeros(numel(subj),numel(freq)); % exclude 0 Hz
-cohallsubj     = zeros(numel(subj),numel(freq));
+[subj,~]       = mous_db_getfilename('allA','subjectname');
+if strcmp(freq,'low')
+  freqrange      = 0:0.5:100;
+elseif strcmp(freq,'high')
+  freqrange      = 0.:0.5:20;
+end
+peakallsubj    = zeros(numel(subj),numel(freqrange)); % exclude 0 Hz
+cohallsubj     = zeros(numel(subj),numel(freqrange));
 for k = 1:102
-  mous_db_getdata(subj{k},'meg_coh_sensor_0-100Hz_axial','/project/3011020.09/MEG/');
+  if strcmp(freq,'low')
+    mous_db_getdata(subj{k},'meg_coh_sensor_0-100Hz_axial','/project/3011020.09/MEG/');
   
-  if size(sentcoh.labelcmb,1) == 548
-    sentcoh.cohspctrm = sentcoh.cohspctrm(275:end,:);
-    sentcoh.labelcmb = sentcoh.labelcmb(275:end,:);
-    coi  = 1:274;
-  else
-    sentcoh.cohspctrm = sentcoh.cohspctrm(274:end,:);
-    sentcoh.labelcmb = sentcoh.labelcmb(274:end,:);
-    coi  = 1:273;
+    if size(sentcoh.labelcmb,1) == 548
+      sentcoh.cohspctrm = sentcoh.cohspctrm(275:end,:);
+      sentcoh.labelcmb = sentcoh.labelcmb(275:end,:);
+      coi  = 1:274;
+    else
+      sentcoh.cohspctrm = sentcoh.cohspctrm(274:end,:);
+      sentcoh.labelcmb = sentcoh.labelcmb(274:end,:);
+      coi  = 1:273;
+    end
+  elseif strcmp(freq,'high')
+    mous_db_getdata(subj{k},'meg_coh_sensor_0-20Hz_gamma30-50Hz_alltrialstaps2_AXandPL');
+    sentcoh = cohAX;  % gamma uses sentence and word list trial
+    coi     = 1:size(cohAX.labelcmb,1);
+    
+    % threshold 
+    thres   = 0.02;
   end
-  
+ 
   sentcoh.cohspctrm = ft_preproc_smooth(numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),2); 
   cohallsubj(k,:)   = sentcoh.cohspctrm; % smoothed and standardized data from all subjs
   
-%   thres    = 2;  % first attempt
-  thres  = 5;      % second attempt
-%   thres  = 4;      % third attempt
+  if strcmp(freq,'low')
+    thres  = 5;      % thres =2, and thres=4 have also been tried but less optimal
+  elseif strcmp(freq,'high')
+    thres  = 2;
+  end
+
   [p,v]  = peakdetect3NL(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
   tmp    = sentcoh.freq(p); % determine frequency from peak value
   if ~isempty(p)            % keep count which frequencies have peaks in a binary matrix (1 = peak)
@@ -128,17 +163,32 @@ end      % subj loop
 % beta  13  - 30   (13  - 30)
 % gamma 31  - 100
 
-allfreq = 0:0.5:100;
-peakfreqfirst  = nan(102,5); % matrix to store subject specific peak for each frequency range
-peakfreqsecond = nan(102,5); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
-delta   = 1:7;    % indices of sentcoh.freq
-theta   = 9:15;
-alpha   = 17:25;
-beta    = 27:61;
-gamma   = 64:201; % gamma peaks are not reliable, but computed for completeness sake; descriptive data
+if strcmp(freq,'low')
+  allfreq = 0:0.5:100;
+  peakfreqfirst  = nan(102,5); % matrix to store subject specific peak for each frequency range
+  peakfreqsecond = nan(102,5); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
+  delta   = 1:7;    % indices of sentcoh.freq
+  theta   = 9:15;
+  alpha   = 17:25;
+  beta    = 27:61;
+  gamma   = 64:201; % gamma peaks are not reliable, but computed for completeness sake; descriptive data
 
-for sc = 1:102
-  for fb = 1:5
+elseif strcmp(freq,'high')
+  allfreq = 0:0.5:20;
+  peakfreqfirst  = nan(102,2); % matrix to store subject specific peak for each frequency range
+  peakfreqsecond = nan(102,2); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
+  delta   = 1:7;    % indices of sentcoh.freq
+  theta   = 9:15;
+end
+
+if strcmp(freq,'low')
+   freqloop = 1:5;
+elseif strcmp(freq,'high')
+  freqloop = 1:2;
+end
+
+for sc = 1:102  
+  for fb = freqloop
     % assign frequency range 
       if fb == 1
         frange = delta;
@@ -168,9 +218,11 @@ for sc = 1:102
       end
   end
 end
-
-save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3','peakfreqfirst','peakfreqsecond','cohallsubj');
-
+if strcmp(freq,'low')
+  save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3','peakfreqfirst','peakfreqsecond','cohallsubj');
+elseif strcmp(freq,'high')
+  save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_gammaenvelopecoh_stage2_thres5_pd3','peakfreqfirst','peakfreqsecond','cohallsubj');
+end
 
 %% plot histogram of peak frequencies
 figure;subplot(5,1,1), hist(peakfreqfirst(:,1),0:0.5:3);
