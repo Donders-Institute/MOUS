@@ -1,100 +1,93 @@
-function [varargout] = mous_neuralspeechcoherence_sourcedata(subjectname,freq,varargin)
-% mous_neuralspeechcoherence_sourcedata computes source-level data for the
-% specified frequency(ies).
-% Raw data is preprocessed once, and then use for all coherence calculations 
-% NL 01-02-2015
+function [varargout] = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,freq,varargin)
+% mous_neuralspeechcoherence_sourcedata_high computes coherence at the
+% source-level for gamma envelope.  Raw data is preprocessed once and then
+% used for all coherence calculations
+% gamfoi = gamma frequencies of interest
+% foi = frequencies at which to calculate coherence between gamma envelope and speech envelope
+% NL 02-04-2015
 
-if nargin < 3
+if nargin < 4
   datpp = [];
-elseif nargin == 3
+elseif nargin == 4
   datpp = varargin{1};
 end
 
 %% PREPROCESS DATA
 if isempty(datpp)
+  
+% load raw data
+dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 
-  % load raw data
-  dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
+% define trials, remove artifacts, preprocess data
+if numel(dataset) == 1
+  mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09/MEG/');
+  artfctcfg      = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
+  [datpp, speech] = computedata(dataset{1}, artfctcfg);
 
-  % define trials, remove artifacts, preprocess data
-  if numel(dataset) == 1
-    mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09/MEG/');
-    artfctcfg      = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
-    [datpp, speech] = computedata(dataset{1}, artfctcfg);
+elseif numel(dataset) > 1
+  for k = 1:numel(dataset)
+    tmpdataset = dataset{k};
+    mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);  % separate artifact cfg for each task file
+    tmpartfctcfg         = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
+    [tmpdata, tmpspeech] = computedata(tmpdataset, tmpartfctcfg);
 
-  elseif numel(dataset) > 1
-    for k = 1:numel(dataset)
-      tmpdataset = dataset{k};
-      mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);  % separate artifact cfg for each task file
-      tmpartfctcfg         = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
-      [tmpdata, tmpspeech] = computedata(tmpdataset, tmpartfctcfg);
+    if k==1,
+      tmpsens1(k) = tmpdata.grad;
+      weights1(k) = numel(tmpdata.trial);
+      datpp       = tmpdata;
 
-      if k==1,
-        tmpsens1(k) = tmpdata.grad;
-        weights1(k) = numel(tmpdata.trial);
-        datpp       = tmpdata;
+      tmpsens2(k) = tmpdata.grad;
+      weights2(k) = numel(tmpdata.trial);
+      speech     = tmpspeech;
+    else
+      % update the sentence counter
+      tmpdata.trialinfo(:,1)  = tmpdata.trialinfo(:,1)   + datpp.trialinfo(end,1);
+      tmpsens1(k)             = tmpdata.grad;
+      weights1(k)             = numel(tmpdata.trial);
+      datpp                   = ft_appenddata([], datpp, tmpdata);
 
-        tmpsens2(k) = tmpdata.grad;
-        weights2(k) = numel(tmpdata.trial);
-        speech     = tmpspeech;
-      else
-        % update the sentence counter
-        tmpdata.trialinfo(:,1)  = tmpdata.trialinfo(:,1)   + datpp.trialinfo(end,1);
-        tmpsens1(k)             = tmpdata.grad;
-        weights1(k)             = numel(tmpdata.trial);
-        datpp                   = ft_appenddata([], datpp, tmpdata);
-
-        tmpspeech.trialinfo(:,1) = tmpspeech.trialinfo(:,1) + speech.trialinfo(end,1);
-        tmpsens2(k)             = tmpdata.grad;
-        weights2(k)             = numel(tmpdata.trial);
-        speech                 = ft_appenddata([], speech, tmpspeech);
-      end
-
+      tmpspeech.trialinfo(:,1) = tmpspeech.trialinfo(:,1) + speech.trialinfo(end,1);
+      tmpsens2(k)             = tmpdata.grad;
+      weights2(k)             = numel(tmpdata.trial);
+      speech                 = ft_appenddata([], speech, tmpspeech);
     end
-    datpp.grad   = ft_average_sens(tmpsens1, 'weights', weights1);   
-    speech.grad = ft_average_sens(tmpsens2, 'weights', weights2);   
+
   end
+  datpp.grad   = ft_average_sens(tmpsens1, 'weights', weights1);   
+  speech.grad  = ft_average_sens(tmpsens2, 'weights', weights2);   
+end
 
-  % concatenate into one dataset
-  datpp = ft_appenddata([],datpp,speech);  % axial gradiometers, for subj-specific frequency search
+% get envelope from neural data
+cfg = [];
+cfg.bpfilter   = 'yes';    
+cfg.bpfreq     = gamfoi;  % coupling btw 35-45; lateralization 40 - 70
+cfg.bpfilttype = 'firws';
+% cfg.bpfiltdir  = % onepass-zerophase is set in ft_preproc_bandpassfilter.m
+% cfg.bpfiltord  = % determined in ft_preproc_bandpassfilter.m
+% cfg.bpfiltwintype = % default is hamming 
+% cfg.bpfiltdf   = % default width heuristic used fir_df.m
+cfg.hilbert    = 'abs';
+datpp           = ft_preprocessing(cfg,datpp);  % Axial data,
 
-  % cut the data into fragments with overlap (increase data - like welch method)
-  cfg = [];
-  cfg.length  = 2;  
-  cfg.overlap = 0.5; % 0 to 1 (exclusive)
-  datpp = ft_redefinetrial(cfg, datpp);
+% concatenate into one dataset
+datpp = ft_appenddata([],datpp,speech);  % axial gradiometers, for subj-specific frequency search
+
+% cut the data into fragments with overlap (increase data - like welch method)
+cfg = [];
+cfg.length  = 2;  
+cfg.overlap = 0.5; % 0 to 1 (exclusive)
+datpp = ft_redefinetrial(cfg, datpp);
 end
 
 %% SOURCE LEVEL  %%%%
-
-% divide data
-  cfg = [];
-  cfg.trials = find(ismember(datpp.trialinfo(:,2),[1 5])); % sent
-  data1  = ft_selectdata(cfg,datpp); 
-
-  cfg.trials = find(ismember(datpp.trialinfo(:,2),[3 7])); % WL
-  data2  = ft_selectdata(cfg,datpp); 
-
-% freq refers to frequency range of interest because a specific frequency has been
-% predetermined for each subject (mous_neuralspeechcoherence_peakdetect)
-% freq is the column index for the subjxfreq matrix
-% 1 = delta; 2 = theta; 3 = alpha; 4 = beta;
-
-% subj x freq range matrix
 [subj,~] = mous_db_getfilename('allA','subjectname');
-load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3');
+load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_gammaenvelopecoh_stage2');
 idx      = find(ismember(subj,subjectname));
-
-% get foi
 switch freq
   case 'delta'
     freqcol = 1;
   case 'theta'
     freqcol = 2;
-  case 'alpha'
-    freqcol = 3;
-  case 'beta'
-    freqcol = 4;
 end
 foi         = peakfreqfirst(idx,freqcol);
 
@@ -107,8 +100,7 @@ cfg.tapsmofrq  = 1;         % 2 Hz smoothing
 cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';
 cfg.channel    = {'MEG' 'audio_avg'};
-fourier1        = ft_freqanalysis(cfg, data1);
-fourier2        = ft_freqanalysis(cfg, data2);
+fourier        = ft_freqanalysis(cfg, datpp);
 
 % load forward model (headmodel)
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
@@ -127,23 +119,18 @@ cfg.dics.realfilter = 'yes';  % consider real+complex filter; complex may try to
 cfg.dics.keepfilter = 'yes'; 
 cfg.dics.lambda     = '5%';
 cfg.dics.projectnoise = 'yes';
-cfg.grad      = fourier1.grad;
-sourcesen  = ft_sourceanalysis(cfg, fourier1);
-
-cfg.grad      = fourier2.grad;
-sourcewl   = ft_sourceanalysis(cfg, fourier2);
+cfg.grad            = fourier.grad;
+source              = ft_sourceanalysis(cfg, fourier);
 
 % return results
-varargout{1} = sourcesen;
-varargout{2} = sourcewl;
+varargout{1} = source;
 if nargout > 1
-  varargout{3} = datpp;
+  varargout{2} = datpp;
 end
 
 %%%%%%%%%%%%%%%
 %% subfunction%
 %%%%%%%%%%%%%%%
-
 function [data, speech] = computedata(dataset, artfctcfg)
 
 %% define trial
@@ -201,6 +188,4 @@ cfg.demean      = 'no';
 cfg.resamplefs  = 300;
 data            = ft_resampledata(cfg,data);
 speech          = ft_resampledata(cfg,speech);
-
-    
 
