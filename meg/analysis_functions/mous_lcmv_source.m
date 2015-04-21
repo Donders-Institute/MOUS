@@ -45,6 +45,7 @@ cfg.method          = 'lcmv';
 cfg.lcmv.fixedori   = 'no';
 cfg.lcmv.keepfilter = 'yes';
 cfg.lcmv.lambda     = '5%';
+cfg.lcmv.keepmom    = 'no';
 cfg.vol             = ft_convert_units(headmodel, 'm');
 cfg.grid            = sourcemodel;
 %cfg.keepleadfield   = 'yes';
