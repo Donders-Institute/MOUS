@@ -11,7 +11,7 @@ function varargout = mous_stratify(cfg, varargin)
 % the quantity to be stratified
 
 if numel(varargin)>2
-  error('more than 2 data input arguments are not supported');
+  %error('more than 2 data input arguments are not supported');
 end
 
 cfg.equalbinavg = ft_getopt(cfg, 'equalbinavg', 'no');
@@ -24,10 +24,10 @@ for k = 1:numel(varargin)
   end
 end
 
-out = ft_stratify(cfg, v{1}, v{2});
+out = ft_stratify(cfg, v{:});
 
 tmpcfg = [];
-tmpcfg.trials = find(isfinite(out{1}));
-varargout{1}  = ft_selectdata(tmpcfg, data{1});
-tmpcfg.trials = find(isfinite(out{2}));
-varargout{2}  = ft_selectdata(tmpcfg, data{2});
+for k = 1:numel(varargin)
+  tmpcfg.trials = find(isfinite(out{k}));
+  varargout{k}  = ft_selectdata(tmpcfg, data{k});
+end
