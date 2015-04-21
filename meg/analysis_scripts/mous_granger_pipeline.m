@@ -101,52 +101,12 @@ if dopreproc_sub
     
     trl = trl(trl(:,2)-trl(:,1)+1==840,:); % only use the trials that are 'full'
     
-    T        = trl(:,[4 8]);
-    nw       = unique(T(:,1));
-    for k = 1:size(nw,1)
-      nw(k,2) = max(T(T(:,1)==nw(k,1),2));
-    end
-    
-    % create 4 sets of trial indices:
-    % word 2-4 sentence
-    % word (n-3)-(n-1) sentence
-    % word 2-4 sequence
-    % word (n-3)-(n-1) sequence
-    sel1 = zeros(0,1);
-    sel2 = zeros(0,1);
-    sel3 = zeros(0,1);
-    sel4 = zeros(0,1);
-    
-    for k = 1:size(trl,1)
-      T      = trl(k,4:end);
-      sel    = find(nw(:,1)==T(1));
-      wordok = [2 3 4 nw(sel,2)-(3:-1:1)];
-      if ~ismember(T(5), wordok)
-        continue;
-      end
-      
-      if ismember(T(2), [1 2 5 6])
-        % it's a sentence word
-        if ismember(T(5), wordok(1:3))
-          % it's and early word
-          sel1 = [sel1;k];
-        else
-          sel2 = [sel2;k];
-        end
-      elseif ismember(T(2), [3 4 7 8])
-        % it's a wordlist word
-        if ismember(T(5), wordok(1:3))
-          % it's and early word
-          sel3 = [sel3;k];
-        else
-          sel4 = [sel4;k];
-        end
-      end
-    end
+    [indx_early, indx_late] = extract_earlylate(trl(:,4:end));
+    indx = sort([indx_early(:);indx_late(:)]);
     
     cfg            = [];
     cfg.dataset    = filename{j};
-    cfg.trl        = trl([sel1(:);sel2(:);sel3(:);sel4(:)],:);
+    cfg.trl        = trl(indx,:);
     cfg.continuous = 'yes';
     cfg.channel    = 'MEG';
     cfg.dftfilter  = 'yes';
@@ -245,70 +205,29 @@ if dofreq_sub
   if ~exist('data', 'var'),
     error('data needs to be computed, because it is not saved in the current version of the pipeline, set dopreproc = 1');
   end
- 
-  % get the original trl description to extract the number of words per
-  % stimulus
-%   nw       = [];
-%   filename = mous_db_getfilename(subjectname, 'meg_ds_task');
-%   trl      = mous_defineTrial(filename{1}, -0.2, 0.6, 'visual_word');
-%   T        = trl(:,[4 8]);
-%   nw(:,1)  = unique(T(:,1));
-%   for k = 1:size(nw,1)
-%     nw(k,2) = max(T(T(:,1)==nw(k,1),2));
-%   end
-%   
-  % create 4 sets of trial indices:
-  % word 2-4 sentence
-  % word (n-3)-(n-1) sentence
-  % word 2-4 sequence
-  % word (n-3)-(n-1) sequence
-  sel1 = zeros(0,1);
-  sel2 = zeros(0,1);
-  sel3 = zeros(0,1);
-  sel4 = zeros(0,1);
-  for k = 1:numel(data.trial)
-    T      = data.trialinfo(k,:);
-    %sel    = find(nw(:,1)==T(1));
-    %wordok = [2 3 4 nw(sel,2)-(3:-1:1)];
-    wordok = [2 3 4 7:13]; % use a more lenient definition of the words that
-    % are allowed, which is based on the assumption
-    % that the correct n-4,n-3,n-2 selection has taken place at the
-    % preprocessing step. this is to accommodate the fact that a few
-    % datasets consists of >1 *.ds directories
-    if ~ismember(T(5), wordok)
-      continue;
-    end
-    
-    if ismember(T(2), [1 2 5 6])
-      % it's a sentence word
-      if ismember(T(5), wordok(1:3))
-        % it's and early word
-        sel1 = [sel1;k];
-      else
-        sel2 = [sel2;k];
-      end
-    elseif ismember(T(2), [3 4 7 8])
-      % it's a wordlist word
-      if ismember(T(5), wordok(1:3))
-        % it's and early word
-        sel3 = [sel3;k];
-      else
-        sel4 = [sel4;k];
-      end
-    end
-  end
   
-  N   = min([numel(sel1) numel(sel2) numel(sel3) numel(sel4)]);
-  tmp = randperm(numel(sel1));sel1 = sort(sel1(tmp(1:N)));
-  tmp = randperm(numel(sel2));sel2 = sort(sel2(tmp(1:N)));
-  tmp = randperm(numel(sel3));sel3 = sort(sel3(tmp(1:N)));
-  tmp = randperm(numel(sel4));sel4 = sort(sel4(tmp(1:N)));
+  L = log10(extract_lexfreq(data.trialinfo));
+  [indx_early, indx_late] = extract_earlylate(data.trialinfo);
+  T = data.trialinfo(:,2);
   
-  data = ft_selectdata(data, 'rpt', [sel1(:);sel2(:);sel3(:);sel4(:)]);
-  sel1 = (1:N);
-  sel2 = (1:N)+N;
-  sel3 = (1:N)+2*N;
-  sel4 = (1:N)+3*N;
+  cfg = [];
+  indx1 = intersect(find(ismember(T,[1 2 5 6])), indx_early);
+  cfg.trials = indx1;
+  data_sent_early = ft_selectdata(cfg, data);
+  indx2 = intersect(find(ismember(T,[1 2 5 6])), indx_late);
+  cfg.trials = indx2;
+  data_sent_late = ft_selectdata(cfg, data);
+  indx3 = intersect(find(ismember(T,[3  4 7 8])), indx_early);
+  cfg.trials = indx3;
+  data_seq_early = ft_selectdata(cfg, data);
+  indx4 = intersect(find(ismember(T,[3 4 7 8])), indx_late);
+  cfg.trials = indx4;
+  data_seq_late = ft_selectdata(cfg, data);
+  
+  cfg = [];
+  cfg.binedges    = -2:0.2:4.8;
+  [data_sent_early, data_sent_late, data_seq_early, data_seq_late] = mous_stratify(cfg, ...
+    {data_sent_early L(indx1)}, {data_sent_late L(indx2)}, {data_seq_early L(indx3)}, {data_seq_late L(indx4)});
   
   cfg        = [];
   cfg.method = 'mtmfft';
@@ -316,17 +235,13 @@ if dofreq_sub
   cfg.tapsmofrq = 7.5;
   cfg.foilim = [0 300];
   cfg.pad    = 1;
-  cfg.trials = sel1;
-  csd_sent_early = ft_struct2single(ft_checkdata(ft_freqanalysis(cfg, data), 'cmbrepresentation', 'fullfast'));
+  csd_sent_early = ft_struct2single(ft_checkdata(ft_freqanalysis(cfg, data_sent_early), 'cmbrepresentation', 'fullfast'));
   mous_db_putdata(subjectname, 'meg_granger_csd_sent_early', 'csd_sent_early', rootdir); clear csd_sent_early;
-  cfg.trials = sel2;
-  csd_sent_late  = ft_struct2single(ft_checkdata(ft_freqanalysis(cfg, data), 'cmbrepresentation', 'fullfast'));
+  csd_sent_late  = ft_struct2single(ft_checkdata(ft_freqanalysis(cfg, data_sent_late), 'cmbrepresentation', 'fullfast'));
   mous_db_putdata(subjectname, 'meg_granger_csd_sent_late',  'csd_sent_late',  rootdir); clear csd_sent_late;
-  cfg.trials = sel3;
-  csd_seq_early  = ft_struct2single(ft_checkdata(ft_freqanalysis(cfg, data), 'cmbrepresentation', 'fullfast'));
+  csd_seq_early  = ft_struct2single(ft_checkdata(ft_freqanalysis(cfg, data_seq_early), 'cmbrepresentation', 'fullfast'));
   mous_db_putdata(subjectname, 'meg_granger_csd_seq_early',  'csd_seq_early',  rootdir); clear csd_seq_early;
-  cfg.trials = sel4;
-  csd_seq_late   = ft_struct2single(ft_checkdata(ft_freqanalysis(cfg, data), 'cmbrepresentation', 'fullfast'));
+  csd_seq_late   = ft_struct2single(ft_checkdata(ft_freqanalysis(cfg, data_seq_late), 'cmbrepresentation', 'fullfast'));
   mous_db_putdata(subjectname, 'meg_granger_csd_seq_late',   'csd_seq_late',   rootdir); clear csd_seq_late;
 end
 
@@ -537,24 +452,45 @@ if dogranger_earlylate2
   
   for kk = 1:numel(condition)
     
-    loadsuffix = ['meg_granger_csd_',condition{kk}];
+    if ~strcmp(condition{kk}, 'all')
+      compute_reverse = false;
+      loadsuffix = ['meg_granger_csd_',condition{kk}];
     
-    tmp     = mous_db_getdata(subjectname, loadsuffix, rootdir);
-    csd_all = ft_struct2double(tmp); clear tmp;
+      tmp     = mous_db_getdata(subjectname, loadsuffix, rootdir);
+      csd_all = ft_struct2double(tmp); clear tmp;
+    else
+      compute_reverse = true;
+      
+      tmp = mous_db_getdata(subjectname, 'meg_granger_csd_sent_early', rootdir);
+      csd_all = ft_struct2double(tmp); clear tmp;
+      tmp = mous_db_getdata(subjectname, 'meg_granger_csd_sent_late', rootdir);
+      csd_all.crsspctrm = csd_all.crsspctrm + tmp.crsspctrm;
+      tmp = mous_db_getdata(subjectname, 'meg_granger_csd_seq_early', rootdir);
+      csd_all.crsspctrm = csd_all.crsspctrm + tmp.crsspctrm;
+      tmp = mous_db_getdata(subjectname, 'meg_granger_csd_seq_late', rootdir);
+      csd_all.crsspctrm = csd_all.crsspctrm + tmp.crsspctrm;
+      csd_all.crsspctrm = csd_all.crsspctrm./4;
+      
+    end  
+        
     G       = zeros(numel(sel), numel(sel), 256);
-    G2      = zeros((numel(sel)-1)*numel(sel)*0.5, 256);
-    G_rev   = G;
+    if compute_reverse
+      G2      = zeros((numel(sel)-1)*numel(sel)*0.5, 256);
+      G_rev   = G;
+    end
     
     g        = [];
     g.label  = parcellation.label(sel);
     g.dimord = 'chan_chan_freq';
     g.freq   = csd_all.freq(1:256);
     
-    g_rev = g;
+    if compute_reverse
+      g_rev = g;
     
-    g2        = [];
-    g2.dimord = 'chancmb_freq';
-    g2.freq   = csd_all.freq(1:256);
+      g2        = [];
+      g2.dimord = 'chancmb_freq';
+      g2.freq   = csd_all.freq(1:256);
+    end
     
     labelcmb = cell(0,2);
     cnt = 0;
@@ -577,26 +513,36 @@ if dogranger_earlylate2
       cmbindx = [ones(numel(indx2{k}),1) ones(numel(indx2{k}),1)*2 (3:2:size(tmp,1))' (4:2:size(tmp,1))'];
       
       [tmpg, tmpg_toti] = do_granger4x4(tmp, csd_all.freq(1:256), cmbindx);
-      tmpg_rev          = do_granger4x4(conj(tmp), csd_all.freq(1:256), cmbindx);
+      if compute_reverse,
+        tmpg_rev          = do_granger4x4(conj(tmp), csd_all.freq(1:256), cmbindx);
+      end
       
       G(indx1{k},indx2{k},:) = shiftdim(tmpg(1,2,:,:));
       G(indx2{k},indx1{k},:) = shiftdim(tmpg(2,1,:,:));
-      G_rev(indx1{k},indx2{k},:) = shiftdim(tmpg_rev(1,2,:,:));
-      G_rev(indx2{k},indx1{k},:) = shiftdim(tmpg_rev(2,1,:,:));
-      G2(cnt+(1:size(tmpg_toti,1)),:) = tmpg_toti;
+      if compute_reverse,
+        G_rev(indx1{k},indx2{k},:) = shiftdim(tmpg_rev(1,2,:,:));
+        G_rev(indx2{k},indx1{k},:) = shiftdim(tmpg_rev(2,1,:,:));
+        G2(cnt+(1:size(tmpg_toti,1)),:) = tmpg_toti;
+      end
       cnt = cnt + size(tmpg_toti,1);
       
       toc;
     end
     g.grangerspctrm = G;
-    g2.totispctrm   = G2;
-    g_rev.grangerspctrm = G_rev;
-    warning off; 
-      g = ft_struct2single(g);
+    warning off;
+    g = ft_struct2single(g);
+    warning on;
+    if compute_reverse,
+      g2.totispctrm   = G2;
+      g_rev.grangerspctrm = G_rev;
+      warning off; 
       g2 = ft_struct2single(g2);
       g_rev = ft_struct2single(g_rev);
-    warning on;
-    
+      warning on;
+    else
+      g2    = [];
+      g_rev = [];
+    end
     savesuffix = ['meg_granger_granger_',condition{kk}];
     mous_db_putdata(subjectname, savesuffix, 'g', 'g2', 'g_rev', rootdir, 1);
   end
