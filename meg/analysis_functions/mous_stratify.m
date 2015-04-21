@@ -24,6 +24,11 @@ for k = 1:numel(varargin)
   end
 end
 
+% use randomseed to ensure the same trials are removed for across time points
+% within one frequency range (low, medium, high) to improve SnR - NL
+if isfield(cfg,'rseedinput')
+  randomseed(cfg.rseedinput);
+end
 out = ft_stratify(cfg, v{:});
 
 tmpcfg = [];
