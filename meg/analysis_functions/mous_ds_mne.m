@@ -1,5 +1,7 @@
 function [dataout] = mous_ds_mne(data, varargin)
 
+% FIXME please document the function here
+
 dataout = data;
 param = ft_getopt(varargin, 'parameter', 'avg.pow');
 range = ft_getopt(varargin, 'range', [50 550]);
@@ -12,7 +14,8 @@ tmpdat   = getsubfield(data, param);
 tmpout = nan(size(tmpdat,1),timepoints);
 tmptime = zeros(1,timepoints);
 
-
+% FIXME, what is happening in the for loop? 
+% It's increasing i, but start and stop don't change within the loop
 for i = 1:timepoints
     start = nearest(data.time, range(1));
     stop = nearest(data.time, range(1)+0.1);
