@@ -1,5 +1,6 @@
 function [dataout] = mous_ds_mne(data, varargin)
 
+% FIXME please consider renaming this file into mous_mne_ds, i.e. putting the mne upfront, which makes the alphabetic sorting more meaningful
 % FIXME please document the function here
 
 dataout = data;
