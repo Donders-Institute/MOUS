@@ -22,7 +22,10 @@ for i = 1:timepoints
     tmpout(:,i) = nanmean(tmpdat(:,start:stop),2);
     tmptime(1,i) = nanmean(data.time(start:stop));
     range(1) = range(1) + 0.1;
-    
+    % NOTE: I failed to notice the previous line when adding my first comment, so it seems that indeed the range is changing within the loop.
+
+    % NOTE: the second entry in range is not used.
+    % NOTE: the window width is hard coded to be 100 ms, you may want to make this more generic.    
 end
 
 dataout   = setsubfield(dataout, param, tmpout);    
