@@ -3,7 +3,8 @@ function [filename, st, info] = mous_db_getfilename(subject, type, infoflag, roo
 % [filename, status, info] = mous_db_getfilename(subject, type)
 %
 % Input arguments:
-%   subject = string that identifies subject, e.g. 'V1001', can be 'all'
+%   subject = string that identifies subject, e.g. 'V1001', can be
+%   'all','subjectname' (lists all the subjectnames)
 %   type    = string that identifies the type of data, e.g. 'meg_ds'
 %
 % The following types are implemented:
@@ -299,6 +300,12 @@ switch type{2}
         d = dir([D subject 'sourcemodel2D' type{4} '.mat']);
         if isempty(d)
           d(1).name = [subject 'sourcemodel2D' type{4} '.mat'];
+        end
+      case 'sourcemodel2Dsurfreg'
+        if numel(type)==3, type{4} = ''; end
+        d = dir([D subject 'sourcemodel2Dsurfreg' type{4} '.mat']);
+        if isempty(d)
+          d(1).name = [subject 'sourcemodel2Dsurfreg' type{4} '.mat'];
         end
       case 'sourcemodel3D'
         if numel(type)==3, type{4} = ''; end
