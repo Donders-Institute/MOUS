@@ -1,6 +1,12 @@
-function [coherence1, coherence2, coherence3, coherence4] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi, gamfoi)
-% This function calculates the coherence between the neural signal to the
-% speech envelope
+% function [coherence1, coherence2, coherence3, coherence4] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi, gamfoi)
+function [varargout] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi) %, varargin)
+
+% Calculate the coherence between the neural signal and speech envelope.
+% The neural signal can be the raw frequencies (used for theta and delta),
+% or the envelope of a defined band of frequencies (used for gamma)
+% If sentences and word lists can be combined (to be determined), then this
+% code can be adjusted. Currently, depending if calculating for gamma or
+% lower frequencies, certain parts need to be commented out
 
 %% load raw data
 dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
@@ -56,7 +62,7 @@ dataPL           = ft_megplanar(cfg,data);
 
 
 %% apply hilbert transform to MEG signal to extract gamma amplitude
-if nargin > 2   % if specification of gamma frequencies 
+if nargin == 3   % if specification of gamma frequencies 
 
   %  gamma envelope has (amplitude and) phase which is used to calculate
   %  connectivity with speech signal's phase
@@ -88,15 +94,22 @@ cfg.overlap = 0.5; % 0 to 1 (exclusive)
 dataAX = ft_redefinetrial(cfg, dataAX);
 dataPL = ft_redefinetrial(cfg, dataPL);
 
-%% divide data
-cfg = [];
-cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
-data1  = ft_selectdata(cfg,dataAX); % axial
-data3  = ft_selectdata(cfg,dataPL); % planar
+%% split conditions
+if nargin == 2 
+  % divide data
+  cfg = [];
+  cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
+  data1  = ft_selectdata(cfg,dataAX); % axial
+  data3  = ft_selectdata(cfg,dataPL); % planar
 
-cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
-data2  = ft_selectdata(cfg,dataAX); % axial
-data4  = ft_selectdata(cfg,dataPL); % planar
+  cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
+  data2  = ft_selectdata(cfg,dataAX); % axial
+  data4  = ft_selectdata(cfg,dataPL); % planar
+elseif nargin == 3
+  % retain sentences and word list as one
+  data1 = dataAX;
+  data3 = dataPL;
+end
 
 
 %% calculate power- and cross-spectra
@@ -109,25 +122,33 @@ cfg = [];
 cfg.method     = 'mtmfft';  %  get power change in gamma; deal with filtering-artifacts
 cfg.output     = 'powandcsd'; 
 cfg.foilim     = cohfoi;    
-cfg.tapsmofrq  = 1;           
+cfg.tapsmofrq  = 2;           
 cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';     
 cfg.channel    = {'MEG' 'audio_avg'}; % exclude UADC003 channel
 cfg.channelcmb = {'MEG' 'audio_avg'};
-freq1          = ft_freqanalysis(cfg,data1); % axial
-freq2          = ft_freqanalysis(cfg,data2); 
+freq1          = ft_freqanalysis(cfg,data1); % axial  sentence for low freq / axial all trials for gamma
+freq3          = ft_freqanalysis(cfg,data3); % planar sentence for low freq / planar all trials for gamma
 
-freq3          = ft_freqanalysis(cfg,data3); % planar
-freq4          = ft_freqanalysis(cfg,data4);
+if nargin == 2
+  freq2          = ft_freqanalysis(cfg,data2);  % axial  word list
+  freq4          = ft_freqanalysis(cfg,data4);  % planar word list
+end
 
 %% calculate coherence 
 cfg = [];
 cfg.method     = 'coh';
 cfg.channelcmb = {'MEG' 'audio_avg'}; % Specify channel and channelref
 coherence1     = ft_connectivityanalysis(cfg,freq1); % axial
-coherence2     = ft_connectivityanalysis(cfg,freq2);
 coherence3     = ft_connectivityanalysis(cfg,freq3); % planar
-coherence4     = ft_connectivityanalysis(cfg,freq4);
+
+if nargin == 2
+  coherence2     = ft_connectivityanalysis(cfg,freq2);
+  coherence4     = ft_connectivityanalysis(cfg,freq4);
+end
+
+
+
 
 
 %% combine planar gradient's vertical (dV) and horizontal (dH) components
@@ -152,17 +173,27 @@ tmp2 = coherence3.cohspctrm(sensize+1:end,:);
 coherence3.cohspctrm = (tmp1+tmp2)./2;
 coherence3.labelcmb  = coherence3.labelcmb(1:sensize,:);
 coherence3.labelcmb(1:sensize,1) = tmplabel;
+if nargin > 2
+  varargout{1} = coherence1;
+  varargout{2} = coherence3;
 
-%%% WORD LIST %%%
-% select sensors of interest
-sensize = size(coherence4.labelcmb,1)/2; % 273; dv and dH for each audio signal
-tmp1 = coherence4.cohspctrm(1:sensize,:);
-tmp2 = coherence4.cohspctrm(sensize+1:end,:);
+elseif nargin == 2
+  % %%% WORD LIST %%%
+  % select sensors of interest
+  sensize = size(coherence4.labelcmb,1)/2; % 273; dv and dH for each audio signal
+  tmp1 = coherence4.cohspctrm(1:sensize,:);
+  tmp2 = coherence4.cohspctrm(sensize+1:end,:);
 
-% compute average between dV and dH for combined planar gradient components
-coherence4.cohspctrm = (tmp1+tmp2)./2;
-coherence4.labelcmb  = coherence4.labelcmb(1:sensize,:);
-coherence4.labelcmb(1:sensize,1) = tmplabel;
+  % compute average between dV and dH for combined planar gradient components
+  coherence4.cohspctrm = (tmp1+tmp2)./2;
+  coherence4.labelcmb  = coherence4.labelcmb(1:sensize,:);
+  coherence4.labelcmb(1:sensize,1) = tmplabel;
+  
+  varargout{1} = coherence1;
+  varargout{2} = coherence2;
+  varargout{3} = coherence3;
+  varargout{4} = coherence4;
+end
 
 %%%%%%%%%%%%%%%%%%%%
 %%% SUBFUNCTION %%%%
@@ -202,7 +233,7 @@ speech         = ft_preprocessing(cfg);
 previous_sentid = 0;
 for k = 1:numel(data.trial)
   sentid = num2str(data.trialinfo(k,5),'%03d');
-  if previous_sentid ~= sentid
+  if strcmp(previous_sentid,sentid)
     load(fullfile('/project/3011020.09/MEG/misc/audiostimuli',['audiodata_envelope',sentid]));
   end
   i1 = nearest(audio.time{1},data.time{k}(1));
