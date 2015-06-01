@@ -1,4 +1,4 @@
-function [varargout] = mous_neuralspeechcoherence_sourcedata(subjectname,freq,varargin)
+function [varargout] = mous_neuralspeechcoherence_sourcedata(subjectname,foi,varargin)
 % mous_neuralspeechcoherence_sourcedata computes source-level data for the
 % specified frequency(ies).
 % Raw data is preprocessed once, and then use for all coherence calculations 
@@ -74,7 +74,12 @@ end
 
   cfg.trials = find(ismember(datpp.trialinfo(:,2),[3 7])); % WL
   data2  = ft_selectdata(cfg,datpp); 
+  
+%   data2o   = data2; 
+%   cfg.trials = [1:429,432:numel(data2.trial)]; % remove trial 430 and 431 that produces 0's in fourierspctrm.
+%   data2   = ft_selectdata(cfg,data2);
 
+%% use peak frequency for each subject
 % freq refers to frequency range of interest because a specific frequency has been
 % predetermined for each subject (mous_neuralspeechcoherence_peakdetect)
 % freq is the column index for the subjxfreq matrix
@@ -86,7 +91,7 @@ load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_sta
 idx      = find(ismember(subj,subjectname));
 
 % get foi
-switch freq
+switch foi
   case 'delta'
     freqcol = 1;
   case 'theta'
@@ -98,23 +103,52 @@ switch freq
 end
 foi         = peakfreqfirst(idx,freqcol);
 
-% calculate cross-spectral density matrix 
+% calculate fourier data (output is a fourier spectra)
 cfg = [];
 cfg.method     = 'mtmfft';  % assumes stable power, but we know this isn't true
-cfg.output     = 'fourier'; % not 'powandcsd; compute csd online'
+cfg.output     = 'fourier'; % not 'powandcsd; compute csd online in ft_sourceanalysis;
 cfg.foi        = foi;         % calculate fourier for each frequency showing a peak in coherence spectrum
-cfg.tapsmofrq  = 1;         % 2 Hz smoothing
+cfg.tapsmofrq  = 2;           % 4 Hz smoothing 10.04.2015 to be consistent with sensor-level results
 cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';
-cfg.channel    = {'MEG' 'audio_avg'};
-fourier1        = ft_freqanalysis(cfg, data1);
-fourier2        = ft_freqanalysis(cfg, data2);
+cfg.channel    = {'all' '-UADC003'};
+fourier1o        = ft_freqanalysis(cfg, data1);
+fourier2o        = ft_freqanalysis(cfg, data2);
+i     = find(fourier2o.fourierspctrm == 0);
+[r,c] = ind2sub(size(fourier2o.fourierspctrm),i);
+
+% normalize fourier data with amplitude
+% reduce contribution of subjects with higher amplitude to the grpaverage
+% 
+fourier1 = fourier1o;
+fourier2 = fourier2o;
+
+% several elements in fourier2 == 0
+% taking abs produces NaNs
+% [r,j] = ind2sub(size(fourier2.fourierspctrm),i)
+% 1:3003 x 274       = non-zero values: % 3003 / 7 = trial 429 
+% 3004 - 3017 X 274 = zeros:            % 3010 / 7 - trial 430
+% 3004 - 3017 is 2 sets of rpttap
+% so trial 430 and 431 are the problems in data2
+
+selchan = match_str(fourier2o.label, {'audio_avg'});
+fourier1.fourierspctrm(:,selchan,:) = fourier1o.fourierspctrm(:,selchan,:)./abs(fourier1o.fourierspctrm(:,selchan,:));
+fourier2.fourierspctrm(:,selchan,:) = fourier2o.fourierspctrm(:,selchan,:)./abs(fourier2o.fourierspctrm(:,selchan,:));
+
+% create a condition with sentence and word lists
+cfg  = [];
+cfg.parameter = 'fourierspctrm'; 
+fourier3      = ft_appendfreq(cfg,fourier1,fourier2);
 
 % load forward model (headmodel)
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 
 % load sourcemodel   (grid); stick with 5798
-mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', '/project/3011020.09/nielam/');
+%mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', '/project/3011020.09/nielam/');
+
+% load sourcemodel surfreg
+sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
+
 
 cfg = [];
 cfg.method    = 'dics';
@@ -122,22 +156,29 @@ cfg.frequency = foi;
 cfg.refchan   = 'audio_avg';
 cfg.vol       = headmodel;
 cfg.grid      = sourcemodel;
-cfg.dics.fixedori   = 'yes';
-cfg.dics.realfilter = 'yes';  % consider real+complex filter; complex may try to rotate back to 'original phase'
-cfg.dics.keepfilter = 'yes'; 
-cfg.dics.lambda     = '5%';
+cfg.dics.fixedori     = 'yes';
+cfg.dics.realfilter   = 'yes';  % consider real+complex filter; complex may try to rotate back to 'original phase'
+cfg.dics.keepfilter   = 'yes'; 
+cfg.dics.lambda       = '5%';
 cfg.dics.projectnoise = 'yes';
 cfg.grad      = fourier1.grad;
-sourcesen  = ft_sourceanalysis(cfg, fourier1);
+sourcesen     = ft_sourceanalysis(cfg,fourier1); 
+%fourierspctrm field gets removed when all trials present for A2016 because .
+% size(chan) == size(rpt) and dimension cannot be determined in getdimord.m
+% made a hack at line 449; 08-04-2012 - this was removed when problem
+% couldnt be replicated
 
 cfg.grad      = fourier2.grad;
-sourcewl   = ft_sourceanalysis(cfg, fourier2);
+sourcewl      = ft_sourceanalysis(cfg,fourier2);
+cfg.grad      = fourier1.grad;
+sourceall     = ft_sourceanalysis(cfg,fourier3);
 
 % return results
 varargout{1} = sourcesen;
 varargout{2} = sourcewl;
+varargout{3} = sourceall;
 if nargout > 1
-  varargout{3} = datpp;
+  varargout{4} = datpp;
 end
 
 %%%%%%%%%%%%%%%
@@ -167,7 +208,7 @@ cfg.channel    = 'MEG';
 cfg.bsfilter   = 'yes';  % temporary replacement for job of dftfilter
 cfg.bsfreq     = [49 51];
 cfg.bsfilttype = 'firws';
-cfg.usefftfilt = 'yes';  % if remove bsfilter, can I also remove usefftfilt?
+cfg.usefftfilt = 'yes';  % fftfilt used instead of firws
 data           = ft_preprocessing(cfg);
 
 cfg.channel    = 'UADC003';
@@ -181,7 +222,7 @@ speech         = ft_preprocessing(cfg);
 previous_sentid = 0;
 for k = 1:numel(data.trial)
   sentid = num2str(data.trialinfo(k,5),'%03d');
-  if previous_sentid ~= sentid
+  if ~strcmp(previous_sentid,sentid)
     load(fullfile('/project/3011020.09/MEG/misc/audiostimuli',['audiodata_envelope',sentid]));
   end
   i1 = nearest(audio.time{1},data.time{k}(1));
@@ -191,6 +232,7 @@ for k = 1:numel(data.trial)
   speech.trial{k}(2,:) = 0;
   speech.trial{k}(2,i3:i4) = audio.trial{1}(end,i1:i2);
   previous_sentid = sentid;
+  clear audio
 end
 speech.label = [speech.label;{'audio_avg'}];
 
