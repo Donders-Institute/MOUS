@@ -74,10 +74,7 @@ end
 
   cfg.trials = find(ismember(datpp.trialinfo(:,2),[3 7])); % WL
   data2  = ft_selectdata(cfg,datpp); 
-  
-%   data2o   = data2; 
-%   cfg.trials = [1:429,432:numel(data2.trial)]; % remove trial 430 and 431 that produces 0's in fourierspctrm.
-%   data2   = ft_selectdata(cfg,data2);
+ 
 
 %% use peak frequency for each subject
 % freq refers to frequency range of interest because a specific frequency has been
@@ -115,9 +112,9 @@ cfg.channel    = {'all' '-UADC003'};
 fourier1       = ft_freqanalysis(cfg, data1);
 fourier2       = ft_freqanalysis(cfg, data2);
 
-selchan = match_str(fourier2o.label, {'audio_avg'});
-fourier1.fourierspctrm(:,selchan,:) = fourier1o.fourierspctrm(:,selchan,:)./abs(fourier1o.fourierspctrm(:,selchan,:));
-fourier2.fourierspctrm(:,selchan,:) = fourier2o.fourierspctrm(:,selchan,:)./abs(fourier2o.fourierspctrm(:,selchan,:));
+selchan = match_str(fourier2.label, {'audio_avg'});
+fourier1.fourierspctrm(:,selchan,:) = fourier1.fourierspctrm(:,selchan,:)./abs(fourier1.fourierspctrm(:,selchan,:));
+fourier2.fourierspctrm(:,selchan,:) = fourier2.fourierspctrm(:,selchan,:)./abs(fourier2.fourierspctrm(:,selchan,:));
 
 % create a condition with sentence and word lists
 cfg  = [];
@@ -216,7 +213,6 @@ for k = 1:numel(data.trial)
   speech.trial{k}(2,:) = 0;
   speech.trial{k}(2,i3:i4) = audio.trial{1}(end,i1:i2);
   previous_sentid = sentid;
-  clear audio
 end
 speech.label = [speech.label;{'audio_avg'}];
 
