@@ -112,24 +112,8 @@ cfg.tapsmofrq  = 2;           % 4 Hz smoothing 10.04.2015 to be consistent with 
 cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';
 cfg.channel    = {'all' '-UADC003'};
-fourier1o        = ft_freqanalysis(cfg, data1);
-fourier2o        = ft_freqanalysis(cfg, data2);
-i     = find(fourier2o.fourierspctrm == 0);
-[r,c] = ind2sub(size(fourier2o.fourierspctrm),i);
-
-% normalize fourier data with amplitude
-% reduce contribution of subjects with higher amplitude to the grpaverage
-% 
-fourier1 = fourier1o;
-fourier2 = fourier2o;
-
-% several elements in fourier2 == 0
-% taking abs produces NaNs
-% [r,j] = ind2sub(size(fourier2.fourierspctrm),i)
-% 1:3003 x 274       = non-zero values: % 3003 / 7 = trial 429 
-% 3004 - 3017 X 274 = zeros:            % 3010 / 7 - trial 430
-% 3004 - 3017 is 2 sets of rpttap
-% so trial 430 and 431 are the problems in data2
+fourier1       = ft_freqanalysis(cfg, data1);
+fourier2       = ft_freqanalysis(cfg, data2);
 
 selchan = match_str(fourier2o.label, {'audio_avg'});
 fourier1.fourierspctrm(:,selchan,:) = fourier1o.fourierspctrm(:,selchan,:)./abs(fourier1o.fourierspctrm(:,selchan,:));
