@@ -86,12 +86,12 @@ mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', '/project/3011020.09/niel
 
 % source reconstruct bandpass filtered gamma (lcmv; keep spatial filter)
 cfg = [];
-cfg.method        = 'lcmv';  % time domain, no need cfg.foi
-cfg.vol           = headmodel;
-cfg.grid          = sourcemodel;
-cfg.lcmv.keepfilter    = 'yes';
-cfg.lcmv.fixedori = 'yes'; % project on axis with most variance using SVD?
-source            = ft_sourceanalysis(cfg, tlck);
+cfg.method           = 'lcmv';  % time domain, no need cfg.foi
+cfg.vol              = headmodel;
+cfg.grid             = sourcemodel;
+cfg.lcmv.keepfilter  = 'yes';
+cfg.lcmv.fixedori    = 'yes'; % project on axis with most variance using SVD?
+source               = ft_sourceanalysis(cfg, tlck);
 
 %% project bandpass filtered data through spatial filter
 % turn sensor-data into source-data
@@ -104,21 +104,18 @@ sourcedata.time = datpp.time;
 for k = sourcerange(1):sourcerange(2)
   sourcedata.label{k,1} = ['chan',num2str(k,'%04d')];
 end
+idx = cellfun(@isempty,sourcedata.label);
+sourcedata.label(idx) = [];
 
 % select subset of sources
-
 filt = cat(1,source.avg.filter{source.inside}); % one filter per voxel(grid): 5798 x 273datdd
 filt = filt(sourcerange(1):sourcerange(2),:);
 for trialloop = 1:length(datpp.trial)
-%   for sourceloop = 1:numel(find(source.inside))
-%     idx          = find(source.inside);
-%     filt         = source.avg.filter{idx(sourceloop)};     
-    sourcedata.trial{trialloop} = abs(filt*datpp.trial{trialloop});% take abs for envelope
-%   end
+     sourcedata.trial{trialloop} = abs(filt*datpp.trial{trialloop});   % take abs for envelope
 end
 
 %% combine channels 
-sourcedata  = ft_appenddata([],sourcedata,speech); % concatenate into one data; axial gradiometers for subj-specific frequency search
+sourcedata  = ft_appenddata([],sourcedata,speech); % concatenate into one dataset; axial gradiometers for subj-specific frequency search
 
 %% cut the data into fragments with overlap (increase data - like welch method)
 cfg = [];
@@ -131,7 +128,7 @@ cfg = [];
 cfg.method     = 'mtmfft';  % assumes stable power, but we know this isn't true
 cfg.output     = 'fourier'; % not 'powandcsd; compute csd online'
 cfg.foi        = foi;       % calculate fourier for each frequency showing a peak in coherence spectrum
-cfg.tapsmofrq  = 1;         % 2 Hz smoothing
+cfg.tapsmofrq  = 2;         % 2 Hz smoothing
 cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';
 cfg.channel    = {'all','-UADC003'};
@@ -144,23 +141,23 @@ coherence  = ft_connectivityanalysis(cfg,fourier);
 
 %% place into source-level structure for visualization purposes
 %  get sourcemodel for 3D grid structure
-mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', '/project/3011020.09/nielam/');
-sourcemodel = rmfield(sourcemodel, 'leadfield');
-if isfield(sourcemodel, 'cfg')
-  sourcemodel = rmfield(sourcemodel, 'cfg');
-end
-
-% update sourcemodel.inside to be logical
-sourcemodel.insideold = sourcemodel.inside;
-sourcemodel.inside    = false(size(sourcemodel.pos,1),1);
-sourcemodel.inside(sourcemodel.insideold) = true;
-sourcemodel           = rmfield(sourcemodel,{'insideold','outside'});
-
-% insert coherence data to sourcemodel
-sourcemodel.coh       = zeros(size(sourcemodel.pos,1),1);
-sourcemodel.coh(sourcemodel.inside) = coherence.cohspctrm(1:5798,5799);
-sourcemodel.freq      = coherence.freq;
-sourcemodel.label     = coherence.label;
+% mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', '/project/3011020.09/nielam/');
+% sourcemodel = rmfield(sourcemodel, 'leadfield');
+% if isfield(sourcemodel, 'cfg')
+%   sourcemodel = rmfield(sourcemodel, 'cfg');
+% end
+% 
+% % update sourcemodel.inside to be logical
+% sourcemodel.insideold = sourcemodel.inside;
+% sourcemodel.inside    = false(size(sourcemodel.pos,1),1);
+% sourcemodel.inside(sourcemodel.insideold) = true;
+% sourcemodel           = rmfield(sourcemodel,{'insideold','outside'});
+% 
+% % insert coherence data to sourcemodel
+% sourcemodel.coh       = zeros(size(sourcemodel.pos,1),1);
+% sourcemodel.coh(sourcemodel.inside) = coherence.cohspctrm(1:5798,5799);
+% sourcemodel.freq      = coherence.freq;
+% % sourcemodel.label     = coherence.label;
 
 
 %%%%%%%%%%%%%%%
@@ -202,7 +199,7 @@ speech         = ft_preprocessing(cfg);
 previous_sentid = 0;
 for k = 1:numel(data.trial)
   sentid = num2str(data.trialinfo(k,5),'%03d');
-  if previous_sentid ~= sentid
+  if ~strcmp(previous_sentid,sentid)
     load(fullfile('/project/3011020.09/MEG/misc/audiostimuli',['audiodata_envelope',sentid]));
   end
   i1 = nearest(audio.time{1},data.time{k}(1));
@@ -212,6 +209,7 @@ for k = 1:numel(data.trial)
   speech.trial{k}(2,:) = 0;
   speech.trial{k}(2,i3:i4) = audio.trial{1}(end,i1:i2);
   previous_sentid = sentid;
+  clear audio 
 end
 speech.label = [speech.label;{'audio_avg'}];
 
