@@ -148,6 +148,8 @@ if nargin == 2
 end
 
 
+
+
 %% combine planar gradient's vertical (dV) and horizontal (dH) components
 %  - Freq and Coherence calculation are non-linear (power = take abs)
 %  - If combine components prior to freq/coherence calculation we lose
