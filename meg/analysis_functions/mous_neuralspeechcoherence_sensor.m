@@ -148,9 +148,6 @@ if nargin == 2
 end
 
 
-
-
-
 %% combine planar gradient's vertical (dV) and horizontal (dH) components
 %  - Freq and Coherence calculation are non-linear (power = take abs)
 %  - If combine components prior to freq/coherence calculation we lose
@@ -233,7 +230,7 @@ speech         = ft_preprocessing(cfg);
 previous_sentid = 0;
 for k = 1:numel(data.trial)
   sentid = num2str(data.trialinfo(k,5),'%03d');
-  if strcmp(previous_sentid,sentid)
+  if ~strcmp(previous_sentid,sentid)
     load(fullfile('/project/3011020.09/MEG/misc/audiostimuli',['audiodata_envelope',sentid]));
   end
   i1 = nearest(audio.time{1},data.time{k}(1));
