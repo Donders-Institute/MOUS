@@ -10,7 +10,7 @@ function mous_neuralspeechcoherence_lateralization_sensor(frequency,sensortype)
 % These values L vs. R are then subjected to statistics at the group level
 
 % peak frequency determine from using all 273 sensors
-load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3.mat');
+load('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_sent.mat');
 
 % track sensors
 senslist = cell(102,10);
@@ -38,13 +38,12 @@ switch sensortype
     for k = 1:numel(subj)
 
       % load data
-      mous_db_getdata(subj{k},'meg_coh_sensor_0-100Hz_axial','/project/3011020.09/MEG/');
+      mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
 
       % select frequencies and MEG-audio_avg channel pairs
-      sel = size(sentcoh.labelcmb,1)/2;
       cfg = [];
       cfg.frequency  = peakfreqfirst(k,selfreq); % for delta
-      cfg.channelcmb = sentcoh.labelcmb(sel+1:end,:);
+      cfg.channelcmb = sentcoh.labelcmb;
       data           = ft_selectdata(cfg,sentcoh);
       data.label     = data.labelcmb(:,1); % ft_channelselection only works on label, not labelcmb
       data           = rmfield(data,'labelcmb');
@@ -94,7 +93,7 @@ switch sensortype
     
     for k = 1:numel(subj)
        % load data
-      mous_db_getdata(subj{k},'meg_coh_sensor_0-100Hz_axial','/project/3011020.09/MEG/');
+      mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
 
       % select frequencies and MEG-audio_avg channel pairs
       sel = size(sentcoh.labelcmb,1)/2;
