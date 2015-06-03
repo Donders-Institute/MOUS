@@ -1,4 +1,4 @@
-function [varargout] = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,foi,sourcerange,varargin)
+function [varargout] = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,foi,cdtn,sourcerange,varargin)
 % mous_neuralspeechcoherence_sourcedata_high computes coherence at the
 % source-level between the gamma enveloep and the speech signal
 % Definition of preprocessed data includes all processing steps that are
@@ -25,11 +25,11 @@ function [varargout] = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectnam
 % foi = frequencies at which to calculate coherence between gamma envelope and speech envelope
 % NL 02-04-2015
 
-if nargin < 5
+if nargin < 6
   sourcedata1 = [];
   sourcedata2 = [];
   sourcedata3 = []; 
-elseif nargin == 7
+elseif nargin == 8
   sourcedata1 = varargin{1};
   sourcedata2 = varargin{2};
   sourcedata3 = varargin{3};
@@ -183,7 +183,8 @@ end
 % get peakfrequency for specified frequency band
 % subj x freq range matrix
 [subj,~] = mous_db_getfilename('allA','subjectname');
-load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3');
+root     = '/project/3011020.09/nielam/groupresults/coh/speechenvelope/';
+load([root,'/coherencePeakdetect_stage2_thres001_smoothing_',cdtn]);
 idx      = find(ismember(subj,subjectname));
 
 % get foi
@@ -275,7 +276,7 @@ trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
-cfg.trl        = trl(1:10,:);
+cfg.trl        = trl;
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
