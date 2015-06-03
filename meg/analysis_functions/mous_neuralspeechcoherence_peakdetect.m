@@ -1,4 +1,4 @@
-%%% mous_neuralspeechcoherence_peakdetect
+function mous_neuralspeechcoherence_peakdetect(condition)
 %  This function searches for peaks in each channel, peaks that are most frequently found
 %  across all channels (>25) are considered to be true peaks
 
@@ -34,40 +34,41 @@
 
 
 [subj,s] = mous_db_getfilename('allA','subjectname');
-allfreq = 0:0.5:100;
+allfreq = 0.5:0.5:30;
 numpeak = zeros(numel(subj),numel(allfreq)); % subj x frequencies
 
 %% first round of peak detection (rough)
 for k = 1:102
-  mous_db_getdata(subj{k},'meg_coh_sensor_0-100Hz_axial','/project/3011020.09/MEG/');
+  mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
   
-  % first set of channels are coherence with MEG speech signal, not original audio signal
-  if size(sentcoh.labelcmb,1) == 548
-    sentcoh.cohspctrm = sentcoh.cohspctrm(275:end,:);
-    sentcoh.labelcmb  = sentcoh.labelcmb(275:end,:);
-    coi               = 1:274;
-  else
-    sentcoh.cohspctrm = sentcoh.cohspctrm(274:end,:);
-    sentcoh.labelcmb  = sentcoh.labelcmb(274:end,:);
-    coi               = 1:273;
+  switch condition
+    case 'wl'
+      sentcoh = wlcoh;
+    case 'common' 
+      sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
   end
+  
+  cfg = [];
+  cfg.frequency = [allfreq(1) allfreq(end)];
+  sentcoh       = ft_selectdata(cfg,sentcoh);
+  coi           = 1:size(sentcoh.labelcmb,1);
 
   % allocate memory
   numchan  = size(sentcoh.cohspctrm,1);
   peak     = zeros(numchan,12); % assume not more than 12 peaks detected per channel
   val      = zeros(numchan,12); % keep count which frequencies have peaks in a binary matrix (1 = peak)
-  fcohpeak = zeros(numchan,numel(sentcoh.freq)); % binary matrix to record pre/absence of peak
+  fcohpeak = zeros(numchan,numel(allfreq)); % binary matrix to record pre/absence of peak
 
   % Difficult to determine subject specific threshold
   % using heuristic of 0.1; option to not set a threshold. 
-  thres    = 0.1;
+  thres    = 0.02;
 
   for chancnt = 1:numchan
-    [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak 
-    tmp    = sentcoh.freq(p);   % determine frequency from peak value
+    [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak   
+    tmp    = allfreq(p);   % determine frequency from peak value
 
     if ~isempty(p)              
-      fcohpeak(chancnt,:) = ismember(sentcoh.freq,tmp);
+      fcohpeak(chancnt,:) = ismember(allfreq,tmp);
     end
 
     if ~isempty(p)         % store all peaks and values
@@ -79,36 +80,45 @@ for k = 1:102
   numpeak(k,:)            = sum(fcohpeak,1);
 end                        % subjloop
 
-save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage1','numpeak');
+  
+  switch condition
+    case 'wl'
+      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001wl','numpeak');
+    case 'sent'
+      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001sent','numpeak');
+    case 'common' 
+      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001common','numpeak');
+  end
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% standardize and smooth at the single-subject level, then do a second round of peak detection
 %  after first round, the peaks are still not that clear
 
-
 [subj,s]       = mous_db_getfilename('allA','subjectname');
-freq           = 0:0.5:100;
-peakallsubj    = zeros(numel(subj),numel(freq)); % exclude 0 Hz
-cohallsubj     = zeros(numel(subj),numel(freq));
+allfreq           = 0.5:0.5:30;
+peakallsubj    = zeros(numel(subj),numel(allfreq)); % exclude 0 Hz
+cohallsubj     = zeros(numel(subj),numel(allfreq));
 for k = 1:102
-  mous_db_getdata(subj{k},'meg_coh_sensor_0-100Hz_axial','/project/3011020.09/MEG/');
-  
-  if size(sentcoh.labelcmb,1) == 548
-    sentcoh.cohspctrm = sentcoh.cohspctrm(275:end,:);
-    sentcoh.labelcmb = sentcoh.labelcmb(275:end,:);
-    coi  = 1:274;
-  else
-    sentcoh.cohspctrm = sentcoh.cohspctrm(274:end,:);
-    sentcoh.labelcmb = sentcoh.labelcmb(274:end,:);
-    coi  = 1:273;
+  mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
+
+  switch condition
+  case 'wl'
+    sentcoh = wlcoh;
+  case 'common' 
+    sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
   end
+  
+  cfg = [];
+  cfg.frequency = [allfreq(1) allfreq(end)];
+  sentcoh       = ft_selectdata(cfg,sentcoh);
+  coi           = 1:size(sentcoh.labelcmb,1);
   
   sentcoh.cohspctrm = ft_preproc_smooth(numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),2); 
   cohallsubj(k,:)   = sentcoh.cohspctrm; % smoothed and standardized data from all subjs
   
-%   thres    = 2;  % first attempt
-  thres  = 5;      % second attempt
-%   thres  = 4;      % third attempt
+  thres  = 2;      % thres =2, and thres=4 have also been tried but less optimal
+
   [p,v]  = peakdetect3NL(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
   tmp    = sentcoh.freq(p); % determine frequency from peak value
   if ~isempty(p)            % keep count which frequencies have peaks in a binary matrix (1 = peak)
@@ -128,17 +138,17 @@ end      % subj loop
 % beta  13  - 30   (13  - 30)
 % gamma 31  - 100
 
-allfreq = 0:0.5:100;
-peakfreqfirst  = nan(102,5); % matrix to store subject specific peak for each frequency range
-peakfreqsecond = nan(102,5); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
-delta   = 1:7;    % indices of sentcoh.freq
-theta   = 9:15;
-alpha   = 17:25;
-beta    = 27:61;
-gamma   = 64:201; % gamma peaks are not reliable, but computed for completeness sake; descriptive data
+allfreq = 0.5:0.5:30;
+peakfreqfirst  = nan(60,4); % matrix to store subject specific peak for each frequency range
+peakfreqsecond = nan(60,4); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
+delta   = 1:6;    % indices of sentcoh.freq
+theta   = 8:14;
+alpha   = 16:24;
+beta    = 26:60;
+
 
 for sc = 1:102
-  for fb = 1:5
+  for fb = 1:4
     % assign frequency range 
       if fb == 1
         frange = delta;
@@ -148,9 +158,7 @@ for sc = 1:102
         frange = alpha;
       elseif fb == 4
         frange = beta;
-      elseif fb == 5
-        frange = gamma;
-      end   
+      end
 
       % If peak is present in frequency range, assign it to freqrange
       % 1. max peak in one matrix
@@ -169,48 +177,56 @@ for sc = 1:102
   end
 end
 
-save('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3','peakfreqfirst','peakfreqsecond','cohallsubj');
+  
+switch condition
+  case 'wl'
+    save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_wl','peakfreqfirst','peakfreqsecond','cohallsubj');
+  case 'sent'
+    save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_sent','peakfreqfirst','peakfreqsecond','cohallsubj');
+  case 'common'
+    save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_common','peakfreqfirst','peakfreqsecond','cohallsubj');
+end
 
 
 %% plot histogram of peak frequencies
-figure;subplot(5,1,1), hist(peakfreqfirst(:,1),0:0.5:3);
-subplot(5,1,2), hist(peakfreqfirst(:,2),4:0.5:7);
-subplot(5,1,3), hist(peakfreqfirst(:,3),8:0.5:12);
-subplot(5,1,4), hist(peakfreqfirst(:,4),13:0.5:30);
-subplot(5,1,5), hist(peakfreqfirst(:,5),31:0.5:100);
-
-figure;subplot(5,1,1), hist(peakfreqsecond(:,1),0:0.5:3);
-subplot(5,1,2), hist(peakfreqsecond(:,2),4:0.5:7);
-subplot(5,1,3), hist(peakfreqsecond(:,3),8:0.5:12);
-subplot(5,1,4), hist(peakfreqsecond(:,4),13:0.5:30);
-subplot(5,1,5), hist(peakfreqsecond(:,5),31:0.5:100);
-
-[subj,s] = mous_db_getfilename('allA','subjectname');
-allfreq = 0:0.5:100;
-x = 1:10
-figure; subplot(numel(x),1,1), plot(allfreq,cohallsubj(x(1),:));
-for m = x(2):numel(x)
-  subplot(numel(x),1,m), plot(allfreq,cohallsubj(m,:));
-end
-% fprintf('speech-MEG coherence frequency peaks: subj %s - %s',subj{x(1)}, subj{x(end)});
-
-s = 11:20
-figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
-for m = 2:10
-  subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
-end
-
-s = 61:70
-figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
-for m = 2:10
-  subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
-end
-
-s = 91:100
-figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
-for m = 2:10
-  subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
-end
+% figure;subplot(5,1,1), hist(peakfreqfirst(:,1),0:0.5:3);
+% subplot(5,1,2), hist(peakfreqfirst(:,2),4:0.5:7);
+% subplot(5,1,3), hist(peakfreqfirst(:,3),8:0.5:12);
+% subplot(5,1,4), hist(peakfreqfirst(:,4),13:0.5:30);
+% subplot(5,1,5), hist(peakfreqfirst(:,5),31:0.5:100);
+% 
+% figure;subplot(5,1,1), hist(peakfreqsecond(:,1),0:0.5:3);
+% subplot(5,1,2), hist(peakfreqsecond(:,2),4:0.5:7);
+% subplot(5,1,3), hist(peakfreqsecond(:,3),8:0.5:12);
+% subplot(5,1,4), hist(peakfreqsecond(:,4),13:0.5:30);
+% subplot(5,1,5), hist(peakfreqsecond(:,5),31:0.5:100);
+% 
+% [subj,s] = mous_db_getfilename('allA','subjectname');
+% allfreq = 0:0.5:100;
+% x = 1:10
+% figure; subplot(numel(x),1,1), plot(allfreq,cohallsubj(x(1),:));
+% for m = x(2):numel(x)
+%   subplot(numel(x),1,m), plot(allfreq,cohallsubj(m,:));
+% end
+% % fprintf('speech-MEG coherence frequency peaks: subj %s - %s',subj{x(1)}, subj{x(end)});
+% 
+% s = 11:20
+% figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
+% for m = 2:10
+%   subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
+% end
+% 
+% s = 61:70
+% figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
+% for m = 2:10
+%   subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
+% end
+% 
+% s = 91:100
+% figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
+% for m = 2:10
+%   subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
+% end
 
 
 %% notes
