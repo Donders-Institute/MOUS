@@ -1,12 +1,13 @@
-function [varargout] = mous_neuralspeechcoherence_sourcedata(subjectname,foi,varargin)
+
+function [varargout] = mous_neuralspeechcoherence_sourcedata(subjectname,foi,cdtn,varargin)
 % mous_neuralspeechcoherence_sourcedata computes source-level data for the
 % specified frequency(ies).
 % Raw data is preprocessed once, and then use for all coherence calculations 
 % NL 01-02-2015
 
-if nargin < 3
+if nargin < 4
   datpp = [];
-elseif nargin == 3
+elseif nargin == 4
   datpp = varargin{1};
 end
 
@@ -84,7 +85,8 @@ end
 
 % subj x freq range matrix
 [subj,~] = mous_db_getfilename('allA','subjectname');
-load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3');
+root     = '/project/3011020.09/nielam/groupresults/coh/speechenvelope/';
+load([root,'/coherencePeakdetect_stage2_thres001_smoothing_',cdtn]);
 idx      = find(ismember(subj,subjectname));
 
 % get foi
@@ -158,7 +160,7 @@ sourceall     = ft_sourceanalysis(cfg,fourier3);
 varargout{1} = sourcesen;
 varargout{2} = sourcewl;
 varargout{3} = sourceall;
-if nargout > 1
+if nargout > 3
   varargout{4} = datpp;
 end
 
