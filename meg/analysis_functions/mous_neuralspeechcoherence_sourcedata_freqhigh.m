@@ -262,7 +262,7 @@ trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
-cfg.trl        = trl(1:10,:);
+cfg.trl        = trl;
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
