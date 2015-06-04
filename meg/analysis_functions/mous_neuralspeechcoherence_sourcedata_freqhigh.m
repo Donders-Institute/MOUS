@@ -1,4 +1,4 @@
-function [varargout] = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,foi,cdtn,sourcerange,varargin)
+function [varargout] = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,foi,sourcerange,cdtn,varargin)
 % mous_neuralspeechcoherence_sourcedata_high computes coherence at the
 % source-level between the gamma enveloep and the speech signal
 % Definition of preprocessed data includes all processing steps that are
@@ -146,7 +146,12 @@ if isempty(sourcedata1)
 
   % select subset of sources
   filt = cat(1,source.avg.filter{source.inside}); % one filter per voxel(grid): 5798 x 273datdd
-  filt = filt(sourcerange(1):sourcerange(2),:);
+  if sourcerange(2) == 8196
+    endsource = numel(find(istrue(source.inside))); % some subjs (A2017) have 8194 insides
+    filt = filt(sourcerange(1):endsource,:);
+  else
+    filt = filt(sourcerange(1):sourcerange(2),:);
+  end
 
   for trialloop = 1:length(data1.trial)
     sourcedata1.trial{trialloop} = abs(filt*data1.trial{trialloop});   % take abs for envelope
@@ -236,25 +241,6 @@ if nargout > 3
   varargout{5} = sourcedata2;
   varargout{6} = sourcedata3;
 end
-%% place into source-level structure for visualization purposes
-%  get sourcemodel for 3D grid structure
-% mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', '/project/3011020.09/nielam/');
-% sourcemodel = rmfield(sourcemodel, 'leadfield');
-% if isfield(sourcemodel, 'cfg')
-%   sourcemodel = rmfield(sourcemodel, 'cfg');
-% end
-% 
-% % update sourcemodel.inside to be logical
-% sourcemodel.insideold = sourcemodel.inside;
-% sourcemodel.inside    = false(size(sourcemodel.pos,1),1);
-% sourcemodel.inside(sourcemodel.insideold) = true;
-% sourcemodel           = rmfield(sourcemodel,{'insideold','outside'});
-% 
-% % insert coherence data to sourcemodel
-% sourcemodel.coh       = zeros(size(sourcemodel.pos,1),1);
-% sourcemodel.coh(sourcemodel.inside) = coherence.cohspctrm(1:5798,5799);
-% sourcemodel.freq      = coherence.freq;
-% % sourcemodel.label     = coherence.label;
 
 
 %%%%%%%%%%%%%%%
@@ -276,7 +262,7 @@ trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
-cfg.trl        = trl;
+cfg.trl        = trl(1:10,:);
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
