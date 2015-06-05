@@ -131,8 +131,16 @@ if isempty(sourcedata1)
   % turn sensor-data into source-data
   % multiply sensor-level data by source.avg.filter of each voxel (inside)
   % aka. extract virtual-channel time-series
-
-  % sourcedata mimics raw data structure (need time,trial,label fields)
+  
+  % Engage in option to select subset of sources i.e. some subjects have <8196 inside voxels
+  % A2017 has 8194, A2035 has 8193
+  filt = cat(1,source.avg.filter{source.inside}); 
+  if sourcerange(2) == 8196
+    sourcerange(2)  =  numel(find(istrue(source.inside))); 
+  end
+  filt = filt(sourcerange(1):sourcerange(2),:);
+  
+  % Create sourcedata structure to mimic raw data structure (need time,trial,label fields)
   sourcedata1      = [];
   sourcedata1.time = data1.time;
   for k = sourcerange(1):sourcerange(2)
@@ -144,15 +152,7 @@ if isempty(sourcedata1)
   sourcedata2 = sourcedata1; sourcedata2.time = data2.time;
   sourcedata3 = sourcedata1; sourcedata3.time = datpp.time;
 
-  % select subset of sources
-  filt = cat(1,source.avg.filter{source.inside}); % one filter per voxel(grid): 5798 x 273datdd
-  if sourcerange(2) == 8196
-    endsource = numel(find(istrue(source.inside))); % some subjs (A2017) have 8194 insides
-    filt = filt(sourcerange(1):endsource,:);
-  else
-    filt = filt(sourcerange(1):sourcerange(2),:);
-  end
-
+ 
   for trialloop = 1:length(data1.trial)
     sourcedata1.trial{trialloop} = abs(filt*data1.trial{trialloop});   % take abs for envelope
   end
@@ -262,7 +262,7 @@ trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
-cfg.trl        = trl;
+cfg.trl        = trl(1:10,:);
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
