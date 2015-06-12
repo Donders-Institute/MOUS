@@ -4,7 +4,6 @@ function [dataout] = mous_mne_ds(data, varargin)
 % range is 400-500, and windowsize 100, the timepoints cannot be larger
 % than 1)
 
-
 dataout = data;
 param = ft_getopt(varargin, 'parameter', 'avg.pow');
 range = ft_getopt(varargin, 'range', [50 550]);
@@ -21,7 +20,7 @@ tmptime = zeros(1,timepoints);
 
 for i = 1:timepoints
     start = nearest(data.time, range(1));
-    stop = nearest(data.time, range(1)+0.1);
+    stop = nearest(data.time, range(1)+windowsize);
     tmpout(:,i) = nanmean(tmpdat(:,start:stop),2);
     tmptime(1,i) = nanmean(data.time(start:stop));
     range(1) = range(1) + windowsize;
