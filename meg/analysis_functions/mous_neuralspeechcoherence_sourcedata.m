@@ -116,7 +116,10 @@ fourier2       = ft_freqanalysis(cfg, data2);
 
 selchan = match_str(fourier2.label, {'audio_avg'});
 fourier1.fourierspctrm(:,selchan,:) = fourier1.fourierspctrm(:,selchan,:)./abs(fourier1.fourierspctrm(:,selchan,:));
-fourier2.fourierspctrm(:,selchan,:) = fourier2.fourierspctrm(:,selchan,:)./abs(fourier2.fourierspctrm(:,selchan,:));
+
+if strcmp(cdtn,'common') || strcmp(cdtn,'wl')
+  fourier2.fourierspctrm(:,selchan,:) = fourier2.fourierspctrm(:,selchan,:)./abs(fourier2.fourierspctrm(:,selchan,:));
+end
 
 % create a condition with sentence and word lists
 cfg  = [];
@@ -151,17 +154,26 @@ sourcesen     = ft_sourceanalysis(cfg,fourier1);
 % made a hack at line 449; 08-04-2012 - this was removed when problem
 % couldnt be replicated
 
-cfg.grad      = fourier2.grad;
-sourcewl      = ft_sourceanalysis(cfg,fourier2);
-cfg.grad      = fourier1.grad;
-sourceall     = ft_sourceanalysis(cfg,fourier3);
+if strcmp(cdtn,'common') || strcmp(cdtn,'wl')
+  cfg.grad      = fourier2.grad;
+  sourcewl      = ft_sourceanalysis(cfg,fourier2);
+  cfg.grad      = fourier1.grad;
+  sourceall     = ft_sourceanalysis(cfg,fourier3);
+end
 
 % return results
-varargout{1} = sourcesen;
-varargout{2} = sourcewl;
-varargout{3} = sourceall;
-if nargout > 3
-  varargout{4} = datpp;
+if strcmp(cdtn,'common') || strcmp(cdtn,'wl')
+  varargout{1} = sourcesen;
+  varargout{2} = sourcewl;
+  varargout{3} = sourceall;
+  if nargout > 3
+    varargout{4} = datpp;
+  end
+else
+  varargout{1} = sourcesen;
+  if nargout > 1
+    varargout{2} = datpp;
+  end
 end
 
 %%%%%%%%%%%%%%%
