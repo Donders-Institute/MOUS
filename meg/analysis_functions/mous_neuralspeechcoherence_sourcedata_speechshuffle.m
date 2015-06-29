@@ -1,4 +1,4 @@
-function mous_neuralspeechcoherence_sourcedata_speechshuffle(subjectname,foi,numshuffle,varargin)
+function [varargout] = mous_neuralspeechcoherence_sourcedata_speechshuffle(subjectname,foi,numshuffle,varargin)
 % mous_neuralspeechcoherence_sourcedata computes source-level data shuffled
 % pairings of the MEG data and speech data
 % Raw data is preprocessed once, and then use for all coherence calculations 
@@ -70,8 +70,8 @@ end
   cfg.trials = find(ismember(datpp.trialinfo(:,2),[1 5])); % sent
   data1  = ft_selectdata(cfg,datpp); 
 
-  cfg.trials = find(ismember(datpp.trialinfo(:,2),[3 7])); % WL
-  data2  = ft_selectdata(cfg,datpp); 
+%   cfg.trials = find(ismember(datpp.trialinfo(:,2),[3 7])); % WL
+%   data2  = ft_selectdata(cfg,datpp); 
 
   
 %% use peak frequency for each subject
@@ -109,17 +109,12 @@ cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';
 cfg.channel    = {'all' '-UADC003'};
 fourier1       = ft_freqanalysis(cfg, data1);
-fourier2       = ft_freqanalysis(cfg, data2);
 
+% normalize
 % rpttap X chan
 selchan = match_str(fourier1.label, {'audio_avg'});
 fourier1.fourierspctrm(:,selchan,:) = fourier1.fourierspctrm(:,selchan,:)./abs(fourier1.fourierspctrm(:,selchan,:));
-fourier2.fourierspctrm(:,selchan,:) = fourier2.fourierspctrm(:,selchan,:)./abs(fourier2.fourierspctrm(:,selchan,:));
 
-% create a condition with sentence and word lists
-cfg  = [];
-cfg.parameter = 'fourierspctrm'; 
-fourier3      = ft_appendfreq(cfg,fourier1,fourier2);
 
 %% shuffle speech
 % cannot shuffle prior to cutting data into fragments because each trial
@@ -158,64 +153,28 @@ cfg.grad      = fourier1.grad;
 sourcesen     = ft_sourceanalysis(cfg,fourier1);
 
 %% compute sensor-level shuffled coherence and project thru spatial filter
-%  matrix multiply neural(fourierspectra) x %  speech(fourierspectra)  =
+%  matrix multiply neural(fourierspectra) x  speech(fourierspectra)  =
 %  source projection of fourier values; does NOT calculate coherence
 
-for k = 1:numshuffle
-  freqdata           = fourier1;
-  freqdata.fourierspctrm(:,selchan) = speechshuffle1(:,k);
-  cfg.grid.filter    = sourcesen.avg.filter;
-  tmp                = ft_sourceanalysis(cfg,freqdata);
-  sourcesenshuf(:,k) = tmp.avg.coh;
+%  neural x speech
+%  abs(filt*fourier1'*fourier2)
+filt = cat(1,sourcesen.avg.filter{:});
+tmp  = fourier1.fourierspctrm(:,1:273)' * speechshuffle1;
+sourcesenshuf = abs(filt*tmp);
+
+% thres05  = prctile(sourcesenshuf,95,2);
+% figure;plot(thres05,'r'); hold on; plot(sourcesen.avg.coh,'k')
+% idx      = find(sourcesen.avg.coh <= thres05);
+% mask     = sourcesen.avg.coh;
+% mask(idx)= NaN;
+
+
+varargout{1} = sourcesen;
+varargout{2} = sourcesenshuf;
+if nargot > 2
+  varargout{3} = datpp;
 end
-% senscoh        = fourier1.fourierspctrm(:,1:273)'*speechshuffle1; % chan-rpttap X rpttap-1
-% filter         = cat(1,sourcesen.avg.filter{:});  % 8196x273
-% sourcesenshuf  = filter*senscoh;
 
-mous_db_putdata(subjectname,'meg_coh_cohshuffle_sourcedata_delta','sourcesen','sourcesenshuf');
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % average MEG-speechshuffle pairs
-% for k = 1:numshuffle
-%   if k == 1
-%     senshuf = sourcesenshuf{k};
-%     allshuf = sourceallshuf{k};
-%   else
-%     senshuf.avg.coh = senshuf.avg.coh + sourcesenshuf{k}.avg.coh;
-%     allshuf.avg.coh = allshuf.avg.coh + sourceallshuf{k}.avg.coh;
-%   end
-% end
-% 
-% senshuf.avg.coh/numel(subj);
-% allshuf.avg.coh/numel(subj);
-% 
-% %% pass sensor-level coherence through spatial filter
-% for k = 1:numshuffle
-%    
-%   % create current MEG-speechshuffle pair
-%   tmp1 = fourier1;
-%   tmp1.fourierspctrm(:,selchan) = speechshuffle1(:,k); % column vector
-%   
-%   tmp3 = fourier3;
-%   tmp3.fourierspctrm(:,selchan) = speechshuffle3(:,k);
-%   
-%   cfg.grid.filter = sourcesen.avg.filter;
-%   sourcesenshuf{k}     = ft_sourceanalysis(cfg,tmp1);
-%   cfg.grid.filter = sourceall.avg.filter;
-%   sourceallshuf{k}     = ft_sourceanalysis(cfg,tmp3);
-% end
-
-
-% plot observed coherence
-
-% plot average of shuffled coherence
-
-% % return results
-% varargout{1} = sourcesen;
-% varargout{2} = sourceall;
-% if nargout > 1
-%   varargout{3} = datpp;
-% end
 
 %%%%%%%%%%%%%%%
 %% subfunction%
