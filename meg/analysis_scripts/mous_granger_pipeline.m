@@ -12,8 +12,10 @@ if ~exist('dopreproc',      'var'), dopreproc      = 0; end
 if ~exist('dopreproc_sub',  'var'), dopreproc_sub  = 0; end
 if ~exist('dofreq',         'var'), dofreq         = 0; end
 if ~exist('dofreq_sub',     'var'), dofreq_sub     = 0; end
+if ~exist('dofreq_parcellate_stratify', 'var'), dofreq_parcellate_stratify = 0; end
 if ~exist('dolcmv',         'var'), dolcmv         = 0; end
 if ~exist('doparcellate',   'var'), doparcellate   = 0; end
+if ~exist('doparcellate_stratify', 'var'), doparcellate_stratify = 0; end
 if ~exist('dogranger',      'var'), dogranger      = 0; end
 if ~exist('dogranger_sent', 'var'), dogranger_sent = 0; end
 if ~exist('dogranger_seq',  'var'), dogranger_seq  = 0; end
@@ -271,6 +273,378 @@ if doparcellate
   mous_db_putdata(subjectname, 'meg_granger_parcellation', 'parcellation', 'source', rootdir);
 end
  
+if doparcellate_stratify
+  % This step follows a dopreproc_sub (in memory) and a dolcmv/doparcellate
+  % combo. The idea is to do a stratification of the trials (across the 4
+  % conditions), based on the time-domain total variance per parcel-pair
+  % used for the connectivity analysis, as well as for the lexical
+  % frequency. It returns a boolean matrix with the selected trials for
+  % each condition as a function of parcel pair.
+  % This step has been implemented 20150702
+  if ~exist('data', 'var'),
+    error('data needs to be computed, because it is not saved in the current version of the pipeline, set dopreproc = 1');
+  end
+
+  % select only from 200 ms post word onset
+  %data = ft_selectdata(data, 'toilim', [0.2 0.6]);
+  
+  % get the spatial filters
+  mous_db_getdata(subjectname, 'meg_granger_parcellation', rootdir);
+  
+  % get a specification of the parcel combination
+  load(fullfile('/project/3011020.09/MEG/misc','grangermask'), 'labelcmb');
+  
+  % compute a per trial variance measure of the parcels.
+  label = unique(labelcmb(:));
+  V = zeros(numel(data.trial), numel(label));
+  F = cell(numel(label),1);
+  for k = 1:numel(label)
+    fprintf('%d/%d\n',k,numel(label));
+    ix = match_str(parcellation.label, label{k});
+    F{k} = parcellation.filter{ix}(1:2,:);  
+  end
+  F = cat(1,F{:});
+  for m = 1:numel(data.trial)
+    fprintf('%d/%d\n',m,numel(data.trial));
+    trial = F*data.trial{m};
+    trial = trial - repmat(mean(trial,2),[1 size(trial,2)]);
+    V(m,:) = (sum(trial(1:2:end,:).^2,2)'+sum(trial(2:2:end,:).^2,2)')./(size(trial,2)-1);
+  end
+  
+  % get some additional quantities
+  L = log10(extract_lexfreq(data.trialinfo));
+  T = data.trialinfo(:,2);
+  [indx_early, indx_late] = extract_earlylate(data.trialinfo);
+  
+  % extract the indices of the trials belonging to the individual
+  % conditions
+  indx1 = intersect(find(ismember(T,[1 2 5 6])), indx_early);
+  indx2 = intersect(find(ismember(T,[1 2 5 6])), indx_late);
+  indx3 = intersect(find(ismember(T,[3 4 7 8])), indx_early);
+  indx4 = intersect(find(ismember(T,[3 4 7 8])), indx_late);
+  
+  cfg             = [];
+  cfg.equalbinavg = 'no';
+  cfg.binedges{1} = -2:0.5:5; % this is the range for the lexfreq
+  
+  sel1 = false(size(labelcmb,1), numel(indx1));
+  sel2 = false(size(labelcmb,1), numel(indx2));
+  sel3 = false(size(labelcmb,1), numel(indx3));
+  sel4 = false(size(labelcmb,1), numel(indx4));
+  for k = 1:size(labelcmb,1)
+    ix = match_str(label,labelcmb(k,:)'); 
+    v  = log10(V(:,ix));
+    minv = min(v,[],1);
+    maxv = max(v,[],1);
+    cfg.binedges{2} = floor(minv(1)*5)/5:0.2:ceil(maxv(1)*5)/5;
+    cfg.binedges{3} = floor(minv(2)*5)/5:0.2:ceil(maxv(2)*5)/5;
+    out = ft_stratify(cfg, [L(indx1) v(indx1,:)]', [L(indx2) v(indx2,:)]', [L(indx3) v(indx3,:)]', [L(indx4) v(indx4,:)]');
+    sel1(k,:) = isfinite(out{1}(1,:));
+    sel2(k,:) = isfinite(out{2}(1,:));
+    sel3(k,:) = isfinite(out{3}(1,:));
+    sel4(k,:) = isfinite(out{4}(1,:));
+  end
+  
+  % compute the source level stratified ERF per parcel-pair (for later
+  % to be used later for correction)
+  
+  % first make a list of indices for efficient reordering
+  for m = 1:size(labelcmb,1)
+    ix = match_str(label, labelcmb(m,:)');
+    ix = [(ix(:)-1)*2+1 (ix(:)-1)*2+2]';
+    ix = ix(:);
+    Ix(:,m) = ix;
+  end
+  
+  for k = 1:numel(data.trial)
+    fprintf('%d/%d\n',k,numel(data.trial));
+    if any(k==indx1),
+      cndtn = 1;
+      sel   = reshape(transpose(repmat(sel1(:,indx1==k),[1 4])),[],1);
+    elseif any(k==indx2),
+      cndtn = 2;
+      sel   = reshape(transpose(repmat(sel1(:,indx2==k),[1 4])),[],1);
+    elseif any(k==indx3),
+      cndtn = 3;
+      sel   = reshape(transpose(repmat(sel1(:,indx3==k),[1 4])),[],1);
+    elseif any(k==indx4),
+      cndtn = 4;
+      sel   = reshape(transpose(repmat(sel1(:,indx4==k),[1 4])),[],1);
+     end
+  
+    if k==1
+      % initialize the averages
+      avg       = cell(1,4);
+      avg_strat = avg;
+      for m = 1:numel(avg)
+        avg{m}(4*size(labelcmb,1),numel(data.time{1}))       = 0;
+        avg_strat{m}(4*size(labelcmb,1),numel(data.time{1})) = 0;
+      end
+    end
+    
+    tmpdat = F*data.trial{k};
+    tmp    = tmpdat(Ix,:);
+    
+    avg{1,cndtn}       = avg{1,cndtn} + tmp;
+    avg_strat{1,cndtn}(sel,:) = avg_strat{1,cndtn}(sel,:) + tmp(sel,:);
+  end
+ 
+  % normalise for the number of trials that contributed
+  avg{1} = avg{1}./numel(indx1);
+  avg{2} = avg{2}./numel(indx2);
+  avg{3} = avg{3}./numel(indx3);
+  avg{4} = avg{4}./numel(indx4);
+  for m = 1:size(labelcmb,1)
+    avg_strat{1}((m-1)*4+(1:4),:) = avg_strat{1}((m-1)*4+(1:4),:)./sum(sel1(m,:));
+    avg_strat{2}((m-1)*4+(1:4),:) = avg_strat{2}((m-1)*4+(1:4),:)./sum(sel2(m,:));
+    avg_strat{3}((m-1)*4+(1:4),:) = avg_strat{3}((m-1)*4+(1:4),:)./sum(sel3(m,:));
+    avg_strat{4}((m-1)*4+(1:4),:) = avg_strat{4}((m-1)*4+(1:4),:)./sum(sel4(m,:));
+  end
+  
+  mous_db_putdata(subjectname, 'meg_granger_parcellation_stratify', 'avg', 'avg_strat', 'sel1', 'sel2', 'sel3', 'sel4', 'indx1', 'indx2', 'indx3', 'indx4', 'V', 'L', 'label', 'labelcmb', rootdir);
+end
+
+if dofreq_parcellate_stratify
+  % This step computes the frequency transform at the source level for the
+  % stratified trials, i.e. different trials per parcel pair. It represents
+  % the frequency data as cell array of frequency structures, one per
+  % parcel-pair.
+  if ~exist('data', 'var'),
+    error('data needs to be computed, because it is not saved in the current version of the pipeline, set dopreproc = 1');
+  end
+  mous_db_getdata(subjectname, 'meg_granger_parcellation_stratify', rootdir);
+  
+  if numel(data.trial)~=max([indx1;indx2;indx3;indx4]),
+    error('mismatch in the expected number of trials');
+  end
+  
+  % get the spatial filters in a single matrix
+  mous_db_getdata(subjectname, 'meg_granger_parcellation', rootdir);
+  
+  F = cell(numel(label),1);
+  for k = 1:numel(label)
+    fprintf('%d/%d\n',k,numel(label));
+    ix = match_str(parcellation.label, label{k});
+    F{k} = parcellation.filter{ix}(1:2,:);  
+  end
+  F = cat(1,F{:});
+   
+  % pre-specify the cfg for ft_freqanalysis
+  cfg        = [];
+  cfg.method = 'mtmfft';
+  cfg.output = 'fourier';
+  cfg.tapsmofrq = 7.5;
+  cfg.foilim = [0 300];
+  cfg.pad    = 1;
+  
+  
+  for offset = [0 0.1 0.2]
+    
+    % pre-create some dummy structures
+    tmp        = [];
+    tmp.freq   = 0:300;
+    tmp.dimord = 'chan_chan_freq';
+    tmp.crsspctrm = zeros(1505,16)+1i*zeros(1505,16);%zeros(4,4,301) + 1i.*zeros(4,4,301);
+    
+    % create the fourier-transform of the ERFs, for the specified latency
+    % the avg, and avg_strat matrices are ordered according to labelcmb (each
+    % quadruplet)
+    begsmp = nearest(data.time{1}, 0 + offset);
+    endsmp = nearest(data.time{1}, 0.4 - 1./data.fsample + offset);
+    tmp2.trial{1} = zeros(size(avg{1},1),480);
+    tmp2.time{1}  = data.time{1}(begsmp:endsmp);
+    for m = 1:size(avg{1},1)
+      tmp2.label{m,1} = ['chan',num2str(m,'%03d')];
+    end
+    
+    for m = 1:4
+      avg_fourier{m} = tmp2;
+      avg_fourier{m}.trial{1} = avg{m}(:,begsmp:endsmp);
+      avg_fourier{m} = ft_freqanalysis(cfg, avg_fourier{m});
+      avg_strat_fourier{m} = tmp2;
+      avg_strat_fourier{m}.trial{1} = avg_strat{m}(:,begsmp:endsmp);
+      avg_strat_fourier{m} = ft_freqanalysis(cfg, avg_strat_fourier{m});
+    end
+    
+    % loop over trials
+    for k = 1:numel(data.trial)
+      fprintf('%d/%d\n',k,numel(data.trial));
+      if any(k==indx1),
+        cndtn = 1;
+        sel   = sel1(:,indx1==k);
+      elseif any(k==indx2),
+        cndtn = 2;
+        sel   = sel2(:,indx2==k);
+      elseif any(k==indx3),
+        cndtn = 3;
+        sel   = sel3(:,indx3==k);
+      elseif any(k==indx4),
+        cndtn = 4;
+        sel   = sel4(:,indx4==k);
+      end
+      
+      if k==1,
+        % allocate the memory for the output
+        freq       = cell(size(labelcmb,1),4);
+        for m = 1:size(labelcmb,1)
+          tmplabel  = {[labelcmb{m,1},'_01'];[labelcmb{m,1},'_02'];[labelcmb{m,2},'_01'];[labelcmb{m,2},'_02']};
+          tmp.label = tmplabel;
+          freq{m,1} = tmp;
+          freq{m,2} = tmp;
+          freq{m,3} = tmp;
+          freq{m,4} = tmp;
+        end
+        freq_strat = freq;
+        
+        % make a sparse projection matrix, mapping tapers to frequencies
+        i1 = zeros(0,1);i2 = zeros(0,1);
+        for q = 1:301
+          i1((q-1)*5+(1:5)) = q;
+          i2((q-1)*5+(1:5)) = (q-1)*5+(1:5);
+        end
+        P = sparse(i1,i2,0.2*ones(size(i1)));
+        
+      end
+      
+      tmpdata    = ft_selectdata(data, 'rpt', k, 'toilim', [0 0.4-1./data.fsample]+offset);
+      tmpfreq    = ft_freqanalysis(cfg, tmpdata);
+      tmpfourier = F * reshape(permute(tmpfreq.fourierspctrm, [2 1 3]),size(F,2),[]); %2nvoxx(ntapxnfreq)
+      %tmpcsd     = zeros(301,4,4) + 1i*zeros(301,4,4);
+      %tmpcsd     = zeros(1505,16) + 1i*zeros(1505,16);
+      
+      for m = 1:size(labelcmb,1)
+        ix = match_str(label, labelcmb(m,:)');
+        ix = [(ix(:)-1)*2+1 (ix(:)-1)*2+2]';
+        ix = ix(:);
+        
+        tmp = transpose(tmpfourier(ix,:));
+        
+        % subtract the average (for now the unstratified, in order to not
+        % further complicate matters
+        tmp = tmp - reshape(permute(avg_fourier{cndtn}.fourierspctrm(:,(m-1)*4+(1:4),:), [1 3 2]),[],4);
+        
+        % this is a fancy way of computing the cross-spectrum
+        i1 = repmat(1:4,[1 4]);
+        i2 = [1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4];
+        tmpcsd = tmp(:,i1).*conj(tmp(:,i2));
+        
+        freq{m,cndtn}.crsspctrm = freq{m,cndtn}.crsspctrm + tmpcsd;
+        if sel(m),
+          freq_strat{m,cndtn}.crsspctrm = freq_strat{m,cndtn}.crsspctrm + tmpcsd;
+        end
+      end
+    end % for k = 1:numel(data.trial)
+    
+    % normalise for the number of trials that contributed
+    for m = 1:size(labelcmb,1)
+      freq{m,1}.crsspctrm = permute(reshape(P*freq{m,1}.crsspctrm./numel(indx1),[301 4 4]),[2 3 1]);
+      freq{m,2}.crsspctrm = permute(reshape(P*freq{m,2}.crsspctrm./numel(indx2),[301 4 4]),[2 3 1]);
+      freq{m,3}.crsspctrm = permute(reshape(P*freq{m,3}.crsspctrm./numel(indx3),[301 4 4]),[2 3 1]);
+      freq{m,4}.crsspctrm = permute(reshape(P*freq{m,4}.crsspctrm./numel(indx4),[301 4 4]),[2 3 1]);
+      freq_strat{m,1}.crsspctrm = permute(reshape(P*freq_strat{m,1}.crsspctrm./sum(sel1(m,:)),[301 4 4]),[2 3 1]);
+      freq_strat{m,2}.crsspctrm = permute(reshape(P*freq_strat{m,2}.crsspctrm./sum(sel2(m,:)),[301 4 4]),[2 3 1]);
+      freq_strat{m,3}.crsspctrm = permute(reshape(P*freq_strat{m,3}.crsspctrm./sum(sel3(m,:)),[301 4 4]),[2 3 1]);
+      freq_strat{m,4}.crsspctrm = permute(reshape(P*freq_strat{m,4}.crsspctrm./sum(sel4(m,:)),[301 4 4]),[2 3 1]);
+    end
+    
+    % compute granger
+    g1ab = zeros(size(labelcmb,1),256);
+    g2ab = zeros(size(labelcmb,1),256);
+    g3ab = zeros(size(labelcmb,1),256);
+    g4ab = zeros(size(labelcmb,1),256);
+    g1ba = zeros(size(labelcmb,1),256);
+    g2ba = zeros(size(labelcmb,1),256);
+    g3ba = zeros(size(labelcmb,1),256);
+    g4ba = zeros(size(labelcmb,1),256);
+    g1i = zeros(size(labelcmb,1),256);
+    g2i = zeros(size(labelcmb,1),256);
+    g3i = zeros(size(labelcmb,1),256);
+    g4i = zeros(size(labelcmb,1),256);
+    g1ab_strat = zeros(size(labelcmb,1),256);
+    g2ab_strat = zeros(size(labelcmb,1),256);
+    g3ab_strat = zeros(size(labelcmb,1),256);
+    g4ab_strat = zeros(size(labelcmb,1),256);
+    g1ba_strat = zeros(size(labelcmb,1),256);
+    g2ba_strat = zeros(size(labelcmb,1),256);
+    g3ba_strat = zeros(size(labelcmb,1),256);
+    g4ba_strat = zeros(size(labelcmb,1),256);
+    g1i_strat = zeros(size(labelcmb,1),256);
+    g2i_strat = zeros(size(labelcmb,1),256);
+    g3i_strat = zeros(size(labelcmb,1),256);
+    g4i_strat = zeros(size(labelcmb,1),256);
+    
+    for m = 1:size(labelcmb,1)
+      fprintf('%d/%d\n',m,size(labelcmb,1));
+      [tmpg1,tmpg2] = do_granger4x4(freq{m,1}.crsspctrm(:,:,1:256),0:255,1:4);
+      g1ab(m,:) = squeeze(tmpg1(1,2,:,:));
+      g1ba(m,:) = squeeze(tmpg1(2,1,:,:));
+      g1i(m,:)  = squeeze(tmpg2);
+      [tmpg1,tmpg2] = do_granger4x4(freq{m,2}.crsspctrm(:,:,1:256),0:255,1:4);
+      g2ab(m,:) = squeeze(tmpg1(1,2,:,:));
+      g2ba(m,:) = squeeze(tmpg1(2,1,:,:));
+      g2i(m,:)  = squeeze(tmpg2);
+      [tmpg1,tmpg2] = do_granger4x4(freq{m,3}.crsspctrm(:,:,1:256),0:255,1:4);
+      g3ab(m,:) = squeeze(tmpg1(1,2,:,:));
+      g3ba(m,:) = squeeze(tmpg1(2,1,:,:));
+      g3i(m,:)  = squeeze(tmpg2);
+      [tmpg1,tmpg2] = do_granger4x4(freq{m,4}.crsspctrm(:,:,1:256),0:255,1:4);
+      g4ab(m,:) = squeeze(tmpg1(1,2,:,:));
+      g4ba(m,:) = squeeze(tmpg1(2,1,:,:));
+      g4i(m,:)  = squeeze(tmpg2);
+      
+      [tmpg1,tmpg2] = do_granger4x4(freq_strat{m,1}.crsspctrm(:,:,1:256),0:255,1:4);
+      g1ab_strat(m,:) = squeeze(tmpg1(1,2,:,:));
+      g1ba_strat(m,:) = squeeze(tmpg1(2,1,:,:));
+      g1i_strat(m,:)  = squeeze(tmpg2);
+      [tmpg1,tmpg2] = do_granger4x4(freq_strat{m,2}.crsspctrm(:,:,1:256),0:255,1:4);
+      g2ab_strat(m,:) = squeeze(tmpg1(1,2,:,:));
+      g2ba_strat(m,:) = squeeze(tmpg1(2,1,:,:));
+      g2i_strat(m,:)  = squeeze(tmpg2);
+      [tmpg1,tmpg2] = do_granger4x4(freq_strat{m,3}.crsspctrm(:,:,1:256),0:255,1:4);
+      g3ab_strat(m,:) = squeeze(tmpg1(1,2,:,:));
+      g3ba_strat(m,:) = squeeze(tmpg1(2,1,:,:));
+      g3i_strat(m,:)  = squeeze(tmpg2);
+      [tmpg1,tmpg2] = do_granger4x4(freq_strat{m,4}.crsspctrm(:,:,1:256),0:255,1:4);
+      g4ab_strat(m,:) = squeeze(tmpg1(1,2,:,:));
+      g4ba_strat(m,:) = squeeze(tmpg1(2,1,:,:));
+      g4i_strat(m,:)  = squeeze(tmpg2);
+    end
+    granger.freq = 0:255;
+    granger.labelcmb = labelcmb;
+    granger.dimord   = 'chanbcmb_freq';
+    granger.sent_early = g1ab;
+    granger.sent_late  = g2ab;
+    granger.seq_early  = g3ab;
+    granger.seq_late   = g4ab;
+    granger.sent_early_2 = g1ba;
+    granger.sent_late_2  = g2ba;
+    granger.seq_early_2  = g3ba;
+    granger.seq_late_2   = g4ba;
+    granger.sent_early_i = g1i;
+    granger.sent_late_i  = g2i;
+    granger.seq_early_i  = g3i;
+    granger.seq_late_i   = g4i;
+    
+    granger_strat.freq = 0:255;
+    granger_strat.labelcmb = labelcmb;
+    granger_strat.dimord   = 'chanbcmb_freq';
+    granger_strat.sent_early = g1ab_strat;
+    granger_strat.sent_late  = g2ab_strat;
+    granger_strat.seq_early  = g3ab_strat;
+    granger_strat.seq_late   = g4ab_strat;
+    granger_strat.sent_early_2 = g1ba_strat;
+    granger_strat.sent_late_2  = g2ba_strat;
+    granger_strat.seq_early_2  = g3ba_strat;
+    granger_strat.seq_late_2   = g4ba_strat;
+    granger_strat.sent_early_i = g1i_strat;
+    granger_strat.sent_late_i  = g2i_strat;
+    granger_strat.seq_early_i  = g3i_strat;
+    granger_strat.seq_late_i   = g4i_strat;
+    
+    mous_db_putdata(subjectname, ['meg_granger_granger_roi_strat',num2str(round(offset*100),'%03d')], 'granger', 'granger_strat', rootdir);
+  end
+end
+
 if dogranger
   % do pairwise-parcel granger
   mous_db_getdata(subjectname, 'meg_granger_csd_seq',      rootdir);
@@ -510,6 +884,21 @@ if dogranger_earlylate2
       for j = 1:256
         tmp(:,:,j) = f*csd_all.crsspctrm(:,:,j)*f';
       end
+      
+      % variance normalization step, as mentioned in Martin's paper, to be
+      % necessary to evaluate the instantaneous influence strength; it does
+      % not affect the GC estimates.
+      doscale = 1;
+      if doscale
+        for j = 1:256
+          tmppow(:,j) = abs(diag(tmp(:,:,j)));
+        end
+        scale = diag(1./sqrt(sum(tmppow,2)./256));
+        for j = 1:256
+          tmp(:,:,j) = scale*tmp(:,:,j)*scale';
+        end
+      end
+      
       cmbindx = [ones(numel(indx2{k}),1) ones(numel(indx2{k}),1)*2 (3:2:size(tmp,1))' (4:2:size(tmp,1))'];
       
       [tmpg, tmpg_toti] = do_granger4x4(tmp, csd_all.freq(1:256), cmbindx);
@@ -557,15 +946,23 @@ if dograngerpow_earlylate
   sel = find(~cellfun(@isempty, parcellation.filter));
   tmp = parcellation.filter(sel);
   for k = 1:numel(tmp)
-    F(k,:) = tmp{k}(1,:);
+    F((k-1)*2+(1:2),:) = tmp{k}(1:2,:);
   end
-   
+  
+  % create a matrix to quickly sum 2 consecutive rows (the first 2
+  % components were used for each parcel
+  P = zeros(size(F,1)./2, size(F,1));
+  for k = 1:size(P,1)
+    P(k,(k-1)*2+(1:2)) = 1;
+  end
+  
+  
   csd_all   = ft_struct2double(csd_sent_early); clear csd_sent_early;
   powspctrm = zeros(size(F,1),256); % anecdotally this speeds up the fft
   for k = 1:size(powspctrm,2)
     powspctrm(:,k) = abs(diag(F*csd_all.crsspctrm(:,:,k)*F'));
   end
-  pow.powspctrm = powspctrm;
+  pow.powspctrm = P*powspctrm;
   pow.label     = parcellation.label(sel);
   pow.freq      = csd_all.freq(1:256);
   pow_sent_early = pow;
@@ -576,20 +973,19 @@ if dograngerpow_earlylate
   for k = 1:size(powspctrm,2)
     powspctrm(:,k) = abs(diag(F*csd_all.crsspctrm(:,:,k)*F'));
   end
-  pow.powspctrm = powspctrm;
+  pow.powspctrm = P*powspctrm;
   pow.label     = parcellation.label(sel);
   pow.freq      = csd_all.freq(1:256);
   pow_sent_late = pow;
   
   mous_db_getdata(subjectname, 'meg_granger_csd_seq_early', rootdir);
-  mous_db_getdata(subjectname, 'meg_granger_parcellation',   rootdir);
   csd_all   = ft_struct2double(csd_seq_early); clear csd_seq_early;
   crsspctrm = zeros(size(F,1),size(F,1),256); % anecdotally this speeds up the fft
   powspctrm = zeros(size(F,1),256); % anecdotally this speeds up the fft
   for k = 1:size(powspctrm,2)
     powspctrm(:,k) = abs(diag(F*csd_all.crsspctrm(:,:,k)*F'));
   end
-  pow.powspctrm = powspctrm;
+  pow.powspctrm = P*powspctrm;
   pow.label     = parcellation.label(sel);
   pow.freq      = csd_all.freq(1:256);
   pow_seq_early = pow;
@@ -600,7 +996,7 @@ if dograngerpow_earlylate
   for k = 1:size(powspctrm,2)
     powspctrm(:,k) = abs(diag(F*csd_all.crsspctrm(:,:,k)*F'));
   end
-  pow.powspctrm = powspctrm;
+  pow.powspctrm = P*powspctrm;
   pow.label     = parcellation.label(sel);
   pow.freq      = csd_all.freq(1:256);
   pow_seq_late  = pow;
