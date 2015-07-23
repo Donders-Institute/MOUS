@@ -112,19 +112,19 @@ cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';
 cfg.channel    = {'all' '-UADC003'};
 fourier1       = ft_freqanalysis(cfg, data1);
-fourier2       = ft_freqanalysis(cfg, data2);
 
-selchan = match_str(fourier2.label, {'audio_avg'});
+selchan = match_str(fourier1.label, {'audio_avg'});
 fourier1.fourierspctrm(:,selchan,:) = fourier1.fourierspctrm(:,selchan,:)./abs(fourier1.fourierspctrm(:,selchan,:));
 
 if strcmp(cdtn,'common') || strcmp(cdtn,'wl')
+  fourier2       = ft_freqanalysis(cfg, data2);
   fourier2.fourierspctrm(:,selchan,:) = fourier2.fourierspctrm(:,selchan,:)./abs(fourier2.fourierspctrm(:,selchan,:));
-end
 
-% create a condition with sentence and word lists
-cfg  = [];
-cfg.parameter = 'fourierspctrm'; 
-fourier3      = ft_appendfreq(cfg,fourier1,fourier2);
+  % create a condition with sentence and word lists
+  cfg  = [];
+  cfg.parameter = 'fourierspctrm'; 
+  fourier3      = ft_appendfreq(cfg,fourier1,fourier2);
+end
 
 % load forward model (headmodel)
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
@@ -137,11 +137,12 @@ sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
 
 
 cfg = [];
-cfg.method    = 'dics';
-cfg.frequency = foi;
-cfg.refchan   = 'audio_avg';
-cfg.vol       = headmodel;
-cfg.grid      = sourcemodel;
+cfg.method      = 'dics';
+cfg.frequency   = foi;
+cfg.refchan     = 'audio_avg';
+cfg.vol         = headmodel;
+cfg.grid        = sourcemodel;
+cfg.grid.inside = true(8196,1);
 cfg.dics.fixedori     = 'yes';
 cfg.dics.realfilter   = 'yes';  % consider real+complex filter; complex may try to rotate back to 'original phase'
 cfg.dics.keepfilter   = 'yes'; 
@@ -159,17 +160,17 @@ if strcmp(cdtn,'common') || strcmp(cdtn,'wl')
   sourcewl      = ft_sourceanalysis(cfg,fourier2);
   cfg.grad      = fourier1.grad;
   sourceall     = ft_sourceanalysis(cfg,fourier3);
-end
 
-% return results
-if strcmp(cdtn,'common') || strcmp(cdtn,'wl')
+  % return results
   varargout{1} = sourcesen;
   varargout{2} = sourcewl;
   varargout{3} = sourceall;
   if nargout > 3
     varargout{4} = datpp;
   end
+  
 else
+  % return only sen
   varargout{1} = sourcesen;
   if nargout > 1
     varargout{2} = datpp;
@@ -196,7 +197,7 @@ trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
-cfg.trl        = trl;
+cfg.trl        = trl(1:15,:);
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
