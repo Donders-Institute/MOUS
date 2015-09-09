@@ -129,9 +129,6 @@ end
 % load forward model (headmodel)
 headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 
-% load sourcemodel   (grid); stick with 5798
-%mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', '/project/3011020.09/nielam/');
-
 % load sourcemodel surfreg
 sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
 
@@ -197,7 +194,7 @@ trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
-cfg.trl        = trl(1:15,:);
+cfg.trl        = trl;
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
