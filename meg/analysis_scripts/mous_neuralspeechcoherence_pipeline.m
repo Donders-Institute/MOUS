@@ -22,120 +22,210 @@ mous_neuralspeechcoherence_pipelineoptions;
 %  - use firws, is better than butterworth, but takes longer to compute
 
 if dosens
-  if isnumeric(cohfoi) 
+  if ~exist('gamfoi','var')
       tmp  = tokenize(cohfoi,'');
       suff = [num2str(tmp{1}(1)),'-',num2str(tmp{1}(2)),'Hz']; 
-    if exist('gamfoi','var') && isnumeric(gamfoi)
+      
+  elseif exist('gamfoi','var') && isnumeric(gamfoi)
       tmp  = tokenize(gamfoi,'');
-      suff = [suff,'_gamma',num2str(tmp{1}(1)),'-',num2str(tmp{1}(2)),'Hz'];
-    end
-  end
+      suff = ['_gamma',num2str(tmp{1}(1)),'-',num2str(tmp{1}(2)),'Hz'];
+      
+      if ~isnumeric(cohfoi)
+        [subjlist,~] = mous_db_getfilename('allA','subjectname');
+        root     = '/project/3011020.09/nielam/groupresults/coh/speechenvelope/';
+        load([root,'/coherencePeakdetect_stage2_thres001_smoothing_sent']);
 
-%%% sentence trials 
-%   if exist('gamfoi','var')
-%     [sentcohAX, wlcohAX, sentcohPL, wlcohPL] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi, gamfoi);
-%   else
-%     [sentcohAX, wlcohAX, sentcohPL, wlcohPL] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi);
-%   end
-%   sentcoh = sentcohAX;  wlcoh = wlcohAX;
-%   mous_db_putdata(subjectname, ['meg_coh_sensor_',suff,'_axial'],'sentcoh','wlcoh',rootdir);
-%   
-%   sentcoh = sentcohPL;  wlcoh = wlcohPL;
-%   mous_db_putdata(subjectname, ['meg_coh_sensor_',suff,'_planar'],'sentcoh','wlcoh',rootdir);
-
-%%% sentence and word list trials 
-  if exist('gamfoi','var')
-    [cohAX,cohPL] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi, gamfoi);
-  else
-    [cohAX, cohPL] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi);
+        idx      = find(ismember(subjlist,subjectname));
+        switch cohfoi 
+          case 'delta'
+            freq     = cohfoi;
+            cohfoi   = peakfreqfirst(idx,1);  % if NAN, will not enter next if-clause
+          case 'theta' 
+            freq     = cohfoi;
+            cohfoi   = peakfreqfirst(idx,2);
+        end
+      else
+        tmp  = tokenize(cohfoi,'');
+        freq = [num2str(tmp{1}(1)),'-',num2str(tmp{1}(2)),'Hz'];
+      end
   end
-% 
-%   sentcoh = sentcohAX;  wlcoh = wlcohAX;
-  mous_db_putdata(subjectname, ['meg_coh_sensor_',suff,'_alltrialstaps2_axial'],'cohAX','cohPL',rootdir);
   
-%   sentcoh = sentcohPL;  wlcoh = wlcohPL;
-  mous_db_putdata(subjectname, ['meg_coh_sensor_',suff,'_alltrialstaps2_planar'],'cohAX','cohPL',rootdir);
-end
+  if exist('gamfoi','var') && ~isnan(cohfoi(1))   % gamma with delta / theta (peak/range, therefore use (1))
+    suff = [freq,suff];
+    
+   [sentcohAX, wlcohAX, sentcohPL, wlcohPL] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi, gamfoi);
+    sentcoh = sentcohAX;  wlcoh = wlcohAX;
+    mous_db_putdata(subjectname, ['meg_coh_sensor_',suff,'_axial'],'sentcoh','wlcoh',rootdir);
 
+    sentcoh = sentcohPL;  wlcoh = wlcohPL;
+    mous_db_putdata(subjectname, ['meg_coh_sensor_',suff,'_planar'],'sentcoh','wlcoh',rootdir);
+
+  elseif ~exist('gamfoi','var')                        % low freqs
+    [sentcohAX, wlcohAX, sentcohPL, wlcohPL] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi);
+    sentcoh = sentcohAX;  wlcoh = wlcohAX;
+    mous_db_putdata(subjectname, ['meg_coh_sensor_',suff,'_axial'],'sentcoh','wlcoh',rootdir);
+
+    sentcoh = sentcohPL;  wlcoh = wlcohPL;
+    mous_db_putdata(subjectname, ['meg_coh_sensor_',suff,'_planar'],'sentcoh','wlcoh',rootdir);
+  end
+end
 
 
 %% average across subjects (sensor level)
 % N.B. 55 subjects have an additional sensor, 274, instead of 273 
-% fix ft_appendfreq to deal with labelcmb instead of label
+% need to fix ft_appendfreq to deal with labelcmb (not just label)
 if dosensavg
-  [subjectnames, ~ ] = mous_db_getfilename('allA','subjectname');
-  nsubj              = num2str(numel(subjectnames));
+%   suff               = '0-30Hz_planar';
+%   suff               = 'delta_gamma30-50Hz_planar';
+%   suff               = 'theta_gamma30-50Hz_planar';
+  suff               = '0-20Hz_gamma30-50Hz_planar';
+  
+  [subjectname, ~ ] = mous_db_getfilename('allA','subjectname');
+  [~,s]              = mous_db_getfilename('allA',['meg_coh_sensor_',suff,'.mat']);
+  subjectname        = subjectname(s);
+  nsubj              = num2str(numel(subjectname));  
+  
   param              = 'cohspctrm';
-%   filename           = ['meg_coh_sensor_',suff,'_planar'];
   filename           = ['meg_coh_sensor_',suff];
-  [cohgrpavg]        = mous_neuralspeechcoherence_grpavg(subjectnames, filename, param,'/project/3011020.09/MEG/');
+  [cohgrpavg]        = mous_neuralspeechcoherence_grpavg(subjectname, filename, param,'/project/3011020.09/MEG/');
 
   cohgrpavg = rmfield(cohgrpavg,'cfg'); % decrease memory
   suff      = [suff,'_',nsubj,'subjs'];
-  save(['/project/3011020.09/nielam/groupresults/coh/speechenvelope/sensordata_coh_',suff],...
+  save(['/project/3011020.09/nielam/groupresults/coh/speechenvelope/grpavg_sensordata_coh_sent_',suff],...
         'cohgrpavg');        
 end
 %% compute source-level data
-% First call to source-level computation requires preprocessing raw data,
-% which will be subsequently used for all other frequencies of interest
+% Source-level data is computed for all specified frequency bands in one
+% call of qsubfeval
+% This allows preprocessed data to be computed once, and used for all low
+% frequency bands 
 
-% cohfoi is a cell array defined when calling mous_neuralspeechcoherence_pipeline
-%         = {'theta','delta' ...} 
-% foi is a string for source-level data (for dosens, it is a number)
-% Not every subject has a peak in each frequency range (delta, theta, alpha, beta)
-% the frequency ranges in foi are determined prior to beginning
-% source-level computations
+% foi is a string that defines the frequency band (for dosens, it is a number)
+% peak frequency for that frequency band is determined inside
+% mous_neuralspeechcoherence_sourcedata
 
 if dosource_low
+  % determine how many frequency bands to calculate (number of loops)
   [subjlist,~] = mous_db_getfilename('allA','subjectname');
-  load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_stage2_thres5_pd3');
+  root     = '/project/3011020.09/nielam/groupresults/coh/speechenvelope/';
+  load([root,'/coherencePeakdetect_stage2_thres001_smoothing_',condition]);
+  
   idx      = find(ismember(subjlist,subjectname));
   tmp      = peakfreqfirst(idx,1:4);  % get index of frequencies with a peak
-  foi      = foi(~isnan(tmp));        % apply index to list (string) of frequencies
-%   tmp      = tmp(~isnan(tmp));      
+  
+  idx1  = find(~isnan(tmp));
+  idx2 = find(~cellfun(@isempty,foi));
+  foi      = foi(intersect(idx1,idx2));
+  
+  switch condition
+    case 'common'
+      % source-localize for each freq
+      [sentcoh, wlcoh, allcoh, preprocdat]  = mous_neuralspeechcoherence_sourcedata(subjectname,foi{1},condition);
+      mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{1},'_surface_ampnorm_',condition,'peak'],'sentcoh','wlcoh','allcoh',rootdir,1);  
 
-  [sentcoh, wlcoh, preprocdat]  = mous_neuralspeechcoherence_sourcedata(subjectname,foi{1});
-  mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{1},'_thres5_pd3'],'sentcoh','wlcoh',rootdir,1);  
+      if numel(foi) > 1
+        for k = 2:numel(foi)
+          [sentcoh, wlcoh,allcoh]  = mous_neuralspeechcoherence_sourcedata(subjectname,foi{k},condition,preprocdat);
+          mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{k},'_surface_ampnorm_',condition,'peak'],'sentcoh','wlcoh','allcoh',rootdir,1);  
+        end
+      end
+      
+    case 'sent'
+      [sentcoh, preprocdat] = mous_neuralspeechcoherence_sourcedata(subjectname,foi{1},condition);
+      mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{1},'_surface_ampnorm_',condition,'peak'],'sentcoh',rootdir,1);  
+      if numel(foi) > 1
+        for k = 2:numel(foi)
+          [sentcoh]  = mous_neuralspeechcoherence_sourcedata(subjectname,foi{k},condition,preprocdat);
+          mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{k},'_surface_ampnorm_',condition,'peak'],'sentcoh',rootdir,1);  
+        end
+      end
+  end
+end
+
+%% Gamma envelope - speech envelope (cross-frequency coupling) source-level
+if dosource_high % gamma 
+  % mous_neuralspeechcoherence_sourcedata_freqhigh is called multiple times
+  % because computation of all sources is too demanding for memory
+  
+%%% list of subjects with a delta/theta  peak %%%
+  [subjlist,~] = mous_db_getfilename('allA','subjectname');
+  root     = '/project/3011020.09/nielam/groupresults/coh/speechenvelope/';
+  load([root,'/coherencePeakdetect_stage2_thres001_smoothing_',condition]);
+  
+  idx      = find(ismember(subjlist,subjectname));
+  tmp      = peakfreqfirst(idx,1:4);  % get index of frequencies with a peak
+ 
+  idx1  = find(~isnan(tmp));
+  idx2 = find(~cellfun(@isempty,foi));
+  foi      = foi(intersect(idx1,idx2));
+  
+  if ~isempty(foi) && ischar(foi{1})
+    range                        = [num2str(sourcerange(1)),'to',num2str(sourcerange(2))];
+    [sentcoh, source]  = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,foi{1},sourcerange,condition);
+    mous_db_putdata(subjectname,['meg_coh_sourcedata_gamma30to50Hz_source',range,'_',foi{1},'_surface_ampnorm_',condition,'peak'],'sentcoh',rootdir,1);
+    
+    if numel(foi) > 1
+      for k = 2:numel(foi)
+        [sentcoh]  = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,foi{k},sourcerange,condition,source);
+        mous_db_putdata(subjectname,['meg_coh_sourcedata_gamma30to50Hz_source',range,'_',foi{k},'_surface_ampnorm_',condition,'peak'],'sentcoh',rootdir,1);
+      end
+    end
+    
+  end
+end
+
+
+%% MEG-sentence random pair
+if doshuffle_low
+  
+ [subjlist,~] = mous_db_getfilename('allA','subjectname');
+  root     = '/project/3011020.09/nielam/groupresults/coh/speechenvelope/';
+  load([root,'/coherencePeakdetect_stage2_thres001_smoothing_sent']);  % decide to only use sent  26.06.2015 
+  condition = 'sent';
+  
+  idx      = find(ismember(subjlist,subjectname));
+  tmp      = peakfreqfirst(idx,1:4);  % get index of frequencies with a peak
+
+  idx1  = find(~isnan(tmp));
+  idx2  = find(~cellfun(@isempty,foi));
+  foi   = foi(intersect(idx1,idx2));
+  
+  [sentcohshuf,pidx, preprocdat] = mous_neuralspeechcoherence_sourcedata_speechshuffle(subjectname,foi{1},numshuffle);
+  mous_db_putdata(subjectname,['meg_coh_sourcedata_sentshuffle',foi{1},'_surface_ampnorm_',condition,'peak'],'sentcoh','sentcohshuf',rootdir,1);  
   
   if numel(foi) > 1
     for k = 2:numel(foi)
-      [sentcoh, wlcoh]  = mous_neuralspeechcoherence_sourcedata(subjectname,foi{k},preprocdat);
-      mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{k},'_thres5_pd3'],'sentcoh','wlcoh',rootdir,1);  
+      [sentcohshuf,pidx]  = mous_neuralspeechcoherence_sourcedata_speechshuffle(subjectname,foi{k},numshuffle,preprocdat);
+      mous_db_putdata(subjectname,['meg_coh_sourcedata_sentshuffle',foi{k},'_surface_ampnorm_',condition,'peak'],'sentcoh','sentcohshuf',rootdir,1);  
     end
   end
-end
-
-if dosource_high % gamma
-  [subjlist,~] = mous_db_getfilename('allA','subjectname');
-  load('/home/language/nielam/MOUS_AnalysisNotes/Coherence/coherencePeakdetect_gammaenvelopecoh_stage2');
-  idx         = find(ismember(subjlist,subjectname));
-  tmp         = peakfreqfirst(idx,1:2);  % gamma envelope to speech at delta freq; at theta freq
-  foi         = foi(~isnan(tmp));  
   
-  if ~isempty(foi)
-    [coh,preprocdat]  = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,foi{1});
-    mous_db_putdata(subjectname,['meg_coh_sourcedata_gamma30to50Hz_coh',foi{1}],'coh',rootdir,1);
-
-    if numel(foi) > 1
-      for k = 2:numel(foi)
-        [coh]  = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectname,gamfoi,foi{k},preprocdat);
-        mous_db_putdata(subjectname,['meg_coh_sourcedata_gamma30to50Hz_coh',foi{k}],'coh',rootdir,1);  
-      end
-    end
-  end
 end
 
 
+if dosource_low_regAC
+   % determine how many frequency bands to calculate (number of loops)
+  [subjlist,~] = mous_db_getfilename('allA','subjectname');
+  root     = '/project/3011020.09/nielam/groupresults/coh/speechenvelope/';
+  load([root,'/coherencePeakdetect_stage2_thres001_smoothing_sent']);
+  
+  idx   = find(ismember(subjlist,subjectname));
+  tmp   = peakfreqfirst(idx,1:4);  % get index of frequencies with a peak
+  
+  idx1  = find(~isnan(tmp));
+  idx2  = find(~cellfun(@isempty,foi));
+  foi   = foi(intersect(idx1,idx2));
 
-
-
-
-
-
-
-
-
-
+  [sentcoh, preprocdat] = mous_neuralspeechcoherence_regAC_sourcedata(subjectname,foi{1});
+  mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{1},'_regAC_seedLRAC_RHbased_surface_ampnorm_sentpeak'],'sentcoh',rootdir,1);  
+  
+  if numel(foi) > 1
+    for k = 2 %:numel(foi)
+      [sentcoh]  = mous_neuralspeechcoherence_regAC_sourcedata(subjectname,foi{k},preprocdat);
+      mous_db_putdata(subjectname,['meg_coh_sourcedata_',foi{k},'_regAC_seedLRAC_RHbased_surface_ampnorm_sentpeak'],'sentcoh',rootdir,1);  
+    end
+  end  
+end
 
 
 
