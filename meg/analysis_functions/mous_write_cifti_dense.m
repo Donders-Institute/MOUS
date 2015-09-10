@@ -55,6 +55,14 @@ if ~isempty(time),
   surface.dimord = 'pos_time';
 end
 
+% ensure that the data has a 'brainstructure' field
+% assume that the first half of vertices is left and the other half is
+% right
+if ~isfield(surface, 'brainstructure')
+  n = size(surface.pos,1)./2;
+  surface.brainstructure      = [ones(n,1);ones(n,1)*2];
+  surface.brainstructurelabel = {'CORTEX_LEFT';'CORTEX_RIGHT'};
+end
 cfg           = [];
 cfg.filename  = filename;
 cfg.filetype  = 'cifti';
