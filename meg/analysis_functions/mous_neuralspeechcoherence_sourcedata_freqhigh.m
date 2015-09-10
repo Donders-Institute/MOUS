@@ -21,22 +21,23 @@ function [varargout] = mous_neuralspeechcoherence_sourcedata_freqhigh(subjectnam
   % cfg.bpfiltwintype = % default is hamming 
   % cfg.bpfiltdf   = % default width heuristic used fir_df.m
   % cfg.hilbert    = 'abs';  % DO NOT calculate envelope at sensor-level 
-
+  
 % foi = frequencies at which to calculate coherence between gamma envelope and speech envelope
+
+% Only a subset of sources I calculate each time this functions is called
+% mous_neuralspeechcoherence_gammacombinesource.m handles combining data across sources
 % NL 02-04-2015
 
 if nargin < 6
-  sourcedata1 = [];
-  sourcedata2 = [];
-  sourcedata3 = []; 
-elseif nargin == 8
-  sourcedata1 = varargin{1};
-  sourcedata2 = varargin{2};
-  sourcedata3 = varargin{3};
+  source = [];
+elseif nargin == 6
+  source = varargin{1};
 end
 
-if isempty(sourcedata1)
+if isempty(source)
   %% PREPROCESS DATA
+  % Here, all steps are the same, independent of which source is
+  % being calculated
     % load raw data
   dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 
@@ -88,14 +89,10 @@ if isempty(sourcedata1)
   datpp          = ft_preprocessing(cfg,datpp);  % Axial, preprocessed(pp) data
 
   %% divide conditions
-    cfg = [];
-    cfg.trials = find(ismember(datpp.trialinfo(:,2),[1 5])); % sent
-    data1      = ft_selectdata(cfg,datpp); 
-    speech1    = ft_selectdata(cfg,speech);
-
-    cfg.trials = find(ismember(datpp.trialinfo(:,2),[3 7])); % WL
-    data2      = ft_selectdata(cfg,datpp); 
-    speech2    = ft_selectdata(cfg,speech);
+  cfg = [];
+  cfg.trials = find(ismember(datpp.trialinfo(:,2),[1 5])); % sent
+  data1      = ft_selectdata(cfg,datpp); 
+  speech1    = ft_selectdata(cfg,speech);
 
   %% compute spatial filter
   % covariance matrix 
@@ -107,16 +104,13 @@ if isempty(sourcedata1)
   cfg.channel      = 'MEG';
   cfg.vartrllength     = 2;    % all trial lengths
   cfg.covariancewindow = 'all';
-  tlck                 = ft_timelockanalysis(cfg,datpp); 
+  tlck                 = ft_timelockanalysis(cfg,data1);
 
   % load forward model (headmodel)
   headmodel   = mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
 
-  % % load sourcemodel   (grid); stick with 5798
-  % mous_db_getdata(subjectname, 'meg_bfica_leadfield8mm', '/project/3011020.09/nielam/');
-  % load sourcemodel surfreg
+  % load sourcemodel   (grid); stick with 5798
   sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
-
 
   % source reconstruct bandpass filtered gamma (lcmv; keep spatial filter)
   cfg = [];
@@ -127,59 +121,49 @@ if isempty(sourcedata1)
   cfg.lcmv.fixedori    = 'yes'; % project on axis with most variance using SVD
   source               = ft_sourceanalysis(cfg, tlck);
 
-  %% project bandpass filtered data through spatial filter
+  % pass data1 across frequencies, otherwise have to pass 2 arguments
+  source.data1   = data1; 
+  source.speech1 = speech1;
+end  
+
+%% project bandpass filtered data through spatial filter - sourcedata1 (output) is dependent on current sources 
   % turn sensor-data into source-data
   % multiply sensor-level data by source.avg.filter of each voxel (inside)
   % aka. extract virtual-channel time-series
+
+  data1   = source.data1;
+  speech1 = source.speech1;
   
-  % Engage in option to select subset of sources i.e. some subjects have <8196 inside voxels
-  % A2017 has 8194, A2035 has 8193
-  filt = cat(1,source.avg.filter{source.inside}); 
-  if sourcerange(2) == 8196
-    sourcerange(2)  =  numel(find(istrue(source.inside))); 
-  end
-  filt = filt(sourcerange(1):sourcerange(2),:);
+  filt = cat(1,source.avg.filter{source.inside}); % 8196*273
+  filt = filt(sourcerange(1):sourcerange(2),:);   % e.g., 1000*273
   
   % Create sourcedata structure to mimic raw data structure (need time,trial,label fields)
+  % all subjects have 8196 sources, if not, labels would be wrong and be
+  % avging across non-identical sources across subjects
   sourcedata1      = [];
   sourcedata1.time = data1.time;
   for k = sourcerange(1):sourcerange(2)
     sourcedata1.label{k,1} = ['chan',num2str(k,'%04d')];
   end
-  idx = cellfun(@isempty,sourcedata1.label);
+  idx = cellfun(@isempty,sourcedata1.label); 
   sourcedata1.label(idx) = [];
-
-  sourcedata2 = sourcedata1; sourcedata2.time = data2.time;
-  sourcedata3 = sourcedata1; sourcedata3.time = datpp.time;
-
- 
-  for trialloop = 1:length(data1.trial)
-    sourcedata1.trial{trialloop} = abs(filt*data1.trial{trialloop});   % take abs for envelope
+  
+  for trialloop = 1:length(data1.trial)  
+    sourcedata1.trial{trialloop} = abs(hilbert((filt*data1.trial{trialloop})'))';  % e.g., 1000*273 x 273*sample points 
   end
 
-  for trialloop = 1:length(data2.trial)
-    sourcedata2.trial{trialloop} = abs(filt*data2.trial{trialloop});   % take abs for envelope
-  end
-
-  for trialloop = 1:length(datpp.trial)
-    sourcedata3.trial{trialloop} = abs(filt*datpp.trial{trialloop});   % take abs for envelope
-  end
+  % hilbert function is applied columnwise, flip filt*data
+  % data1.trial{X} = 273 * 750
+  % filt           = 100 * 273
 
   %% combine channels 
   sourcedata1  = ft_appenddata([],sourcedata1,speech1); % concatenate into one dataset; axial gradiometers for subj-specific frequency search
-  sourcedata2  = ft_appenddata([],sourcedata2,speech2); % concatenate into one dataset; axial gradiometers for subj-specific frequency search
-  sourcedata3  = ft_appenddata([],sourcedata3,speech); % concatenate into one dataset; axial gradiometers for subj-specific frequency search
-
 
   %% cut the data into fragments with overlap (increase data - like welch method)
   cfg = [];
   cfg.length      = 2;  
   cfg.overlap     = 0.5; % 0 to 1 (exclusive)
   sourcedata1 = ft_redefinetrial(cfg, sourcedata1);
-  sourcedata2 = ft_redefinetrial(cfg, sourcedata2);
-  sourcedata3 = ft_redefinetrial(cfg, sourcedata3);
-
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% fourier and source-localization (frequency band specific) %%%
@@ -215,33 +199,21 @@ cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';
 cfg.channel    = {'all','-UADC003'};
 fourier1        = ft_freqanalysis(cfg, sourcedata1);
-fourier2        = ft_freqanalysis(cfg, sourcedata2);
-fourier3        = ft_freqanalysis(cfg, sourcedata3);
 
 % normalize fourier output of speech with speech amplitude
 selchan = match_str(fourier1.label, {'audio_avg'});
 fourier1.fourierspctrm(:,selchan,:) = fourier1.fourierspctrm(:,selchan,:)./abs(fourier1.fourierspctrm(:,selchan,:));
-fourier2.fourierspctrm(:,selchan,:) = fourier2.fourierspctrm(:,selchan,:)./abs(fourier2.fourierspctrm(:,selchan,:));
-fourier3.fourierspctrm(:,selchan,:) = fourier3.fourierspctrm(:,selchan,:)./abs(fourier3.fourierspctrm(:,selchan,:));
-
 
 %% ft_connectivity analysis on spectral virtual channel data
 cfg = [];
 cfg.method = 'coh';
 coherence1  = ft_connectivityanalysis(cfg,fourier1);
-coherence2  = ft_connectivityanalysis(cfg,fourier2);
-coherence3  = ft_connectivityanalysis(cfg,fourier3);
 
 %% return results
 varargout{1} = coherence1; % sen
-varargout{2} = coherence2; % wl 
-varargout{3} = coherence3; % all
-if nargout > 3
-  varargout{4} = sourcedata1;
-  varargout{5} = sourcedata2;
-  varargout{6} = sourcedata3;
+if nargout > 1
+  varargout{2} = source;
 end
-
 
 %%%%%%%%%%%%%%%
 %% subfunction%
@@ -262,7 +234,7 @@ trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
-cfg.trl        = trl(1:10,:);
+cfg.trl        = trl(1:5,:);
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
