@@ -1,5 +1,4 @@
-% function [coherence1, coherence2, coherence3, coherence4] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi, gamfoi)
-function [varargout] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi) %, varargin)
+function [coherence1, coherence2, coherence3, coherence4] = mous_neuralspeechcoherence_sensor(subjectname, cohfoi, varargin)
 
 % Calculate the coherence between the neural signal and speech envelope.
 % The neural signal can be the raw frequencies (used for theta and delta),
@@ -61,23 +60,20 @@ cfg.planarmethod = 'sincos';
 dataPL           = ft_megplanar(cfg,data);
 
 
-%% apply hilbert transform to MEG signal to extract gamma amplitude
+%% apply hilbert transform to MEG signal to extract gamma envelope
+%  bandpass and then hilbert transform 
+%   - the reverse can lead to dominance of low frequencies in signal
+%   - ft_preproc_hilbert checks that BP is done when specifying cfg.hilbert
+% cfg.bpfiltdir  = % onepass-zerophase is set in ft_preproc_bandpassfilter.m
+% cfg.bpfiltord  = % determined in ft_preproc_bandpassfilter.m
+% cfg.bpfiltwintype = % default is hamming 
+% cfg.bpfiltdf   = % default width heuristic used fir_df.m
+
 if nargin == 3   % if specification of gamma frequencies 
-
-  %  gamma envelope has (amplitude and) phase which is used to calculate
-  %  connectivity with speech signal's phase
-
-  %  bandpass and then hilbert transform 
-  %   - the reverse can lead to dominance of low frequencies in signal
-  %   - ft_preproc_hilbert checks that BP is done when specifying cfg.hilbert
   cfg = [];
   cfg.bpfilter   = 'yes';    
-  cfg.bpfreq     = gamfoi;  % coupling btw 35-45; lateralization 40 - 70
+  cfg.bpfreq     = varargin{1};  % coupling btw 35-45; lateralization 40 - 70
   cfg.bpfilttype = 'firws';
-  % cfg.bpfiltdir  = % onepass-zerophase is set in ft_preproc_bandpassfilter.m
-  % cfg.bpfiltord  = % determined in ft_preproc_bandpassfilter.m
-  % cfg.bpfiltwintype = % default is hamming 
-  % cfg.bpfiltdf   = % default width heuristic used fir_df.m
   cfg.hilbert    = 'abs';
   dataPL         = ft_preprocessing(cfg,dataPL);
   data           = ft_preprocessing(cfg,data);  % Axial data, keep as 'data' to minimize lines of code
@@ -95,22 +91,14 @@ dataAX = ft_redefinetrial(cfg, dataAX);
 dataPL = ft_redefinetrial(cfg, dataPL);
 
 %% split conditions
-if nargin == 2 
-  % divide data
-  cfg = [];
-  cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
-  data1  = ft_selectdata(cfg,dataAX); % axial
-  data3  = ft_selectdata(cfg,dataPL); % planar
+cfg = [];
+cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
+data1  = ft_selectdata(cfg,dataAX); % axial
+data3  = ft_selectdata(cfg,dataPL); % planar
 
-  cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
-  data2  = ft_selectdata(cfg,dataAX); % axial
-  data4  = ft_selectdata(cfg,dataPL); % planar
-elseif nargin == 3
-  % retain sentences and word list as one
-  data1 = dataAX;
-  data3 = dataPL;
-end
-
+cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
+data2  = ft_selectdata(cfg,dataAX); % axial
+data4  = ft_selectdata(cfg,dataPL); % planar
 
 %% calculate power- and cross-spectra
 %  mtmfft:   fourier spectra; contains amplitude and phase
@@ -121,33 +109,32 @@ end
 cfg = [];
 cfg.method     = 'mtmfft';  %  get power change in gamma; deal with filtering-artifacts
 cfg.output     = 'powandcsd'; 
-cfg.foilim     = cohfoi;    
+if numel(cohfoi) == 2
+  cfg.foilim   = cohfoi; % vector
+elseif numel(cohfoi) == 1
+  cfg.foi      = cohfoi; % singular
+end
 cfg.tapsmofrq  = 2;           
 cfg.taper      = 'dpss';
 cfg.keeptrials = 'yes';     
 cfg.channel    = {'MEG' 'audio_avg'}; % exclude UADC003 channel
 cfg.channelcmb = {'MEG' 'audio_avg'};
-freq1          = ft_freqanalysis(cfg,data1); % axial  sentence for low freq / axial all trials for gamma
-freq3          = ft_freqanalysis(cfg,data3); % planar sentence for low freq / planar all trials for gamma
 
-if nargin == 2
-  freq2          = ft_freqanalysis(cfg,data2);  % axial  word list
-  freq4          = ft_freqanalysis(cfg,data4);  % planar word list
-end
+freq1          = ft_freqanalysis(cfg,data1); % axial  sentence 
+freq3          = ft_freqanalysis(cfg,data3); % planar sentence
+freq2          = ft_freqanalysis(cfg,data2); % axial  word list
+freq4          = ft_freqanalysis(cfg,data4); % planar word list
+
 
 %% calculate coherence 
 cfg = [];
 cfg.method     = 'coh';
 cfg.channelcmb = {'MEG' 'audio_avg'}; % Specify channel and channelref
-coherence1     = ft_connectivityanalysis(cfg,freq1); % axial
-coherence3     = ft_connectivityanalysis(cfg,freq3); % planar
 
-if nargin == 2
-  coherence2     = ft_connectivityanalysis(cfg,freq2);
-  coherence4     = ft_connectivityanalysis(cfg,freq4);
-end
-
-
+coherence1     = ft_connectivityanalysis(cfg,freq1); % axial  sentence
+coherence3     = ft_connectivityanalysis(cfg,freq3); % planar 
+coherence2     = ft_connectivityanalysis(cfg,freq2); % axial  word list
+coherence4     = ft_connectivityanalysis(cfg,freq4); % planar
 
 
 %% combine planar gradient's vertical (dV) and horizontal (dH) components
@@ -156,9 +143,8 @@ end
 %  coherence estimate 
 %  - Combining sensor_dV and sensor_dH using pythagoras leads to a loss
 %  (canceling out) of the coherence estimate.  
-%  - Use of pythagoras works for ERFs/TFRs signal; For ERF (because it's
-%  caluclate is a linear step, one can actually convert and combine prior
-%  to ERF calculation, but not for TFR and coherence calculations).
+%  - Use of pythagoras works for ERFs (because steps are linear: can  convert and combine prior
+%  to ERF calculation) But not power/coherence.
 %  - Combine dV and dH components by doing an average. 
 %    An alternative is to use max(dV, dH)
 
@@ -172,27 +158,22 @@ tmp2 = coherence3.cohspctrm(sensize+1:end,:);
 coherence3.cohspctrm = (tmp1+tmp2)./2;
 coherence3.labelcmb  = coherence3.labelcmb(1:sensize,:);
 coherence3.labelcmb(1:sensize,1) = tmplabel;
-if nargin > 2
-  varargout{1} = coherence1;
-  varargout{2} = coherence3;
 
-elseif nargin == 2
-  % %%% WORD LIST %%%
-  % select sensors of interest
-  sensize = size(coherence4.labelcmb,1)/2; % 273; dv and dH for each audio signal
-  tmp1 = coherence4.cohspctrm(1:sensize,:);
-  tmp2 = coherence4.cohspctrm(sensize+1:end,:);
+% %%% WORD LIST %%%
+% select sensors of interest
+sensize = size(coherence4.labelcmb,1)/2; % 273; dv and dH for each audio signal
+tmp1 = coherence4.cohspctrm(1:sensize,:);
+tmp2 = coherence4.cohspctrm(sensize+1:end,:);
 
-  % compute average between dV and dH for combined planar gradient components
-  coherence4.cohspctrm = (tmp1+tmp2)./2;
-  coherence4.labelcmb  = coherence4.labelcmb(1:sensize,:);
-  coherence4.labelcmb(1:sensize,1) = tmplabel;
-  
-  varargout{1} = coherence1;
-  varargout{2} = coherence2;
-  varargout{3} = coherence3;
-  varargout{4} = coherence4;
-end
+% compute average between dV and dH for combined planar gradient components
+coherence4.cohspctrm = (tmp1+tmp2)./2;
+coherence4.labelcmb  = coherence4.labelcmb(1:sensize,:);
+coherence4.labelcmb(1:sensize,1) = tmplabel;
+
+% varargout{1} = coherence1;
+% varargout{2} = coherence2;
+% varargout{3} = coherence3;
+% varargout{4} = coherence4;
 
 %%%%%%%%%%%%%%%%%%%%
 %%% SUBFUNCTION %%%%
