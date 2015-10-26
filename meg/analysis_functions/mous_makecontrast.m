@@ -1,4 +1,4 @@
-function varargout = mous_makecontrast(data, contrast, trialinfo, M, rseed, condition)
+function varargout = mous_makecontrast(data, contrast, trialinfo, M, rseedinput, condition)
 
 % MOUS_MAKECONTRAST extracts the average across observations for a specific
 % set of defined conditions, or computes the slope parameter of the linear
@@ -10,7 +10,7 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M, rseed, cond
 %   trialinfo = NxM matrix with trial specific information
 %   M         = optional matrix, that is left multiplied with the data
 %                 matrix, e.g. minimum norm spatial filter
-%   rseed     = options value: seed that defines the randomly selected trials per subject 
+%   rseedinput= options value: seed that defines the randomly selected trials per subject 
 %
 % data.trialinfo is assumed to be defined as:
 %  column 1: sentence index
@@ -47,7 +47,7 @@ function varargout = mous_makecontrast(data, contrast, trialinfo, M, rseed, cond
 %%%%%%%%%%%%
 switch contrast
   case {'sent-seq', 'sent-seqTarget', 'sentMX-sentRC','sent-seqFirstword','early-late',...
-        'RCend-RCafter', 'RCearlylate-MXearlylate','RConset-RCoffset', 'subjMC-verbRC','RC_deplong-depshort'}
+        'RCend-RCafter', 'RCearlylate-MXearlylate','RConset-RCoffset', 'subjMC-verbRC','senearlylate-wlearlylate'}
     
     %if  nargin<3  
         % need extra input arguments to differentiate between VIS and AUD
@@ -107,23 +107,33 @@ switch contrast
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     switch contrast
       case 'RCearlylate-MXearlylate'
-        if isempty(rseed), error('you must have a randomseed');  end
+        if isempty(rseedinput), error('you must have a randomseed');end
         trialinfo = data.trialinfo;
-        [sel1, sel2, sel3, sel4]  =mous_wrdpstncomplexity(trialinfo,condition, rseed); % condition = 'sent' or 'wl'
+        [sel1, sel2, sel3, sel4]  = mous_wrdpstncomplexity(trialinfo,condition, rseedinput); % condition = 'sent' or 'wl'
+        
+      case 'senearlylate-wlearlylate'
+        if isempty(rseedinput), error('you must have a randomseed');end
+        
+        % not balanced for lexical frequency
+%         trialinfo = data.trialinfo;
+%         [sel1, sel2, sel3, sel4]  = mous_wrdpstn_earlyvslate(trialinfo, rseedinput); % condition = 'sent' or 'wl'
+        
+        % balance for lexical frequency
+        [sel1, sel2, sel3, sel4]  = mous_wrdpstn_earlyvslate_strat(data, rseedinput); % condition = 'sent' or 'wl'
+        
       case 'subjMC-verbRC'
-        if isempty(rseed), error('you must have a randomseed');  end
         %subjMC, verbRC in RC+ sentences (sel1 sel2)
         %               in RC- sentences (sel3 sel4)
         %               in RC+ word list (sel5 sel6)
-        [sel1, sel2, sel3, sel4, sel5, sel6] = mous_subjMCvsverbRC(data,rseed);  
+        [sel1, sel2, sel3, sel4, sel5, sel6] = mous_subjMCvsverbRC(data,rseedinput);  
         
 %       case 'RC_deplong-depshort'
 %         [sel1, sel2]  = mous_dependencyshortvslong(data);        
 %       case 'RConset-RCoffset'
-%         if isempty(rseed), error('you must have a randomseed');  end
+%         if isempty(rseedinput), error('you must have a randomseed');  end
 %         [sel1, sel2]  = mous_RCMXbalanced_RConoffset(data, toilop, 'RConoff');
 %       case 'RCend-RCafter'
-%         if isempty(rseed), error('you must have a randomseed');  end
+%         if isempty(rseedinput), error('you must have a randomseed');  end
 %         % use another function for the definition of trials
 %         [sel1, sel2, sel3, sel4] = mous_RCendvsafter(data, T);
     end 
@@ -150,8 +160,9 @@ switch contrast
           Tstat = yuent(dat1,dat2,0.2,2);
           varargout{3} = Tstat;
 
-          if strcmp(contrast,'RCend-RCafter') || strcmp(contrast,'RCearlylate-MXearlylate') ||...
-             strcmp(contrast,'RConset-RCoffset') || strcmp(contrast,'subjMC-verbRC')
+          if strcmp(contrast,'senearlylate-wlearlylate') || strcmp(contrast,'RCearlylate-MXearlylate') ||...
+             strcmp(contrast,'RCend-RCafter') ||  strcmp(contrast,'RConset-RCoffset') ||...
+             strcmp(contrast,'subjMC-verbRC')
             cfg.trials = sel3;
             tlck3      = ft_timelockanalysis(cfg,data);
             cfg.trials = sel4;
