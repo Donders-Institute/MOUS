@@ -231,14 +231,31 @@ if dosource_contrasts,
   % dowordseqpar2
   % sentMX vs sentRC
   
-  if str2num(subjectname(3:end)) < 100 && strcmp(suff,'high')
-    load(['/home/language/jansch/tmp/mous/bfica_tmp/',subjectname,'_bfica_freq_', suff]); 
+  [subj,~] = mous_db_getfilename('allV','subjectname');
+  [f,s] = mous_db_getfilename('allV','meg_bfica_freq_high');
+  list  = subj(s); % some bfica_freq_high files are stored in /project
+  
+  if strcmp(suff,'high') && ~ismember(subjectname, list)
+      load(['/home/language/nielam/bficagamma/',subjectname,'_bfica_freq_',suff]);
   else
     mous_db_getdata(subjectname, ['meg_bfica_freq_',suff], rootdir);
   end
+  
+  
   freq = ft_struct2double(freq);
   freq.cumtapcnt = ones(size(freq.fourierspctrm,1)./ntap,1)*ntap;   % ntap = 1 for hanning taper, 3 for multitaper
-  
+   
+  % remove bad trial in V1038 and V1104
+  % For wavid 891, there should be 13 words, but these subjects have 14
+  if strcmp(subjectname,'V1038')
+    cfg        = [];
+    cfg.trials = [1:93, 95:size(freq.trialinfo,1)]; %rm trial 94
+    freq       = ft_selectdata(cfg,freq);
+  elseif strcmp(subjectname,'V1104')
+    cfg        = [];
+    cfg.trials = [1:1629, 1631:size(freq.trialinfo,1)]; % rm trial 1630
+    freq       = ft_selectdata(cfg,freq);
+  end
   
 %% source estimates for each time point  
   for toilop = 1:numel(toi)
@@ -262,26 +279,22 @@ if dosource_contrasts,
     sourcedataorig.fsample = 1; 
     sourcedata = sourcedataorig;
     
+    
     %% Contrast types
-    %  NOTE: A balanced number of trials are created in mous_makecontrasts
-   
+    %  NOTE: balancing of trials between conditions is done in mous_makecontrasts
+
+    %  SENearly, SENlate, WLearly, WLlate  
+       
+      rseedinput = str2double(subjectname(2:end));
+      [tlckearlysen(toilop), tlcklatesen(toilop), ...
+       tlckearlywl(toilop), tlcklatewl(toilop), ...
+       tstatsen(:,toilop), tstatwl(:,toilop)] = mous_makecontrast(sourcedata,'senearlylate-wlearlylate',[],[],rseedinput);
+     
 %       % RCearly, RClate, MXearly, MXlate  
+%       rseedinput = str2double(subjectname(2:end));
 %       [tlckearlyRC(toilop), tlcklateRC(toilop), ...
 %        tlckearlyMX(toilop), tlcklateMX(toilop), ...
-%        tstatelrc(:,toilop), tstatelmx(:,toilop)] = mous_makecontrast(sourcedata,'RCearlylate-MXearlylate',[],[],rseed);
-%      
-      % subjMC-verbRC
-      [tlckverbshortdep(toilop), tlckverblongdep(toilop),...
-      tstatverbdep(:,toilop)] = mous_makecontrast(sourcedata,'RC_deplong-depshort');
-
-%       % RCend vs RCafter
-%       [tlckRCend(toilop), tlckRCafter(toilop), tlckMXend(toilop), tlckMXafter(toilop),...
-%        tstatRCendafter(:,toilop), tstatMXendafter(:,toilop)] = mous_makecontrast(sourcedata,'RCend-RCafter'); 
-%       
-%       [tlckRCsubjmc(toilop), tlckRCverbrc(toilop),...
-%        tlckMXsubjmc(toilop), tlckMXverbrc(toilop),...
-%        tlckWLsubjmc(toilop), tlckWKverbrc(toilop),...
-%        tstatRCsubjmcVSverbrc(:,toilop), tstatMXsubjmcVSverbrc(:,toilop), tstatWLsubjmcVSverbrc(:,toilop)] = mous_makecontrast(sourcedata,'subjMC-verbRC');
+%        tstatelrc(:,toilop), tstatelmx(:,toilop)] = mous_makecontrast(sourcedata,'RCearlylate-MXearlylate',[],[],rseedinput,condition);
 
 %     % dosentvsseq   
 %       [tlcksent(toilop), tlckseq(toilop),tstat(:,toilop)] = mous_makecontrast(sourcedata,'sent-seq');
@@ -293,8 +306,7 @@ if dosource_contrasts,
 %       [tlcksentpar(toilop),statsentpar(toilop),stat2sentpar(toilop)] = mous_makecontrast(sourcedata, 'wordsent_parametric');
 %     % wordseqpar
 %       [tlckseqpar(toilop),statseqpar(toilop),stat2seqpar(toilop)] = mous_makecontrast(sourcedata, 'wordseq_parametric');
-
-%     
+     
 %   % firstword - user <0s for baseline computation
 %     [tlcksentfirst(toilop),tlckseqfirst(toilop),tstatfirst(:,toilop)] = mous_makecontrast(sourcedata,'sent-seqFirstword');   
 % 
@@ -307,19 +319,34 @@ if dosource_contrasts,
 %   % wordseqpartar
 %     [tlckseqpartar(toilop),statseqpartar(toilop),stat2seqpartar(toilop)] = mous_makecontrast(sourcedata,'wordseqtar_parametric'); % _blc option available
   
-end
+  end  % end toilop
   
 %% concatenate over time
 
-    tlckverbshortdep(1).var  = cat(2,tlckverbshortdep(:).var);  % rlckverbshortdependency
-    tlckverbshortdep(1).dof  = cat(2,tlckverbshortdep(:).dof);
-    tlckverbshortdep(1).time = cat(2,tlckverbshortdep(:).time);
-    tlckverbshortdep         = tlckverbshortdep(1);
+  tlckearlysen(1).avg = cat(2,tlckearlysen(:).avg);      % tlckearlySEN
+  tlckearlysen(1).var = cat(2,tlckearlysen(:).var);
+  tlckearlysen(1).dof = cat(2,tlckearlysen(:).dof);
+  tlckearlysen(1).time = cat(2,tlckearlysen(:).time);
+  tlckearlysen         = tlckearlysen(1);
+
+  tlcklatesen(1).avg = cat(2,tlcklatesen(:).avg);        % tlcklateSEN
+  tlcklatesen(1).var = cat(2,tlcklatesen(:).var);
+  tlcklatesen(1).dof = cat(2,tlcklatesen(:).dof);
+  tlcklatesen(1).time = cat(2,tlcklatesen(:).time);
+  tlcklatesen         = tlcklatesen(1);
  
-    tlckverblongdep(1).var  = cat(2,tlckverblongdep(:).var);    % tlckverblongdependency
-    tlckverblongdep(1).dof  = cat(2,tlckverblongdep(:).dof);
-    tlckverblongdep(1).time = cat(2,tlckverblongdep(:).time);
-    tlckverblongdep         = tlckverblongdep(1);
+  tlckearlywl(1).avg = cat(2,tlckearlywl(:).avg);      % tlckearlyWL
+  tlckearlywl(1).var = cat(2,tlckearlywl(:).var);
+  tlckearlywl(1).dof = cat(2,tlckearlywl(:).dof);
+  tlckearlywl(1).time = cat(2,tlckearlywl(:).time);
+  tlckearlywl         = tlckearlywl(1);
+
+  tlcklatewl(1).avg = cat(2,tlcklatewl(:).avg);        % tlcklateWL
+  tlcklatewl(1).var = cat(2,tlcklatewl(:).var);
+  tlcklatewl(1).dof = cat(2,tlcklatewl(:).dof);
+  tlcklatewl(1).time = cat(2,tlcklatewl(:).time);
+  tlcklatewl         = tlcklatewl(1);
+
 %%%%%%%%%%%%%%
 %   tlckearlyRC(1).avg = cat(2,tlckearlyRC(:).avg);      % tlckearlyRC
 %   tlckearlyRC(1).var = cat(2,tlckearlyRC(:).var);
@@ -344,33 +371,9 @@ end
 %   tlcklateMX(1).dof = cat(2,tlcklateMX(:).dof);
 %   tlcklateMX(1).time = cat(2,tlcklateMX(:).time);
 %   tlcklateMX         = tlcklateMX(1);
+%%%%%%%%%%
 
 
-%     tlckRCend(1).avg = cat(2,tlckRCend(:).avg);        % tlckRCend
-%     tlckRCend(1).var = cat(2,tlckRCend(:).var);
-%     tlckRCend(1).dof = cat(2,tlckRCend(:).dof);
-%     tlckRCend(1).time = cat(2,tlckRCend(:).time);
-%     tlckRCend        = tlckRCend(1);
-% 
-%     tlckRCafter(1).avg = cat(2,tlckRCafter(:).avg);    % tlckRCafter
-%     tlckRCafter(1).var = cat(2,tlckRCafter(:).var);
-%     tlckRCafter(1).dof = cat(2,tlckRCafter(:).dof);
-%     tlckRCafter(1).time = cat(2,tlckRCafter(:).time);
-%     tlckRCafter         = tlckRCafter(1);
-%     
-%     tlckMXend(1).avg = cat(2,tlckMXend(:).avg);        % tlckMXend
-%     tlckMXend(1).var = cat(2,tlckMXend(:).var);
-%     tlckMXend(1).dof = cat(2,tlckMXend(:).dof);
-%     tlckMXend(1).time = cat(2,tlckMXend(:).time);
-%     tlckMXend        = tlckMXend(1);
-% 
-%     tlckMXafter(1).avg = cat(2,tlckMXafter(:).avg);    % tlckMXafter
-%     tlckMXafter(1).var = cat(2,tlckMXafter(:).var);
-%     tlckMXafter(1).dof = cat(2,tlckMXafter(:).dof);
-%     tlckMXafter(1).time = cat(2,tlckMXafter(:).time);
-%     tlckMXafter         = tlckMXafter(1);
-
-%%%%%%%%%%%%%
 %   tlcksent(1).avg = cat(2,tlcksent(:).avg);            % tlcksent
 %   tlcksent(1).var = cat(2,tlcksent(:).var);
 %   tlcksent(1).dof = cat(2,tlcksent(:).dof);
@@ -509,11 +512,13 @@ end
 
 %% save the results
   suff2 = num2str(round(frequency*10));
-
-  mous_db_putdata(subjectname, ['meg_bfica_sourcedataverbdependency', suff2], 'tlckverbshortdep', 'tlckverblongdep', 'tstatverbdep', rootdir, 1);
   
-%   mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateRC','_matched_',suff2], 'tlckearlyRC', 'tlcklateRC', 'tstatelrc', rootdir, 1);
-%   mous_db_putdata(subjectname, ['meg_bfica_sourcedataearlylateMX','_matched_',suff2], 'tlckearlyMX', 'tlcklateMX', 'tstatelmx',rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedata_earlylateSEN','_matched_strat_',suff2], 'tlckearlysen', 'tlcklatesen', 'tstatsen', rootdir, 1);
+  mous_db_putdata(subjectname, ['meg_bfica_sourcedata_earlylateWL','_matched_strat_',suff2], 'tlckearlywl', 'tlcklatewl', 'tstatwl',rootdir, 1);
+
+  
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedata_',condition,'_earlylateRC','_matched_',suff2], 'tlckearlyRC', 'tlcklateRC', 'tstatelrc', rootdir, 1);
+%   mous_db_putdata(subjectname, ['meg_bfica_sourcedata_',condition,'_earlylateMX','_matched_',suff2], 'tlckearlyMX', 'tlcklateMX', 'tstatelmx',rootdir, 1);
 
 %   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentseq',suff2], 'tlcksent',    'tlckseq',      'tstat', rootdir, 1);  
 %   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentMXRC',suff2], 'tlcksentMX', 'tlcksentRC',    'tstatmxrc', rootdir, 1);
@@ -528,7 +533,6 @@ end
 %   mous_db_putdata(subjectname, ['meg_bfica_sourcedatasentpartar',suff2], 'tlcksentpartar', 'stat2sentpartar', 'statsentpartar', rootdir, 1);
 %   mous_db_putdata(subjectname, ['meg_bfica_sourcedataseqpartar', suff2], 'tlckseqpartar',  'stat2seqpartar',  'statseqpartar', rootdir, 1);
 
-%   mous_db_putdata(subjectname, ['meg_bfica_sourcedataRCendafter',suff2], 'tlckRCend', 'tlckRCafter', 'tlckMXend', 'tlckMXafter', 'tstatRCendafter', 'tstatMXendafter', rootdir, 1);  
 end  % dosource_contrast
 
 
@@ -564,7 +568,7 @@ if doparcel_source2sens, % allwords parametric sent VS. seq
   end
 
   % earlylate option
-  if exist('tlckearly','var')  %tlckearly and tlcklate variables store in one mat file
+  if exist('tlckearly','var')  %tlckearly and tlcklate variables stored in one mat file
     [tlckearly] = mous_bfica_parcellate(sourcemodel,tlckearly,newinside);
     [tlcklate] = mous_bfica_parcellate(sourcemodel,tlcklate,newinside);
     mous_db_putdata(subjectname,[sourcedata,'_parcelavg'],'tlckearly','tlcklate',rootdir,1);
