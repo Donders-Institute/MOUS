@@ -73,18 +73,18 @@ params.pre = 30;
 params.pst = 659;
 params.tr_inds = p;
 params.demean  = 'prezero';
-[~,~,avg] = denoise_avg2(params,data.trial,s);
+[~,~,avg,cnt] = denoise_avg2(params,data.trial,s);
 
 sel1  = find(ismember(data.trialinfo(:,2),[1 2 5 6]));
 data1 = ft_selectdata(data, 'rpt', sel1);
 params.tr_inds = p(sel1);
 params.time    = data1.time;
-[~,~,avg_sent] = denoise_avg2(params,data1.trial,s);
+[~,~,avg_sent,cnt_sent] = denoise_avg2(params,data1.trial,s);
 sel2  = find(ismember(data.trialinfo(:,2),[3 4 7 8]));
 data2 = ft_selectdata(data, 'rpt', sel2);
 params.tr_inds = p(sel2);
 params.time    = data2.time;
-[~,~,avg_seq]  = denoise_avg2(params,data2.trial,s);
+[~,~,avg_seq,cnt_seq]  = denoise_avg2(params,data2.trial,s);
 
 tlck       = [];
 tlck.time  = (-30:659)./300;
@@ -93,11 +93,13 @@ tlck.label = data.label;
 tlck.dimord = 'chan_time';
 
 tlck.avg      = avg;
+tlck.dof      = cnt;
 tlck_sent     = tlck;
 tlck_sent.avg = avg_sent;
+tlck_sent.dof = cnt_sent;
 tlck_seq      = tlck;
 tlck_seq.avg  = avg_seq;
-
+tlck_seq.dof  = cnt_seq;
 
 %%%%%%%%%%%%%%%%%%%%
 %%% SUBFUNCTION %%%%
@@ -117,7 +119,7 @@ trl(:,3) = 0;
 trl = mous_artifact_remove(trl, dataset, artfctcfg, 'partial', 1); 
 
 %% preprocess neural data and speech audio file
-cfg.trl        = trl;
+cfg.trl        = trl;%(1:100,:);
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';

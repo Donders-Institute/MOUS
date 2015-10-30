@@ -33,7 +33,7 @@ sourcemodel = mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', 
 % compute leadfields
 cfg         = [];
 cfg.grid    = ft_convert_units(sourcemodel, 'm');
-cfg.vol     = ft_convert_units(headmodel, 'm'); % better safe than sorry
+cfg.headmodel = ft_convert_units(headmodel, 'm'); % better safe than sorry
 cfg.channel = 'MEG';
 cfg.grad    = ft_convert_units(data.grad, 'm');
 cfg.backproject = 'no';
@@ -46,7 +46,7 @@ cfg.lcmv.fixedori   = 'no';
 cfg.lcmv.keepfilter = 'yes';
 cfg.lcmv.lambda     = '5%';
 cfg.lcmv.keepmom    = 'no';
-cfg.vol             = ft_convert_units(headmodel, 'm');
+cfg.headmodel       = ft_convert_units(headmodel, 'm');
 cfg.grid            = sourcemodel;
 %cfg.keepleadfield   = 'yes';
 cfg.lcmv.projectnoise = 'yes';

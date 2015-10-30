@@ -94,31 +94,31 @@ C = max(C,  makeconnections(label, 'R_40', 'R_45', [1 2]));
 C = max(C,  makeconnections(label, 'R_40', 'R_46', [1 2]));
 
 % connect BA39/40 to the posterior part of 22 and 37
-C = max(C,  makeconnections(label2, 'L_39', 'L_temp_sup_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'L_39', 'L_temp_sup_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'L_39', 'L_temp_mid_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'L_39', 'L_temp_mid_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'L_39', 'L_temp_inf_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'L_39', 'L_temp_inf_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'L_40', 'L_temp_sup_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'L_40', 'L_temp_sup_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'L_40', 'L_temp_mid_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'L_40', 'L_temp_mid_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'L_40', 'L_temp_inf_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'L_40', 'L_temp_inf_post_37', [1 2]));
+C = max(C,  makeconnections(label2, 'L_39', 'L_temp_sup_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'L_39', 'L_temp_sup_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'L_39', 'L_temp_mid_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'L_39', 'L_temp_mid_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'L_39', 'L_temp_inf_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'L_39', 'L_temp_inf_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'L_40', 'L_temp_sup_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'L_40', 'L_temp_sup_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'L_40', 'L_temp_mid_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'L_40', 'L_temp_mid_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'L_40', 'L_temp_inf_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'L_40', 'L_temp_inf_post_37', [2 1]));
 
-C = max(C,  makeconnections(label2, 'R_39', 'R_temp_sup_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'R_39', 'R_temp_sup_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'R_39', 'R_temp_mid_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'R_39', 'R_temp_mid_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'R_39', 'R_temp_inf_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'R_39', 'R_temp_inf_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'R_40', 'R_temp_sup_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'R_40', 'R_temp_sup_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'R_40', 'R_temp_mid_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'R_40', 'R_temp_mid_post_37', [1 2]));
-C = max(C,  makeconnections(label2, 'R_40', 'R_temp_inf_post_22', [1 2]));
-C = max(C,  makeconnections(label2, 'R_40', 'R_temp_inf_post_37', [1 2]));
+C = max(C,  makeconnections(label2, 'R_39', 'R_temp_sup_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'R_39', 'R_temp_sup_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'R_39', 'R_temp_mid_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'R_39', 'R_temp_mid_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'R_39', 'R_temp_inf_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'R_39', 'R_temp_inf_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'R_40', 'R_temp_sup_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'R_40', 'R_temp_sup_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'R_40', 'R_temp_mid_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'R_40', 'R_temp_mid_post_37', [2 1]));
+C = max(C,  makeconnections(label2, 'R_40', 'R_temp_inf_post_22', [2 1]));
+C = max(C,  makeconnections(label2, 'R_40', 'R_temp_inf_post_37', [2 1]));
 
 % connect areas 45 and 47 to 22/39/17-19 (This is what Catani refers to as
 % the extreme capsule)

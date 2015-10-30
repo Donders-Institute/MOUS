@@ -14,20 +14,21 @@
 % AUDITORY SUBJS:  both are both in /project/3011020.09/annhul/'
 
 if ~exist('rootdir',          'var'), rootdir          = '/project/3011020.09/MEG/';  end
-if ~exist('inrootdir',        'var'), inrootdir        = rootdir;  end
-if ~exist('outrootdir',       'var'), outrootdir       = rootdir;  end
+if ~exist('inrootdir',        'var'), inrootdir        = rootdir;                     end
+if ~exist('outrootdir',       'var'), outrootdir       = rootdir;                     end
 if ~exist('doerf_main',       'var'), doerf_main       = 0;                           end
 if ~exist('doerf_parametric', 'var'), doerf_parametric = 0;                           end
 if ~exist('doerf_rc',         'var'), doerf_rc         = 0;                           end
 if ~exist('doerf_mix',        'var'), doerf_mix        = 0;                           end
 if ~exist('doerf_rc_onoff',   'var'), doerf_rc_onoff   = 0;                           end
-if ~exist('doerf_auditory_chop', 'var'), doerf_auditory_chop = 0;                       end
+if ~exist('doerf_auditory_chop', 'var'), doerf_auditory_chop = 0;                     end
 if ~exist('doerf_auditory_chop_parametric', 'var'), doerf_auditory_chop_parametric = 0; end
-if ~exist('doerf_auditory_chop_freq', 'var'), doerf_auditory_chop_freq = 0;       end
-if ~exist('doerf_dependency', 'var'), doerf_dependency = 0;                           end
-if ~exist('doerf_branchingdepth', 'var'), doerf_branchingdepth = 0; end
+if ~exist('doerf_auditory_chop_freq', 'var'), doerf_auditory_chop_freq = 0;           end
+if ~exist('doerf_dependency', 'var'),     doerf_dependency     = 0;                   end
+if ~exist('doerf_branchingdepth', 'var'), doerf_branchingdepth = 0;                   end
 if ~exist('doerf_dependency_shortlong', 'var'), doerf_dependency_shortlong = 0;       end
-if ~exist('doerf_speech_tlck', 'var'), doerf_speech_tlck = 0; end
+if ~exist('doerf_speech_tlck', 'var'), doerf_speech_tlck = 0;                         end
+if ~exist('doerf_speech_itc',  'var'), doerf_speech_itc  = 0;                         end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
 if ~exist('contrast',         'var'), contrast         = 'wordsent_parametric_blc';   end
@@ -839,4 +840,6 @@ if doerf_speech_tlck
 end
 
 if doerf_speech_itc
+  [freq, freq_sent, freq_seq] = mous_neuralspeechtimelockeditc_sensor(subjectname, 'up');
+  mous_db_putdata(subjectname, 'meg_erf_speech_itc' ,'freq', 'freq_sent', 'freq_seq', outrootdir);
 end

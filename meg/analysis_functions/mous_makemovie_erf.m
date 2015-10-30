@@ -27,7 +27,7 @@ xlim      = ft_getopt(varargin, 'xlim', []);
 demean    = ft_getopt(varargin, 'demean', 'yes');
 baselinewindow = ft_getopt(varargin, 'baselinewindow', [-inf 0]);
 maskparameter  = ft_getopt(varargin, 'maskparameter',  []);
-
+framerate    = ft_getopt(varargin, 'framerate', 2);
 if ~iscell(data)
   data = {data};
 end
@@ -68,7 +68,7 @@ cfg.gridscale  = 120;
 
 % Prepare the new file.
 vidObj = VideoWriter(filename);
-vidObj.FrameRate = 15;
+vidObj.FrameRate = framerate;
 
 open(vidObj);
  
