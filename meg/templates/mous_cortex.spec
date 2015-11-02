@@ -22,19 +22,4 @@
              Selected="true">
       cortex.R.inflated.4k_fs_LR.surf.gii
    </DataFile>
-   <DataFile Structure="All"
-             DataFileType="CONNECTIVITY_PARCEL_SCALAR"
-             Selected="true">
-      ../../../../../../../project/3011020.09/jansch/results/figures_connectivity/statmask_inflow.pscalar.nii
-   </DataFile>
-   <DataFile Structure="All"
-             DataFileType="CONNECTIVITY_PARCEL_SCALAR"
-             Selected="true">
-      ../../../../../../../project/3011020.09/jansch/results/figures_connectivity/statmask_outflow.pscalar.nii
-   </DataFile>
-   <DataFile Structure="All"
-             DataFileType="SCENE"
-             Selected="true">
-      ../../../../../../../project/3011020.09/jansch/results/figures_connectivity/statmask.scene
-   </DataFile>
 </CaretSpecFile>
