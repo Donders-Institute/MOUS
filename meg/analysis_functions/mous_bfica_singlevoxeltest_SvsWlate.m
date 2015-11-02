@@ -1,43 +1,70 @@
-function mous_bfica_singlevoxeltest_SvsWlate
+function mous_bfica_singlevoxeltest_SvsWlate(freq)
 
 % Get location of voxels used to plot the time courses for Se-l vs. WLe-l
 % For each subject, extract voxel values for Senlate and WLlate
 % perform statistics at group-level 
-
 % Voxel locations within 11000 voxel box
-x    = 3; y = 16;   z = 6;        % Left temporal  (theta)
-item = sub2ind([20 25 22],x,y,z);
-% x    = 4; y = 16;   z = 7;        % Left temporal  (alpha)
-% item2  = sub2ind([20 25 22],x,y,z);
 
-x    = 15; y = 22; z = 12;        % Right frontal  (theta, alpha, and beta)
+%% define parameters for each frequency
+
+[subj,~] = mous_db_getfilename('allV','subjectname');
+subj     = subj(1:5);
+nsubj    = numel(subj);
+
+% voxels common to all frequencies
+x    = 15; y = 22; z = 12;           % Right frontal  (theta, alpha, and beta)
 ifrt = sub2ind([20 25 22],x,y,z);
-
-x    = 7; y = 4;   z = 13;        % Left occipital (alpha, beta)
-iocc = sub2ind([20 25 22],x,y,z);
-
-x    = 16; y = 9;   z = 15;       % Right parietal (theta, alpha, and beta)
+x    = 16; y = 9;   z = 15;           % Right parietal (theta, alpha, and beta)
 ipar = sub2ind([20 25 22],x,y,z);
 
-iall = [item ifrt iocc ipar];
+% frequency specific selections
+switch freq
+  case 'theta'
+    freq = 'low';
+    foi  = 5; 
+    
+    x    = 3; y = 16;   z = 6;        % Left temporal  (theta)
+    item = sub2ind([20 25 22],x,y,z);
+    
+    iall = [item ifrt ipar];
 
+  case 'alpha'
+    freq = 'low';
+    foi  = 10;
+    
+    x    = 4; y = 16;   z = 7;        % Left temporal  (alpha, beta)
+    item = sub2ind([20 25 22],x,y,z);
+    
+    x    = 7; y = 4;   z = 13;        % Left occipital (alpha, beta)
+    iocc = sub2ind([20 25 22],x,y,z);
+    
+    iall = [item ifrt iocc ipar];
+
+  case 'beta'
+    freq = 'medium';
+    foi  = 16;
+    
+    x    = 4; y = 16;   z = 7;        % Left temporal  (alpha, beta)
+    item = sub2ind([20 25 22],x,y,z);
+    x    = 7; y = 4;   z = 13;        % Left occipital (alpha, beta)
+    iocc = sub2ind([20 25 22],x,y,z);
+    iall = [item ifrt iocc ipar];
+end
+
+% load memory 
+sen      = zeros(nsubj,numel(iall)); % 102 x 3 or 4
+wl       = zeros(nsubj,numel(iall)); % 102 x 3 or 4
 
 %% loop throught subjects to collect values at predefined voxels
-[subj,~] = mous_db_getfilename('allV','subjectname');
-% subj     = subj(1:5);
-nsubj    = numel(subj);
-sen      = zeros(nsubj,numel(iall)); % 102 x Ð4
-wl       = zeros(nsubj,numel(iall)); % 102 x Ð4
-
 for k = 1:nsubj
-  mous_db_getdata(subj{k},'meg_bfica_sourcedata_earlylateSEN_matched_strat_low');
+  mous_db_getdata(subj{k},['meg_bfica_sourcedata_earlylateSEN_matched_strat_',freq]);
   senlate = tlcklate;
    
-  mous_db_getdata(subj{k},'meg_bfica_sourcedata_earlylateWL_matched_strat_low');
+  mous_db_getdata(subj{k},['meg_bfica_sourcedata_earlylateWL_matched_strat_',freq]);
   wllate = tlcklate;
   
   cfg = [];
-  cfg.frequency = 5;
+  cfg.frequency = foi;
   senlate       = ft_selectdata(cfg,senlate); 
   wllate        = ft_selectdata(cfg,wllate);   
   
@@ -77,29 +104,30 @@ ssqsen = zeros(1,4);  ssqwl  = zeros(1,4);
 sumsen = zeros(1,4);  sumwl  = zeros(1,4);
 semsen = zeros(1,4);  semwl  = zeros(1,4);
 
+% calculate standard error of the mean
+ssqsen = sum(sen.^2);  % ssqsen = sum(ssqsen(:,kk));
+ssqwl  = sum(wl.^2);   % ssqwl  = sum(ssqwl(:,kk));
 
-for kk = 1:numel(iall)
-  % calculate standard error of the mean
-  ssqsen(kk) = sum(sen(:,kk).^2);  % ssqsen = sum(ssqsen(:,kk));
-  ssqwl(kk)  = sum(wl(:,kk).^2);   % ssqwl  = sum(ssqwl(:,kk));
+sumsen = sum(sen);
+sumwl  = sum(wl);
 
-  sumsen(kk) = sum(sen(:,kk));
-  sumwl(kk)  = sum(wl(:,kk));
+varsen = (ssqsen - sumsen.^2./nsubj)./(nsubj-1);
+semsen = sqrt(varsen./nsubj);
 
-  semsen(kk) = (ssqsen(kk) - sumsen(kk).^2./nsubj)./(nsubj-1);
-  semwl(kk)  = (ssqwl(kk)  - sumwl(kk).^2./nsubj)./(nsubj-1);
-end
+varwl  = (ssqwl  - sumwl.^2./nsubj)./(nsubj-1);
+semwl  = sqrt(varwl./nsubj);
+%% statistics
 
+diff = sen-wl;
+[h,p,ci,stats]  = ttest(diff,0,0.05);
 
 % plot bar graphs
-bar(avgsen(1), avgwl(1)); hold on;
-errorbar([avgsen(1),avgwl(1)],[semsen(1),semwl(1)]);  % dtem 
+% dat = [avgsen; avgwl];
+% dat = dat(:);
+% err = [semsen; semwl];
+% err = err(:);
+% barwitherr(c,d,'r')
 
-bar(avgsen(2), avgwl(2)); hold on;
-errorbar([avgsen(2),avgwl(2)],[semsen(2),semwl(2)],'g');  % dfrt  
-
-bar(avgsen(3), avgwl(3)); hold on; 
-errorbar([avgsen(3),avgwl(3)],[semsen(3),semwl(3)],'r');  % docc  
-
-bar(avgsen(4), avgwl(4));hold on;
-errorbar([avgsen(4),avgwl(4)],[semsen(4),semwl(4)],'k');  % dpar 
+%% save
+root = '/project/3011020.09/nielam/groupresults/bfica/visual/';
+save([root,'sourcedata_SvsWlate_singlevoxeltest_',freq,'_102subj'],'avgsen','avgwl','semsen','semwl','diff','h','p','ci','stats');
