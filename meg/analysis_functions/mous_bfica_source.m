@@ -105,13 +105,13 @@ cfg.dics.fixedori = 'yes';
 cfg.dics.realfilter = 'yes';
 cfg.dics.keepfilter = 'yes';
 cfg.dics.lambda = '5%';
-cfg.vol = headmodel;
+cfg.headmodel = headmodel;
 cfg.grid = sourcemodel;
 cfg.keepleadfield = 'yes';
 source = ft_sourceanalysis(cfg, tmp);
 trialinfo = freq.trialinfo;
 
 % estimate fwhm of spatial filters for voxel specific smoothing
-cfg = [];
-cfg.fwhm = 'yes';
-source = ft_sourcedescriptives(cfg, source);
+% cfg = [];
+% cfg.fwhm = 'yes';
+% source = ft_sourcedescriptives(cfg, source);
