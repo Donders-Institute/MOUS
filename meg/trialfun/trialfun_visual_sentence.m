@@ -104,3 +104,33 @@ for k = 1:numel(selfix)-1
   trl = cat(1,trl,tmp);
 
 end
+
+%% get stimuliID (wavfile ID)
+try,
+  [p,f,e]             = fileparts(cfg.dataset);
+  subjectname         = f(1:5);
+  [newtext, sentence, wordduration] = read_logfile_visual(subjectname);
+end
+
+try
+%   load('/project/3011020.09/MEG/misc/mous_stimuli');
+  load('/home/language/nielam/MOUS/meg/trialfun/mous_stimuli');
+catch
+  try
+   warning('could not deal with the mous_simuli file, probably because you don''t have it: ask Jan-Mathijs');;
+  catch 
+  end
+end
+
+if exist('stimuli', 'var') && exist('sentence', 'var')
+  id = mous_getstimulusid(sentence, stimuli);
+else
+  id = nan+zeros(size(trl,1),1);
+end
+
+if max(trl(:,4))==numel(id)
+  % there is assumed to be a one-to-one match with the stimulus counter and
+  % the number of elements in the stimulus material extracted from the
+  % logfile
+  trl(:,7) = id(trl(:,4));
+end
