@@ -28,7 +28,7 @@ function [trl] = trialfun_visual_word(cfg)
 %   column 4: trial number (X out of 240; 120 sentences, 120 sequences)
 %   column 5: trigger corresponding to the word
 %   column 6: sample number relative to the onset of the first word
-%   column 7: number of samples between word on and offset
+%   column 7: number of samples between word onset trigger (e.g.,1) and word offset trigger (15)
 %   column 8: ordinal number of word position
 %   column 9: stimulus id, linking the sentence/sequence to the total
 %             stimulus set
@@ -160,12 +160,12 @@ end
 
 
 try
-  load('/home/language/jansch/projects/mous/meg/trialfun/mous_stimuli.mat');
+%   load('/project/3011020.09/MEG/misc/mous_stimuli');
+  load('/home/language/nielam/MOUS/meg/trialfun/mous_stimuli');
 catch
   try
-   load('/home/language/nielam/MOUS/meg/trialfun/mous_stimuli.mat');
-  catch
-    warning('could not deal with the mous_simuli file, probably because you don''t have it: ask Jan-Mathijs');
+   warning('could not deal with the mous_simuli file, probably because you don''t have it: ask Jan-Mathijs');;
+  catch 
   end
 end
 
