@@ -8,18 +8,18 @@ if ~exist('rootdir', 'var')
   rootdir = '/project/3011020.09/jansch';
 end
 
-if ~exist('dopreproc',      'var'), dopreproc      = 0; end
-if ~exist('dopreproc_sub',  'var'), dopreproc_sub  = 0; end
-if ~exist('dofreq',         'var'), dofreq         = 0; end
-if ~exist('dofreq_sub',     'var'), dofreq_sub     = 0; end
+if ~exist('dopreproc',       'var'), dopreproc      = 0; end
+if ~exist('dopreproc_sub',   'var'), dopreproc_sub  = 0; end
+if ~exist('dofreq',          'var'), dofreq         = 0; end
+if ~exist('dofreq_sub',      'var'), dofreq_sub     = 0; end
 if ~exist('dofreq_parcellate_stratify', 'var'), dofreq_parcellate_stratify = 0; end
-if ~exist('dolcmv',         'var'), dolcmv         = 0; end
-if ~exist('doparcellate',   'var'), doparcellate   = 0; end
+if ~exist('dolcmv',          'var'), dolcmv         = 0; end
+if ~exist('doparcellate',    'var'), doparcellate   = 0; end
 if ~exist('doparcellate_stratify', 'var'), doparcellate_stratify = 0; end
-if ~exist('dogranger',      'var'), dogranger      = 0; end
-if ~exist('dogranger_sent', 'var'), dogranger_sent = 0; end
-if ~exist('dogranger_seq',  'var'), dogranger_seq  = 0; end
-if ~exist('dogranger_sub',  'var'), dogranger_sub  = 0; end
+if ~exist('dogranger',       'var'), dogranger      = 0; end
+if ~exist('dogranger_sent',  'var'), dogranger_sent = 0; end
+if ~exist('dogranger_seq',   'var'), dogranger_seq  = 0; end
+if ~exist('dogranger_sub',   'var'), dogranger_sub  = 0; end
 if ~exist('dogranger_sub2',  'var'), dogranger_sub2  = 0; end
 if ~exist('dogranger_earlylate',    'var'), dogranger_earlylate    = 0; end
 if ~exist('dogranger_earlylate2',   'var'), dogranger_earlylate2   = 0; end
@@ -28,6 +28,8 @@ if ~exist('dopow_sub2',             'var'), dopow_sub2             = 0; end
 if ~exist('dodssaseo',              'var'), dodssaseo              = 0; end
 if ~exist('dodssaseo_clean',        'var'), dodssaseo_clean        = 0; end
 if ~exist('dogranger_new',          'var'), dogranger_new          = 0; end
+if ~exist('dotlck_parcellate_topology', 'var'), dotlck_parcellate_topology = 0; end
+if ~exist('dogranger_conditional',  'var'), dogranger_conditional  = 0; end
 
 if dopreproc
   % do preprocessing with minimal filtering, and sufficient padding for
@@ -1465,3 +1467,118 @@ if dofreq_parcellate_stratify
     mous_db_putdata(subjectname, ['meg_granger_granger_roi_strat',num2str(round(offset*1000),'%03d')], 'granger', 'granger_strat', 'freq', 'freq_strat', rootdir,0);
   end
 end
+if dotlck_parcellate_topology,
+  % compute the erfs of the senders/receivers based on the original data
+  % (across conditions), and the aseo'ed data
+  topologydir = '/project/3011020.09/jansch/results/20151106_granger';
+  load(fullfile(topologydir,'groupresults_nmf_topology'),'connections');
+  mous_db_getdata(subjectname, 'meg_granger_parcellation', rootdir);
+  
+  if ~exist('data', 'var'), error('data does not exist, run dopreproc_sub first and keep the session open'); end
+  dataorig = data;
+  
+  mous_db_getdata(subjectname, 'meg_granger_dssaseo', rootdir);
+  for k = 1:numel(comp)
+    % this could in principle be done without a for-loop
+    fprintf('removing dss-aseo component %d\n',k);
+    data.trial = data.trial - comp(k).topo*r1(k).trial;
+  end
+  
+  s.X = 1;
+  params.time = data.time;
+  params.pre  = 120;
+  params.pst  = 719;
+  params.demean = 'prezero';
+  [~,~,avg] = denoise_avg2(params, data.trial, s);
+  [~,~,avgorig] = denoise_avg2(params, dataorig.trial, s);
+  time = (-120:719)./1200;
+  
+  for k = 1:numel(connections)
+    [a,b] = match_str(parcellation.label, unique(connections(k).senders));
+    F = [];
+    for p = 1:numel(a)
+      F((p-1)*2+(1:2),:)=parcellation.filter{a(p)}(1:2,:);
+    end
+    S{k,1} = F*avgorig;
+    S{k,2} = F*avg;
+    
+    [a,b] = match_str(parcellation.label, unique(connections(k).receivers));
+    F = [];
+    for p = 1:numel(a)
+      F((p-1)*2+(1:2),:)=parcellation.filter{a(p)}(1:2,:);
+    end
+    R{k,1} = F*avgorig;
+    R{k,2} = F*avg;
+  end
+  
+  mous_db_putdata(subjectname, 'meg_granger_erf_networknodes_aseo', 'R', 'S', 'connections', rootdir);
+end
+
+if dogranger_conditional
+  % do pairwise blockwise granger for the connections of interest, try
+  % conditioning on the res
+  mous_db_getdata(subjectname, 'meg_granger_csd_sent',     rootdir);
+  mous_db_getdata(subjectname, 'meg_granger_csd_seq',      rootdir);
+  mous_db_getdata(subjectname, 'meg_granger_parcellation', rootdir);
+  load(fullfile('/project/3011020.09/jansch/results/20151106_granger','groupresults_nmf_topology'),'Senders','Receivers');
+  
+  
+  [C, label, P, list, lay] = mous_edgesofinterest;
+  [sel1 ,sel2]             = match_str(parcellation.label, label(:,1));
+  C                        = C(sel2,sel2);
+  label                    = label(sel2,:);
+  
+  parcellation.label  = parcellation.label(sel1);
+  parcellation.filter = parcellation.filter(sel1);
+ 
+  csd_all = csd_sent; clear csd_sent;
+  csd_all.crsspctrm = (csd_all.crsspctrm.*csd_all.dof + csd_seq.crsspctrm.*csd_seq.dof)./(csd_all.dof+csd_seq.dof);
+  clear csd_seq;
+  
+  % only select the parcels that are nodes-of-interest, to compute the
+  % concatenated spatial filter
+  sel = sum(C>0,2)>0;
+  
+  C     = C(sel,sel);
+  label = label(sel,:);
+  parcellation.label  = parcellation.label(sel);
+  parcellation.filter = parcellation.filter(sel);
+  for k = 1:numel(parcellation.label)
+    F((k-1)*2+(1:2),:) = parcellation.filter{k}(1:2,:);
+  end
+  
+  crsspctrm = zeros(size(F,1),size(F,1),numel(csd_all.freq));
+  for k = 1:size(crsspctrm,3)
+    crsspctrm(:,:,k) = F*csd_all.crsspctrm(:,:,k)*F';
+  end
+  
+  expandlabel=@(x)(reshape(transpose([strrep(x,'B05','01') strrep(x,'B05','02')]),[],1));
+  
+  csd_all.crsspctrm = crsspctrm.*1e14; % remove small numbers
+  csd_all.label     = expandlabel(parcellation.label);
+  
+  % loop over networks
+  labelcmb = cell(0,2);
+  gdat     = zeros(0,301);
+  for netlop = 1:20
+    for k = 1:numel(Senders(netlop).label)
+      for m = 1:numel(Receivers(netlop).label)
+        label1 = setdiff(expandlabel(Senders(netlop).label{k}),expandlabel(Receivers(netlop).label{m}));
+        label2 = setdiff(expandlabel(Receivers(netlop).label{m}),expandlabel(Senders(netlop).label{k}));
+        if ~isempty(label1) && ~isempty(label2)
+          tmpg   = dogranger_blckcnd_truncatecsd(csd_all,label1,label2);
+        
+          %CHECK WHETHER THE SWAP IN ROI-ORDER IS CORRECT!
+          labelcmb = cat(1,labelcmb,{Senders(netlop).name{k} Receivers(netlop).name{m};Receivers(netlop).name{m} Senders(netlop).name{k}});
+          gdat     = cat(1,gdat,tmpg.grangerspctrm([2 1],:)); % swap is intentional
+        end
+      end
+    end
+  end
+  g = tmpg;
+  g.grangerspctrm = gdat;
+  g.labelcmb      = labelcmb;
+  
+  mous_db_putdata(subjectname, 'meg_granger_granger_conditional', 'g', 'Senders', 'Receivers', rootdir);
+end
+ 
