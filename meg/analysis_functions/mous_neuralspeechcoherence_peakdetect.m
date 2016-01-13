@@ -1,6 +1,8 @@
 function mous_neuralspeechcoherence_peakdetect(condition)
-%  This function searches for peaks in each channel, peaks that are most frequently found
-%  across all channels (>25) are considered to be true peaks
+%  This function searches for peaks in each channel
+%  frequencies with peaks in each channel are contender peaks
+%  the contender peak that is (1) found in >25 channels, has (2) highest peak value
+%  is the peak frequency for that subject
 
 %  Decisions taken for this peak detection algorithm
 %  1. Number of channels: using all channels 
@@ -18,8 +20,8 @@ function mous_neuralspeechcoherence_peakdetect(condition)
 %     The first round gives a rough idea of which peaks to consider
       %  E.g., there are peaks right next to each other(in frequency) 
       %  with almost equal height, which could actually be one true peak.
-%     The second round creates more defined peaks
-      % Take the smoothed coherence spectrum and multiplies 
+%     The second round creates well defined peaks:
+      % Take the smoothed coherence spectrum and multiply 
       % it to the mean of the standardized coherence spectrum
       % standardization: places all frequencies on the same coherence
       % level, making the lower frequency peaks (with high coherence values)
@@ -77,7 +79,7 @@ for k = 1:102
       val(chancnt,1:len)  = v;
     end
   end                      % channel loop
-  numpeak(k,:)            = sum(fcohpeak,1);
+  numpeak(k,:)            = sum(fcohpeak,1); % numpeak = number of channels with a peak at a certain frequency
 end                        % subjloop
 
   
@@ -102,7 +104,7 @@ cohallsubj     = zeros(numel(subj),numel(allfreq));
 for k = 1:102
   mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
 
-  switch condition
+  switch condition  % default is using sentences only
   case 'wl'
     sentcoh = wlcoh;
   case 'common' 
@@ -114,6 +116,9 @@ for k = 1:102
   sentcoh       = ft_selectdata(cfg,sentcoh);
   coi           = 1:size(sentcoh.labelcmb,1);
   
+  % standardize matrix
+  % mean across channels
+  % multiple standardized (mean) by peaks
   sentcoh.cohspctrm = ft_preproc_smooth(numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),2); 
   cohallsubj(k,:)   = sentcoh.cohspctrm; % smoothed and standardized data from all subjs
   
@@ -176,6 +181,13 @@ for sc = 1:102
       end
   end
 end
+
+% if no peak found, change '0' to 'NaN'
+% otherwise, connectivity calculated for subjects with '0' (doesn't make sense)
+% Subjects with 0 in commonpeak usually have a peak in each condition but
+%   the average cancels out the peak
+idx = find(peakfreqfirst == 0);
+peakfreqfirst(idx) = nan;
 
   
 switch condition
