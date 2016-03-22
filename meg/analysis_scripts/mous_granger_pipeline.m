@@ -1493,22 +1493,51 @@ if dotlck_parcellate_topology,
   [~,~,avgorig] = denoise_avg2(params, dataorig.trial, s);
   time = (-120:719)./1200;
   
+  [indx_early, indx_late] = extract_earlylate(data.trialinfo);
+  sel{1} = indx_early(ismember(indx_early, find(ismember(data.trialinfo(:,2),[1 2 5 6]))));
+  sel{2} = indx_late(ismember(indx_late, find(ismember(data.trialinfo(:,2),[1 2 5 6]))));
+  sel{3} = indx_early(ismember(indx_early, find(ismember(data.trialinfo(:,2),[3 4 7 8]))));
+  sel{4} = indx_late(ismember(indx_late, find(ismember(data.trialinfo(:,2),[3 4 7 8]))));
+  for k = 1:4
+    tmpcfg = [];
+    tmpcfg.trials = sel{k};
+    tmpdata = ft_selectdata(tmpcfg, data);
+    tmpdataorig = ft_selectdata(tmpcfg, dataorig);
+ 
+    params.time = tmpdata.time;
+    [~,~,cond{k}] = denoise_avg2(params, tmpdata.trial, s);
+    [~,~,condorig{k}] = denoise_avg2(params, tmpdataorig.trial, s);
+  end
+  
   for k = 1:numel(connections)
     [a,b] = match_str(parcellation.label, unique(connections(k).senders));
     F = [];
     for p = 1:numel(a)
       F((p-1)*2+(1:2),:)=parcellation.filter{a(p)}(1:2,:);
     end
-    S{k,1} = F*avgorig;
-    S{k,2} = F*avg;
+    S{k,1,1} = F*avgorig;
+    S{k,2,1} = F*avg;
+    for m = 1:4
+      S{k,1,m+1} = F*condorig{m};
+      S{k,2,m+1} = F*cond{m};
+    end
     
     [a,b] = match_str(parcellation.label, unique(connections(k).receivers));
     F = [];
     for p = 1:numel(a)
       F((p-1)*2+(1:2),:)=parcellation.filter{a(p)}(1:2,:);
     end
-    R{k,1} = F*avgorig;
-    R{k,2} = F*avg;
+    R{k,1,1} = F*avgorig;
+    R{k,2,1} = F*avg;
+    for m = 1:4
+      R{k,1,m+1} = F*condorig{m};
+      R{k,2,m+1} = F*cond{m};
+    end
+    
+  end
+  for k = 1:numel(R)
+    R{k} = single(R{k});
+    S{k} = single(S{k});
   end
   
   mous_db_putdata(subjectname, 'meg_granger_erf_networknodes_aseo', 'R', 'S', 'connections', rootdir);

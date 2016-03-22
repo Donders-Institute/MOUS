@@ -40,6 +40,8 @@ elseif size(parameter,2)==1
   tmp = data;
   clear data;
   data.label = parameter;
+	data.stuff = tmp;
+	parameter  = 'stuff';
 elseif size(parameter,2)==2
   % this contains labelcmb e.g. pairwise granger
   tmp = data;
@@ -62,7 +64,7 @@ if isfield(data, 'label')
       
       [parcelindx, chanindx] = match_str(parcellation.([parcelparam,'label']), data.label);
       
-      if strcmp(dimtok{1}, 'chan') && strcmp(dimtok{2}, 'chan')
+      if strcmp(dimtok{1}, 'chan') && numel(dimtok)>1 && strcmp(dimtok{2}, 'chan')
         % chan_chan_xxx
         for i=1:numel(parcelindx)
           for j=1:numel(parcelindx)
