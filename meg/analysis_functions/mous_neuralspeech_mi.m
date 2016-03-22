@@ -42,7 +42,17 @@ elseif numel(dataset) > 1
   speech.grad = ft_average_sens(tmpsens2, 'weights', weights2);   
 end
 
-data = ft_appenddata([], data, speech);
+% get planar gradients
+cfg = [];
+cfg.method = 'template';
+cfg.template = 'CTF275_neighb.mat';
+neighb = ft_prepare_neighbours(cfg);
+
+cfg = [];
+cfg.method = 'sincos';
+cfg.neighbours = neighb;
+data = ft_megplanar(cfg, data);
+
 
 % get the sentence trials
 cfg = [];
@@ -54,18 +64,27 @@ cfgf = [];
 cfgf.bpfilter = 'yes';
 cfgf.bpfilttype = 'firws';
 
+cfgc = [];
+cfgc.method = 'svd';
+
 cfgh = [];
 cfgh.hilbert = 'angle';
 
 cfg = [];
 cfg.method = 'mi';
-cfg.refindx = match_str(data.label, 'audio_avg');
-cfg.mi.lags = (-0.2:0.1:0.7);
+cfg.mi.lags = (-0.7:0.1:0.7);
 
 freqs = [linspace(0.5,16,20);linspace(1,20,20);linspace(1.5,24,20)];
 for k = 1:size(freqs,2)
   cfgf.bpfreq = freqs([1 3],k)';
-  mi(k)       = ft_connectivityanalysis(cfg,ft_preprocessing(cfgh,ft_preprocessing(cfgf,data)));
+
+  tmp       = ft_preprocessing(cfgf, data);
+  tmpspeech = ft_preprocessing(cfgf, speech);
+  
+  tmp         = ft_appenddata([], tmp, tmpspeech);
+  cfg.refindx = match_str(tmp.label, 'audio_avg');
+
+  mi(k)       = ft_connectivityanalysis(cfg,ft_preprocessing(cfgh, tmp));
 end
 
 
@@ -128,6 +147,6 @@ speech.label = [speech.label;{'audio_avg'}];
 cfg = [];
 cfg.detrend     = 'no';
 cfg.demean      = 'no';  
-cfg.resamplefs  = 300;
+cfg.resamplefs  = 150;
 data            = ft_resampledata(cfg,data);
 speech          = ft_resampledata(cfg,speech);
