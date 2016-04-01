@@ -196,10 +196,16 @@ switch type{2}
             d = d(ix);         
           end
         case 'rest'
-          % heuristic: totalbytes > .1e9 and <.7e9, does not work for V1012
+          % heuristic: totalbytes > .1e9 and <.7e9, doesnt work for 3 subjs
           [m,ix] = find(totalbytes>0.1e9 & totalbytes<0.7e9);
           if strcmp(subject, 'V1012')
             ix = ix(2); % according to the notes, subject fell asleep during 1st resting
+          end
+          if strcmp(subject, 'A2036') % m/ix are empty
+            ix = 1;
+          end
+          if strcmp(subject, 'A2061')
+            ix = ix(2);
           end
           d = d(ix);
         case 'pos'
