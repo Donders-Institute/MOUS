@@ -134,7 +134,8 @@ end
 cfg.tri       = sourcemodel.tri;
 
 cfg.atlas    = ft_getopt(cfg, 'atlas', [] );
-if(~isempty(cfg.atlas))
+%if(~isempty(cfg.atlas))
+if isfield(cfg, 'roi'), 
     cfg.roi          = ft_getopt(cfg, 'roi', 'L_44_B05'); %fixme
     cfg.avgoverroi   = ft_getopt(cfg, 'avgoverroi', 'yes');
     cfg.inputcoord      = 'mni';
