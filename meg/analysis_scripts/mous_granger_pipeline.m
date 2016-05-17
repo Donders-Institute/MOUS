@@ -995,7 +995,9 @@ if dogranger_new
   mous_db_getdata(subjectname, 'meg_granger_csd_seq',      rootdir);
   mous_db_getdata(subjectname, 'meg_granger_parcellation', rootdir);
   
-  [C, label, P, list, lay] = mous_edgesofinterest;
+  [C, label, P, list, lay] = mous_edgesofinterest_new;
+  %[C, label, P, list, lay] = mous_edgesofinterest;
+  
   [sel1 ,sel2]             = match_str(parcellation.label, label(:,1));
   C                        = C(sel2,sel2);
   label                    = label(sel2,:);
@@ -1057,7 +1059,7 @@ if dogranger_new
   g_rev = g;
   g_rev.grangerspctrm = G_rev;
   
-  mous_db_putdata(subjectname, 'meg_granger_granger_roi', 'g', 'g_rev', rootdir);
+  mous_db_putdata(subjectname, 'meg_granger_granger_roi', 'g', 'g_rev', rootdir);%,0);
 end
  
 if doparcellate_stratify
@@ -1220,7 +1222,7 @@ if dofreq_parcellate_stratify
   cfg        = [];
   cfg.method = 'mtmfft';
   cfg.output = 'fourier';
-  cfg.tapsmofrq = 7.5;
+  cfg.tapsmofrq = 5;%7.5;
   %cfg.foilim = [0 300];
   cfg.pad    = 1;
   
@@ -1233,7 +1235,8 @@ if dofreq_parcellate_stratify
     tmp        = [];
     tmp.freq   = 0:600;
     tmp.dimord = 'chan_chan_freq';
-    tmp.crsspctrm = zeros(3005,16)+1i*zeros(3005,16); %ntapers x freqbins %zeros(4,4,301) + 1i.*zeros(4,4,301);
+    %tmp.crsspctrm = zeros(3005,16)+1i*zeros(3005,16); %ntapers x freqbins %zeros(4,4,301) + 1i.*zeros(4,4,301);
+    tmp.crsspctrm = zeros(1803,16)+1i*zeros(1803,16); %ntapers x freqbins %zeros(4,4,301) + 1i.*zeros(4,4,301);
     
     % create the fourier-transform of the ERFs, for the specified latency
     % the avg, and avg_strat matrices are ordered according to labelcmb (each
@@ -1288,10 +1291,14 @@ if dofreq_parcellate_stratify
         % make a sparse projection matrix, mapping tapers to frequencies
         i1 = zeros(0,1);i2 = zeros(0,1);
         for q = 1:601
-          i1((q-1)*5+(1:5)) = q;
-          i2((q-1)*5+(1:5)) = (q-1)*5+(1:5);
+          %i1((q-1)*5+(1:5)) = q;
+          %i2((q-1)*5+(1:5)) = (q-1)*5+(1:5);
+          i1((q-1)*3+(1:3)) = q;
+          i2((q-1)*3+(1:3)) = (q-1)*3+(1:3);
+        
         end
-        P = sparse(i1,i2,0.2*ones(size(i1)));
+        %P = sparse(i1,i2,0.2*ones(size(i1)));
+        P = sparse(i1,i2,(1/3)*ones(size(i1)));
         
       end
       
