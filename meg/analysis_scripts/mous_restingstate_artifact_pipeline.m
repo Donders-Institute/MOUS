@@ -18,7 +18,7 @@ trl(:,1) = (301:2400:(nsmp-2700))';
 trl(:,2) = (2700:2400:(nsmp-300))';
 trl(:,3) = 0;
 
-if 1,
+if 0,
   [cfgeog1, cfgeog2] = mous_artifact_eog(filename{1},        trl); % detect eog artifacts
   [cfgjump         ] = mous_artifact_squidjumps(filename{1}, trl); % detect squid jumps
   [cfgmuscle       ] = mous_artifact_muscle(filename{1},     trl, ntrials); % detect muscle artifacts
@@ -27,7 +27,7 @@ if 1,
   mous_db_putdata(subjectname, 'meg_artifact_cfg_restingstate', 'cfgeog1', 'cfgeog2', 'cfgjump', 'cfgmuscle'); 
 end
 
-if 0,
+if 1,
   [comp, avgcomp, avgpre, avgeog] = mous_artifact_eog_dss_blinks(filename{1},   trl);
   mous_db_putdata(subjectname, 'meg_artifact_dssblinks', 'comp', 'avgcomp', 'avgpre', 'avgeog');
   
