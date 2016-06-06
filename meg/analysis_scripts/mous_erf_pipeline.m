@@ -32,6 +32,7 @@ if ~exist('doerf_speech_itc',  'var'), doerf_speech_itc  = 0;                   
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
 if ~exist('contrast',         'var'), contrast         = 'wordsent_parametric_blc';   end
+if ~exist('doerf_earlylate',  'var'), doerf_earlylate  = 0; end
 
 if strcmp(subjectname(1), 'V') && ~exist('length', 'var'), length = '02-nextword';    end
 if strcmp(subjectname(1), 'A') && ~exist('length', 'var'), length = '02-10'; end
@@ -835,11 +836,56 @@ if doerf_auditory_chop_freq
 end
 
 if doerf_speech_tlck
-  [tlck, tlck_sent, tlck_seq] = mous_neuralspeechtimelocked_sensor(subjectname, 'up');
-  mous_db_putdata(subjectname, 'meg_erf_speech_tlck' ,'tlck', 'tlck_sent', 'tlck_seq', outrootdir);
+  [tlck, tlck_sent, tlck_seq, tlck_seq2] = mous_neuralspeechtimelocked_sensor(subjectname, 'up');
+  mous_db_putdata(subjectname, 'meg_erf_speech_tlck' ,'tlck', 'tlck_sent', 'tlck_seq', 'tlck_seq2', outrootdir,1);
 end
 
 if doerf_speech_itc
   [freq, freq_sent, freq_seq] = mous_neuralspeechtimelockeditc_sensor(subjectname, 'up');
   mous_db_putdata(subjectname, 'meg_erf_speech_itc' ,'freq', 'freq_sent', 'freq_seq', outrootdir);
 end
+
+if doerf_earlylate
+  mous_db_getdata(subjectname, inputdata, inrootdir);
+  [early, late] = extract_earlylate(data.trialinfo);
+  
+  tmpcfg = [];
+  tmpcfg.trials  = early;
+  data1 = ft_selectdata(tmpcfg, data);
+  
+  tmpcfg.trials = late;
+  data2 = ft_selectdata(tmpcfg, data);
+  clear data;
+  
+  tmpcfg = [];
+  tmpcfg.latency = [-0.2 0.6];
+  
+  sent1 = find(ismember(data1.trialinfo(:,2),[1 2 5 6]));
+  seq1  = find(ismember(data1.trialinfo(:,2),[3 4 7 8]));
+  sent2 = find(ismember(data2.trialinfo(:,2),[1 2 5 6]));
+  seq2  = find(ismember(data2.trialinfo(:,2),[3 4 7 8]));
+  
+  
+  cfg = [];
+  cfg.vartrllength = 2;
+  cfg.preproc.demean = 'yes';
+  cfg.preproc.baselinewindow = [-inf 0];
+  cfg.channel = 'MEG';
+  cfg.trials = sent1;
+  tlck = ft_selectdata(tmpcfg, ft_timelockanalysis(cfg, data1));
+  mous_db_putdata(subjectname, [inputdata,'_sentearly'], 'tlck', outrootdir);
+  cfg.trials = sent2;
+  tlck = ft_selectdata(tmpcfg, ft_timelockanalysis(cfg, data2));
+  mous_db_putdata(subjectname, [inputdata,'_sentlate'], 'tlck', outrootdir);
+  
+  cfg.trials = seq1;
+  tlck = ft_selectdata(tmpcfg, ft_timelockanalysis(cfg, data1));
+  mous_db_putdata(subjectname, [inputdata,'_seqearly'], 'tlck', outrootdir);
+  cfg.trials = seq2;
+  tlck = ft_selectdata(tmpcfg, ft_timelockanalysis(cfg, data2));
+  mous_db_putdata(subjectname, [inputdata,'_seqlate'], 'tlck', outrootdir);
+  
+  
+  
+end
+
