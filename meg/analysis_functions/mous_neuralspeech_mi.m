@@ -72,10 +72,11 @@ cfgh.hilbert = 'angle';
 
 cfg = [];
 cfg.method = 'mi';
-cfg.mi.lags = (-0.7:0.1:0.7);
+cfg.mi.lags = 0;(-0.7:0.1:0.7);
+cfg.mi.method = 'gcmi';
 
 freqs = [linspace(0.5,16,20);linspace(1,20,20);linspace(1.5,24,20)];
-for k = 1:size(freqs,2)
+for k = 2%1:size(freqs,2)
   cfgf.bpfreq = freqs([1 3],k)';
 
   tmp       = ft_preprocessing(cfgf, data);

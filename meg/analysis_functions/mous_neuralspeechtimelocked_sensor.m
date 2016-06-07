@@ -1,4 +1,4 @@
-function [tlck, tlck_sent, tlck_seq] = mous_neuralspeechtimelocked_sensor(subjectname, ramp) %, varargin)
+function [tlck, tlck_sent, tlck_seq, tlck_seq2] = mous_neuralspeechtimelocked_sensor(subjectname, ramp) %, varargin)
 
 if nargin<2
   ramp = 'up';
@@ -68,9 +68,12 @@ end
 
 data = ft_appenddata([], data, speechorig);
 
+pre = 30;
+pst = 659;
+
 s.X        = 1;
-params.pre = 30;
-params.pst = 659;
+params.pre = pre;
+params.pst = pst;
 params.tr_inds = p;
 params.demean  = 'prezero';
 [~,~,avg,cnt] = denoise_avg2(params,data.trial,s);
@@ -86,20 +89,44 @@ params.tr_inds = p(sel2);
 params.time    = data2.time;
 [~,~,avg_seq,cnt_seq]  = denoise_avg2(params,data2.trial,s);
 
+% get the histograms of the inter-ramp intervals:
+for k = 1:numel(p)
+  D{k} = diff(p{k});
+end
+dp1 = cat(1,D{sel1});
+dp2 = cat(1,D{sel2});
+dp  = cat(1,D{:});
+
+% now get the average from a subset of the wordlist ramps, where the next
+% ramp is at least 1/3 seconds away
+D = D(sel2); % subselect the word lists
+for k = 1:numel(D)
+  sel = find(D{k}>data2.fsample./3);
+  params.tr_inds{k} = params.tr_inds{k}(sel);
+end
+[~,~,avg_seq2,cnt_seq2]  = denoise_avg2(params,data2.trial,s);
+
 tlck       = [];
-tlck.time  = (-30:659)./300;
+tlck.time  = (-pre:pst)./300;
 tlck.grad  = data.grad;
 tlck.label = data.label;
 tlck.dimord = 'chan_time';
+tlck.delta  = dp;
 
 tlck.avg      = avg;
 tlck.dof      = cnt;
 tlck_sent     = tlck;
 tlck_sent.avg = avg_sent;
 tlck_sent.dof = cnt_sent;
+tlck_sent.delta = dp1;
 tlck_seq      = tlck;
 tlck_seq.avg  = avg_seq;
 tlck_seq.dof  = cnt_seq;
+tlck_seq.delta = dp2; 
+tlck_seq2      = tlck;
+tlck_seq2.avg  = avg_seq2;
+tlck_seq2.dof  = cnt_seq2;
+tlck_seq2.delta = cat(1,D{:}); 
 
 %%%%%%%%%%%%%%%%%%%%
 %%% SUBFUNCTION %%%%
@@ -127,7 +154,7 @@ cfg.channel    = 'MEG';
 %cfg.bsfreq     = [49 51];
 %cfg.bsfilttype = 'firws'; % windowed sinc FIR filter
 cfg.bpfilter = 'yes';
-cfg.bpfreq   = [0.1 40];
+cfg.bpfreq   = [1 40];
 cfg.bpfilttype = 'firws';
 %cfg.padding    = 10;
 cfg.usefftfilt = 'yes'; 

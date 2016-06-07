@@ -578,7 +578,7 @@ if domne_parcellate
     if ~isempty(strfind(suffix_output, 'sent')) && numel(data)==2 && k==1
       tlck = tmp;
       mous_db_putdata(subjectname, suffix_output, 'tlck', rootdir);
-    elseif ~isempty(strfind(suffix_output, 'sent')) && numel(data)==2 k==2
+    elseif ~isempty(strfind(suffix_output, 'sent')) && numel(data)==2 && k==2
       tlck = tmp;
       mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);
     else
