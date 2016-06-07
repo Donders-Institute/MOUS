@@ -5,14 +5,15 @@
 
 % extract the trial definition for the sentences
 filename = mous_db_getfilename(subjectname, 'meg_ds_rest');
+numel(filename)
 
 % replace the below 0 with an actual number, if a local averaging/std
 % computation is required in mous_artifact_muscle
-ntrials = 0;
+ntrials = 10;
 
 hdr  = ft_read_header(filename{1});
 %nsmp = hdr.nSamples*hdr.nTrials; 
-nsmp = 365000; % replaces the previous, it seems that there is a consistent spike at ~368000
+nsmp = min(365000,hdr.nSamples*hdr.nTrials); % replaces the previous, it seems that there is a consistent spike at ~368000
 clear trl;
 trl(:,1) = (301:2400:(nsmp-2700))';
 trl(:,2) = (2700:2400:(nsmp-300))';
