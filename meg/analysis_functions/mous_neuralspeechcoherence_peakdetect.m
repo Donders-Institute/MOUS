@@ -92,7 +92,6 @@ end                        % subjloop
       save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001common','numpeak');
   end
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% standardize and smooth at the single-subject level, then do a second round of peak detection
 %  after first round, the peaks are still not that clear
@@ -119,10 +118,15 @@ for k = 1:102
   % standardize matrix
   % mean across channels
   % multiple standardized (mean) by peaks
-  sentcoh.cohspctrm = ft_preproc_smooth(numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),2); 
+  sentcoh.cohspctrm = ft_preproc_smooth(numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),1); 
   cohallsubj(k,:)   = sentcoh.cohspctrm; % smoothed and standardized data from all subjs
   
-  thres  = 2;      % thres =2, and thres=4 have also been tried but less optimal
+  thres  = 2;     % standardzation means part of signal is below 2. 
+                  % the 10 subjs without peaks is because (i) too few
+                  % channels with theta peak (ii) threshold is stringent;
+                  % when lowered to -2 7 out of these 10 subjs will have a
+                  % peak (But this also means more peak in alpha /beta band
+                  % that are noise)
 
   [p,v]  = peakdetect3NL(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
   tmp    = sentcoh.freq(p); % determine frequency from peak value
@@ -198,105 +202,4 @@ switch condition
   case 'common'
     save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_common','peakfreqfirst','peakfreqsecond','cohallsubj');
 end
-
-
-%% plot histogram of peak frequencies
-% figure;subplot(5,1,1), hist(peakfreqfirst(:,1),0:0.5:3);
-% subplot(5,1,2), hist(peakfreqfirst(:,2),4:0.5:7);
-% subplot(5,1,3), hist(peakfreqfirst(:,3),8:0.5:12);
-% subplot(5,1,4), hist(peakfreqfirst(:,4),13:0.5:30);
-% subplot(5,1,5), hist(peakfreqfirst(:,5),31:0.5:100);
-% 
-% figure;subplot(5,1,1), hist(peakfreqsecond(:,1),0:0.5:3);
-% subplot(5,1,2), hist(peakfreqsecond(:,2),4:0.5:7);
-% subplot(5,1,3), hist(peakfreqsecond(:,3),8:0.5:12);
-% subplot(5,1,4), hist(peakfreqsecond(:,4),13:0.5:30);
-% subplot(5,1,5), hist(peakfreqsecond(:,5),31:0.5:100);
-% 
-% [subj,s] = mous_db_getfilename('allA','subjectname');
-% allfreq = 0:0.5:100;
-% x = 1:10
-% figure; subplot(numel(x),1,1), plot(allfreq,cohallsubj(x(1),:));
-% for m = x(2):numel(x)
-%   subplot(numel(x),1,m), plot(allfreq,cohallsubj(m,:));
-% end
-% % fprintf('speech-MEG coherence frequency peaks: subj %s - %s',subj{x(1)}, subj{x(end)});
-% 
-% s = 11:20
-% figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
-% for m = 2:10
-%   subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
-% end
-% 
-% s = 61:70
-% figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
-% for m = 2:10
-%   subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
-% end
-% 
-% s = 91:100
-% figure;subplot(numel(x),1,1), plot(allfreq,cohallsubj(s(1),:));
-% for m = 2:10
-%   subplot(numel(x),1,m), plot(allfreq,cohallsubj(s(m),:));
-% end
-
-
-%% notes
-
-% thres2
-% delta  97
-% theta  72
-% alpha  85 
-% beta   101
-
-% thres4
-% delta  97
-% theta  69
-% alpha  70
-% beta   96
-
-
-% thres5
-% delta  98
-% theta  69
-% alpha  66 
-% beta   95
-
-
-
-
-% 1 prefer a preproc_smoothing of 2 over 3, or 4.
-% figure;plot(sentcoh.freq,numpeak(102,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)))
-% hold on;plot(sentcoh.freq,ft_preproc_smooth(numpeak(102,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),2),'r')
-% hold on;plot(sentcoh.freq,ft_preproc_smooth(numpeak(10g2,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),3),'k')
-
-% 2 Checked peaks from algorithm with manual detection (in original signal)
-% Algorithm peaks are similar to manual detection
-% algorithm peaks do select frequecies that have a reasonable topography
-% (specific, not blobs everywhere)
-
-
-% define trial
-% FIXME: do we need a long baseline? No, just highest value from zero
-% FIXME: vanPelt et al.(2012) excluded beginning of trial to avoid 
-% "response onset transient"  <- response to stimulus change on screen?
-
-% redefine trials to improve spectral estimation
-% vanPelt et al.(2012) had 50% overlap for 600 ms epochs
-% cfg = [];
-% cfg.length  = 2;    
-% cfg.overlap = 0.5; 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
