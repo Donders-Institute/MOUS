@@ -1,4 +1,4 @@
-function mous_restingstate_peakdetect(duration)
+function [peakfreqfirst, peakfreqsecond] = mous_restingstate_peakdetect(duration)
 %  This function searches for peaks across all MEG channels, and selects the
 %  peak that occurs most often across channels while accounting for the
 %  variance in coherence strenght across frequencies.
@@ -148,22 +148,3 @@ for subjcnt = 1:numel(subj)
     end     % presence of peak
 end         % subj loop
 
-%% save 
-peakfreqfirst(isnan(peakfreqfirst)) = 0;
-save(['/project/3011020.09/nielam/groupresults/rs/powspctrm_',duration,'s_peakdetect_stage2_allchan_1to7.5.mat'],'peakfreqfirst','peakfreqsecond','freqallsubj');
-
-%% correlate to coherence peak spectrum, across individuals
-%  is there a covariance between coherence peak spectrum of neural
-%  entrainment to speecha and the power spectrum in resting state data:
-peakfreqfirstrs = peakfreqfirst;
-
-% coherence peak spectrum of neural entrainment to speech (sentences only)
-load coherencePeakdetect_stage2_thres001_smoothing_sent.mat
-a   = [peakfreqfirstrs,peakfreqfirst(:,2)];
-idx = find(isnan(a(:,2)));
-a(idx,:) = [];
-idx = find(a(:,1) == 0)
-a(idx,:) = [];
-
-figure;scatter(a(:,1),a(:,2))
-corr(a)
