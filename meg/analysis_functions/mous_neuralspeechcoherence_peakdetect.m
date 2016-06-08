@@ -54,7 +54,7 @@ for k = 1:numel(subj)
     switch condition
       case 'wl'
         sentcoh = wlcoh;
-      case 'common' head
+      case 'common'
         sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
     end
   else
