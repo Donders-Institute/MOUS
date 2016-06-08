@@ -8,21 +8,29 @@ if ~exist('domim', 'var'),      domim = 0; end
 if ~exist('domim_freq_type1', 'var'), domim_freq_type1 = 0; end
 if ~exist('dodss_osc', 'var'), dodss_osc = 0; end
 if ~exist('dodss_F', 'var'), dodss_F = 0; end
-
 if ~exist('dodss_osc_source', 'var'), dodss_osc_source = 0; end
+
 global ft_default;
 ft_default.checksize = inf;
 
-
 collectresults = false;
 docardiacconfound = 0;
-if ~exist('rootdir', 'var'),
-  rootdir = '/project/3011020.09/jansch';
-end
 
 if dopreproc
-  [data, ecg] = mous_restingstate_preprocessing(subjectname);
-  mous_db_putdata(subjectname, 'meg_restingstate_data', 'data', 'ecg', rootdir);
+  [data, ecg] = mous_restingstate_preprocessing(subjectname, rootdir, options);
+  if exist('savedir','var')
+    % Get artifact data from /project/3011020.09./MEG, save data to diff directory
+    mous_db_putdata(subjectname, 'meg_restingstate_data', 'data', 'ecg', savedir);
+  else
+    mous_db_putdata(subjectname, 'meg_restingstate_data', 'data', 'ecg', rootdir);
+  end 
+end
+
+if dodss
+  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
+  data = ft_appenddata([], data, ecg);
+  [comp, avgpre, avgcomp] = mous_restingstate_dss(data);
+  mous_db_putdata(subjectname, 'meg_restingstate_dss', 'comp', 'avgpre', 'avgcomp', rootdir);
 end
 
 if dofreq
@@ -46,13 +54,6 @@ if dofreq
   fd   = ft_freqdescriptives([], freq);
   freq = ft_checkdata(freq, 'cmbrepresentation', 'fullfast');
   mous_db_putdata(subjectname, 'meg_restingstate_freq', 'freq', 'fd', rootdir);
-end
-
-if dodss
-  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
-  data = ft_appenddata([], data, ecg);
-  [comp, avgpre, avgcomp] = mous_restingstate_dss(data);
-  mous_db_putdata(subjectname, 'meg_restingstate_dss', 'comp', 'avgpre', 'avgcomp', rootdir);
 end
 
 if doccc
