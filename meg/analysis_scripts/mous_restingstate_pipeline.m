@@ -433,18 +433,26 @@ if dodss_osc
   if isfield(comp,'grad')
     comp = rmfield(comp, 'grad');
   end 
-
+  dataorig = data;
+  
   cfg           = [];
   cfg.component = find(v>0.1);
   data          = ft_rejectcomponent(cfg, comp, data);
   clear comp;
+  
+  nsmp     = cellfun('size',data.trial,2);
+  nsmp     = nsmp(:)';
+  
+  cfg = [];
+  cfg.trials = find(nsmp>5*data.fsample);
+  data     = ft_selectdata(cfg, data);
+  dataorig = ft_selectdata(cfg, dataorig);
   
   cfg = [];
   cfg.hpfilter = 'yes';
   cfg.hpfreq   = 1;
   cfg.hpfilttype = 'firws';
   data = ft_preprocessing(cfg, data);
-  
   
   nsmp     = cellfun('size',data.trial,2);
   nsmp     = nsmp(:)';
