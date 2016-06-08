@@ -103,17 +103,45 @@ if dopreproc_sub
       
     end
     %trl = mous_defineTrial(filename{j}, -0.2, 0.6, 'visual_word'); %FIXME only for V* for now
-    trl = mous_defineTrial(filename{j}, 0.1, 0.6, 'visual_word'); %FIXME only for V* for now
-    trl = mous_artifact_remove(trl, filename{j}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
     
-    trl = trl(trl(:,2)-trl(:,1)+1==840,:); % only use the trials that are 'full'
+    % use a different trl-definition for Visual and Audio
+    if strcmp(subjectname(1), 'V')
+      trl = mous_defineTrial(filename{j}, 0.1, 0.6, 'visual_word'); %FIXME only for V* for now
+      trl = mous_artifact_remove(trl, filename{j}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
+      trl = trl(trl(:,2)-trl(:,1)+1==840,:); % only use the trials that are 'full'
     
-    [indx_early, indx_late] = extract_earlylate(trl(:,4:end));
-    indx = sort([indx_early(:);indx_late(:)]);
+      [indx_early, indx_late] = extract_earlylate(trl(:,4:end));
+      indx = sort([indx_early(:);indx_late(:)]);
+      
+      trl = trl(indx,:);
+    else
+      trl = mous_defineTrial(filename{j},0, 0, 'auditory_sentence');
+      
+      % get (sentence only) early and late segments, of length 0.4 s (to
+      % stay consistent with the windows used for the visual analysis
+      trl  = trl(find(ismember(trl(:,5),[1 2 5 6])),:);
+      nsmp = trl(:,2)-trl(:,1);
+      
+      % definition: early is onset audio + 0.5 second, three
+      % non-overlapping segments of 0.4 s
+      % late is offset audio - 0.5 second, and then three non-overlapping
+      % segments of 0.4 s
+      onset_early = [trl(:,1)+600;trl(:,1)+1080;trl(:,1)+1560];
+      rest_early  = repmat(trl(:,4:end), [3 1]);
+      offset_early = repmat([0;480;960], [numel(onset_early)/3 1]);
+      onset_late  = [trl(:,2)-1080;trl(:,2)-1560;trl(:,2)-2040];
+      rest_late   = repmat(trl(:,4:end), [3 1]);
+      offset_late = repmat([0;480;960], [numel(onset_late)/3 1]);
+     
+      trl = cat(1, [onset_early onset_early+479 offset_early rest_early], [onset_late onset_late+479 offset_late rest_late]);
+      
+      trl = mous_artifact_remove(trl, filename{j}, {cfgeog1 cfgeog2 cfgjump cfgmuscle cfgmanual});
+      trl = trl(trl(:,2)-trl(:,1)+1==480,:); % only use the trials that are 'full'
+    end
     
     cfg            = [];
     cfg.dataset    = filename{j};
-    cfg.trl        = trl(indx,:);
+    cfg.trl        = trl;
     cfg.continuous = 'yes';
     cfg.channel    = 'MEG';
     cfg.dftfilter  = 'yes';
@@ -129,6 +157,8 @@ if dopreproc_sub
     
     %nsmp    = cellfun('size', tmpdata.trial, 2);
     %tmpdata = ft_selectdata(tmpdata, 'rpt', find(nsmp==480));
+    tmpsens(j) = tmpdata.grad;
+    tmpnsmp(j) = sum(cellfun('size', tmpdata.trial, 2));
     if j==1,
       data = tmpdata;
     else
@@ -173,6 +203,10 @@ if dopreproc_sub
       else
         refdata = ft_appenddata([], refdata, tmpref);
       end
+    end
+    
+    if numel(tmpsens)>1
+      data.grad = ft_average_sens(tmpsens, 'weights', tmpnsmp);
     end
     
   end
@@ -247,31 +281,31 @@ if dofreq_sub
   mous_db_putdata(subjectname, 'meg_granger_csd_seq_late',   'csd_seq_late',   rootdir); clear csd_seq_late;
 end
 
-if dolcmv
-  if ~exist('data', 'var'),
-    error('data needs to be computed, because it is not saved in the current version of the pipeline, set dopreproc = 1');
-  end
-
-  % compute spatial filters
-  [source, tlck, trialinfo] = mous_lcmv_source(subjectname, data, '/project/3011020.09/MEG');
-  
-  mous_db_putdata(subjectname, 'meg_granger_source', 'tlck', 'trialinfo', 'source', rootdir);
-end
-
-if doparcellate
-  % compute parcellation based on graph cut algorithm, chunking together
-  % vertices with high zero-lag correlation, i.e. volume-conducted
-  %addpath('/home/language/jansch/matlab/toolboxes/Ncut_9');
-  
-  mous_db_getdata(subjectname, 'meg_granger_source', rootdir);
-  if ~isfield(source, 'tri')
-    load cortex_midthickness_8196reg;
-    source.tri = sourcemodel.tri;
-  end
-  load atlas_conte69_8196reg_LR_brodmann_subparc
-  [source, parcellation] = mous_lcmv_parcellate(source, tlck, 'method', 'parcellation', 'parcellation', atlas);
-  mous_db_putdata(subjectname, 'meg_granger_parcellation', 'parcellation', 'source', rootdir,0);
-end
+% if dolcmv
+%   if ~exist('data', 'var'),
+%     error('data needs to be computed, because it is not saved in the current version of the pipeline, set dopreproc = 1');
+%   end
+% 
+%   % compute spatial filters
+%   [source, tlck, trialinfo] = mous_lcmv_source(subjectname, data, '/project/3011020.09/MEG');
+%   
+%   mous_db_putdata(subjectname, 'meg_granger_source', 'tlck', 'trialinfo', 'source', rootdir);
+% end
+% 
+% if doparcellate
+%   % compute parcellation based on graph cut algorithm, chunking together
+%   % vertices with high zero-lag correlation, i.e. volume-conducted
+%   %addpath('/home/language/jansch/matlab/toolboxes/Ncut_9');
+%   
+%   mous_db_getdata(subjectname, 'meg_granger_source', rootdir);
+%   if ~isfield(source, 'tri')
+%     load cortex_midthickness_8196reg;
+%     source.tri = sourcemodel.tri;
+%   end
+%   load atlas_conte69_8196reg_LR_brodmann_subparc
+%   [source, parcellation] = mous_lcmv_parcellate(source, tlck, 'method', 'parcellation', 'parcellation', atlas);
+%   mous_db_putdata(subjectname, 'meg_granger_parcellation', 'parcellation', 'source', rootdir,0);
+% end
  
 
 if dogranger
@@ -918,9 +952,13 @@ if dofreq
     error('data needs to be computed, because it is not saved in the current version of the pipeline, set dopreproc = 1');
   end
   
-  cfg = [];
-  cfg.latency = [0.2 0.6];
-  data = ft_selectdata(cfg, data);
+  if strcmp(subjectname(1), 'V')
+    cfg = [];
+    cfg.latency = [0.2 0.6];
+    data = ft_selectdata(cfg, data);
+  else
+    % the audio data has already been chopped up in 0.4 s segments
+  end
   
   cfg        = [];
   cfg.method = 'mtmfft';
@@ -946,20 +984,24 @@ if dofreq
   end
   csd_sent.dof = 2*numel(sel1)*3; %FIXME assume 3 tapers
   
-  sel2   = find(ismember(data.trialinfo(:,2), [3 4 7 8]));
-  chunk2 = [0:400:numel(sel2) numel(sel2)];
-  for k = 1:numel(chunk2)-1
-    cfg.trials = sel2((chunk2(k)+1):chunk2(k+1));
-    tmpfreq    = ft_freqanalysis(cfg, data);
-    tmpfreq    = ft_checkdata(tmpfreq, 'cmbrepresentation', 'fullfast');
-    if k==1,
-      csd_seq = tmpfreq;
-    else
-      csd_seq.crsspctrm = (csd_seq.crsspctrm.*sel2(chunk2(k)) + tmpfreq.crsspctrm.*numel(cfg.trials))./(sel2(chunk2(k))+numel(cfg.trials));
+  if strcmp(subjectname(1), 'V'),
+    sel2   = find(ismember(data.trialinfo(:,2), [3 4 7 8]));
+    chunk2 = [0:400:numel(sel2) numel(sel2)];
+    for k = 1:numel(chunk2)-1
+      cfg.trials = sel2((chunk2(k)+1):chunk2(k+1));
+      tmpfreq    = ft_freqanalysis(cfg, data);
+      tmpfreq    = ft_checkdata(tmpfreq, 'cmbrepresentation', 'fullfast');
+      if k==1,
+        csd_seq = tmpfreq;
+      else
+        csd_seq.crsspctrm = (csd_seq.crsspctrm.*sel2(chunk2(k)) + tmpfreq.crsspctrm.*numel(cfg.trials))./(sel2(chunk2(k))+numel(cfg.trials));
+      end
+      clear tmpfreq;
     end
-    clear tmpfreq;
+    csd_seq.dof = 2*numel(sel2)*3; %FIXME assume 3 tapers
+  else
+    csd_seq = [];
   end
-  csd_seq.dof = 2*numel(sel2)*3; %FIXME assume 3 tapers
   
   % mous_db_putdata(subjectname, 'meg_granger_csd_all',  'csd_all',  rootdir);
   mous_db_putdata(subjectname, 'meg_granger_csd_sent', 'csd_sent', rootdir, 1);
@@ -992,11 +1034,16 @@ end
 if dogranger_new
   % do pairwise-parcel granger for the edges of interest
   mous_db_getdata(subjectname, 'meg_granger_csd_sent',     rootdir);
-  mous_db_getdata(subjectname, 'meg_granger_csd_seq',      rootdir);
+  if strcmp(subjectname(1), 'Q'),%V'),
+    mous_db_getdata(subjectname, 'meg_granger_csd_seq',      rootdir);
+  else
+    csd_seq = [];
+  end
   mous_db_getdata(subjectname, 'meg_granger_parcellation', rootdir);
   
-  [C, label, P, list, lay] = mous_edgesofinterest_new;
+  %[C, label, P, list, lay] = mous_edgesofinterest_new;
   %[C, label, P, list, lay] = mous_edgesofinterest;
+  [C, label, P, list, lay] = mous_edgesofinterest_visaud;
   
   [sel1 ,sel2]             = match_str(parcellation.label, label(:,1));
   C                        = C(sel2,sel2);
@@ -1004,7 +1051,14 @@ if dogranger_new
   
   parcellation.label  = parcellation.label(sel1);
   parcellation.filter = parcellation.filter(sel1);
- 
+  
+  if isempty(csd_seq),
+    % account for non-existing audio seq csd data
+    csd_seq = csd_sent;
+    csd_seq.crsspctrm(:) = 0;
+    csd_seq.dof          = 0;
+  end
+  
   csd_all = csd_sent; clear csd_sent;
   csd_all.crsspctrm = (csd_all.crsspctrm.*csd_all.dof + csd_seq.crsspctrm.*csd_seq.dof)./(csd_all.dof+csd_seq.dof);
   clear csd_seq;
@@ -1059,7 +1113,9 @@ if dogranger_new
   g_rev = g;
   g_rev.grangerspctrm = G_rev;
   
-  mous_db_putdata(subjectname, 'meg_granger_granger_roi', 'g', 'g_rev', rootdir);%,0);
+  % mous_db_putdata(subjectname, 'meg_granger_granger_roi', 'g', 'g_rev', rootdir);%,0);
+  mous_db_putdata(subjectname, 'meg_granger_granger_roi_visaud', 'g', 'g_rev', rootdir);%,0);
+
 end
  
 if doparcellate_stratify
