@@ -842,8 +842,8 @@ if doerf_speech_tlck
 end
 
 if doerf_speech_tlck_surrogate
-  [coh] = mous_neuralspeechtimelocked_sensor_surrogate(subjectname, [], 2);
-  mous_db_putdata(subjectname, 'meg_erf_speech_tlck_surrogate' ,'coh', outrootdir,1);
+  [coh, pow] = mous_neuralspeechtimelocked_sensor_surrogate(subjectname, [], 0.1);
+  mous_db_putdata(subjectname, 'meg_erf_speech_tlck_surrogate' ,'coh', 'pow', outrootdir,1);
 end
 
 if doerf_speech_itc
