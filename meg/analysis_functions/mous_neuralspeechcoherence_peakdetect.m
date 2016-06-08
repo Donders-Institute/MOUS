@@ -136,7 +136,7 @@ for k = 1:numel(subj)
   % standardize matrix
   % mean across channels
   % multiple standardized (mean) by peaks
-  sentcoh.cohspctrm = ft_preproc_smooth(numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),1); 
+  sentcoh.cohspctrm = numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)); 
   cohallsubj(k,:)   = sentcoh.cohspctrm; % smoothed and standardized data from all subjs
   
   thres  = 2;     % standardzation means part of signal is below 2. 
@@ -194,11 +194,11 @@ for sc = 1:numel(subj)
       idx = find(peakallsubj(sc,frange));  % get data in foi
       [v,i] = sort(idx,'descend');
       if ~isempty(idx)
-        peakfreqfirst(sc,fb) = allfreq(frange(idx(1)));
+        peakfreqfirst(sc,fb) = allfreq(frange(idx(i(1))));
 
         if numel(idx) > 1              % data with >1 max peak:
           [v,i] = sort(idx,'descend'); % i(2) is always second largest peak (assuming >2 peaks found)
-          peakfreqsecond(sc,fb) = allfreq(frange(idx(2)));
+          peakfreqsecond(sc,fb) = allfreq(frange(idx(i(2))));
 
         end
       end
