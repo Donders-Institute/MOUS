@@ -1,4 +1,4 @@
-function mous_neuralspeechcoherence_peakdetect(condition)
+function [peakfreqfirst,peakfreqsecond,cohallsubj] = mous_neuralspeechcoherence_peakdetect(condition)
 %  This function searches for peaks in each channel
 %  frequencies with peaks in each channel are contender peaks
 %  the contender peak that is (1) found in >25 channels, has (2) highest peak value
@@ -35,19 +35,30 @@ function mous_neuralspeechcoherence_peakdetect(condition)
         % prominent peaks which are smoothed into one.
 
 
-[subj,s] = mous_db_getfilename('allA','subjectname');
+
+%% first round of peak detection (rough)
+if ischar(condition)
+  % Nietzsche's original implementation
+  subj = mous_db_getfilename('allA','subjectname');
+else
+  subj = {condition};
+end
 allfreq = 0.5:0.5:30;
 numpeak = zeros(numel(subj),numel(allfreq)); % subj x frequencies
 
-%% first round of peak detection (rough)
-for k = 1:102
-  mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
+for k = 1:numel(subj)
   
-  switch condition
-    case 'wl'
-      sentcoh = wlcoh;
-    case 'common' 
-      sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
+  if ischar(condition)
+    mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
+  
+    switch condition
+      case 'wl'
+        sentcoh = wlcoh;
+      case 'common' 
+        sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
+    end
+  else
+    sentcoh = subj{k};
   end
   
   cfg = [];
@@ -66,7 +77,9 @@ for k = 1:102
   thres    = 0.02;
 
   for chancnt = 1:numchan
-    [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak   
+    % [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak   
+    [p,v]  = peakdetect2(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak   
+    
     tmp    = allfreq(p);   % determine frequency from peak value
 
     if ~isempty(p)              
@@ -82,7 +95,8 @@ for k = 1:102
   numpeak(k,:)            = sum(fcohpeak,1); % numpeak = number of channels with a peak at a certain frequency
 end                        % subjloop
 
-  
+dosave = 0;
+if dosave,
   switch condition
     case 'wl'
       save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001wl','numpeak');
@@ -91,25 +105,27 @@ end                        % subjloop
     case 'common' 
       save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001common','numpeak');
   end
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% standardize and smooth at the single-subject level, then do a second round of peak detection
 %  after first round, the peaks are still not that clear
 
-[subj,s]       = mous_db_getfilename('allA','subjectname');
-allfreq           = 0.5:0.5:30;
+%[subj,s]       = mous_db_getfilename('allA','subjectname');
+%allfreq           = 0.5:0.5:30;
 peakallsubj    = zeros(numel(subj),numel(allfreq)); % exclude 0 Hz
 cohallsubj     = zeros(numel(subj),numel(allfreq));
-for k = 1:102
-  mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
-
-  switch condition  % default is using sentences only
-  case 'wl'
-    sentcoh = wlcoh;
-  case 'common' 
-    sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
-  end
+for k = 1:numel(subj)
+  
+%   mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
+% 
+%   switch condition  % default is using sentences only
+%   case 'wl'
+%     sentcoh = wlcoh;
+%   case 'common' 
+%     sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
+%   end
   
   cfg = [];
   cfg.frequency = [allfreq(1) allfreq(end)];
@@ -124,7 +140,8 @@ for k = 1:102
   
   thres  = 2;      % thres =2, and thres=4 have also been tried but less optimal
 
-  [p,v]  = peakdetect3NL(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
+  %[p,v]  = peakdetect3NL(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
+  [p,v]  = peakdetect3(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
   tmp    = sentcoh.freq(p); % determine frequency from peak value
   if ~isempty(p)            % keep count which frequencies have peaks in a binary matrix (1 = peak)
     peakallsubj(k,:) = ismember(sentcoh.freq,tmp);
@@ -144,15 +161,15 @@ end      % subj loop
 % gamma 31  - 100
 
 allfreq = 0.5:0.5:30;
-peakfreqfirst  = nan(60,4); % matrix to store subject specific peak for each frequency range
-peakfreqsecond = nan(60,4); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
+peakfreqfirst  = nan(numel(subj),4); % matrix to store subject specific peak for each frequency range
+peakfreqsecond = nan(numel(subj),4); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
 delta   = 1:6;    % indices of sentcoh.freq
 theta   = 8:14;
 alpha   = 16:24;
 beta    = 26:60;
 
 
-for sc = 1:102
+for sc = 1:numel(subj)
   for fb = 1:4
     % assign frequency range 
       if fb == 1
@@ -189,16 +206,16 @@ end
 idx = find(peakfreqfirst == 0);
 peakfreqfirst(idx) = nan;
 
-  
-switch condition
-  case 'wl'
-    save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_wl','peakfreqfirst','peakfreqsecond','cohallsubj');
-  case 'sent'
-    save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_sent','peakfreqfirst','peakfreqsecond','cohallsubj');
-  case 'common'
-    save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_common','peakfreqfirst','peakfreqsecond','cohallsubj');
+if dosave,
+  switch condition
+    case 'wl'
+      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_wl','peakfreqfirst','peakfreqsecond','cohallsubj');
+    case 'sent'
+      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_sent','peakfreqfirst','peakfreqsecond','cohallsubj');
+    case 'common'
+      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_common','peakfreqfirst','peakfreqsecond','cohallsubj');
+  end
 end
-
 
 %% plot histogram of peak frequencies
 % figure;subplot(5,1,1), hist(peakfreqfirst(:,1),0:0.5:3);
