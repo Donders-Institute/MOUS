@@ -84,9 +84,10 @@ cfg = [];
 cfg.method     = 'mtmfft';  % assumes stable power, but we know this isn't true
 cfg.output     = 'powandcsd'; 
 cfg.foilim     = foi;         % calculate fourier for each frequency showing a peak in coherence spectrum
-cfg.tapsmofrq  = 1;           % 2 Hz smoothing
-% cfg.tapsmofrq  = 2;         % 4 Hz smoothing
-cfg.taper      = 'dpss';
+%cfg.tapsmofrq  = 1;           % 2 Hz smoothing
+%cfg.tapsmofrq  = 2;         % 4 Hz smoothing
+cfg.taper      = 'hanning';%'dpss';
+cfg.pad = 5;
 cfg.keeptrials = 'yes';     
 cfg.channel    = {'MEG' 'UADC003' 'audio_avg'};
 cfg.channelcmb = {'MEG' 'UADC003';'MEG' 'audio_avg'};
@@ -166,6 +167,10 @@ cfg.channel    = 'MEG';
 % cfg.bsfreq     = [49 51];
 % cfg.bsfilttype = 'firws';
 % cfg.usefftfilt = 'yes';
+cfg.hpfilter = 'yes';
+cfg.hpfreq   = 1;
+cfg.hpfilttype = 'firws';
+
 data           = ft_preprocessing(cfg);
 
 cfg.channel    = 'UADC003';

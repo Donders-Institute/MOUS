@@ -28,6 +28,7 @@ if ~exist('doerf_dependency', 'var'),     doerf_dependency     = 0;             
 if ~exist('doerf_branchingdepth', 'var'), doerf_branchingdepth = 0;                   end
 if ~exist('doerf_dependency_shortlong', 'var'), doerf_dependency_shortlong = 0;       end
 if ~exist('doerf_speech_tlck', 'var'), doerf_speech_tlck = 0;                         end
+if ~exist('doerf_speech_tlck_surrogate', 'var'), doerf_speech_tlck_surrogate = 0;                         end
 if ~exist('doerf_speech_itc',  'var'), doerf_speech_itc  = 0;                         end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
@@ -838,6 +839,11 @@ end
 if doerf_speech_tlck
   [tlck, tlck_sent, tlck_seq, tlck_seq2] = mous_neuralspeechtimelocked_sensor(subjectname, 'up');
   mous_db_putdata(subjectname, 'meg_erf_speech_tlck' ,'tlck', 'tlck_sent', 'tlck_seq', 'tlck_seq2', outrootdir,1);
+end
+
+if doerf_speech_tlck_surrogate
+  [coh] = mous_neuralspeechtimelocked_sensor_surrogate(subjectname, [], 2);
+  mous_db_putdata(subjectname, 'meg_erf_speech_tlck_surrogate' ,'coh', outrootdir,1);
 end
 
 if doerf_speech_itc
