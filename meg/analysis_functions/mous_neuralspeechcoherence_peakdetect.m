@@ -1,4 +1,4 @@
-function [peakfreqfirst,peakfreqsecond,cohallsubj] = mous_neuralspeechcoherence_peakdetect(condition)
+function [peakfreqfirst,peakfreqsecond,cohallsubj] = mous_neuralspeechcoherence_peakdetect(condition, thres)
 %  This function searches for peaks in each channel
 %  frequencies with peaks in each channel are contender peaks
 %  the contender peak that is (1) found in >25 channels, has (2) highest peak value
@@ -30,7 +30,7 @@ function [peakfreqfirst,peakfreqsecond,cohallsubj] = mous_neuralspeechcoherence_
         % standardize data to have zero mean, unit SD
         % value at each frequency is on same scale -> amplifies peaks
 
-      % ft_preproc_smooth
+      % ft_preproc_smoothhead
         % smooths out peaks. In some cases there are frequencies side by side with
         % prominent peaks which are smoothed into one.
 
@@ -54,7 +54,7 @@ for k = 1:numel(subj)
     switch condition
       case 'wl'
         sentcoh = wlcoh;
-      case 'common' 
+      case 'common' head
         sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
     end
   else
@@ -74,7 +74,9 @@ for k = 1:numel(subj)
 
   % Difficult to determine subject specific threshold
   % using heuristic of 0.1; option to not set a threshold. 
-  thres    = 0.02;
+  if nargin<2
+    thres    = 0.02;
+  end
 
   for chancnt = 1:numchan
     % [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak   
