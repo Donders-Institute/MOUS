@@ -79,11 +79,11 @@ if doplanar, dataPL = ft_redefinetrial(cfg, dataPL); end
 
 %% divide data according to the conditions word list / sentence
 cfg        = [];
-cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
+cfg.trials = find(ismember(dataAX.trialinfo(:,2),[1 5])); % sent
 data1  = ft_selectdata(cfg,dataAX); % axial
 if doplanar, data3  = ft_selectdata(cfg,dataPL); end % planar
 
-cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
+cfg.trials = find(ismember(dataAX.trialinfo(:,2),[3 7])); % WL
 data2  = ft_selectdata(cfg,dataAX); % axial
 if doplanar, data4  = ft_selectdata(cfg,dataPL); end % planar
 
