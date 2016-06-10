@@ -154,13 +154,13 @@ if doplanar
 
   %%% WORD LIST %%%
   % select sensors of interest
-  sensize = size(coherence4.labelcmb,1)/4; % 273; dv and dH for each audio signal
-  tmp1 = coherence4.cohspctrm(sensize*2+1:sensize*3,:);
-  tmp2 = coherence4.cohspctrm(sensize*3+1:end,:);
+  sensize = size(coherence4.labelcmb,1)/2; % 273; dv and dH for each audio signal
+  tmp1 = coherence4.cohspctrm(1:sensize,:);
+  tmp2 = coherence4.cohspctrm((sensize+1):end,:);
 
   % compute average between dV and dH for combined planar gradient components
   coherence4.cohspctrm = (tmp1+tmp2)./2;
-  coherence4.labelcmb  = coherence4.labelcmb(sensize*2+1:sensize*3,:);
+  coherence4.labelcmb  = coherence4.labelcmb(1:sensize,:);
   coherence4.labelcmb(1:sensize,1) = tmplabel;
 else
   coherence3 = [];
