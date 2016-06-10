@@ -92,11 +92,11 @@ dataPL = ft_redefinetrial(cfg, dataPL);
 
 %% split conditions
 cfg = [];
-cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
+cfg.trials = find(ismember(dataAX.trialinfo(:,2),[1 5])); % sent
 data1  = ft_selectdata(cfg,dataAX); % axial
 data3  = ft_selectdata(cfg,dataPL); % planar
 
-cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
+cfg.trials = find(ismember(dataAX.trialinfo(:,2),[3 7])); % WL
 data2  = ft_selectdata(cfg,dataAX); % axial
 data4  = ft_selectdata(cfg,dataPL); % planar
 
