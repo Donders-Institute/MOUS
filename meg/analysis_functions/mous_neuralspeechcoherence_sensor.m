@@ -57,7 +57,7 @@ cfg = [];
 cfg.method       = 'template';
 cfg.neighbours   = ft_prepare_neighbours(cfg,data);
 cfg.planarmethod = 'sincos';
-%dataPL           = ft_megplanar(cfg,data);
+dataPL           = ft_megplanar(cfg,data);
 
 
 %% apply hilbert transform to MEG signal to extract gamma envelope
