@@ -76,6 +76,9 @@ for k = 1:numel(subj)
   % using heuristic of 0.1; option to not set a threshold. 
   if nargin<2
     thres    = 0.02;
+  elseif numel(thres)==numel(sentcoh.freq)
+    sentcoh.cohspctrm = sentcoh.cohspctrm-ones(size(sentcoh.cohspctrm,1),1)*thres;
+    thres    = 0;
   end
 
   for chancnt = 1:numchan
