@@ -165,6 +165,8 @@ if doplanar
 else
   coherence3 = [];
   coherence4 = [];
+  fd3 = [];
+  fd4 = [];
 end
 
 function [data, speech] = computedata(dataset, artfctcfg, cfgpreproc)
