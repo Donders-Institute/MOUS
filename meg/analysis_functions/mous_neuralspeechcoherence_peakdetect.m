@@ -49,8 +49,9 @@ numpeak = zeros(numel(subj),numel(allfreq)); % subj x frequencies
 for k = 1:numel(subj)
   
   if ischar(condition)
-    mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
-  
+    mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial_june2016','/project/3011020.09/MEG/');
+    dat{k} = sentcoh;
+    
     switch condition
       case 'wl'
         sentcoh = wlcoh;
@@ -100,17 +101,6 @@ for k = 1:numel(subj)
   numpeak(k,:)            = sum(fcohpeak,1); % numpeak = number of channels with a peak at a certain frequency
 end                        % subjloop
 
-dosave = 0;
-if dosave,
-  switch condition
-    case 'wl'
-      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001wl','numpeak');
-    case 'sent'
-      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001sent','numpeak');
-    case 'common' 
-      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001common','numpeak');
-  end
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% standardize and smooth at the single-subject level, then do a second round of peak detection
@@ -130,7 +120,7 @@ for k = 1:numel(subj)
 %   case 'common' 
 %     sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
 %   end
-  
+  sentcoh = dat{k};
   cfg = [];
   cfg.frequency = [allfreq(1) allfreq(end)];
   sentcoh       = ft_selectdata(cfg,sentcoh);
@@ -215,13 +205,3 @@ end
 idx = find(peakfreqfirst == 0);
 peakfreqfirst(idx) = nan;
 
-if dosave,
-  switch condition
-    case 'wl'
-      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_wl','peakfreqfirst','peakfreqsecond','cohallsubj');
-    case 'sent'
-      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_sent','peakfreqfirst','peakfreqsecond','cohallsubj');
-    case 'common'
-      save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage2_thres001_smoothing_common','peakfreqfirst','peakfreqsecond','cohallsubj');
-  end
-end
