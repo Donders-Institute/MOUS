@@ -28,7 +28,7 @@ for q = 1:numel(data.trial)
 end 
 datpw = ft_appenddata([],datpw{:});
 data  = datpw;
-mous_db_putdata(subj,'meg_restingstate_data_prewhite_3s','data','/project/3011020.09/nielam/')
+mous_db_putdata(subj,'meg_restingstate_data_prewhite_2s','data','/project/3011020.09/nielam/')
     
 
 %% calculate power
@@ -41,14 +41,6 @@ mous_db_putdata(subj,'meg_restingstate_data_prewhite_3s','data','/project/301102
 % samples
 
 mous_db_getdata(subj, 'meg_restingstate_dss', '/project/3011020.09/nielam/');    % cardiac components
-
-% reject cardiac components    
-v = var(avgcomp,[],2); % each row of v = variance on each column in avgcomp 
-v = v./v(1);
-
-cfg           = [];
-cfg.component = find(v>0.1);
-data          = ft_rejectcomponent(cfg, comp, data);
 
 % calculate FR
 cfg = [];
