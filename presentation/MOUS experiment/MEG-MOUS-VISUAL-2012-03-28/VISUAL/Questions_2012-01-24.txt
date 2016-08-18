@@ -1,0 +1,144 @@
+152 1 Had oma een pannenkoek gegeten? 
+122 1 Was de bloemist vriendelijk? 
+047 1 Werden er kleine kinderen genoemd? 
+046 2 Was de delinquent te horen op de radio? 
+018 2 Werd er een koe genoemd? 
+086 2 Kwam er een pen voor? 
+252 1 Werd er een type bed genoemd? 
+212 2 Werden er medicijnen genoemd? 
+237 2 Was de schilder bezig zijn kwasten schoon te maken? 
+318 1 Waren mensen postief over het kleine perceel? 
+291 2 Ging het om een begrafenis? 
+357 2 Kwam er een hotel voor? 
+058 1 Werd er een deel van een huis genoemd? 
+168 1 Slingerde er een behangrol? 
+179 1 Was de tennisser dood? 
+060 2 Voelde de taxateur zich schuldig? 
+165 2 Werden er mensen genoemd? 
+082 2 Kwam er een dier voor? 
+337 1 Kwam er deflatie voor in Indonesie? 
+286 2 Dansten de meisjes op een kermis? 
+371 2 Was het bewezen dat de atleet doping had gebruikt? 
+341 2 Werden er eetbare groentes genoemd? 
+284 1 Werd een godsdienstig ritueel genoemd? 
+293 1 Werd er een eetgelegenheid genoemd? 
+012 1 Was de wond vies? 
+128 1 Keek moeder boos? 
+192 2 Komen alle haarproblemen van katten door een tekort aan vitamine? 
+075 2 Kwam er een chirurg voor? 
+070 2 Werd er een baan genoemd? 
+067 1 Werd er een muziekinstrument genoemd? 
+213 2 Blijft het bouwsel op deze manier in goede staat? 
+315 2 Is besloten de kerncentrale in Dodewaard te sluiten? 
+342 1 Kwam de hond met een diadeem in zijn bek aanlopen? 
+236 1 Word er een koning genoemd? 
+319 1 Werd er iets van militairen genoemd? 
+400 2 Werden hier ziekenhuisrapporten genoemd? 
+003 1 Was de puber stoer? 
+132 1 Was de bonus groot? 
+040 2 Had de beer het elfje betoverd? 
+177 2 Werd er een familielid genoemd? 
+174 2 Werden er meubels genoemd? 
+159 1 Werd er een dier genoemd? 
+351 2 Veegde het vrouwtje haar straatje? 
+299 2 Ging hij niet naar school, omdat hij ziek was? 
+269 1 Speelden de teams binnen vanwege de regen? 
+348 1 Werden er adellijke mensen genoemd? 
+272 1 Kwam het begrip aanschaffen voor? 
+370 2 Ging het hier over het koken van een maaltijd? 
+035 1 Was het getal zes op te merken? 
+064 1 Stond er een paspop op gang? 
+038 2 Hadden de buren ruzie met de man? 
+091 2 Werd hier een kat genoemd? 
+105 1 Werd er een beroep genoemd? 
+096 2 Werd hier een vader genoemd? 
+232 2 Had de zakenvrouw een rok aan? 
+316 1 Werd de betere behuizing afgedwongen door Europese regelgeving? 
+379 1 Had Ivo een fout gemaakt? 
+270 1 Werden er jonge mensen genoemd? 
+266 2 Werd er een inbreker genoemd? 
+230 2 Werden er keukenkastjes genoemd? 
+016 2 Legde de scholier vrijdag punaises op de stoel van de leraar? 
+150 2 Was de tandem verzekerd? 
+061 1 Had tante Agaat de wedstrijd gewonnen? 
+163 1 Werd er voedsel genoemd? 
+154 1 Werd er gereedschap genoemd? 
+172 2 Werd er boetseergerei genoemd? 
+288 2 Werd het publiek verveeld door de clowns? 
+250 1 Had die boer klompen aan? 
+275 1 Groeien er tulpen onder de eik? 
+229 2 Werd er een kind genoemd? 
+355 1 Kwam er een racefiets voor? 
+652 1 Werd er een smaak genoemd? 
+622 1 Werd er iemand genoemd die met bloemen werkt? 
+547 1 Werden er kleine kinderen genoemd? 
+546 2 Werd er iemand uit de rechtelijke macht genoemd? 
+518 2 Werd er een koe genoemd? 
+586 1 Kwam er een stuk papier voor? 
+752 1 Werd er een type bed genoemd? 
+712 1 Werden er medicijnen genoemd? 
+737 1 Werden er kunstnaarsbenodigdheden genoemd? 
+818 1 Werd er een stuk grond genoemd? 
+791 2 Ging het om een begrafenis? 
+857 2 Kwam er een hotel voor? 
+558 1 Werd er een deel van een huis genoemd? 
+668 1 Werd er een papierproduct genoemd? 
+679 1 Kwam er een vrouw voor? 
+560 2 Kwam er rechter voor? 
+665 2 Werden er mensen genoemd? 
+582 1 Kwam er een dier voor? 
+837 1 Werd er een land genoemd? 
+786 2 Kwamen er volwassenen voor? 
+871 2 Werd er een partydrug genoemd? 
+841 2 Werden er eetbare groentes genoemd? 
+784 1 Werd een godsdienstig ritueel genoemd? 
+793 1 Werd er een eetgelegenheid genoemd? 
+512 1 Werd er medisch geschoolde mensen genoemd? 
+628 1 Kwam er een emotie voor? 
+692 2 Werd er voedsel genoemd? 
+575 2 Kwam er een chirurg voor? 
+570 2 Werd er een baan genoemd? 
+567 1 Werd er een muziekinstrument genoemd? 
+713 2 Werd er een architect genoemd? 
+815 2 Kwam er een atoombom voor? 
+842 1 Werd een dier genoemd? 
+736 1 Word er een koning genoemd? 
+819 1 Werd er iets van militairen genoemd? 
+900 2 Werden hier ziekenhuisrapporten genoemd? 
+503 1 Werd er een jongere genoemd? 
+632 1 Kwam er een hoeveelheid geld voor? 
+540 2 Werd er een koning genoemd? 
+677 2 Werd er een familielid genoemd? 
+674 2 Werden er meubels genoemd? 
+659 1 Werd er een dier genoemd? 
+851 2 Kwamen er een stoffer en blik voor? 
+799 2 Werd er werkgerelateerd verzuim genoemd? 
+769 1 Kwam er een sporthal voor? 
+848 1 Werden er adellijke mensen genoemd? 
+772 1 Kwam het begrip aanschaffen voor? 
+870 2 Ging het hier over het koken van een maaltijd? 
+535 1 Kwam er een toeschouwer voor? 
+564 1 Werd iemand genoemd die met etalages werkt? 
+538 2 Kwam er een hond voor? 
+591 2 Werd hier een kat genoemd? 
+605 1 Werd er een beroep genoemd? 
+596 2 Werd hier een vader genoemd? 
+732 2 Werd er een rok genoemd? 
+816 1 Werden er regels genoemd? 
+879 1 Kwam er een straf voor? 
+770 1 Werden er jonge mensen genoemd? 
+766 2 Werd er een inbreker genoemd? 
+730 2 Werden er keukenkastjes genoemd? 
+516 2 Werden er oliebollen genoemd? 
+650 2 Kwam er een soort auto voor? 
+561 1 Kwamen er vrouwen voor? 
+663 1 Werd er voedsel genoemd? 
+654 1 Werd er gereedschap genoemd? 
+672 2 Werd er boetseergerei genoemd? 
+788 2 Werd er fruit genoemd? 
+750 1 Kwamen er klompen voor? 
+775 1 Werd er een boom genoemd? 
+729 2 Werd er een kind genoemd? 
+855 1 Kwam er een racefiets voor? 
+382 2 Werd er bier genoemd? 
+
