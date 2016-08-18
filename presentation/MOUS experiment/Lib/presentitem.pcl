@@ -1,0 +1,457 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # PRESENTITEM                                                  # 
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Present item                                               #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   presentitem (StimDur,InterStimDur,InterSubStimDur,         #
+ #                VariableStimDur,VarStimDur,Str,               #
+ #                InterStimMarker,StimPos,InterStimPos,         #
+ #                StimFontSize,InterStimFontSize,               #
+ #                Modality,SubStimulusStructure,AddPoint,       #
+ #                PreLoadedBitmaps,Alphabet,InterStimCode,      #
+ #                LogFile,SendCode);                            #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   StimDurF             = Stimulus/Substimulus duration (ms)  #
+ #   InterStimDur         = Inter-stimulus duration (ms)        #
+ #   InterSubStimDur      = Inter-subtimulus duration (ms)      #
+ #   VariableStimDur      = Variable stimulus duration          #
+ #   VarStimDur           = Variable stimulus times (ms)        #
+ #   Str                  = Trial items array                   #
+ #   InterStimMarker      = Inter-stumulus marker               #
+ #   StimPos              = Stimulus y-coordinate position      #
+ #   InterStimPos         = Inter-stimulus y-coord. position    #
+ #   StimFontSize         = Stimulus font size                  #
+ #   InterStimFontSize    = Inter-stimulus font size            #
+ #   Modality             = Modality mode                       #
+ #   SubStimulusStructure = Split each stimuli in substimulus   #
+ #   AddPoint             = Add point after last substimuli     #
+ #   PreLoadedBitmaps     = Preloaded bitmap objects            #
+ #   Alphabet             = Sound alphabet                      #
+ #   InterStimCode        = Inter-stimulus port code            #
+ #   LogFile              = Logfile file name                   #
+ #   SendCode             = Send code                           #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   int           StimDur               = 300;                 # Stimulus/Substimulus duration (ms)
+ #   int           InterStimDur          = 300;                 # Inter-stimulus duration (ms)
+ #   int           InterSubStimDur       = 300;                 # Inter-substimulus duration (ms)
+ #   bool          VariableStimDur       = true;                # Variable stimulus duration {true|false}
+ #   array<string> VarStimDur[7][2]      = VarStimDur;          # Variable stimulus times (ms)
+ #   array<string> Str[Items[1].count()] = Items[1];            # Trial items array
+ #   string        InterStimMarker       = InterStimMarker;     # Inter-stimulus marker
+ #   int           StimPos               = StimPos;             # Stimulus y-coordinate position
+ #   int           InterStimPos          = InterStimPos;        # Inter-stimulus y-coordinate position
+ #   int           StimFontSize          = StimFontSize;        # Stimulus font size
+ #   int           InterStimFontSize     = InterStimFontSize;   # Inter-stimulus font size
+ #   string        Modality              = "Bitmap";            # Modality mode
+ #   bool          SubStimulusStructure  = true;                # Split each stimuli in substimulus {true|false}
+ #   bool          AddPoint              = AddPoint;            # Add point after last substimuli {true|false}
+ #   bool          PreLoadedBitmaps      = PreLoadedBitmaps;    # Preloaded bitmap objects {true|false}
+ #   array<string> Alphabet[5]           = SoundAlphabet;       # Sound alphabet
+ #   string        InterStimCode         = InterStimCode;       # Inter-stimulus event code
+ #   string        LogFile               = LogFile;             # Logfile file name
+ #   bool          SendCode              = SendCode;            # Send code {true|false}
+ #   presentitem(StimDur,InterStimDur,InterSubStimDur,          #
+ #               VariableStimDur,VarStimDur,Str,                #
+ #               InterStimMarker,StimPos,InterStimPos,          #
+ #               StimFontSize,InterStimFontSize,Modality,       #
+ #               SubStimulusStructure,AddPoint,                 #
+ #               PreLoadedBitmaps,Alphabet,InterStimCode,       #
+ #               LogFile,SendCode);                             #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   LOGDATA                                                    #
+ #   PRESENTDEFAULT                                             #
+ #   PRESENTBITMAP                                              #
+ #   PRESENTSOUND                                               #
+ #   PRESENTTRIAL                                               #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   No objects                                                 #
+ #                                                              #
+ # 23-Apr-2009 12:51:00, CF                                     #
+ #  * Included string2num functionality and fixed related bug   #
+ #  * Cleared up some subitem dependent timing functionalities  #
+ # 20-Mar-2009 14:31:00, CF                                     #
+ #  * Updated routine for font size specification               #
+ #  * Fixed bug in PortCode setup for non-substimulus pres      #
+ #  * Closed off arguments within function                      #
+ # Update 6-Nov-2008 09:46:00, Christian Forkstam               #
+ #  * Fixed bug: Changed from fixed to FixedDuration            #
+ # Update 30-Oct-2008 01:26:19, Christian Forkstam              #
+ #  * Included bitmap presentation for sequential mode          #
+ #==============================================================#
+ sub presentitem(                                               # ---INPUT ARGUMENT(S)
+     int              StimDurF,                                 #|Stimulus/Substimulus duration (ms)
+     int              InterStimDurF,                            #|Inter-stimulus duration (ms)
+     int              InterSubStimDurF,                         #|Inter-substimulus duration (ms)
+     bool             VariableStimDurF,                         #|Variable stimulus duration {true|false}
+     array<string,2>& VarStimDurF,                              #|Variable stimulus times (ms)
+     array<string,1>& StrF,                                     #|Trial items array
+     string           InterStimMarkerF,                         #|Inter-stimulus marker
+     int              StimPosF,                                 #|Stimulus y-coordinate position
+     int              InterStimPosF,                            #|Inter-stimulus y-coordinate position
+     int              StimFontSizeF,                            #|Stimulus font size
+     int              InterStimFontSizeF,                       #|Inter-stimulus font size
+     string           ModalityF,                                #|Modality mode
+     bool             SubStimulusStructureF,                    #|Split each stimuli in substimulus {true|false}
+     bool             AddPointF,                                #|Add point after last substimuli {true|false}
+     bool             PreLoadedBitmapsF,                        #|Preloaded bitmap objects {true|false}
+     array<string,1>& AlphabetF,                                #|Sound alphabet
+     string           InterStimCodeF,                           #|Inter-stimulus event code
+     string           LogFileF,                                 #|Logfile file name
+     bool             SendCodeF                                 #|Send code {true|false}
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: PRESENTITEM\n");                        #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+   string StimF;                                                #|String StimF holds stimulus item.
+   string SubStimF;                                             #|String SubStimF holds sub-stimulus item.
+   int    StimDurTmpF;                                          #|Integer StimDurTmpF holds additional temporary stimulus duration
+   int    StimLengthF;                                          #|Integer StimLengthF holds stimulus (letter) length
+   int    StimDurStoreF     = StimDurF;                         #|Store original StimDurF in StimDurStoreF
+   int    InterStimDurStoreF = InterStimDurF;                   #|Store original InterStimDurF in InterStimDurStore
+   string PortCodeF         = "XXX";                            #|Port code
+   string EventCodeF        = StrF[1];                          #|Event log code
+   #------------------------------------------------------------#|
+   if                                                           #|Clear screen if AUDITORY MODE
+     ModalityF == "Sound"                                       #|
+   then                                                         #|
+     presenttrial(1,"FixedDuration"," ",StimFontSizeF,0,        #|
+                  " "," ",SendCodeF);                           #|
+   end;                                                         #|
+                                                                #|
+   #---LOOP OVER STIMULI IN ITEM--------------------------------#|
+   loop                                                         #|
+     int StimNumF = 1;                                          #|Integer StimNumF holds numbers of stimuli in the complete item
+   until                                                        #|
+     StimNumF > int(StrF[4])                                    #|
+   begin                                                        #|
+                                                                #|
+     StimF = StrF[4 + StimNumF];                                #|Get stimulus
+   #---SET VARIABLE STIMULUS TIMING-----------------------------#|
+     if                                                         #|
+       VariableStimDurF == true                                 #|
+     then                                                       #|
+                                                                #|
+       if                                                       #|
+         StimF.substring(StimF.count(),1) == "@"                #|Check if last character is a "@" marker
+       then                                                     #|
+         StimDurF = int(VarStimDurF[2][2]);                     #|Set stimulus duration to target letter duration
+         StimF = StimF.substring(1,StimF.count()-1);            #|Remove "@" marker from StimF
+       elseif                                                   #|Continue if last subitem is not a "@" marker
+         StimF.substring(StimF.count(),1) != "@"                #|
+       then                                                     #|
+                                                                #|
+         if                                                     #|
+           StimF.substring(StimF.count(),1) == ","              #|Check if last subitem is a comma
+         then                                                   #|
+           StimDurTmpF = int(VarStimDurF[6][2]);                #|Stack comma stimulus duration
+           StimLengthF = StimF.count() - 1;                     #|Stack stimulus letter length
+         elseif                                                 #|
+           StimF.substring(StimF.count(),1) == "."              #|Check if last subitem is a point
+         then                                                   #|
+           StimDurTmpF = int(VarStimDurF[7][2]);                #|Stack point stimulus duration
+           StimLengthF = StimF.count() - 1;                     #|Stack stimulus letter length
+         else                                                   #|
+           StimDurTmpF = 0;                                     #|Stack point stimulus duration
+           StimLengthF = StimF.count();                         #|Stack stimulus letter length
+         end;                                                   #| 
+                                                                #|
+         if                                                     #|
+           StimLengthF <= int(VarStimDurF[4][2])                #|
+         then                                                   #|
+           StimDurF = int(VarStimDurF[1][2]) + StimLengthF *    #|Set stimulus duration to (base + 
+                     int(VarStimDurF[3][2]) + StimDurTmpF;      #| per letter + comma/point) duration time
+         elseif                                                 #|
+           StimLengthF > int(VarStimDurF[4][2])                 #|
+         then                                                   #|
+           StimDurF = int(VarStimDurF[5][2]) + StimDurTmpF;     #|Set stimulus duration to (max + comma/point) duration time
+         end;                                                   #|
+                                                                #|
+       end;                                                     #|
+                                                                #|
+       if                                                       #|IF MIN  LENGTH IS 1+2 (?¤0)
+         StimF.count() > 3                                      #|
+       then                                                     #|
+                                                                #|
+         loop                                                   #|Check position of possible ¤ marker and update InterStimDurF
+           int Pos = StimF.count()-1                            #|
+         until                                                  #|
+           Pos == 1 ||                                          #|
+           Pos == StimF.count()-5                               #|
+         begin                                                  #|
+           if                                                   #|
+             StimF.substring(Pos,1) == "¤"                      #|
+           then                                                 #|
+             InterStimDurF = int(                               #|Set specific inter stimulus duration from
+                               pre4string2int(                  #|the translated integer string
+                                 StimF.substring(Pos+1,         #|composed of the digits following the ¤ marker
+                                 StimF.count()-Pos)));          #|
+             StimF = StimF.substring(1,Pos-1);                  #|Remove "¤" marker and numeric tripplet from StimF
+                                                                #|
+           end;                                                 #|
+           Pos = Pos - 1;                                       #|
+         end;                                                   #|
+                                                                #|
+       end;                                                     #|
+
+       if                                                       #|IF MIN  LENGTH IS 1+2 (?@0)
+         StimF.count() > 3                                      #|
+       then                                                     #|
+                                                                #|
+         loop                                                   #|Check position of possible @ marker and update StimDurF
+           int Pos = StimF.count()-1                            #|
+         until                                                  #|
+           Pos == 1 ||                                          #|
+           Pos == StimF.count()-5                               #|
+         begin                                                  #|
+           if                                                   #|
+             StimF.substring(Pos,1) == "@"                      #|
+           then                                                 #|
+             StimDurF = int(                                    #|Set specific stimulus duration from
+                          pre4string2int(                       #|the translated integer string
+                            StimF.substring(Pos+1,              #|composed of the digits following the @ marker
+                            StimF.count()-Pos)));               #|
+             StimF = StimF.substring(1,Pos-1);                  #|Remove "@" marker and numeric tripplet from StimF
+                                                                #|
+           end;                                                 #|
+           Pos = Pos - 1;                                       #|
+         end;                                                   #|
+                                                                #|
+       end;                                                     #|
+                                                                #|
+     end;                                                       #|
+                                                                #|
+   #---CASE: COMPLETE STIMULUS PRESENTATION---------------------#|
+                                                                #|
+     if                                                         #|
+       SubStimulusStructureF == false                           #|
+     then                                                       #|
+                                                                #|
+   #---SET PORT CODE--------------------------------------------#|
+       if                                                       #|Get PortCodeF
+         SendCodeF == true                                      #|
+       then                                                     #|
+         PortCodeF = StrF[2].substring((StimNumF-1)*3+1,3);     #|Set PortCodeF for output
+         PortCodeF = pre4string2int(PortCodeF);                 #|Remove initial zeroes in integer string
+       elseif                                                   #|
+         SendCodeF == false                                     #|
+       then                                                     #|
+         PortCodeF = "XXX";                                     #|Set dummy PortCodeF for output
+       end;                                                     #|
+                                                                #|
+   #---SET STIMULUS EVENT CODE----------------------------------#|
+       EventCodeF = StrF[1] + "_Code" + PortCodeF + "_Key" +    #|Get EventCodeF for output
+         StrF[3] + "_" + StimF;                                 #| 
+                                                                #|
+   #---PRESENT STIMULI------------------------------------------#|
+       #---Text-------------------------------------------------#|
+       if                                                       #|TEXT(+SOUND) MODALITY
+         ModalityF == "Text"        ||                          #|
+         ModalityF == "Text+Sound"                              #|
+       then                                                     #|
+                                                                #|
+         if                                                     #|
+           ResponseType == "StimFirstResponse"                  #|
+         then                                                   #|
+           presenttrial(StimDurF,"FirstResponse",StimF,         #|
+             StimFontSizeF,StimPosF,EventCodeF,PortCodeF,       #|
+             SendCodeF);                                        #|
+         elseif                                                 #|
+           ResponseType == "StimCorrectResponse"                #|
+         then                                                   #|
+           presenttrial(StimDurF,"CorrectResponse",StimF,       #|
+             StimFontSizeF,StimPosF,EventCodeF,PortCodeF,       #|
+             SendCodeF);                                        #|
+         else                                                   #|
+           presenttrial(StimDurF,"FixedDuration",StimF,         #|
+             StimFontSizeF,StimPosF,EventCodeF,PortCodeF,       #|
+             SendCodeF);                                        #|
+         end;                                                   #|
+                                                                #|
+       #---Sound------------------------------------------------#|
+       elseif                                                   #|SOUND MODALITY
+         ModalityF == "Sound"                                   #|
+       then                                                     #|
+                                                                #|
+         loadsound(true,StimF,AlphabetF);                       #|Load sound
+         presentsound(StimF,AlphabetF,StimDurF,                 #|Present sound#+InterSubStimDurF
+           EventCodeF,PortCodeF,SendCodeF);                     #|
+         loadsound(false,StimF,AlphabetF);                      #|Unload sound
+                                                                #|
+       #---Bitmap-----------------------------------------------#|
+       elseif                                                   #|BITMAP MODALITY
+         ModalityF == "Bitmap"                                  #|
+       then                                                     #|
+                                                                #|
+         presentbitmap(int(StimF),StimDurF,PreLoadedBitmapsF,   #|Present bitmap picture
+           EventCodeF,PortCodeF,SendCodeF);                     #|
+       end;                                                     #|
+                                                                #|
+       logdata(StimF,LogFileF,false);                           #|LOG DATA
+                                                                #|
+   #---CASE: SUB-STIMULUS PRESENTATION--------------------------#|
+                                                                #|
+     elseif                                                     #|
+       SubStimulusStructureF == true                            #|
+     then                                                       #|
+                                                                #|
+   #---LOAD ALL SUB-STIMULUS------------------------------------#|
+       if                                                       #|SOUND MODALITY: Load all relevant sound(s)
+         ModalityF == "Sound"                                   #|
+       then                                                     #|
+         loop                                                   #|Loop over sub-stimulus
+           int SubStimNumF = 1                                  #|Integer SubStimNumF holds numbers of sub-stimuli
+         until                                                  #|
+           SubStimNumF > StimF.count()                          #|
+         begin                                                  #|
+           SubStimF = StimF.substring(SubStimNumF,1);           #|Get sound to load
+           loadsound(true,SubStimF,AlphabetF);                  #|Load sound
+           SubStimNumF = SubStimNumF + 1;                       #|Update loop
+         end;                                                   #|
+       end;                                                     #|
+                                                                #|
+   #---LOOP OVER SUB-STIMULI IN STIMULI-------------------------#|
+       loop                                                     #|Loop over sub-stimulus
+         int SubStimNumF = 1                                    #|Integer SubStimNumF holds numbers of sub-stimuli
+       until                                                    #|
+         SubStimNumF > StimF.count()                            #|
+       begin                                                    #|
+                                                                #|
+         SubStimF = StimF.substring(SubStimNumF,1);             #|Get sub-stimulus
+                                                                #|
+         if                                                     #|Add point to last sub-stimuli in the sequence
+           SubStimNumF == StimF.count() &&                      #|
+           AddPointF == true                                    #|
+         then                                                   #|
+           SubStimF = SubStimF + ".";                           #|
+         end;                                                   #|
+                                                                #|
+   #---SET SUB-STIMULUS PORT CODE-------------------------------#|
+         if                                                     #|Get PortCodeF
+           SendCodeF == true                                    #|
+         then                                                   #|
+           PortCodeF = StrF[2].substring((SubStimNumF-1)*3+1,3);#|Set PortCodeF for output
+           PortCodeF = pre4string2int(PortCodeF);               #|Remove initial zeroes in integer string
+         elseif                                                 #|
+           SendCodeF == false                                   #|
+         then                                                   #|
+           PortCodeF = "XXX";                                   #|Set dummy PortCodeF for output
+         end;                                                   #|
+                                                                #|
+                                                                #|
+   #---SET SUB-STIMULUS EVENT CODE------------------------------#|
+         EventCodeF = StrF[1] + "_Code" + PortCodeF + "_Key" +  #|Get EventCodeF for output
+           StrF[3] + "_" + StimF + "_Pos" +                     #|
+           string(SubStimNumF) + "_" + SubStimF;                #|
+                                                                #|
+   #---PRESENT SUB-STIMULI--------------------------------------#|
+       #---Text-------------------------------------------------#|
+         if                                                     #|TEXT(+SOUND) MODALITY
+           ModalityF == "Text"         ||                       #|
+           ModalityF == "Text+Sound"                            #|
+         then                                                   #|
+                                                                #|
+           presenttrial(StimDurF,"FixedDuration",SubStimF,      #|Present letter on screen for time in ms = StimDurF
+                        StimFontSizeF,StimPosF,EventCodeF,      #|
+                        PortCodeF,SendCodeF);                   #|
+                                                                #|
+       #---Sound------------------------------------------------#|
+         elseif                                                 #|SOUND MODALITY
+           ModalityF == "Sound"                                 #|
+         then                                                   #|
+                                                                #|
+           presentsound(SubStimF,AlphabetF,                     #|Present sound
+             StimDurF,EventCodeF,PortCodeF,                     #|
+             SendCodeF);                                        #|
+                                                                #|
+       #---Bitmap-----------------------------------------------#|
+         elseif                                                 #|BITMAP MODALITY
+           ModalityF == "Bitmap"                                #|
+         then                                                   #|
+                                                                #|
+           presentbitmap(int(SubStimF),StimDurF,                #|Present bitmap picture
+             PreLoadedBitmapsF,EventCodeF,PortCodeF,SendCodeF); #|
+         end;                                                   #|
+                                                                #|
+   #---INTER-SUB-STIMULUS PERIOD--------------------------------#|
+         if                                                     #|
+           InterSubStimDurF > 0 &&                              #|
+           (SubStimNumF != StimF.count()  ||                    #|If not in the last sub-stimulus position 
+            (SubStimNumF == StimF.count() &&                    #|or if using variable stimulus duration
+             VariableStimDurF == true))                         #|
+         then                                                   #|
+           presentdefault(InterSubStimDurF);                    #|Clear screen for time in ms = InterSubStimDurF
+         end;                                                   #|
+                                                                #|
+       #--------------------------------------------------------#|
+         logdata(SubStimF,LogFileF,false);                      #|LOG DATA
+         if                                                     #|
+           SubStimNumF != StimF.count()                         #|
+         then                                                   #|
+           logdata("_",LogFileF,false);                         #|LOG DATA
+         end;                                                   #|
+                                                                #|
+         SubStimNumF   = SubStimNumF + 1;                       #|Update loop
+       end;                                                     #|
+                                                                #|
+   #---UNLOAD ALL SUB-STIMULUS----------------------------------#|
+       if                                                       #|SOUND MODALITY: Unload all relevant sound(s)
+         ModalityF == "Sound"                                   #|
+       then                                                     #|
+         loop                                                   #|Loop over SubPositions
+           int SubStimNumF = 1                                  #|Integer SubStimNumF holds numbers of sub-stimuli
+         until                                                  #|
+           SubStimNumF > StimF.count()                          #|
+         begin                                                  #|
+           SubStimF = StimF.substring(SubStimNumF,1);           #|Get sound to unload
+           loadsound(false,SubStimF,AlphabetF);                 #|Unload sound
+           SubStimNumF = SubStimNumF + 1;                       #|Update loop
+         end;                                                   #|
+       end;                                                     #|
+                                                                #|
+     end;                                                       #|
+                                                                #|
+   #---INTER-STIMULUS PERIOD------------------------------------#|
+                                                                #|
+     if                                                         #|
+       StimNumF != int(StrF[4])  ||                             #|If not in the last sub-stimulus position 
+      (StimNumF == int(StrF[4]) && VariableStimDurF == true)    #|or if using variable stimulus duration
+     then                                                       #|
+       presenttrial(InterStimDurF,"NA",                         #|
+                    InterStimMarkerF,InterStimFontSizeF,        #|
+                    InterStimPosF,"ISI",InterStimCodeF,         #|
+                    SendCodeF);                                 #|
+     end;                                                       #|
+                                                                #|
+   #------------------------------------------------------------#|
+                                                                #|
+     StimDurF      = StimDurStoreF;                             #|Reset StimDurF to stored original value
+     InterStimDurF = InterStimDurStoreF;                        #|Reset InterStimDurF to stored original value
+     StimNumF      = StimNumF + 1;                              #|
+                                                                #|
+   end;                                                         #|
+                                                                #|
+ end;                                                           # ---

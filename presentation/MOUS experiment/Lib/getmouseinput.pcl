@@ -1,0 +1,309 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # GETMOUSEINPUT                                                #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Get and classify mouse input                               #
+ #     NB! THIS FUNCTION USE THE FIRST RESPONSE BUTTON          #
+ #     EVEN IF THIS WOULD NOT BE THE MOUSE BUTTON!              #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   string Out = getmouseinput (NumResponses,NumItems,Jitter,  #
+ #                               HalfWidth,ActiveCentre,        #
+ #                               CentreText,Alphabet,           #
+ #                               FeedbackResponse,              #
+ #                               FeedbackPerformance,           #
+ #                               Positions,FontSize);           #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   NumResponses     = Number of mouse click to collect        #
+ #   NumPositions     = Number of selection positions           #
+ #   Jitter           = Selection position jitter               #
+ #   HalfWidth        = Halfwidth of selection area             #
+ #   ActiveCentre     = Active centre position to jump reponse  #
+ #   CentreText       = Centre text                             #
+ #   Alphabet         = Selection alphabet                      #
+ #   ShuffleAlphabet  = Shuffle alphabet {true,false}           #
+ #   FeedbackResponse = Response feedback                       #
+ #   FeedbackPerformance = Performance feedback                 #
+ #   Positions        = Selection positions x,y-coordinates     #
+ #   FontSize         = Font size                               #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   int           NumResponses = 5;                            # Number of mouse click to collect
+ #   int           NumPositions = 10;                           # Number of selection positions
+ #   int           Jitter       = 20;                           # Selection position jitter
+ #   int           Halfwidth    = 25;                           # Halfwidth of selection area
+ #   bool          ActiveCentre = true;                         # Active centre position to jump reponse
+ #   string        CentreText   = "?";                          # Centre text
+ #   array<string> Alphabet[NumPositions] = {                   # Selection alphabet
+ #     "0","1","2","3","4","5","6","7","8","9"};                # 
+ #   bool          ShuffleAlphabet = true;                      # Shuffle alphabet
+ #   bool          FeedbackResponse = false;                    # Response feedback
+ #   bool          FeedbackPerformance = false                  # Performance feedback
+ #   array<int>    Positions[NumPositions][2] = {               # Selection positions x,y-coordinates
+ #     {   0, 200 },{ 118, 162 },{ 190,  62 },{ 190,-62 },      #   POS1-4  {X, Y}
+ #     { 118,-162 },{   0,-200 },{-118,-162 },{-190,-62 },      #   POS5-8  {X, Y}
+ #     {-190,  62 },{-118, 162 } };                             #   POS9-10 {X, Y}
+ #   int           FontSizeTmp     = 50;                        # Font size
+ #   string Input = getmouseinput(NumResponses,NumPositions,    #
+ #                                Jitter,Halfwidth,ActiveCentre,#
+ #                                CentreText,Alphabet,          #
+ #                                FeedbackResponse,             #
+ #                                FeedbackPerformance,          #
+ #                                Positions,FontSize);          #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   One axis device                                            #
+ #   SETRESPONSE                                                #
+ #   RESETSELECTION                                             #
+ #   GETSELECTION                                               #
+ #   GETTEXT                                                    #
+ #   GETBOX                                                     #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   Text object Text                                           #
+ #   Box object Box                                             #
+ #   Pictuer object Picture                                     #
+ #   Trial object Trial                                         #
+ #                                                              #
+ # Last update 15-Mar-2009 00:58:00, Christian Forkstam         #
+ # * Included routine for performance feedback                  # 
+ # Update 14-Mar-2009 16:43:00, Christian Forkstam              #
+ # * Changed routine to handle centre position feedback         #
+ # Update 07-Nov-2008 08:36:00, Christian Forkstam              #
+ # * Included input variabel ShuffleAlphabet                    #
+ #==============================================================#
+ sub array<string,1> getmouseinput (                            # ---INPUT ARGUMENT(S)
+     int              NumResponsesF,                            #|Number of mouse click to collect
+     int              NumPositionsF,                            #|Number of selection positions
+     int              JitterF,                                  #|Selection position jitter
+     int              HalfwidthF,                               #|Halfwidth of selection area
+     bool             ActiveCentreF,                            #|Active centre position to jump reponse
+     string           CentreTextF,                              #|Centre text
+     array<string,1>& AlphabetF,                                #|Selection alphabet
+     bool             ShuffleAlphabetF,                         #|Shuffle alphabet {true,false}
+     bool             FeedbackResponseF,                        #|Response feedback
+     bool             FeedbackPerformanceF,                     #|Performance feedback
+     array<int,2>&    PositionsF,                               #|Selection positions x,y-coordinates
+     int              FontSizeF                                 #|Font size
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: GETMOUSEINPUT\n");                      #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+   array<string> Response[2] = {" "," "};                       #|Reset Response
+   mouse  Mouse     = response_manager.get_mouse( 1 );          #|Activate mouse as the first axis device
+                                                                #|
+   if                                                           #|Jitter click item positions
+     JitterF != 0                                               #|
+   then                                                         #|
+     loop                                                       #|
+       int Pos = 1;                                             #|
+     until                                                      #|
+       Pos > NumPositionsF                                      #|
+     begin                                                      #|
+       PositionsF[Pos][1] = PositionsF[Pos][1] +                #|Jitter x-position
+         random( -JitterF , JitterF );                          #|
+       PositionsF[Pos][2] = PositionsF[Pos][2] +                #|Jitter y-position
+         random( -JitterF , JitterF );                          #|
+       Pos = Pos + 1                                            #|
+     end;                                                       #|
+   end;                                                         #|
+                                                                #|
+   int NumChoicesF = AlphabetF.count();                         #|Get number of choices
+   int PosOrder = 1;                                            #|Target item position
+                                                                #|
+   if                                                           #|Shuffle selection alphabet
+     ShuffleAlphabetF == true                                   #|
+   then                                                         #|
+                                                                #|
+     array<int> TmpOrder[NumChoicesF];                          #|Randomize order of the multiple choice items
+     loop                                                       #|
+       int Pos = 1                                              #|
+     until                                                      #|
+       Pos > NumChoicesF                                        #|
+     begin                                                      #|
+       TmpOrder[Pos] = Pos;                                     #|
+       Pos = Pos + 1;                                           #|
+     end;                                                       #|
+     TmpOrder.shuffle();                                        #|
+     loop                                                       #|Update target item position
+       PosOrder = 1                                             #|
+     until                                                      #|
+       PosOrder > NumChoicesF                                   #|
+     begin                                                      #|
+       if                                                       #|
+         TmpOrder[PosOrder] == 1                                #|
+       then                                                     #|
+         setresponse(PosOrder,0,0);                             #|Set correct response key
+         break;                                                 #|
+       end;                                                     #|
+       PosOrder = PosOrder + 1;                                 #|
+     end;                                                       #|
+                                                                #|
+     array<string> TmpAlphabetF[NumChoicesF];                   #|Set new alphabet order
+     loop                                                       #|
+       int Pos = 1;                                             #|
+     until                                                      #|
+       Pos > NumChoicesF                                        #|
+     begin                                                      #|
+       TmpAlphabetF[Pos] = AlphabetF[TmpOrder[Pos]];            #|
+       Pos = Pos + 1;                                           #|
+     end;                                                       #|
+     AlphabetF = TmpAlphabetF;                                  #|
+                                                                #|
+   end;                                                         #|
+                                                                #|
+   picture ClickPicture = resetselection(NumPositionsF,         #|Set trial specific click picture ClickPicture
+     AlphabetF,PositionsF,FontSizeF,ActiveCentreF,CentreTextF); #|
+   trial ClickTrial = gettrial(Trial);                          #|Get trial Trial
+   StimulusEvent.set_stimulus(ClickPicture);                    #|Set ClickPicture as stimulus in StimulusEvent
+                                                                #|
+   text CentreText = gettext(Texts[NumPositionsF + 1]);         #|Assign text object Texts[NumPositionsF + 1] to CentreText
+   if                                                           #|
+     FeedbackResponseF == true                                  #|
+   then                                                         #|
+     CentreText.set_caption( CentreTextF );                     #|Set CentreText text to CentreTextF
+     CentreText.set_font_size( FontSizeF );                     #|Set CentreText text font size
+     CentreText.redraw();                                       #|Update CentreText
+     ClickPicture.add_part( CentreText , 0 , 0 );               #|Add CentreText to ClickPicture in centre position
+   end;                                                         #|
+                                                                #|
+   box Blank = Boxs[1];                                         #|Assign box object Box to Blank
+   Blank.set_height(1);Blank.set_width(1);                      #|
+   Blank.set_color(255,255,255);                                #|
+   box Red = Boxs[2];                                           #|Assign box object Boxs[2] to Red
+   Red.set_height(100); Red.set_width(100);                     #|
+   Red.set_color(255,0,0);                                      #|
+   box Pointer = Boxs[3];                                       #|Assign box object Boxs[3] to Pointer
+   Pointer.set_height(5); Pointer.set_width(5);                 #|
+   Pointer.set_color(0,0,0);                                    #|
+   ClickPicture.add_part( Pointer , 0 , 0 );                    #|Add box Pointer to ClickPicture in centre position
+                                                                #|
+   int MousePart = ClickPicture.part_count();                   #|Get mouse pointer picture part in ClickPicture
+   Mouse.set_xy( 0 , 0 );                                       #|Reset mouse position to centre
+                                                                #|
+   loop                                                         #|Loop until 
+     array<int> Color[3];                                       #|Store colour
+     int Responses = response_manager.total_response_count();   #|Store number of mouse clicks in Responses
+     int xMouse = Mouse.x();                                    #|Mouse x-coordinate
+     int yMouse = Mouse.y();                                    #|Mouse y-coordinate
+     int NumLeft = NumResponsesF                                #|Store NumResponsesF in NumLeft
+   until                                                        #|
+     NumLeft == 0                                               #|
+   begin                                                        #|
+                                                                #|
+     Mouse.poll();                                              #|Poll mouse
+     ClickPicture.set_part_x(MousePart,Mouse.x());              #|SET MOUSE X-POSITION
+     ClickPicture.set_part_y(MousePart,Mouse.y());              #|SET MOUSE Y-POSITION
+     ClickPicture.present();                                    #|UPDATE OBJECT 'ClickPicture'
+                                                                #|
+     if                                                         #|Case: Mouse click
+       response_manager.total_response_count() > Responses      #|
+     then                                                       #|
+                                                                #|
+       Responses = response_manager.total_response_count();     #|1) UPDATE RESPONSE COUNTER
+                                                                #|
+       xMouse = Mouse.x();                                      #|Get mouse x-coordinate
+       yMouse = Mouse.y();                                      #|Get mouse y-coordinate
+       int Selection = getselection(HalfwidthF,NumPositionsF,   #|2) GET RESPONSE
+         PositionsF,ActiveCentreF,Mouse.x(),Mouse.y());         #|
+       if                                                       #|Case: Centre position mouse click
+         Selection != 0                                         #|
+       then                                                     #|
+         NumLeft = NumLeft - 1;                                 #|Decrease number of remaining responses with 1
+         ClickPicture.set_part( Selection , Red );              #|DISPLAY RED BLINK FOR SELECTED TARGET
+                                                                #|
+         if                                                     #|UPDATE RESPONSE IN MEMORY
+           ActiveCentreF == true         &&                     #|If ActiveCentre == true & CENTRE RESPONSE
+           Selection == NumPositionsF + 1                       #|
+         then                                                   #|
+           Response[1] = Response[1] + "?"                      #|Add ? in Response
+         else                                                   #|
+           Response[1] = Response[1] + AlphabetF[Selection]     #|Or add response letter in Response
+         end;                                                   #|
+                                                                #|
+         if                                                     #|
+           FeedbackResponseF == true                            #|UPDATE TEXT IN OBJECT
+         then                                                   #|
+           CentreText.set_caption(Response[1]);                 #|
+           CentreText.redraw();                                 #|REDRAW TEXT IN OBJECT
+         end;                                                   #|
+                                                                #|
+         if                                                     #|
+           FeedbackPerformanceF == true                         #|SHOW PERFORMANCE FEEDBACK
+         then                                                   #|
+           if                                                   #|
+             PosOrder == Selection                              #|
+           then                                                 #|
+             Color = {0,255,0};                                 #|Set background colour to GREEN for correct responses
+             Response[2] = "1";                                 #|Store performance
+           else                                                 #|
+             Color = {255,0,0};                                 #|Set background colour to RED for incorrect responses
+             Response[2] = "0";                                 #|Store performance
+           end;                                                 #|
+           ClickPicture.set_background_color(                   #|Set new picture background colour
+             Color[1],Color[2],Color[3]);                       #|
+           loop                                                 #|Set new text background colour
+             int Pos = 1                                        #|
+           until                                                #|
+             Pos > ClickPicture.part_count()                    #|
+           begin                                                #|
+             Texts[Pos].set_background_color(                   #|
+               Color[1],Color[2],Color[3]);                     #|
+             Texts[Pos].redraw();                               #|
+             Pos = Pos + 1;                                     #|
+           end;                                                 #|
+         end;                                                   #|
+         ClickTrial.set_duration(100);                          #|FEEDBACK DURATION
+         ClickTrial.present();                                  #|REDRAW SCREEN WITH RED FOR SELECTED TARGET
+         ClickPicture.set_part( Selection, Blank );             #|DISPLAY BLANK FOR SELECTED TARGET
+         ClickPicture.set_background_color(BackgroundColor[1],  #|Reset picture background colour
+           BackgroundColor[2],BackgroundColor[3]);              #|
+         loop                                                   #|Reset text background colour
+           int Pos = 1                                          #|
+         until                                                  #|
+           Pos > ClickPicture.part_count()                      #|
+         begin                                                  #|
+           Texts[Pos].set_background_color(BackgroundColor[1],  #|Reset text background colour
+             BackgroundColor[2],BackgroundColor[3]);            #|
+           Texts[Pos].redraw();                                 #|
+           Pos = Pos + 1;                                       #|
+         end;                                                   #|
+         ClickPicture.present();                                #|REDRAW SCREEN WITH BLANK LOCATIONS
+                                                                #|
+       end;                                                     #|
+     end;                                                       #|
+   end;                                                         #|
+                                                                #|
+   loop                                                         #|LOG DATA
+     int Pos = 1;                                               #|
+   until                                                        #|
+     Pos > NumChoicesF                                          #|
+   begin                                                        #|
+     logdata("\t"+AlphabetF[Pos],LogFile,false);                #|LOG ALPHABET ORDER
+     Pos = Pos + 1;                                             #|
+   end;                                                         #|
+   logdata("\t"+string(PosOrder),LogFile,false);                #|
+                                                                #|
+   return Response;                                             #|RETURN RESPONSE
+                                                                #|
+ end;                                                           # ---
+ 

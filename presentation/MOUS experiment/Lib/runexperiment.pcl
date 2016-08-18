@@ -1,0 +1,509 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # RUNEXPERIMENT                                                # 
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Run the main experiment                                    #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   runexperiment(Trials);                                     # String array Trials for trials
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   Trials = String array Trials for trials                    #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   array<string> Trials[2][5] =                               # Trial item array
+ #     {"T1","010020","1","1","Ergo"," "},                      #
+ #     {"T2","030040","2","2","cogito","sum"}                   #
+ #   };                                                         #
+ #   runexperiment(Trials);                                     #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   GETKEYBOARDINPUT                                           #
+ #   GETMOUSEINPUT                                              #
+ #   LOGDATA                                                    #
+ #   PRESENTITEM                                                #
+ #   PRESENTSOUND                                               #
+ #   PRESENTTRIAL                                               #
+ #   SETRESPONSE                                                #
+ #   TESTITEMSARRAY                                             #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   Trial object StopSoundTrial                                #
+ #                                                              #
+ # Last update 15-Mar-2009 00:58:00, Christian Forkstam         #
+ # * Included routine for performance feedback                  # 
+ # Last update 13-Mar-2009 00:18:00, Christian Forkstam         #
+ # * Updated to handle specific font for selected items         #
+ # Update 9-Feb-2009 06:41:00, Christian Forkstam               #
+ #  * Changed routines for End-of-block                         #
+ # Update 6-Feb-2009 00:08:00, Christian Forkstam               #
+ #  * Included Completion option                                #
+ #==============================================================#
+ sub array<string,2> runexperiment(                             # ---INPUT ARGUMENT(S)
+     array<string,2>& Trials                                    #|String array Trials for trials
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: RUNEXPERIMENT\n");                      #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   testitemsarray(NumItemsPres,NumItemsBlocks,Trials);          #|Test Items array
+                                                                #|
+   string PauseInstr;                                           #|String PauseInstr holds pause instruction
+                                                                #|
+   int NumTrials = Trials.count();                              #|Sets integer NumTrials to number of rows in Trials
+   int BlockItems = NumTrials * NumItemsPres / NumItemsBlocks;  #|Sets integer BlockItems to the numbers of items in block
+   int Block = BlockItems;                                      #|Store incremented numbers of block items in Block
+                                                                #|
+   array<string> Input[NumTrials*NumItemsPres][2];              #|String array to hold user inputs
+                                                                #|
+   ##############################################################
+   # Loop over presentation trials.                              
+   ##############################################################
+                                                                #|
+ #-START NumItemsPres LOOP UNTIL ItemPresNum > NumItemsPres-----#|
+   loop                                                         #|
+     int ItemPresNum = 1                                        #|
+   until                                                        #|
+     ItemPresNum > NumItemsPres                                 #|
+   begin                                                        #|
+                                                                #|
+     if                                                         #|Shuffle all strings
+       RandomizeTrialOrder == "All"                             #|
+     then                                                       #|
+       Trials.shuffle()                                         #|
+     end;                                                       #|
+                                                                #|
+     if                                                         #|Shuffle strings within presentation blocks
+       RandomizeTrialOrder == "Block"                           #|
+     then                                                       #|
+                                                                #|
+       loop                                                     #|
+         int ShufflePos = 1                                     #|
+       until                                                    #|
+         ShufflePos > NumItemsBlocks                            #|
+       begin                                                    #|
+         Trials.shuffle((ShufflePos - 1) * BlockItems + 1,      #|
+                         ShufflePos      * BlockItems     );    #|
+         ShufflePos = ShufflePos + 1                            #|
+       end;                                                     #|
+                                                                #|
+     end;                                                       #|
+                                                                #|
+     array<int> SoundAlphabetOrder[NumTrials];                  #|INTEGER ARRAY TO HOLD PRESENTATION ORDER OF SOUND STIMULI
+                                                                #|
+     if                                                         #|SIMULTANEOUS TEXT+SOUND MODALITY
+       Modality == "Text+Sound"                                 #|
+     then                                                       #|
+                                                                #|
+       if                                                       #|CONTINUOUS SOUND PRESENTATION
+         ContinuousSound == true                                #|
+       then                                                     #|
+         presentsound(SoundAlphabet[1],SoundAlphabet,           #|Start to present sound
+                      StimDur+InterStimDur,SoundAlphabet[1],    #|
+                      " ",SendCode);                            #|
+       elseif                                                   #|NOT CONTINUOUS SOUND PRESENTATION
+         ContinuousSound == false                               #|
+       then                                                     #|
+         SoundAlphabetOrder = trialorderrandomization(          #|CREATE RANDOM ORDER ARRAY
+           SoundAlphabet.count(),NumTrials);                    #|
+       end;                                                     #|
+                                                                #|
+     end;                                                       #|
+                                                                #|
+ #-START NumTrials LOOP UNTIL ItemNum > NumTrials---------------#|
+     loop                                                       #|
+       int ItemNum = 1                                          #|
+     until                                                      #|
+       ItemNum > NumTrials                                      #|
+     begin                                                      #|
+                                                                #|
+       int TrialNum = ItemNum + (ItemPresNum - 1) * NumTrials;  #|
+       setresponse(int(Trials[ItemNum][3]),0,0);                #|Set correct response key
+       int PostStimDurTmp;                                      #|Set trial specific post-stimulus duration
+       if                                                       #|
+         PostStimDur == 0                                       #|
+       then                                                     #|
+         PostStimDurTmp = 0;                                    #|
+       elseif                                                   #|
+         PostStimDur != 0                                       #|
+       then                                                     #|
+         PostStimDurTmp = random(                               #|
+           PostStimDur - PostStimJitter,                        #|
+           PostStimDur + PostStimJitter                         #|
+         );                                                     #|
+       end;                                                     #|
+                                                                #|
+       int InterTrialDurTmp;                                    #|Set trial specific inter-trial duration
+       if                                                       #|
+         InterTrialDur == 0                                     #|
+       then                                                     #|
+         InterTrialDurTmp = 0;                                  #|
+       elseif                                                   #|
+         InterTrialDur != 0                                     #|
+       then                                                     #|
+         InterTrialDurTmp = random(                             #|
+           InterTrialDur - InterTrialJitter,                    #|
+           InterTrialDur + InterTrialJitter                     #|
+         );                                                     #|
+       end;                                                     #|
+                                                                #|
+       ##########################################################|
+       # Trial						        
+       ##########################################################|
+                                                                #|
+       if                                                       #|SIMULTANEOUS TEXT+SOUND MODALITY
+         Modality == "Text+Sound" &&                            #|AND NOT CONTINUOUS SOUND PRESENTATION
+         ContinuousSound == false                               #|
+       then                                                     #|
+                                                                #|
+         string SoundVer =                                      #|Set random sound to present
+           SoundAlphabet[SoundAlphabetOrder[ItemNum]];          #|
+         string PortCodeF;                                      #|String the holds port code
+                                                                #|
+         if                                                     #|Set PortCodeF to first code tripplet in port code part of Trials
+           Trials[ItemNum][2].count() >= 3                      #|
+         then                                                   #|
+           PortCodeF = Trials[ItemNum][2].substring(1,3);       #|
+         end;                                                   #|
+                                                                #|
+         presentsound(SoundVer,SoundAlphabet,                   #|Start to present sound
+                      StimDur+InterStimDur,SoundVer,PortCodeF,  #|
+                      SendCode);                                #|
+                                                                #|
+       end;                                                     #|
+                                                                #|
+ #---PRE-STIMULUS PERIOD----------------------------------------#|
+                                                                #|
+       if                                                       #|
+         PreStimDur > 0                                         #|
+       then                                                     #|
+                                                                #|
+         if                                                     #|SendCode == "Yes" && ITEM TYPE > 0
+           SendCode == true &&                                  #|
+           Trials[ItemNum][1].count() > 0                       #|
+         then                                                   #|
+                                                                #|
+           if                                                   #|CHECK IF THE ITEM TYPE START WITH A "@" MARKER
+             Trials[ItemNum][1].substring(1,1) == "@"           #|
+           then                                                 #|
+                                                                #|
+             string TrialCodes = Trials[ItemNum][1].            #|SET TrialCodes TO KEEP TRIAL MARKER(S)
+               substring(2,(Trials[ItemNum][1].count()-1));     #|
+                                                                #|
+             loop                                               #|LOOP TrialCode == " "
+               int k = 1;                                       #|
+               string TrialCode                                 #|
+             until                                              #|
+               k > 5                                            #|
+             begin                                              #|
+                                                                #|
+               if                                               #|BREAK LOOP IF TrialCode IS EMPTY
+                 TrialCodes.count() == 0                        #|
+               then                                             #|
+                 break                                          #|
+               end;                                             #|
+                                                                #|
+               TrialCode = TrialCodes.substring(1,3);           #|SET TrialCode TO FIRST 3 POSITIONS OF TrialCode
+                                                                #|
+               if                                               #|REMOVE INITIAL ZEROES
+                 TrialCode.substring(1,2) == "00"               #|
+               then                                             #|
+                 TrialCode = TrialCode.substring(3,1);          #| IN TrialCode BEEFORE
+               elseif                                           #| TRANSLATING THE CODE
+                 TrialCode.substring(1,1) == "0"                #|
+               then                                             #|
+                 TrialCode = TrialCode.substring(2,2);          #| INTO INTEGER.
+               end;                                             #| 
+                                                                #|
+               presenttrial(20,"FixedDuration","Keep",0,0,      #|SEND MARKER(S)
+                            TrialCode,TrialCode,SendCode);      #|
+                                                                #|
+               if                                               #|DELETE FIRST 3 POSITIONS OF TrialCode
+                 TrialCodes.count() > 3                         #|
+               then                                             #|
+                 TrialCodes = TrialCodes.substring( 4,          #|
+                                  (TrialCodes.count()-3) );     #|
+               else                                             #|OR BREAK LOOP
+                 break                                          #|
+               end;                                             #|
+                                                                #|
+               k = k + 1;                                       #|UPDATE k
+                                                                #|
+             end;                                               #|
+                                                                #|
+           end;                                                 #|
+                                                                #|
+         end;                                                   #|
+                                                                #|
+         presenttrial(PreStimDur,"FixedDuration",PreStimMarker, #|PRE-STIMULUS PERIOD
+                      PreStimFontSize,PreStimPos,"Pre",         #|
+                      PreStimCode,SendCode);                    #|
+                                                                #|
+       end;                                                     #|
+                                                                #|
+ #---STIMULUS PERIOD--------------------------------------------#|
+                                                                #|
+       if                                                       #|STIMULUS PERIOD
+         StimDur > 0                                            #|
+       then                                                     #|
+         logdata(Trials[ItemNum][1] + "\t",LogFile,false);      #|LOG
+         TextFont = StimFont;                                   #|Set stimulus font
+         presentitem(StimDur,InterStimDur,InterSubStimDur,      #|Present item
+                     VariableStimDur,VarStimDur,Trials[ItemNum],#|
+                     InterStimMarker,StimPos,InterStimPos,      #|
+                     StimFontSize,InterStimFontSize,Modality,   #|
+                     SubStimulusStructure,AddPoint,             #|
+                     PreLoadedBitmaps,SoundAlphabet,            #|
+                     InterStimCode,LogFile,SendCode);           #|
+         TextFont = DefaultFont;                                #|Reset default font
+       end;                                                     #|
+                                                                #|
+ #---POST-STIMULUS PERIOD---------------------------------------#|
+                                                                #|
+       if                                                       #|POST-STIMULUS PERIOD
+         PostStimDurTmp > 0                                     #|
+       then                                                     #|
+         presenttrial(PostStimDurTmp,"FixedDuration",           #|
+                      PostStimMarker,PostStimFontSize,          #|
+                      PostStimPos,"Post",PostStimCode,SendCode);#|
+       end;                                                     #|
+                                                                #|
+ #---CASE: Retype (collect keyboard input)----------------------#|
+                                                                #|
+       if                                                       #|
+         ResponseType == "Retype"                               #|
+       then                                                     #|
+                                                                #|
+         TextFont = StimFont;                                   #|Set stimulus font
+         Input[TrialNum][1] =                                   #|GETINPUT
+           getkeyboardinput(RespInstr,RespInstrFontSize,        #|
+                            RespInstrPos,StimFontSize,StimPos,  #|
+                            ButtonCodes);                       #|
+         TextFont = DefaultFont;                                #|Reset default font
+         logdata("\t" + Input[TrialNum][1],LogFile,false);      #|LOG
+                                                                #|
+ #---CASE: Selection (collect mouse selection input)------------#|
+                                                                #|
+       elseif                                                   #|
+         ResponseType == "Selection"                            #|
+       then                                                     #|
+                                                                #|
+         TextFont = StimFont;                                   #|Set stimulus font
+         Input[TrialNum] =                                      #|GETMOUSEINPUT with argument length of string
+           getmouseinput(Trials[ItemNum][5].count(),            #|
+                         SelectionNumPositions,SelectionJitter, #|
+                         SelectionHalfWidth,                    #|
+                         SelectionActiveCentre,ResponseMarker,  #|
+                         SelectionAlphabet,ShuffleAlphabet,     #|
+                         SelectionResponseFeedback,             #|
+                         SelectionPerformanceFeedback,          #|
+                         SelectionPositions,SelectionFontSize); #|
+         TextFont = DefaultFont;                                #|Reset default font
+         logdata("\t" + Input[TrialNum][1],LogFile,false);      #|LOG
+                                                                #|
+ #---CASE: MultipleChoice (collect mouse selection input)-------#|
+                                                                #|
+       elseif                                                   #|
+         ResponseType == "MultipleChoice"                       #|
+       then                                                     #|
+         int NumChoices = int(Trials[ItemNum][6]);              #|Get number of choices
+         array<string> Choices[1][NumChoices] =                 #|Get choices
+           getsubarray(Trials,ItemNum,ItemNum,7,6+NumChoices);  #|
+         TextFont = StimFont;                                   #|Set stimulus font
+         Input[TrialNum] =                                      #|GETMOUSEINPUT: Get choice
+           getmouseinput(1,NumChoices,SelectionJitter,          #|
+                         SelectionHalfWidth,                    #|
+                         SelectionActiveCentre,ResponseMarker,  #|
+                         Choices[1],ShuffleAlphabet,            #|
+                         SelectionResponseFeedback,             #|
+                         SelectionPerformanceFeedback,          #|
+                         SelectionPositions,SelectionFontSize); #|
+         TextFont = DefaultFont;                                #|Reset default font
+         logdata("\t" + Input[TrialNum][1],LogFile,false);      #|LOG
+         logdata("\t" + Input[TrialNum][2],LogFile,false);      #|LOG
+                                                                #|
+ #---CASE: Completion (collect completion input)----------------#|
+                                                                #|
+       elseif                                                   #|
+         ResponseType == "Completion"                           #|
+       then                                                     #|
+                                                                #|
+         TextFont = StimFont;                                   #|Set stimulus font
+         Input[TrialNum][1] =                                   #|GETINPUT
+           getkeyboardinput(Trials[ItemNum][5],StimFontSize,    #|
+                            RespInstrPos,StimFontSize,StimPos,  #|
+                            ButtonCodes);                       #|
+         TextFont = DefaultFont;                                #|Reset default font
+         logdata(Trials[ItemNum][1] + "\t" +                    #|LOG:Trial name
+                 Trials[ItemNum][5] + "\t" +                    #|Item
+                 Trials[ItemNum][2] + "\t" +                    #|Target
+                 Input[TrialNum][1],LogFile,false);             #|Response
+                                                                #|
+ #---RESPONSE PERIOD--------------------------------------------#|
+                                                                #|
+       elseif                                                   #|
+         ResponseDur > 0       ||                               #|
+         AwaitResponse == true                                  #|
+       then                                                     #|
+                                                                #|
+         presenttrial(ResponseDur,ResponseType,ResponseMarker,  #|RESPONSE PERIOD
+                      ResponseFontSize,ResponsePos,"Response",  #|
+                      ResponseCode,SendCode);                   #|
+         response_data Tmp =                                    #|Get respons
+           response_manager.last_response_data();               #|
+         Input[TrialNum][1] = string(Tmp.button());             #|Store response
+         if                                                     #|
+           Tmp.button() == int(Trials[ItemNum][3])              #|
+         then                                                   #|
+           Input[TrialNum][2] = "1";                            #|
+         else                                                   #|
+           Input[TrialNum][2] = "0";                            #|
+         end;                                                   #|
+         logdata("\t"+string(Tmp.code())+"\t"+                  #|LOG
+                 string(Tmp.time()),LogFile,false);             #|
+                                                                #|
+       end;                                                     #|
+                                                                #|
+       if                                                       #|SIMULTANEOUS TEXT+SOUND MODALITY
+         Modality == "Text+Sound" &&                            #|AND NOT CONTINUOUS SOUND PRESENTATION
+         ContinuousSound == false                               #|
+       then                                                     #|
+         StopSoundTrial.present();                              #|Stop presenting sound
+       end;                                                     #|
+                                                                #|
+ #---INTER TRIAL PERIOD-----------------------------------------#|
+                                                                #|
+       ##########################################################|
+       # Post-trial					        
+       ##########################################################|
+       if                                                       #|...and execute inter-trial period or self-paced pause period
+         TrialNum != Block                                      #|   between each presentation block.
+       then                                                     #|
+                                                                #|
+         if                                                     #|
+           SelfPaced == 0                                       #|
+         then                                                   #|
+                                                                #|
+         ########################################################|
+         # Inter Trial Interval				        
+         ########################################################|
+           if                                                   #|
+             InterTrialDurTmp > 0                               #|
+           then                                                 #|
+             presenttrial(InterTrialDurTmp,"FixedDuration",     #|
+                          InterTrialMarker,InterTrialFontSize,  #|
+                          InterTrialPos,"ITI",InterTrialCode,   #|
+                          SendCode);                            #|
+           end;                                                 #|
+                                                                #|
+         elseif                                                 #|
+           SelfPaced != 0                                       #|
+         then                                                   #|
+                                                                #|
+         ########################################################|
+         # Self-paced pause
+         ########################################################|
+           if                                                   #|
+             FeedbackTrialProgress == true                      #|
+           then                                                 #|
+             PauseInstr = Instrs[1] +                           #|
+               string(NumTrials*(ItemPresNum-1) + ItemNum+1)    #|
+                + "/" + string(BlockItems) + Instrs[2];         #|
+           elseif                                               #|
+             FeedbackTrialProgress == false                     #|
+           then                                                 #|
+             PauseInstr = Instrs[3];                            #|
+           end;                                                 #|
+                                                                #|
+           presenttrial(0,"SpecificResponse"+string(SelfPaced), #|
+                        PauseInstr,PauseFontSize,PausePos,      #|
+                        "Pause",PauseCode,SendCode);            #|
+                                                                #|
+         end;                                                   #|
+                                                                #|
+       elseif                                                   #|...or execute inter-trial period, execute questionnaire,
+         TrialNum == Block                                      #|and pre-set pauseperiod between each presentation block.
+       then                                                     #|
+                                                                #|
+         ########################################################|
+         # Inter Trial Interval				        
+         ########################################################|
+         if                                                     #|
+           InterTrialDurTmp > 0                                 #|
+         then                                                   #|
+           presenttrial(InterTrialDurTmp,"FixedDuration",       #|
+                        InterTrialMarker,InterTrialFontSize,    #|
+                        InterTrialPos,"ITI",InterTrialCode,     #|
+                        SendCode);                              #|
+         end;                                                   #|
+                                                                #|
+         ########################################################|   
+         # Online questions                                            
+         ########################################################|
+         logdata("\n",LogFile,false);                           #|LOG
+                                                                #|
+         if                                                     #|
+           DoQuestionnaire == true                              #|
+         then                                                   #|
+           int Num = QuestionnaireFileName.count();             #|
+           runquestionnaire(QuestionnaireFileName,QuestionDelay,#|
+                            ButtonCodes);                       #|
+         end;                                                   #|
+                                                                #|
+         if                                                     #|
+           ItemNum * ItemPresNum != NumTrials * NumItemsPres    #|
+         then                                                   #|
+                                                                #|
+         ########################################################|
+         # Pre-set pause inbetween blocks                                         
+         ########################################################|
+           presenttrial(0,"FirstResponse",Instrs[8],            #|
+                        PauseFontSize,PausePos,"Pause",         #|
+                        PauseCode,SendCode);                    #|
+           Block = Block + BlockItems;                          #|Update integer Block by adding number of items in block
+                                                                #|
+         end;                                                   #|
+                                                                #|
+       end;                                                     #|
+       logdata("\n",LogFile,false);                             #|LOG
+       ItemNum = ItemNum + 1;                                   #|Continue to next item
+                                                                #|
+     end;                                                       #|
+ #-STOP NumTrials LOOP WHEN ItemNum > NumTrials-----------------#|
+                                                                #|
+     if                                                         #|SIMULTANEOUS TEXT+SOUND MODALITY
+       Modality == "Text+Sound" &&                              #|AND CONTINUOUS SOUND PRESENTATION
+       ContinuousSound == true                                  #|
+     then                                                       #|
+       StopSoundTrial.present();                                #|Stop presenting sound
+     end;                                                       #|
+                                                                #|
+     ItemPresNum = ItemPresNum + 1;                             #|Continue to next block of items
+                                                                #|
+   end;                                                         #|
+ #-STOP NumItemsPres LOOP WHEN ItemPresNum > NumItemsPres-------#|
+                                                                #|
+   logdata("\n",LogFile,false);                                 #|LOG
+                                                                #|
+   return Input;                                                #|RETURN INPUT
+                                                                #|
+ end;                                                           #|
+ ################################################################

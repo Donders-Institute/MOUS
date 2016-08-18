@@ -1,0 +1,83 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # TESTITEMSARRAY                                               #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Test consitencies in the trial items array                 #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   testitemsarray (NumItemPres,NumBlocks,Str);                #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   NumItemPres = Number of presentations                      #
+ #   NumBlocks   = Number of presentation blocks                #
+ #   Trials      = Trial item array                             #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   int  NumItemPres  = 3;                                     # Number of presentations
+ #   int  NumBlocks    = 2;                                     # Number of presentation blocks
+ #   array<string> Trials[2][5] =                               # Trial item array
+ #     {"T1","010020","1","1","Ergo"," "},                      #
+ #     {"T2","030040","2","2","cogito","sum"} };                #
+ #   testitemsarray (NumItemPres,NumBlocks,Str);                #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   No dependencies                                            #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   No objects                                                 #
+ #                                                              #
+ # Last version 23-Oct-2008 15:51:55, Christian Forkstam        #
+ #==============================================================#
+ sub testitemsarray (                                           # ---INPUT ARGUMENT(S)
+     int              NumItemPresF,                             #|Number of presentations
+     int              NumBlocksF,                               #|Number of presentation blocks
+     array<string,2>& TrialsF                                   #|Trial item array
+   ) begin                                                      # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: TESTITEMSARRAY\n");                     #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   int TotalNumItemsF = TrialsF.count() * NumItemPresF;         #|Sets integer Total to the numbers of items between pauses in RUNEXPERIMENT.
+   double NumBlockItemsF = double(TotalNumItemsF) /             #|Sets integer NumBlockItems to the numbers of items per block.
+     double(NumBlocksF);                                        #|
+                                                                #|
+   if                                                           #|Check variable NumBlocks
+     floor(NumBlockItemsF) != ceil(NumBlockItemsF)              #|
+   then                                                         #|
+     showerror("NB!!  Variable NUMBLOCKS is not evenly "        #|
+       + "divisible\nwith the total number of strings!");       #|
+   end;                                                         #|
+                                                                #|
+   loop                                                         #|TEST ACCURACY OF MATRIX SIZE
+     int Pos = 1                                                #|
+   until                                                        #|
+     Pos > TrialsF.count()                                      #|
+   begin                                                        #|
+     if                                                         #|
+       ( 4 + int(TrialsF[Pos][4]) ) > TrialsF[1].count()        #|
+     then                                                       #|
+       showerror("NB!!  Too many subitems on row " +            #|
+         string(Pos) + " in the Items string array!");          #|
+     end;                                                       #|
+     Pos = Pos + 1;                                             #|
+   end;                                                         #|
+                                                                #|
+ end;                                                           # ---

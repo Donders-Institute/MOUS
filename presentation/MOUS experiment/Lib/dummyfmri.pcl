@@ -1,0 +1,58 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # DUMMYFMRI                                                    #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Synchronize with FMRI scanner pulse                        #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   dummyfmri (NumPulses);                                     #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   NumPulses = Number of FMRI pulses to wait for              #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   int NumPulses = 10;                                        #
+ #   dummyfmri (NumPulses);                                     #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   No dependencies                                            #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   No objects                                                 #
+ #                                                              #
+ # Last version 22-Oct-2008 18:36:25, Christian Forkstam        #
+ #==============================================================#
+ sub dummyfmri(                                                 # ---INPUT ARGUMENT(S)
+     int NumPulsesF                                             #|Number of FMRI pulses
+   ) begin                                                      # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: DUMMYFMRI\n");                          #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   int PreviousPulses = pulse_manager.main_pulse_count();       #|Get current number of FMRI pulses
+   loop                                                         #|
+   until                                                        #|
+     pulse_manager.main_pulse_count() ==                        #|Wait for NumPulses FMRI pulses
+       PreviousPulses + NumPulsesF                              #|
+   begin                                                        #|
+   end;                                                         #|
+                                                                #|
+ end;                                                           # ---

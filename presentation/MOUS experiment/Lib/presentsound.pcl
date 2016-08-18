@@ -1,0 +1,109 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # PRESENTSOUND                                                 #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Present sound item                                         #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   presentsound (Sound,Alphabet,Duration,                     #
+ #                 EventCode,PortCode,SendCode);                #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   Sound     = Sound item                                     #
+ #   Alphabet  = Sound alphabet                                 #
+ #   Duration  = Duration (ms)                                  #
+ #   EventCode = Event log code                                 #
+ #   PortCode  = Port code                                      #
+ #   SendCode  = Send code {true|false}                         #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   string        Sound       = "M";                           # Sound item
+ #   array<string> Alphabet[5] = {"M","S","V","R","X"};         # Sound alphabet (ordered as in sound object Sounds)
+ #   int           Duration    = 1000;                          # Duration (ms)
+ #   string        EventCode   = "LogThis";                     # Event log code
+ #   string        PortCode    = "000";                         # Port code
+ #   bool          SendCode    = false;                         # Send code {true|false}
+ #   presentsound (Sound,Alphabet,Duration,                     #
+ #                 EventCode,PortCode,SendCode);                #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #     GETTRIAL                                                 #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #     Trial object Trial                                       #
+ #     Sounds                                                   #
+ #                                                              #
+ # Last version 23-Oct-2008 02:43:27, Christian Forkstam        #
+ #==============================================================#
+ sub presentsound (                                             # ---INPUT ARGUMENT(S)
+     string           SoundF,                                   #|Sound item
+     array<string,1>& AlphabetF,                                #|Sound alphabet
+     int              DurationF,                                #|Duration (ms)
+     string           EventCodeF,                               #|Event log code
+     string           PortCodeF,                                #|Port code
+     bool             SendCodeF                                 #|Send code {true|false}
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: PRESENTSOUND\n");                       #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   trial   TrialF = gettrial(Trial);                            #|trial TrialF = Trial
+                                                                #|
+   loop                                                         #|Get position of SoundF in AlphabetF
+     int Pos = 1                                                #|
+   until                                                        #|
+     Pos > AlphabetF.count()                                    #|
+   begin                                                        #|
+                                                                #|
+     if                                                         #|
+       SoundF == AlphabetF[Pos]                                 #|
+     then                                                       #|
+       StimulusEvent.set_stimulus(Sounds[Pos]);                 #|Set sound stimulus
+       StimulusEvent.set_delta_time(0);                         #|Present immidiately without additional delays
+       TrialF.set_duration(DurationF);                          #|Present during Duration ms
+       StimulusEvent.set_event_code(EventCodeF);                #|Set EventCodeF
+       StimulusEvent.set_port_code(0);                          #|Reset output port code
+                                                                #|
+       if                                                       #|Set port code
+         SendCodeF == true                                      #|
+       then                                                     #|
+         if                                                     #|
+           PortCodeF == "0"   ||                                #|
+           PortCodeF == "XXX" ||                                #|
+           PortCodeF == " "                                     #|
+         then                                                   #|
+           StimulusEvent.set_port_code(0);                      #|Reset output port code
+         elseif                                                 #|
+           PortCodeF != "0"   &&                                #|
+           PortCodeF != "XXX" &&                                #|
+           PortCodeF != " "                                     #|
+         then                                                   #|
+           StimulusEvent.set_port_code(int(PortCodeF));         #|Update code to send over port
+         end;                                                   #|
+       end;                                                     #|
+                                                                #|
+       TrialF.present();                                        #|
+     end;                                                       #|
+     Pos = Pos + 1;                                             #|
+                                                                #|
+   end;                                                         #|
+                                                                #|
+ end;                                                           # ---
