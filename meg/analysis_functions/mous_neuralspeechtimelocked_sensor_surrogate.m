@@ -35,7 +35,8 @@ dat(end+1,:) = impulses;
 selmeg = match_str(tlck.label, ft_channelselection('MEG', tlck.label,'ctf275'));
 n      = norm(dat(selmeg,:),'fro');
 
-noise   = pinknoise([numel(selmeg) size(dat,2)], [], 2);
+%noise   = pinknoise([numel(selmeg) size(dat,2)], [], 2);
+noise   = pinknoise([numel(selmeg) size(dat,2)], [], 3, freq.powspctrm(selmeg,:), freq.freq, 300);
 n_noise = norm(noise, 'fro');
 noise   = noise.*(n./n_noise);
 
