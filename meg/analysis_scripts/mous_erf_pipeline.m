@@ -837,13 +837,13 @@ if doerf_auditory_chop_freq
 end
 
 if doerf_speech_tlck
-  [tlck, tlck_sent, tlck_seq, tlck_seq2] = mous_neuralspeechtimelocked_sensor(subjectname, 'up');
-  mous_db_putdata(subjectname, 'meg_erf_speech_tlck' ,'tlck', 'tlck_sent', 'tlck_seq', 'tlck_seq2', outrootdir,1);
+  [tlck, tlck_sent, tlck_seq, tlck_seq2, freq] = mous_neuralspeechtimelocked_sensor(subjectname, 'up');
+  mous_db_putdata(subjectname, 'meg_erf_speech_tlck' ,'tlck', 'tlck_sent', 'tlck_seq', 'tlck_seq2', 'freq', outrootdir,1);
 end
 
 if doerf_speech_tlck_surrogate
   [coh, pow] = mous_neuralspeechtimelocked_sensor_surrogate(subjectname, [], 0.1);
-  mous_db_putdata(subjectname, 'meg_erf_speech_tlck_surrogate' ,'coh', 'pow', outrootdir,1);
+  mous_db_putdata(subjectname, 'meg_erf_speech_tlck_surrogate' ,'coh', 'pow', outrootdir,0);
 end
 
 if doerf_speech_itc

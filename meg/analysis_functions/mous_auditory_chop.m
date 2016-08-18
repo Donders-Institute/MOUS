@@ -23,7 +23,7 @@ for k = 1:numel(f)
     trl        = mous_defineTrial(f{k}, 0, 0, 'trialfun_visual_sentence');
   end
   trl(:,[1 3]) = trl(:,[1 3]) - 240; % subtract 0.2 s for the baseline
-  trl          = trl(trl(:,end)<500,:); % select the sentences
+  %trl          = trl(trl(:,end)<500,:); % select the sentences
   
   cfg            = [];
   cfg.dataset    = f{k};
@@ -112,7 +112,13 @@ for k = 1:numel(data.trial)
   pst{k} = pst{k}(sel);
   pst{k} = min(pst{k}, 600);
   end
- end
+end
+for k = 1:numel(pre)
+  pre{k} = pre{k}(:);
+  pst{k} = pst{k}(:);
+  indx{k} = indx{k}(:);
+end
+
 params.tr = indx;
 params.pre = pre;
 params.pst = pst;
