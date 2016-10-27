@@ -74,7 +74,7 @@ for k = 1:numel(selfix)-1
     trg1 = tmpval(kk);
     trg2 = tmpval(kk+1);
     if trg1<=8 && trg2==15
-      offset = min(1200,tmpsmp(kk)-fixsmp);
+      offset = tmpsmp(kk)-fixsmp;
       break;    
     end    
   end
