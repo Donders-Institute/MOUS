@@ -11,10 +11,10 @@ end
 %% load axial data
 
 for k = 1:Nsubj
-%     tmp = mous_db_getdata(subjA{k},'meg_erf_sen_chopped');
-%     tlckAsen{k} = tmp;
-%     tmp = mous_db_getdata(subjA{k},'meg_erf_seq_chopped');
-%     tlckAseq{k} = tmp;
+    tmp = mous_db_getdata(subjA{k},'meg_erf_sen_chopped');
+    tlckAsen{k} = tmp;
+    tmp = mous_db_getdata(subjA{k},'meg_erf_seq_chopped');
+    tlckAseq{k} = tmp;
     tmp = mous_db_getdata(subjV{k},'meg_erf_sen_chopped');
     tlckVsen{k} = tmp;
     tmp = mous_db_getdata(subjV{k},'meg_erf_seq_chopped');
@@ -102,6 +102,13 @@ cfg.ivar                = 1;
 cfg.uvar                = 2; 
 statA = ft_timelockstatistics(cfg,tlckA_covcor{:},dum{:})
 statV = ft_timelockstatistics(cfg,tlckV_covcor{:},dum{:})
+
+%% source data
+% Load source data
+for k = 1:Nsubj
+    tmp = mous_db_getdata(subjA{k},'meg_mne_conjunction_sen');
+    tlckAsen{k} = tmp;
+end
 
 
 %% Conjunction

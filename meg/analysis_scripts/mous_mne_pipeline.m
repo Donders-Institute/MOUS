@@ -702,7 +702,7 @@ if domne_conjunction,
   % Yet, I am not 100% sure. FIXME
  
   % define the medial wall parcel as outside. NOTE: this assumes
-  % the medial wall te have a value of 2
+  % the medial wall to have values of 1,2,194 & 195
   load atlas_conte69_8196reg_LR_brodmann_subparc
   sourcemodel.inside  = ~ismember(atlas.parcellation,[1 2 194 195]);
   if isfield(sourcemodel, 'outside'), sourcemodel = rmfield(sourcemodel, 'outside'); end
@@ -779,19 +779,14 @@ if domne_conjunction,
   cfg.vol             = headmodel;
   cfg.grid            = sourcemodel;
   cfg.mne.prewhiten   = 'yes';
-  cfg.mne.lambda      = 3; % used to be 2
+  cfg.mne.lambda      = 3;
   cfg.mne.scalesourcecov  = 'yes';
   cfg.mne.keepfilter  = 'yes';
   cfg.mne.noiselambda = 0.2*trace(tlck.cov)./size(tlck.cov,1);
   cfg.mne.sourcecov   = S;
   sourceall              = ft_sourceanalysis(cfg, tlck);
-  
-  % do some normalisation to get a 'dSPM'
-  npos  = size(sourceall.pos,1);
-  noise = nan(npos,1);
-  noise(sourceall.inside) = cellfun(@trace,sourceall.avg.noisecov(sourceall.inside));
-  sourceall.avg.dspm      = spdiags(1./(noise),0,npos,npos)*sourceall.avg.pow;
-  
+ 
+ 
   % get condition specific data
   mous_db_getdata(subjectname, 'meg_erf_sen_chopped')
   tlcksen = tlck;
@@ -800,25 +795,37 @@ if domne_conjunction,
   % apply the spatial filter to the condition specific data
   cfg.mne.keepfilter = 'no';
   cfg.grid.filter    = sourceall.avg.filter;
-  sourcesen              = ft_sourceanalysis(cfg, tlcksen);
+  sourcesent              = ft_sourceanalysis(cfg, tlcksen);
   sourceseq              = ft_sourceanalysis(cfg, tlckseq);
   
-    % do some normalisation to get a 'dSPM'
-  npos  = size(sourcesen.pos,1);
-  noise = nan(npos,1);
-  noise(sourcesen.inside) = cellfun(@trace,sourcesen.avg.noisecov(sourcesen.inside));
-  sourcesen.avg.dspm      = spdiags(1./(noise),0,npos,npos)*sourcesen.avg.pow;
+  %% New code change to fit
+  cfg                = [];
+  cfg.demean         = 'yes';
+  cfg.baselinewindow = [-0.0742 0];
+  cfg.projectmom     = 'yes';
+  cfg.zscore         = 'no';
+  sd_Sent        = ft_sourcedescriptives(cfg, sourcesent);
+  sd_Seq         = ft_sourcedescriptives(cfg, sourceseq);
   
-  npos  = size(sourceseq.pos,1);
-  noise = nan(npos,1);
-  noise(sourceseq.inside) = cellfun(@trace,sourceseq.avg.noisecov(sourceseq.inside));
-  sourceseq.avg.dspm      = spdiags(1./(noise),0,npos,npos)*sourceseq.avg.pow;
+  % do the normalisation to get a 'dSPM'
+    npos = size(sd_Sent.pos,1);
+    sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
+    sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
+  
+  sd_Sent.avg = rmfield(sd_Sent.avg, 'mom');
+  sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
+  %% 
+  
+  % 'dSPM' old way
+%   npos  = size(sourcesen.pos,1);
+%   noise = nan(npos,1);
+%   noise(sourcesen.inside) = cellfun(@trace,sourcesen.avg.noisecov(sourcesen.inside));
+%   sourcesen.avg.dspm      = spdiags(1./(noise),0,npos,npos)*sourcesen.avg.pow;
+
   
   % save the output
-  source = sourceseq;
-  mous_db_putdata(subjectname, 'meg_mne_conjunction_seq',  'source', rootdir, 1);
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_seq',  'sd_Sent', rootdir, 1);
   
-  source = sourcesen;
-  mous_db_putdata(subjectname, 'meg_mne_conjunction_sen', 'source', rootdir, 1);
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_sen', 'sd_Seq', rootdir, 1);
     
 end
