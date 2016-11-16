@@ -681,6 +681,7 @@ if domne_conjunction,
   mous_db_getdata(subjectname, 'meg_erf_chopped');
   tlck.cov = C;
   clear C;
+    
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % preparation of the anatomical data
@@ -787,7 +788,7 @@ if domne_conjunction,
   sourceall              = ft_sourceanalysis(cfg, tlck);
  
  
-  % get condition specific data
+%   get condition specific data
   mous_db_getdata(subjectname, 'meg_erf_sen_chopped')
   tlcksen = tlck;
   mous_db_getdata(subjectname, 'meg_erf_seq_chopped')
@@ -806,9 +807,10 @@ if domne_conjunction,
   cfg.zscore         = 'no';
   sd_Sent        = ft_sourcedescriptives(cfg, sourcesent);
   sd_Seq         = ft_sourcedescriptives(cfg, sourceseq);
+
   
   % do the normalisation to get a 'dSPM'
-    npos = size(sd_Sent.pos,1);
+    npos = size(sd_Seq.pos,1);
     sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
     sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
   
@@ -826,6 +828,6 @@ if domne_conjunction,
   % save the output
   mous_db_putdata(subjectname, 'meg_mne_conjunction_seq',  'sd_Sent', rootdir, 1);
   
-  mous_db_putdata(subjectname, 'meg_mne_conjunction_sen', 'sd_Seq', rootdir, 1);
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_seq', 'sd_Seq', rootdir, 1);
     
 end
