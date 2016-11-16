@@ -7,7 +7,7 @@
 %subj = mous_db_getfilename('all','subjectname');
 
 if nargin<2
-  condition = 'seq'; %use only sequences for the mne sourcerec
+  condition = []; %use only sequences for the mne sourcerec
 end
 
 f   = mous_db_getfilename(subjectname, 'meg_ds_task');
@@ -144,6 +144,9 @@ else %for visual modality
     else
      trlallwords = trlallwords{1};
     end
+    %make sure trialfun selection corresponds to data trial selection
+    
+    trlallwords = trlallwords(ismember(trlallwords(:,4),data.trialinfo(:,1)),:);
     indx = cell(1,numel(data.trial));
     pre = cell(1,numel(data.trial));
     pst = cell(1,numel(data.trial));
@@ -197,8 +200,8 @@ tlck.cov = covar;
 tlck.dof = repmat(cnt,[numel(data.label) 1]);
 tlck.grad = data.grad;
 
-cfg = [];
-cfg.latency = [tlck.time(1) 0];
-tlck = ft_selectdata(cfg,tlck);
+% cfg = [];
+% cfg.latency = [tlck.time(1) 0];
+% tlck = ft_selectdata(cfg,tlck);
 
 mous_db_putdata(subjectname, 'meg_erf_bslchopped', 'tlck', '/project/3011020.09/MEG/');
