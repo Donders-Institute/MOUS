@@ -151,6 +151,9 @@ else %for visual modality
     else
      trlallwords = trlallwords{1};
     end
+    %make sure trialfun selection corresponds to data trial selection
+    
+    trlallwords = trlallwords(ismember(trlallwords(:,4),data.trialinfo(:,1)),:);
     indx = cell(1,numel(data.trial));
     pre = cell(1,numel(data.trial));
     pst = cell(1,numel(data.trial));
