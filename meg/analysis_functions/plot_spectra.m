@@ -46,22 +46,12 @@ for k = 1:size(A,3)
       plot(0:(size(A,1)-1),A(:,k),'k');
     end
     abc = axis;
-<<<<<<< HEAD
-    if ischar(zlim)
-=======
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
     switch 'zlim',
       case 'zeromax'
         axis([0 size(A,1)-1 0 abc(4)]);
       otherwise
         axis([0 size(A,1)-1 abc(3:4)]);
     end
-<<<<<<< HEAD
-    else
-      axis([0 size(A,1)-1 zlim]);
-    end
-=======
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
     set(gca,'xtick',[0 10 25 50 75 100],'tickdir','out','fontname','arial','fontsize',16);
     xlabel('frequency (Hz)');
     ylabel('network strength (a.u.)');
