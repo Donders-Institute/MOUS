@@ -48,10 +48,17 @@ cfg.method = 'template';
 cfg.template = 'CTF275_neighb.mat';
 neighb = ft_prepare_neighbours(cfg);
 
+<<<<<<< HEAD
 % cfg = [];
 % cfg.method = 'sincos';
 % cfg.neighbours = neighb;
 % data = ft_megplanar(cfg, data);
+=======
+cfg = [];
+cfg.method = 'sincos';
+cfg.neighbours = neighb;
+data = ft_megplanar(cfg, data);
+>>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
 
 
 % get the sentence trials
@@ -68,6 +75,7 @@ cfgc = [];
 cfgc.method = 'svd';
 
 cfgh = [];
+<<<<<<< HEAD
 cfgh.hilbert = 'complex';
 
 cfg = [];
@@ -80,13 +88,29 @@ cfg.refchannel = 'audio_avg';
 
 freqs = [linspace(0.5,16,20);linspace(1,20,20);linspace(1.5,24,20)];
 for k = 1:size(freqs,2)
+=======
+cfgh.hilbert = 'angle';
+
+cfg = [];
+cfg.method = 'mi';
+cfg.mi.lags = 0;(-0.7:0.1:0.7);
+cfg.mi.method = 'gcmi';
+
+freqs = [linspace(0.5,16,20);linspace(1,20,20);linspace(1.5,24,20)];
+for k = 2%1:size(freqs,2)
+>>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
   cfgf.bpfreq = freqs([1 3],k)';
 
   tmp       = ft_preprocessing(cfgf, data);
   tmpspeech = ft_preprocessing(cfgf, speech);
   
   tmp         = ft_appenddata([], tmp, tmpspeech);
+<<<<<<< HEAD
   
+=======
+  cfg.refindx = match_str(tmp.label, 'audio_avg');
+
+>>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
   mi(k)       = ft_connectivityanalysis(cfg,ft_preprocessing(cfgh, tmp));
 end
 

@@ -781,7 +781,7 @@ if doerf_auditory_chop
   %  error('this only works with audio subjects');
   %end
   
-  tlck = mous_auditory_chop(subjectname);
+  tlck = mous_auditory_chop(subjectname,condition);
   
   cfgplanar              = [];
   cfgplanar.planarmethod = 'sincos';

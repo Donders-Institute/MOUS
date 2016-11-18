@@ -8,6 +8,7 @@ if ~exist('domne_denoise',     'var'), domne_denoise     = 0; end
 if ~exist('dodspm',            'var'), dodspm            = 0; end     
 if ~exist('domne_earlylate',   'var'), domne_earlylate   = 0; end
 if ~exist('domne_parametric_rc', 'var'), domne_parametric_rc = 0; end
+if ~exist('domne_conjunction', 'var'), domne_conjunction = 0; end
 
 % specify the directory into which the results will be saved
 if ~exist('rootdir', 'var')
@@ -671,3 +672,162 @@ if domne_parcellate2
   mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', 'parcellation', rootdir);
 end
 
+if domne_conjunction,
+  % get the covariance of the noise (take the pre sentence baseline)
+  mous_db_getdata(subjectname, 'meg_erf_bslchopped');
+  C = tlck.cov;
+  clear tlck;
+  
+  mous_db_getdata(subjectname, 'meg_erf_chopped');
+  tlck.cov = C;
+  clear C;
+    
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % preparation of the anatomical data
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  % load the 2D sourcemodel and deal with the midline
+  mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D_surfreg');
+  if exist('bnd', 'var'),
+    sourcemodel = bnd; 
+    clear bnd;
+  end
+  if ~isfield(sourcemodel, 'pos') && isfield(sourcemodel, 'pnt'),
+    sourcmodel.pos = sourcemodel.pnt;
+    sourcemodel    = rmfield(sourcemodel, 'pnt');
+  end
+  sourcemodel = ft_convert_units(sourcemodel, 'm');  
+  % NOTE: the areas of the triangles are not updated, I think that this is not a problem
+  % because the area weighting is relative, i.e. the scale of the numbers shouldn't matter.
+  % Yet, I am not 100% sure. FIXME
+ 
+  % define the medial wall parcel as outside. NOTE: this assumes
+  % the medial wall to have values of 1,2,194 & 195
+  load atlas_conte69_8196reg_LR_brodmann_subparc
+  sourcemodel.inside  = ~ismember(atlas.parcellation,[1 2 194 195]);
+  if isfield(sourcemodel, 'outside'), sourcemodel = rmfield(sourcemodel, 'outside'); end
+  sourcemodelorig     = sourcemodel;
+  
+  % load the volume conduction model of the head
+  mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+  if exist('vol', 'var'),
+    headmodel = vol; 
+    clear vol;
+  end
+  headmodel = ft_convert_units(headmodel, 'm');
+  
+  % pre-compute the leadfields
+  cfg          = [];
+  cfg.grad     = tlck.grad;
+  cfg.headmodel= headmodel;
+  cfg.grid     = sourcemodel;
+  cfg.channel  = 'MEG';
+  cfg.feedback = 'textbar';
+  %cfg.normalize = 'yes';
+  sourcemodel  = ft_prepare_leadfield(cfg);
+  
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  % computation of the MNE inverse operator
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  % the following is to ensure the correct order of channels in the covariance
+  % compared to the data. added 2014-06-20
+  
+  if 1,
+    % this part computes the area per triangle and uses the squared area as a
+    % prior on the source covariance matrix. This is equivalent to how it's
+    % done in brainstorm
+    
+    % the areas need to be defined per vertex, not per triangle
+    % take hs1
+    vertex_area = zeros(size(sourcemodelorig.pos,1),1);
+    for k = 1:size(sourcemodelorig.pos,1)
+      sel              = find(sum(sourcemodelorig.tri==k,2));
+      vertex_area(k,1) = sum(sourcemodelorig.area(sel))./numel(sel);
+    end
+    weightlim = 5;
+    weightexp = 0.5;
+    
+    % this part computes the sum of squares of the leadfields, and uses the
+    % inverse of it for depth weighting.
+    Lss = zeros(8192,1)+nan;
+    if islogical(sourcemodel.inside)
+      inside = find(sourcemodel.inside);
+    else
+      inside = sourcemodel.inside;
+    end
+    for k = 1:numel(inside)
+      indx = inside(k);
+      lf   = sourcemodel.leadfield{indx};
+      Lss(indx,:) = sum(sum(lf.^2));
+    end
+    Lss    = (1./Lss)';
+    minLss = min(Lss(sourcemodelorig.inside));
+    Lss(Lss>minLss.*weightlim.^2) = minLss.*weightlim.^2;
+    
+    A = ((vertex_area(:).^2).*Lss(:)).^weightexp;
+    A = repmat(A(inside),[1 3])';
+    
+    % create a source covariance matrix that is equivalent to the area(^2)
+    % times the 1./leadfield-sum-of-square to the power of weightexp
+    % weighting in bst_wmne
+    S = spdiags(A(:),0,speye(numel(A)));
+  end
+  
+  cfg                 = [];
+  cfg.method          = 'mne';
+  cfg.vol             = headmodel;
+  cfg.grid            = sourcemodel;
+  cfg.mne.prewhiten   = 'yes';
+  cfg.mne.lambda      = 3;
+  cfg.mne.scalesourcecov  = 'yes';
+  cfg.mne.keepfilter  = 'yes';
+  cfg.mne.noiselambda = 0.2*trace(tlck.cov)./size(tlck.cov,1);
+  cfg.mne.sourcecov   = S;
+  sourceall              = ft_sourceanalysis(cfg, tlck);
+ 
+ 
+%   get condition specific data
+  mous_db_getdata(subjectname, 'meg_erf_sen_chopped')
+  tlcksen = tlck;
+  mous_db_getdata(subjectname, 'meg_erf_seq_chopped')
+  tlckseq = tlck;
+  % apply the spatial filter to the condition specific data
+  cfg.mne.keepfilter = 'no';
+  cfg.grid.filter    = sourceall.avg.filter;
+  sourcesent              = ft_sourceanalysis(cfg, tlcksen);
+  sourceseq              = ft_sourceanalysis(cfg, tlckseq);
+  
+  %% New code change to fit
+  cfg                = [];
+  cfg.demean         = 'yes';
+  cfg.baselinewindow = [-0.0742 0];
+  cfg.projectmom     = 'yes';
+  cfg.zscore         = 'no';
+  sd_Sent        = ft_sourcedescriptives(cfg, sourcesent);
+  sd_Seq         = ft_sourcedescriptives(cfg, sourceseq);
+
+  
+  % do the normalisation to get a 'dSPM'
+    npos = size(sd_Seq.pos,1);
+    sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
+    sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
+  
+  sd_Sent.avg = rmfield(sd_Sent.avg, 'mom');
+  sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
+  %% 
+  
+  % 'dSPM' old way
+%   npos  = size(sourcesen.pos,1);
+%   noise = nan(npos,1);
+%   noise(sourcesen.inside) = cellfun(@trace,sourcesen.avg.noisecov(sourcesen.inside));
+%   sourcesen.avg.dspm      = spdiags(1./(noise),0,npos,npos)*sourcesen.avg.pow;
+
+  
+  % save the output
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_seq',  'sd_Sent', rootdir, 1);
+  
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_seq', 'sd_Seq', rootdir, 1);
+    
+end
