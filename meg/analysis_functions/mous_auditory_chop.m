@@ -1,20 +1,13 @@
-<<<<<<< HEAD
-function tlck = mous_auditory_chop(subjectname)
-=======
 function tlck = mous_auditory_chop(subjectname,condition)
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
 
 % load in the data epoched per sentence with audioonset + audiodelay
 % correction and then manually subtracting a baseline of 0.2 seconds (or
 % so)
-<<<<<<< HEAD
-=======
 
 if nargin<2
   condition = [];
 end
 
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
 f   = mous_db_getfilename(subjectname, 'meg_ds_task');
 if numel(f)>1
   ext = cell(1,numel(f));
@@ -30,17 +23,6 @@ mask = cell(1,numel(f));
 for k = 1:numel(f)
   if strcmp(subjectname(1), 'A')
     % auditory subject
-<<<<<<< HEAD
-    trl        = mous_defineTrial(f{k}, 'audioonset', 0, 'trialfun_auditory_sentence');
-  else
-    trl        = mous_defineTrial(f{k}, 0, 0, 'trialfun_visual_sentence');
-  end
-  trl(:,[1 3]) = trl(:,[1 3]) - 240; % subtract 0.2 s for the baseline
-  %trl          = trl(trl(:,end)<500,:); % select the sentences
-  
-  cfg            = [];
-  cfg.dataset    = f{k};
-=======
     trl        = mous_defineTrial(f{k}, 'audioonset',0, 'trialfun_auditory_sentence');
     trl(:,[1 3]) = trl(:,[1 3]) - 240; % subtract 0.2 s for the baseline
   else
@@ -62,31 +44,18 @@ end
   cfg            = [];
   cfg.dataset    = f{k};
     cfg.trl        = trl;
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
   cfg.continuous = 'yes';
   cfg.lpfilter   = 'yes';
   cfg.lpfreq     = 40;
   cfg.lpfilttype = 'firws';
-<<<<<<< HEAD
-  cfg.trl        = trl;
-  cfg.channel    = 'MEG';
-  cfg.padding    = 10;
-  cfg.hpfilter   = 'yes';
-  cfg.hpfreq     = 2;%0.5;
-=======
   cfg.channel    = {'MEG'};
   cfg.padding    = 10;
   cfg.hpfilter   = 'yes';
   cfg.hpfreq     = 0.5;
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
   cfg.hpfilttype = 'firws';
   cfg.usefftfilt = 'yes';
   data{k}        = ft_preprocessing(cfg);
   
-<<<<<<< HEAD
-=======
-  
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
   % create a mask variable that codes for the artifacts
   mous_db_getdata(subjectname, ['meg_artifact_cfg',ext{k}]);
   if ~isempty(cfgjump.artfctdef.zvalue.artifact)
@@ -94,10 +63,6 @@ end
     cfgjump.artfctdef.zvalue.artifact(:,1) = cfgjump.artfctdef.zvalue.artifact(:,1)-1200*5;
     cfgjump.artfctdef.zvalue.artifact(:,2) = cfgjump.artfctdef.zvalue.artifact(:,2)+1200*5;
   end
-<<<<<<< HEAD
-=======
-  
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
   trlnew = mous_artifact_remove(trl, f{k}, {cfgeog1 cfgeog2 cfgjump cfgmuscle});
   
   dum    = false(1,max(trl(:,2)));
@@ -116,62 +81,6 @@ end
 end
 
 if numel(f)>1
-<<<<<<< HEAD
-  data = ft_appenddata([], data{:});
-  mask = cat(2, mask{:});
-  data.grad = ft_average_sens(sens, 'weights', weights);  
-else
-  data = data{1};
-  mask = mask{1};
-end
-
-load mous_stimuli;
-indx = cell(1,numel(data.trial));
-pre = cell(1,numel(data.trial));
-pst = cell(1,numel(data.trial));
-for k = 1:numel(data.trial)
-  idx      = data.trialinfo(k,5);
-  if isfield(stimuli(idx).words, 'onset')
-    onset    = cat(1,stimuli(idx).words.onset);
-    %offset   = cat(1,stimuli(idx).words.offset);
-    %duration = cat(1,stimuli(idx).words.duration);
-    
-    %offset = offset - onset(1);
-    onset  = onset  - onset(1);
-    if all(isfinite(onset))
-    for m = 1:numel(onset)
-      indx{k}(m) = nearest(data.time{k},onset(m));
-      pre{k}(m)  = indx{k}(m)-90; pre{k}(m) = max(pre{k}(m),1);
-      pre{k}(m)  = indx{k}(m)-pre{k}(m);
-      if m<numel(onset)
-        pst{k}(m) = nearest(data.time{k},onset(m+1))-indx{k}(m);
-      else
-        pst{k}(m) = numel(data.time{k})-indx{k}(m);
-      end
-    end
-    end
-  end
-end
-
-% second loop to only define as triggers those instances where the duration
-% of the previous word was sufficiently long, and truncate at 0.5 seconds
-for k = 1:numel(data.trial)
-  if ~isempty(indx{k})
-  duration = diff([0 indx{k}]);
-  sel = [true duration(2:end)>300] & [duration(1:end-1)>300 true];
-  indx{k} = indx{k}(sel);
-  pre{k} = pre{k}(sel);
-  pst{k} = pst{k}(sel);
-  pst{k} = min(pst{k}, 600);
-  end
-end
-for k = 1:numel(pre)
-  pre{k} = pre{k}(:);
-  pst{k} = pst{k}(:);
-  indx{k} = indx{k}(:);
-end
-
-=======
     cutoffn = length(data{1}.trial);
     data = ft_appenddata([], data{:});
     mask = cat(2, mask{:});
@@ -279,34 +188,23 @@ end
 
 %tlcktmp = mous_db_getdata(subjectname,'meg_erf_2sec_chopped');
 
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
 params.tr = indx;
 params.pre = pre;
 params.pst = pst;
 params.mask = mask;
 params.computenew = 0;
 params.demean = 'prezero';
-<<<<<<< HEAD
-X.x = 1;
-[~,~,avg,cnt]=denoise_avg2(params,data.trial,X);
-=======
 params.covariance = 1;
 X.x = 1;
 [~,~,avg,cnt,covar,tmpt]=denoise_avg2(params,data.trial,X);
 % params.tlcklong = tlcktmp;
 % [~,~,avg,cnt,covar]=denoise_avg3(params,data.trial,X);
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
 
 tlck = [];
 tlck.label = data.label;
 tlck.dimord = 'chan_time';
 tlck.time   = ((1:691)-90)./1200;
 tlck.avg = avg;
-<<<<<<< HEAD
-tlck.dof = repmat(cnt,[numel(data.label) 1]);
-tlck.grad = data.grad;
-
-=======
 tlck.cov = covar;
 tlck.dof = repmat(cnt,[numel(data.label) 1]);
 tlck.grad = data.grad;
@@ -317,5 +215,3 @@ elseif condition == 'seq'
     mous_db_putdata(subjectname, 'meg_erf_seq_chopped', 'tlck', '/project/3011020.09/MEG/');
 end
 
-
->>>>>>> 8e7226538f2e9dae20ef47863228a601e073f396
