@@ -1,4 +1,4 @@
-function mous_write_atlas(inputfile, filename)
+function mous_write_atlas(inputfile, filename, rgba)
 
 if nargin==0  
   inputfile = 'atlas_conte69_8196reg_LR_brodmann_subparc';
@@ -23,8 +23,12 @@ g.private.data{1}.attributes.DataType = 'NIFTI_TYPE_INT32';
 g.private.data{1}.attributes.Intent = 'NIFTI_INTENT_LABEL';
 g.private.label(1).name = atlas.parcellationlabel(sel)';
 g.private.label(1).key  = sel(:)'-min(sel);
-g.private.label(1).rgba = rand(numel(g.private.label(1).key),4);
-g.private.label(1).rgba(:,4) = 1;
+if exist('rgba', 'var'),
+  g.private.label(1).rgba = rgba(sel,:);
+else
+  g.private.label(1).rgba = rand(numel(g.private.label(1).key),4);
+  g.private.label(1).rgba(:,4) = 1;
+end
 %g.labels = g.private.label(1);
 save(g, filename);
 
@@ -38,7 +42,11 @@ g.private.data{1}.attributes.DataType = 'NIFTI_TYPE_INT32';
 g.private.data{1}.attributes.Intent = 'NIFTI_INTENT_LABEL';
 g.private.label(1).name = atlas.parcellationlabel(sel)';
 g.private.label(1).key  = sel(:)'-min(sel);
-g.private.label(1).rgba = rand(numel(g.private.label(1).key),4);
-g.private.label(1).rgba(:,4) = 1;
+if exist('rgba', 'var'),
+  g.private.label(1).rgba = rgba(sel,:);
+else
+  g.private.label(1).rgba = rand(numel(g.private.label(1).key),4);
+  g.private.label(1).rgba(:,4) = 1;
+end
 %g.labels = g.private.label(1);
 save(g, strrep(filename, '.L.', '.R.'));

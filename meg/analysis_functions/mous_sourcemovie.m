@@ -33,10 +33,12 @@ function [cfg, M] = mous_sourcemovie(cfg, source, source2)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 revision = '$Id: ft_sourcemovie.m 8384 2013-08-07 15:13:23Z roboos $';
+ft_nargin   = nargin;
+ft_nargout  = nargout;
 
 % do the general setup of the function
 ft_defaults
-ft_preamble init
+%ft_preamble init
 ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug

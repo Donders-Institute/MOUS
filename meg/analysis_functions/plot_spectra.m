@@ -46,11 +46,15 @@ for k = 1:size(A,3)
       plot(0:(size(A,1)-1),A(:,k),'k');
     end
     abc = axis;
+    if ischar(zlim)
     switch 'zlim',
       case 'zeromax'
         axis([0 size(A,1)-1 0 abc(4)]);
       otherwise
         axis([0 size(A,1)-1 abc(3:4)]);
+    end
+    else
+      axis([0 size(A,1)-1 zlim]);
     end
     set(gca,'xtick',[0 10 25 50 75 100],'tickdir','out','fontname','arial','fontsize',16);
     xlabel('frequency (Hz)');
