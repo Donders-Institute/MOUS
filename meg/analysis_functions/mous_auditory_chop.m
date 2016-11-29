@@ -34,10 +34,11 @@ for k = 1:numel(f)
   if ~isempty(condition)
     switch condition
         case 'sen'
-           sel = ismember(trl(:,5),[1 5 2 6]);   
+           trign = [1 5 2 6];   
         case 'seq'
-           sel = ismember(trl(:,5),[3 7 8 4]);
+           trign = [3 7 8 4];
     end
+    sel = ismember(trl(:,5),trign);
     trl = trl(sel,:);
 end
   
@@ -83,7 +84,7 @@ end
 end
 
 if numel(f)>1
-    cutoffn = length(data{1}.trial);
+    cutoffn = data{1}.trialinfo(end,1);
     data = ft_appenddata([], data{:});
     mask = cat(2, mask{:});
     data.grad = ft_average_sens(sens, 'weights', weights);
@@ -92,10 +93,10 @@ else
     mask = mask{1};
 end
 
-% do 3d order gradient
-% cfg = [];
-% cfg.gradient = 'G3BR';
-% data = ft_denoise_synthetic(cfg, data);
+% Correct for projector delay in visual condition
+if strcmp(subjectname(1), 'V')
+data.time = cellfun(@(x)x-0.036,data.time,'Un',0);
+end
 
 if strcmp(subjectname(1), 'A')
     load mous_stimuli;
@@ -114,7 +115,7 @@ if strcmp(subjectname(1), 'A')
             if all(isfinite(onset))
                 for m = 1:numel(onset)
                     indx{k}(m) = nearest(data.time{k},onset(m));
-                    pre{k}(m)  = indx{k}(m)-90; pre{k}(m) = max(pre{k}(m),1);
+                    pre{k}(m)  = indx{k}(m)-120; pre{k}(m) = max(pre{k}(m),1);
                     pre{k}(m)  = indx{k}(m)-pre{k}(m);
                     if m<numel(onset)
                         pst{k}(m) = nearest(data.time{k},onset(m+1))-indx{k}(m);
@@ -151,9 +152,12 @@ else %for visual modality
     else
      trlallwords = trlallwords{1};
     end
-    %make sure trialfun selection corresponds to data trial selection
     
-    trlallwords = trlallwords(ismember(trlallwords(:,4),data.trialinfo(:,1)),:);
+    if ~isempty(condition)
+        tmpindx = ismember(trlallwords(:,5),trign);
+        trlallwords = trlallwords(tmpindx,:);
+    end
+
     indx = cell(1,numel(data.trial));
     pre = cell(1,numel(data.trial));
     pst = cell(1,numel(data.trial));
@@ -169,7 +173,7 @@ else %for visual modality
         if all(isfinite(onsets))
                 for m = 1:numel(onsets)
                     indx{k}(m) = onsets(m)+nearest(data.time{k},0);
-                    pre{k}(m)  = indx{k}(m)-90; pre{k}(m) = max(pre{k}(m),1);
+                    pre{k}(m)  = indx{k}(m)-120; pre{k}(m) = max(pre{k}(m),1);
                     pre{k}(m)  = indx{k}(m)-pre{k}(m);
                     if m<numel(onsets)
                         pst{k}(m) = nearest(data.time{k},onsets(m+1))-indx{k}(m);
@@ -205,16 +209,19 @@ X.x = 1;
 tlck = [];
 tlck.label = data.label;
 tlck.dimord = 'chan_time';
-tlck.time   = ((1:691)-90)./1200;
+tlck.time   = ((1:721)-120)./1200;
 tlck.avg = avg;
 tlck.cov = covar;
 tlck.dof = repmat(cnt,[numel(data.label) 1]);
 tlck.grad = data.grad;
 
-if condition == 'sen'
+if isempty(condition)
+    mous_db_putdata(subjectname, 'meg_erf_chopped', 'tlck', '/project/3011020.09/MEG/');
+elseif condition == 'sen'
 mous_db_putdata(subjectname, 'meg_erf_sen_chopped', 'tlck', '/project/3011020.09/MEG/');
 elseif condition == 'seq'
     mous_db_putdata(subjectname, 'meg_erf_seq_chopped', 'tlck', '/project/3011020.09/MEG/');
 end
+
 
 
