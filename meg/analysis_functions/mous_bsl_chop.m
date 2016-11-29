@@ -7,7 +7,7 @@
 %subj = mous_db_getfilename('all','subjectname');
 
 if nargin<2
-  condition = []; %use only sequences for the mne sourcerec
+  condition = [];
 end
 
 f   = mous_db_getfilename(subjectname, 'meg_ds_task');
@@ -26,7 +26,7 @@ for k = 1:numel(f)
   if strcmp(subjectname(1), 'A')
     % auditory subject
     trl        = mous_defineTrial(f{k}, 'audioonset', 0, 'trialfun_auditory_sentence');
-    trl(:,[1 3]) = trl(:,[1 3]) - 1200; % subtract 0.2 s for the baseline
+    trl(:,[1 3]) = trl(:,[1 3]) - 600; % subtract 0.2 s for the baseline
   else
     trl        = mous_defineTrial(f{k}, 0, 0, 'trialfun_visual_sentence');
   end
@@ -90,6 +90,11 @@ else
   mask = mask{1};
 end
 
+% Correct for projector delay in visual condition
+if strcmp(subjectname(1), 'V')
+data.time = cellfun(@(x)x-0.036,data.time,'Un',0);
+end
+
 if strcmp(subjectname(1), 'A')
     load mous_stimuli;
     indx = cell(1,numel(data.trial));
@@ -107,7 +112,7 @@ if strcmp(subjectname(1), 'A')
             if all(isfinite(onset))
                 for m = 1:1
                     indx{k}(m) = nearest(data.time{k},onset(m));
-                    pre{k}(m)  = indx{k}(m)-1200; pre{k}(m) = max(pre{k}(m),1);
+                    pre{k}(m)  = indx{k}(m)-600; pre{k}(m) = max(pre{k}(m),1);
                     pre{k}(m)  = indx{k}(m)-pre{k}(m);
                     if m<numel(onset)
                         pst{k}(m) = nearest(data.time{k},onset(m+1))-indx{k}(m);
@@ -144,9 +149,12 @@ else %for visual modality
     else
      trlallwords = trlallwords{1};
     end
-    %make sure trialfun selection corresponds to data trial selection
+        
+    if ~isempty(condition)
+        tmpindx = ismember(trlallwords(:,5),trign);
+        trlallwords = trlallwords(tmpindx,:);
+    end
     
-    trlallwords = trlallwords(ismember(trlallwords(:,4),data.trialinfo(:,1)),:);
     indx = cell(1,numel(data.trial));
     pre = cell(1,numel(data.trial));
     pst = cell(1,numel(data.trial));
@@ -162,7 +170,7 @@ else %for visual modality
         if all(isfinite(onsets))
                 for m = 1:1
                     indx{k}(m) = onsets(m)+nearest(data.time{k},0);
-                    pre{k}(m)  = indx{k}(m)-1200; pre{k}(m) = max(pre{k}(m),1);
+                    pre{k}(m)  = indx{k}(m)-600; pre{k}(m) = max(pre{k}(m),1);
                     pre{k}(m)  = indx{k}(m)-pre{k}(m);
                     if m<numel(onsets)
                         pst{k}(m) = nearest(data.time{k},onsets(m+1))-indx{k}(m);
@@ -194,7 +202,7 @@ X.x = 1;
 tlck = [];
 tlck.label = data.label;
 tlck.dimord = 'chan_time';
-tlck.time   = ((1:1801)-1200)./1200;
+tlck.time   = ((1:1201)-600)./1200;
 tlck.avg = avg;
 tlck.cov = covar;
 tlck.dof = repmat(cnt,[numel(data.label) 1]);
