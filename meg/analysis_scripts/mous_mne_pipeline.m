@@ -681,7 +681,7 @@ if domne_conjunction,
   mous_db_getdata(subjectname, 'meg_erf_chopped');
   tlck.cov = C;
   clear C;
-    
+  tlck.grad = ft_convert_units(tlck.grad, 'm');
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % preparation of the anatomical data
@@ -731,8 +731,7 @@ if domne_conjunction,
   % computation of the MNE inverse operator
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-  % the following is to ensure the correct order of channels in the covariance
-  % compared to the data. added 2014-06-20
+
   
   if 1,
     % this part computes the area per triangle and uses the squared area as a
@@ -799,6 +798,11 @@ if domne_conjunction,
   sourcesent              = ft_sourceanalysis(cfg, tlcksen);
   sourceseq              = ft_sourceanalysis(cfg, tlckseq);
   
+  % this ugly hack is done to provide the output variable to be too large,
+  % saving disk space
+  sourcesent.cfg.callinfo.usercfg.grid = rmfield(sourcesent.cfg.callinfo.usercfg.grid, {'filter' 'leadfield'});
+  sourceseq.cfg.callinfo.usercfg.grid = rmfield(sourceseq.cfg.callinfo.usercfg.grid, {'filter' 'leadfield'});
+  
   %% New code change to fit
   cfg                = [];
   cfg.demean         = 'yes';
@@ -806,28 +810,53 @@ if domne_conjunction,
   cfg.projectmom     = 'yes';
   cfg.zscore         = 'no';
   sd_Sent        = ft_sourcedescriptives(cfg, sourcesent);
-  sd_Seq         = ft_sourcedescriptives(cfg, sourceseq);
+   sd_Seq         = ft_sourcedescriptives(cfg, sourceseq);
 
+ source         = sourcesent; 
+  inside         = source.inside;
+  if islogical(inside),
+    inside = find(inside);
+  end
+  for k = 1:numel(inside)
+    mom = (source.avg.mom{inside(k)} + sourceseq.avg.mom{inside(k)})./2;
+    source.avg.mom{inside(k)} = mom;
+  end
+  sd              = ft_sourcedescriptives(cfg, source);
+  sd_Seq.avg.ori  = sd.avg.ori;
+  sd_Sent.avg.ori = sd.avg.ori;
+  
+  % replace the pow with the orientation from the combined data
+  
+ if islogical(sd.inside),
+    inside = find(sd.inside);
+ end
+  
+  for k = 1:numel(inside)
+    indx = inside(k);
+    sd_Sent.avg.pow(indx,:) = abs(sd.avg.ori{indx}*sourcesent.avg.mom{indx}).^2;
+    sd_Seq.avg.pow(indx,:)  = abs(sd.avg.ori{indx}*sourceseq.avg.mom{indx}).^2;
+    sd_Sent.avg.noise(indx) = sd.avg.ori{indx}*sourcesent.avg.noisecov{indx}*sd.avg.ori{indx}';
+    sd_Seq.avg.noise(indx)  = sd.avg.ori{indx}*sourceseq.avg.noisecov{indx}*sd.avg.ori{indx}';
+  end
+  
+  sd_Sent.tri = sourcemodelorig.tri;
+  sd_Seq.tri  = sourcemodelorig.tri;
   
   % do the normalisation to get a 'dSPM'
-    npos = size(sd_Seq.pos,1);
+    npos = size(sd_Sent.pos,1);
     sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
     sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
-  
+
+%   
   sd_Sent.avg = rmfield(sd_Sent.avg, 'mom');
   sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
+
   %% 
   
-  % 'dSPM' old way
-%   npos  = size(sourcesen.pos,1);
-%   noise = nan(npos,1);
-%   noise(sourcesen.inside) = cellfun(@trace,sourcesen.avg.noisecov(sourcesen.inside));
-%   sourcesen.avg.dspm      = spdiags(1./(noise),0,npos,npos)*sourcesen.avg.pow;
-
-  
   % save the output
-  mous_db_putdata(subjectname, 'meg_mne_conjunction_seq',  'sd_Sent', rootdir, 1);
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_sen',  'sd_Sent', rootdir, 1);
   
   mous_db_putdata(subjectname, 'meg_mne_conjunction_seq', 'sd_Seq', rootdir, 1);
+  %mous_db_putdata(subjectname, 'meg_mne_conjunction_all', 'sd_all', rootdir, 1);
     
 end
