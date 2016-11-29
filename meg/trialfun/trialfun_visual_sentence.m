@@ -21,13 +21,30 @@ function [trl] = trialfun_visual_sentence(cfg)
 hdr   = ft_read_header(cfg.dataset);
 event = ft_read_event(cfg.dataset);
 
-% select the UPPT001 events
+% select the UPPT001 events 
 type = {event.type};
 fp   = strcmp('UPPT001', type);
 
 % create a vector with the event values and sample numbers
 val  = [event(fp).value];
 smp  = [event(fp).sample];
+
+% delete button-press related triggers from val [fix: 28.11.2016 sopara]
+fp2   = strcmp('UPPT002', type);
+smp2  = [event(fp2).sample];
+val2  = [event(fp2).value];
+
+tmpidx = zeros(1,length(smp2));
+for i = 1:length(smp2)
+    tmp = find(smp >= smp2(i),1,'first');
+    if ~isempty(tmp) && ((val2(i) == 32 && val(tmp) == 2) || (val2(i) == 16 && val(tmp) == 1) || (val2(i) == 48 && val(tmp) == 3))
+        tmpidx(i) = tmp;
+    end
+end
+tmpidx(tmpidx == 0) = [];
+
+val(tmpidx) = [];
+smp(tmpidx) = [];
 
 % parse it into the constituent trials
 selfix = find(val==20);
@@ -95,7 +112,7 @@ for k = 1:numel(selfix)-1
     trg1 = tmpval(kk);
     trg2 = tmpval(kk-1);
     if trg1==15 && trg2<=8
-      endsmp = min(tmpsmp(end), tmpsmp(kk+1));
+      endsmp = min(tmpsmp(end), tmpsmp(kk-1));
       break;
     end
   end
