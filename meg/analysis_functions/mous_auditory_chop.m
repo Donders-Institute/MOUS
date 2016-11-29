@@ -57,7 +57,6 @@ end
   cfg.usefftfilt = 'yes';
   data{k}        = ft_preprocessing(cfg);
   
-  
   % create a mask variable that codes for the artifacts
   mous_db_getdata(subjectname, ['meg_artifact_cfg',ext{k}]);
   if ~isempty(cfgjump.artfctdef.zvalue.artifact)
@@ -65,7 +64,6 @@ end
     cfgjump.artfctdef.zvalue.artifact(:,1) = cfgjump.artfctdef.zvalue.artifact(:,1)-1200*5;
     cfgjump.artfctdef.zvalue.artifact(:,2) = cfgjump.artfctdef.zvalue.artifact(:,2)+1200*5;
   end
-  
   trlnew = mous_artifact_remove(trl, f{k}, {cfgeog1 cfgeog2 cfgjump cfgmuscle});
   
   dum    = false(1,max(trl(:,2)));
@@ -222,6 +220,3 @@ mous_db_putdata(subjectname, 'meg_erf_sen_chopped', 'tlck', '/project/3011020.09
 elseif condition == 'seq'
     mous_db_putdata(subjectname, 'meg_erf_seq_chopped', 'tlck', '/project/3011020.09/MEG/');
 end
-
-
-

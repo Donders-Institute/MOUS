@@ -53,7 +53,6 @@ cfg.method = 'sincos';
 cfg.neighbours = neighb;
 data = ft_megplanar(cfg, data);
 
-
 % get the sentence trials
 cfg = [];
 cfg.trials = find(ismember(data.trialinfo(:,2),[1 5]));
