@@ -51,6 +51,23 @@ fp   = strcmp('UPPT001', type);
 val  = [event(fp).value];
 smp  = [event(fp).sample];
 
+% delete button-press related triggers from val [fix: 28.11.2016 sopara]
+fp2   = strcmp('UPPT002', type);
+smp2  = [event(fp2).sample];
+val2  = [event(fp2).value];
+
+tmpidx = zeros(1,length(smp2));
+for i = 1:length(smp2)
+    tmp = find(smp >= smp2(i),1,'first');
+    if ~isempty(tmp) && ((val2(i) == 32 && val(tmp) == 2) || (val2(i) == 16 && val(tmp) == 1) || (val2(i) == 48 && val(tmp) == 3))
+        tmpidx(i) = tmp;
+    end
+end
+tmpidx(tmpidx == 0) = [];
+
+val(tmpidx) = [];
+smp(tmpidx) = [];
+
 val = [val 20]; % add a 20 to the val to avoid problems with the last sentence (able to identify boundaries for last sentence)
 smp = [smp smp(end)];
 
@@ -70,39 +87,6 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
   tmpval = val(sel);
   tmpsmp = smp(sel);           % last sample of tmpsmp is sample of the last word (which is an empty word) in the trial
   
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  % Fix error in word list RC,MX, and sentence MX
-  % a trigger for a sentword is embedded in seqword triggers
-  % nielam 26.01.2015; 02.03.2015
-  % e.g., [7 15 7 15 8 2 15 7 15]  '2' does not belong
-  % remove wrong trigger, and use preceding trigger as word onset
-  % timing from preceding trigger to '15' is suitable for a word duration
-  % problematic subjects: V1001,11,19,35,88,103
-  i1  = find(ismember(tmpval,[1 3 5 7]));
-  med = median(tmpval(i1));
-
-  % Remove trigger from word list (3,7) and Mix sentences (5); code need not be subject specific
-  if med == 3      % should only have 3,4
-    idx = find(ismember(tmpval,[1 2 5 6 7 8]),1);
-    if ~isempty(idx)
-      tmpval(idx) = [];
-      tmpsmp(idx) = [];
-    end
-  elseif med == 5  % should only have 5,6
-    idx = find(ismember(tmpval,[1 2 3 4 7 8]),1);
-    if ~isempty(idx)
-      tmpval(idx) = [];
-      tmpsmp(idx) = [];
-    end
-  elseif med == 7 % should only have 7,8
-    idx = find(ismember(tmpval,[1 2 3 4 5 6]),1); 
-    if ~isempty(idx)
-      tmpval(idx) = [];
-      tmpsmp(idx) = [];
-    end
-  end
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
   
   % get the first word on/off sequence
   firstword = [];
@@ -113,22 +97,22 @@ for k = 1:numel(selfix)-1      % (1)for EACH CONSTITUENT TRIAL: sentence/sequenc
     trg2 = tmpval(kk+1);
     if trg1<=8 && trg2==15
       if isempty(firstword)    % firstword defined by sample of first trigger
-        firstword = tmpsmp(kk);
-        wordcount = 0;
+          firstword = tmpsmp(kk);
+          wordcount = 0;
       end
       offset    = round(hdr.Fs*prestim);
-      begsample = tmpsmp(kk) - offset;                   % onset of word: sample value of Xth word within the current trial 
+      begsample = tmpsmp(kk) - offset;                   % onset of word: sample value of Xth word within the current trial
       if ischar(poststim) && strcmp(poststim, 'nextword')
-        endsample = tmpsmp(kk+2); % epoch lasts until next word onset
-        if endsample-begsample>2400
-          continue; % a word longer than two second is probably a trigger issue, skip it
-        end
+          endsample = tmpsmp(kk+2); % epoch lasts until next word onset
+          if endsample-begsample>2400
+              continue; % a word longer than two second is probably a trigger issue, skip it
+          end
       else
-        endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), inf);%smplast);   % offset of word: sample value of Xth word within the current trial + poststim (3s);  
+          endsample = min(tmpsmp(kk) + round(hdr.Fs*poststim), inf);%smplast);   % offset of word: sample value of Xth word within the current trial + poststim (3s);
       end
       
       wordcount = wordcount + 1;
-
+      
       %         1         2         3       4 5          6                   7
       tmp    = [begsample endsample -offset k tmpval(kk) begsample-firstword tmpsmp(kk+1)-tmpsmp(kk) wordcount];
       tmptrl = cat(1,tmptrl,tmp);
