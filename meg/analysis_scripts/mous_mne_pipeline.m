@@ -676,8 +676,10 @@ if domne_conjunction,
   % get the covariance of the noise (take the pre sentence baseline)
   mous_db_getdata(subjectname, 'meg_erf_bslchopped');
   C = tlck.cov;
-  clear tlck;
-  
+  cfg = [];
+  cfg.latency = [tlck.time(1) tlck.time(721)];
+  tlckbsl = ft_selectdata(cfg,tlck)
+
   mous_db_getdata(subjectname, 'meg_erf_chopped');
   tlck.cov = C;
   clear C;
@@ -785,9 +787,9 @@ if domne_conjunction,
   cfg.mne.noiselambda = 0.2*trace(tlck.cov)./size(tlck.cov,1);
   cfg.mne.sourcecov   = S;
   sourceall              = ft_sourceanalysis(cfg, tlck);
- 
- 
-%   get condition specific data
+  sourcebsl             = ft_sourceanalysis(cfg, tlckbsl);
+  
+  %   get condition specific data
   mous_db_getdata(subjectname, 'meg_erf_sen_chopped')
   tlcksen = tlck;
   mous_db_getdata(subjectname, 'meg_erf_seq_chopped')
@@ -795,23 +797,27 @@ if domne_conjunction,
   % apply the spatial filter to the condition specific data
   cfg.mne.keepfilter = 'no';
   cfg.grid.filter    = sourceall.avg.filter;
-  sourcesent              = ft_sourceanalysis(cfg, tlcksen);
-  sourceseq              = ft_sourceanalysis(cfg, tlckseq);
+  sourcesent         = ft_sourceanalysis(cfg, tlcksen);
+  sourceseq          = ft_sourceanalysis(cfg, tlckseq);
+  
   
   % this ugly hack is done to provide the output variable to be too large,
   % saving disk space
   sourcesent.cfg.callinfo.usercfg.grid = rmfield(sourcesent.cfg.callinfo.usercfg.grid, {'filter' 'leadfield'});
   sourceseq.cfg.callinfo.usercfg.grid = rmfield(sourceseq.cfg.callinfo.usercfg.grid, {'filter' 'leadfield'});
+  sourcebsl.cfg.callinfo.usercfg.grid = rmfield(sourcebsl.cfg.callinfo.usercfg.grid, {'leadfield'});
   
   %% New code change to fit
   cfg                = [];
   cfg.demean         = 'yes';
-  cfg.baselinewindow = [-0.0742 0];
+  cfg.baselinewindow = [-0.0992 0];
   cfg.projectmom     = 'yes';
   cfg.zscore         = 'no';
   sd_Sent        = ft_sourcedescriptives(cfg, sourcesent);
-   sd_Seq         = ft_sourcedescriptives(cfg, sourceseq);
-
+  sd_Seq         = ft_sourcedescriptives(cfg, sourceseq);
+  cfg.baselinewindow = [sourcebsl.time(1) sourcebsl.time(end)];
+  sd_Bsl         = ft_sourcedescriptives(cfg, sourcebsl);
+  
  source         = sourcesent; 
   inside         = source.inside;
   if islogical(inside),
@@ -838,25 +844,27 @@ if domne_conjunction,
     sd_Sent.avg.noise(indx) = sd.avg.ori{indx}*sourcesent.avg.noisecov{indx}*sd.avg.ori{indx}';
     sd_Seq.avg.noise(indx)  = sd.avg.ori{indx}*sourceseq.avg.noisecov{indx}*sd.avg.ori{indx}';
   end
-  
+   
   sd_Sent.tri = sourcemodelorig.tri;
   sd_Seq.tri  = sourcemodelorig.tri;
+  sd_Bsl.tri = sourcemodelorig.tri;
   
   % do the normalisation to get a 'dSPM'
     npos = size(sd_Sent.pos,1);
     sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
     sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
+    sd_Bsl.avg.dspm  = spdiags(1./(sd_Bsl.avg.noise),0,npos,npos)*sd_Bsl.avg.pow;
 
 %   
   sd_Sent.avg = rmfield(sd_Sent.avg, 'mom');
   sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
+  sd_Bsl.avg  = rmfield(sd_Bsl.avg,  'mom');
 
   %% 
   
   % save the output
-  mous_db_putdata(subjectname, 'meg_mne_conjunction_sen',  'sd_Sent', rootdir, 1);
-  
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_sen', 'sd_Sent', rootdir, 1);
   mous_db_putdata(subjectname, 'meg_mne_conjunction_seq', 'sd_Seq', rootdir, 1);
-  %mous_db_putdata(subjectname, 'meg_mne_conjunction_all', 'sd_all', rootdir, 1);
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_bsl', 'sd_Bsl', rootdir, 1);
     
 end
