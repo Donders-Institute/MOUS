@@ -1,10 +1,8 @@
- function tlck = mous_bsl_chop(subjectname,condition)
+function tlck = mous_bsl_chop(subjectname,condition)
 
 % load in the data epoched per sentence with audioonset + audiodelay
 % correction and then manually subtracting a baseline of 0.2 seconds (or
 % so)
-
-%subj = mous_db_getfilename('all','subjectname');
 
 if nargin<2
   condition = [];
@@ -25,33 +23,34 @@ mask = cell(1,numel(f));
 for k = 1:numel(f)
   if strcmp(subjectname(1), 'A')
     % auditory subject
-    trl        = mous_defineTrial(f{k}, 'audioonset', 0, 'trialfun_auditory_sentence');
-    trl(:,[1 3]) = trl(:,[1 3]) - 600; % subtract 0.2 s for the baseline
+    trl        = mous_defineTrial(f{k}, 'audioonset',0, 'trialfun_auditory_sentence');
+    trl(:,[1 3]) = trl(:,[1 3]) - 721; % subtract for the baseline
   else
     trl        = mous_defineTrial(f{k}, 0, 0, 'trialfun_visual_sentence');
   end
 
- if ~isempty(condition)
+  if ~isempty(condition)
     switch condition
         case 'sen'
-           sel = ismember(trl(:,5),[1 5 2 6]);   
+           trign = [1 5 2 6];   
         case 'seq'
-           sel = ismember(trl(:,5),[3 7 8 4]);
+           trign = [3 7 8 4];
     end
+    sel = ismember(trl(:,5),trign);
     trl = trl(sel,:);
- end
-
+  end
+  
   cfg            = [];
   cfg.dataset    = f{k};
+  cfg.trl        = trl;
   cfg.continuous = 'yes';
   cfg.lpfilter   = 'yes';
   cfg.lpfreq     = 40;
   cfg.lpfilttype = 'firws';
-  cfg.trl        = trl;
-  cfg.channel    = 'MEG';
+  cfg.channel    = {'MEG'};
   cfg.padding    = 10;
-  %cfg.hpfilter   = 'yes';
-  %cfg.hpfreq     = 0.5;%2;
+  cfg.hpfilter   = 'yes';
+  cfg.hpfreq     = 0.5;
   cfg.hpfilttype = 'firws';
   cfg.usefftfilt = 'yes';
   data{k}        = ft_preprocessing(cfg);
@@ -112,7 +111,7 @@ if strcmp(subjectname(1), 'A')
             if all(isfinite(onset))
                 for m = 1:1
                     indx{k}(m) = nearest(data.time{k},onset(m));
-                    pre{k}(m)  = indx{k}(m)-600; pre{k}(m) = max(pre{k}(m),1);
+                    pre{k}(m)  = indx{k}(m)-721; pre{k}(m) = max(pre{k}(m),1);
                     pre{k}(m)  = indx{k}(m)-pre{k}(m);
                     if m<numel(onset)
                         pst{k}(m) = nearest(data.time{k},onset(m+1))-indx{k}(m);
@@ -170,10 +169,10 @@ else %for visual modality
         if all(isfinite(onsets))
                 for m = 1:1
                     indx{k}(m) = onsets(m)+nearest(data.time{k},0);
-                    pre{k}(m)  = indx{k}(m)-600; pre{k}(m) = max(pre{k}(m),1);
+                    pre{k}(m)  = indx{k}(m)-721; pre{k}(m) = max(pre{k}(m),1);
                     pre{k}(m)  = indx{k}(m)-pre{k}(m);
                     if m<numel(onsets)
-                        pst{k}(m) = nearest(data.time{k},onsets(m+1))-indx{k}(m);
+                        pst{k}(m) = (onsets(m+1)+nearest(data.time{k},0))-indx{k}(m);
                     else
                         pst{k}(m) = numel(data.time{k})-indx{k}(m);
                     end
@@ -197,12 +196,12 @@ params.computenew = 0;
 params.demean = 'prezero';
 params.covariance = 1;
 X.x = 1;
-[~,~,avg,cnt,covar]=denoise_avg2(params,data.trial,X);
+[~,~,avg,cnt,covar,tmpt]=denoise_avg2(params,data.trial,X);
 
 tlck = [];
 tlck.label = data.label;
 tlck.dimord = 'chan_time';
-tlck.time   = ((1:1201)-600)./1200;
+tlck.time   = ((1:1322)-721)./1200;
 tlck.avg = avg;
 tlck.cov = covar;
 tlck.dof = repmat(cnt,[numel(data.label) 1]);
