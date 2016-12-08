@@ -28,8 +28,6 @@ for k = 1:numel(f)
   else
     trl        = mous_defineTrial(f{k}, 0, 0, 'trialfun_visual_sentence');
   end
-
-  %trl          = trl(trl(:,end)<500,:); % select the sentences
   
   if ~isempty(condition)
     switch condition
@@ -44,7 +42,7 @@ end
   
   cfg            = [];
   cfg.dataset    = f{k};
-    cfg.trl        = trl;
+  cfg.trl        = trl;
   cfg.continuous = 'yes';
   cfg.lpfilter   = 'yes';
   cfg.lpfreq     = 40;
@@ -130,7 +128,7 @@ if strcmp(subjectname(1), 'A')
     for k = 1:numel(data.trial)
         if ~isempty(indx{k})
             duration = diff([0 indx{k}]);
-            sel = [true duration(2:end)>300] & [duration(1:end-1)>300 true ]; 
+            sel = [true duration(2:end)>300] & [duration(1:end-1)>300 true]; 
             indx{k} = indx{k}(sel);
             pre{k} = pre{k}(sel);
             pst{k} = pst{k}(sel);
@@ -174,7 +172,7 @@ else %for visual modality
                     pre{k}(m)  = indx{k}(m)-120; pre{k}(m) = max(pre{k}(m),1);
                     pre{k}(m)  = indx{k}(m)-pre{k}(m);
                     if m<numel(onsets)
-                        pst{k}(m) = nearest(data.time{k},onsets(m+1))-indx{k}(m);
+                        pst{k}(m) = (onsets(m+1)+nearest(data.time{k},0))-indx{k}(m);
                     else
                         pst{k}(m) = numel(data.time{k})-indx{k}(m);
                     end
@@ -189,8 +187,6 @@ for k = 1:numel(pre)
         pst{k} = pst{k}(:); 
         indx{k} = indx{k}(:);
 end
-
-%tlcktmp = mous_db_getdata(subjectname,'meg_erf_2sec_chopped');
 
 params.tr = indx;
 params.pre = pre;
