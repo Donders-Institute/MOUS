@@ -111,8 +111,11 @@ for k = 1:numel(selfix)-1
   for kk = lastwordindx:-1:1
     trg1 = tmpval(kk);
     trg2 = tmpval(kk-1);
-    if trg1==15 && trg2<=8
-      endsmp = min(tmpsmp(end), tmpsmp(kk-1));
+    if trg1==15 && (trg2 ==1 || trg2 ==2 || trg2 ==5 || trg2 ==6)
+      endsmp = min(tmpsmp(end), tmpsmp(kk+1));
+      break;
+    elseif trg1==15 && (trg2 ==8 || trg2 ==7 || trg2 ==3 || trg2 ==4)
+      endsmp = tmpsmp(end);
       break;
     end
   end
