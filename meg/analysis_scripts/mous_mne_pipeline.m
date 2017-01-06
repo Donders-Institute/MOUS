@@ -839,10 +839,12 @@ if domne_conjunction,
   
   for k = 1:numel(inside)
     indx = inside(k);
-    sd_Sent.avg.pow(indx,:) = abs(sd.avg.ori{indx}*sourcesent.avg.mom{indx}).^2;
-    sd_Seq.avg.pow(indx,:)  = abs(sd.avg.ori{indx}*sourceseq.avg.mom{indx}).^2;
+    sd_Sent.avg.pow(indx,:) = sd.avg.ori{indx}*sourcesent.avg.mom{indx};
+    sd_Seq.avg.pow(indx,:)  = sd.avg.ori{indx}*sourceseq.avg.mom{indx};
+    sd_Bsl.avg.pow(indx,:)  = sd_Bsl.avg.ori{indx}*sourcebsl.avg.mom{indx};
     sd_Sent.avg.noise(indx) = sd.avg.ori{indx}*sourcesent.avg.noisecov{indx}*sd.avg.ori{indx}';
     sd_Seq.avg.noise(indx)  = sd.avg.ori{indx}*sourceseq.avg.noisecov{indx}*sd.avg.ori{indx}';
+    sd_Bsl.avg.noise(indx)  = sd_Bsl.avg.ori{indx}*sourcebsl.avg.noisecov{indx}*sd_Bsl.avg.ori{indx}';
   end
    
   sd_Sent.tri = sourcemodelorig.tri;
@@ -850,10 +852,10 @@ if domne_conjunction,
   sd_Bsl.tri = sourcemodelorig.tri;
   
   % do the normalisation to get a 'dSPM'
-    npos = size(sd_Sent.pos,1);
-    sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
-    sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
-    sd_Bsl.avg.dspm  = spdiags(1./(sd_Bsl.avg.noise),0,npos,npos)*sd_Bsl.avg.pow;
+%     npos = size(sd_Sent.pos,1);
+%     sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
+%     sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
+%     sd_Bsl.avg.dspm  = spdiags(1./(sd_Bsl.avg.noise),0,npos,npos)*sd_Bsl.avg.pow;
 
 %   
   sd_Sent.avg = rmfield(sd_Sent.avg, 'mom');
