@@ -1,11 +1,11 @@
 
 load cortex_inflated_8196reg %template surface model
 load atlas_conte69_8196reg_LR_brodmann_subparc
-nVtx = length(indx);
-tstep = [240 240]; % in samples
-interval = [120 260];% start interval in samples
+nVtx = 8196;
+tstep = [500]; % in samples
+interval = [120];% start interval in samples
 nparcel = numel(atlas.parcellationlabel);
-maxlag = 100;
+maxlag = 50;
 
 %% get filenames 
 subjA = mous_db_getfilename('allA','subjectname');
@@ -76,12 +76,13 @@ clear tmp
 % for each vertex position find optimal delay using xcorr for all subject-combinations, then for each combination adjust time-course according to lag and compute
 % correlation
 
-p = zeros(Nsubj*2,Nsubj*2,nVtx);
+pl = zeros(Nsubj*2,Nsubj*2,nVtx);
 sel = zeros(Nsubj*2,max(tstep));
-for k = indx'
+for k = 1:nVtx
     for l = 1:length(interval)
+     
     sel = squeeze(out.pow(:,k,interval(l):interval(l)+tstep(l)));
-    
+      
     [r,lag] = xcorr(sel',maxlag); % results in a output r which contains 201(lags) * 204^2, where the first 204 columns contain the delays and cross-correlations using the first subject as a reference 
                            %the next N columns the delays and cross-correlations using the second subject and so on
     % find lag of maximal correlation for each column of r (each combination of
@@ -89,21 +90,23 @@ for k = indx'
     [~,index] = max(abs(r));
     lag = lag(index);
     lag = reshape(lag,[Nsubj*2,Nsubj*2]);
-    
-    for i = 1:size(lag,2) % loop over rows
-        for j = 1:size(lag,2) % loop over columns
+    lag = squareform(lag,'tovector');
+    count = 1;
+    for j = 1:Nsubj*2-1 % loop over columns
+        for i = j+1:Nsubj*2 % loop over rows(only lower triangle)
             %zero pad both signals for same size and adjust lag
             tmp1 = zeros(1,size(sel,2)+maxlag*2);
             tmp1(1,(maxlag+1:size(sel,2)+maxlag)) = sel(j,:);
             tmp2 = zeros(1,size(sel,2)+maxlag*2);
-            tmp2(1,(maxlag+1+lag(i,j)):(size(sel,2)+maxlag+lag(i,j))) = sel(i,:);
+            tmp2(1,(maxlag+1+lag(count)):(size(sel,2)+maxlag+lag(count))) = sel(i,:);
             %correlate
             coef = corr(tmp1',tmp2');
-            p(i,j,k,l) = abs(coef);
+            pt(count)= abs(coef);
+            count = count+1;
         end
     end
+            pl(:,:,k,l) = squareform(pt);
     end
-    
 end
 clear tmp1 tmp2 coef r index lag
 % average
