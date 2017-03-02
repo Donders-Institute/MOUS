@@ -7,7 +7,7 @@ tstep = 120+maxlag; % in samples
 n = 1;
 interval = [n n+tstep n+tstep+360];% start interval in samples
 nparcel = length(atlas.parcellationlabel);
-nperm = 500; %number of parcellations
+nperm = 1000; %number of parcellations
  %% get filenames 
 subjA = mous_db_getfilename('allA','subjectname');
 subjV = mous_db_getfilename('allV','subjectname');
@@ -79,25 +79,51 @@ clear tmp
 
 pb = zeros(Nsubj*2,Nsubj*2,nVtx);
 sel = zeros(Nsubj*2,tstep+maxlag);
+lagb = zeros(Nsubj*2,Nsubj*2,nVtx);
 for k = 1:nVtx
     sel = squeeze(outbsl.pow(:,k,end-(tstep+maxlag):end));
-
-    cfg = [];
-    cfg.lag = -maxlag:maxlag;
-    [r,lag] = statfun_xcorr2(cfg,sel,sel); 
     
-    
-     pb(:,:,k) = max(abs(r),[],3);
+    if all(all(isnan(sel)))
+        lagb(:,:,k) = nan(Nsubj*2);
+        pb(:,:,k) = nan(Nsubj*2);
+    else
+        
+        cfg = [];
+        cfg.lag = -maxlag:maxlag;
+        [r,lag] = statfun_xcorr2(cfg,sel,sel);
+        r = reshape(r,size(r,1)*size(r,2),size(r,3));
+        
+       % find throughs and peaks of xcorr lag-function
+        [pindx pval] = peakdetect2(r);
+        
+        % adjust lag information to be centered around zero.
+        pindx = pindx - ((size(r,2)+1)/2);
+        
+        % find lags corresponding to peaks closest to 0 (nanmin) or maximum correlation (nanmax);
+        [~,index] = nanmin(abs(pval),[],2);
+        linearInd = sub2ind(size(pindx), [1:41616]', index);
+        tmp = pindx(linearInd);
+        % if no peak is within maxlag range take 0;
+        tmp(isnan(tmp)) = 0;
+        
+        %backwards reshape
+        lagb(:,:,k) = reshape(tmp,Nsubj*2,Nsubj*2);
+        tmp = pval(linearInd);
+        tmp(isnan(tmp)) = 0;
+        pb(:,:,k) = reshape(tmp,Nsubj*2,Nsubj*2);
+    end
 end
+save('xcorr_lagmaxvalbsl','lagb','pb','-v7.3')
+clear lagb outbsl
 
-% pbx = zeros(2,2,nVtx);
-% P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
-%     for k = 1:size(pb,3)
-%         pbx(:,:,k)=P*pb(:,:,k)*P';
-%     end
-% 
-% pbx=pbx./(Nsubj^2);
-% val = max(pbx(:));
+pbx = zeros(2,2,nVtx);
+P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
+    for k = 1:size(pb,3)
+        pbx(:,:,k)=P*abs(pb(:,:,k))*P';
+    end
+
+pbx=pbx./(Nsubj^2);
+val = max(pbx(:));
 
 %% Compute lag for each subject-combination and vertex
 tmp = zeros((Nsubj*2)*(Nsubj*2),1);
@@ -134,11 +160,13 @@ for k = 1:nVtx
  end
 end
 clear linearInd pindx pval r
+save('xcorr_lagminindx','lag','-v7.3')
 % Compute correlation coefficients for each interval in active condition
 ptmp = zeros(Nsubj*2,Nsubj*2,nVtx,length(interval));
 tmp1 = zeros(Nsubj*2,size(out.pow,3)+maxlag*2);
 tmp2 = zeros(Nsubj*2,size(out.pow,3)+maxlag*2);
 for k = 1:nVtx
+    tic
     sel = squeeze(out.pow(:,k,:));
     if all(all(isnan(sel)))
         ptmp(:,:,k,:) = nan(Nsubj*2,Nsubj*2,3);
@@ -152,6 +180,8 @@ for k = 1:nVtx
             end
         end
     end
+    k
+    toc
 end
 clear coef tmp1 tmp2 sel
 
@@ -169,7 +199,7 @@ px = zeros(2,2,nVtx,length(interval));
 P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
 for l = 1:length(interval)
     for k = 1:size(p,3)
-        px(:,:,k,l)=P*p(:,:,k,l)*P';
+        px(:,:,k,l)=P*abs(p(:,:,k,l))*P';
     end
 end
 px=px./(Nsubj^2);
@@ -179,7 +209,7 @@ val = max(px(:));
 newp = zeros(Nsubj*2,Nsubj*2,nVtx,length(interval));
 for l = 1:length(interval)
     for k = 1:size(p,3)
-        newp(:,:,k,l)=abs(p(:,:,k,l))-pb(:,:,k);
+        newp(:,:,k,l)=abs(p(:,:,k,l))-abs(pb(:,:,k));
     end
 end
 
@@ -195,57 +225,55 @@ newpx=newpx./(Nsubj^2);
 
 
 %% Permutation test
-% permute baseline and active time window correlations per subject under
-% the null-hypothesis that they come from the same distributions.
+% this script is going to creatively use the data matrix in combination
+% with ft_statistics_montecarlo to get a randomization distribution for
+% some test-statistic that we consider to be a good one
 
-% create permutation vector with indexes for flipping sign
+% ft_statistics_montecarlo takes a Nvox x Nrepl matrix in the input
+% we are going to first reshape the data matrix accordingly
 
-r = randi([0 1],1,20706,nperm);
-rindx= zeros(Nsubj*2,Nsubj*2,nperm);
-for l = 1:nperm
-    rindx(:,:,l) = squareform(r(:,:,l));
+% starting from a Nsubj x Nsubj x Nvert x Ninterval matrix
+Ninterval = 3; % specify interval of interest
+Nquad = 2; % specify quadrant of interest (1 = visuals, 2/3 = supramodal, 4 = auditory)
+nperm = 1000;
+
+quad=reshape(permute(reshape(newp,[Nsubj 2 Nsubj 2 8196 3]),[1 3 2 4 5 6]),Nsubj^2,4,8196,3);
+
+
+dat = squeeze(quad(:,Nquad,:,Ninterval))';
+
+if ismember(Nquad,[1 4])% feed in only lower triangle for within-modality quadrants
+indx=reshape(1:Nsubj^2,Nsubj,Nsubj);
+selindx=indx(tril(indx,-1)>0);
+dat = dat(:,selindx);
 end
 
+dat0 = dat;
+dat0(:) = 0;
 
-tmp = zeros(Nsubj*2,Nsubj*2);
-perm = zeros(2,2,nVtx,length(interval),nperm);
-for i = 1:length(interval)
-    for k = 1:nVtx
-        for l = 1:nperm
-           tic
-           tmp = squeeze(newp(:,:,k,i));
-%            if all(all(isnan(tmp)))
-%            else
-            % permute signs of correlation (under the null hypothesis, it
-            % would not matter whether bsl is subtracted from activity or
-            % other way around
-            %
-            % find indexes to be shuffled
-            flip = find(rindx(:,:,l)==1);
-            % apply permutation 
-            tmp(flip) = -tmp(flip);
-            % save to permutation distribution
-            tmp2=P*tmp*P';
-            tmp2=tmp2./(Nsubj^2);
-            perm(:,:,k,i,l) = tmp2;
-            toc
-        end
-    end
-end
-clear r flip tmp rindx
+% design is adapted to numer of observations according to size of lower
+% triangle
+design = [ones(1,size(dat,2)) ones(1,size(dat,2))*2; 1:size(dat,2) 1:size(dat,2)];
+
+
+cfg = [];
+cfg.statistic = 'statfun_sophiessuperstatistic';
+cfg.numrandomization = nperm;
+cfg.correctm = 'max';
+cfg.ivar = 1;
+cfg.uvar = 2;
+cfg.tail = 1;
+stat = ft_statistics_montecarlo(cfg, [dat dat0], design);
+
 
 % stats
-x = squeeze(newpx(1,1,:,:));
- permx = squeeze(perm(1,1,:,:,:));
-for k = 1:nVtx
-    for i = 1:length(interval)
-        if x(k,i) >= permx(k,i,end-  )
-            sig(k,i) = 1;
-        else
-            sig(k,i) = 0;
-        end
-    end
-end
+% for k = 1:nVtx
+%         if mean(dat(k,:)) >= stat.posdistribution(end-((nperm/100)*5)-1) %|| mean(dat(k,:)) <= stat.negdistribution(end-((nperm/100)*5)-1) 
+%             sig(k) = 1;
+%         else
+%             sig(k) = 0;
+%         end
+% end
 %% fisher z-transform & t-test
 % take lower triangle and compute mean
 % z transform

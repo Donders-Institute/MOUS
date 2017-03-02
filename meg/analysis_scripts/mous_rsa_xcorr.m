@@ -2,10 +2,12 @@
 load cortex_inflated_8196reg %template surface model
 load atlas_conte69_8196reg_LR_brodmann_subparc
 nVtx = 8196;
-tstep = [500]; % in samples
-interval = [120];% start interval in samples
+maxlag = 60;
+tstep = 120+maxlag; % in samples
+n = 1;
+interval = [n n+tstep n+tstep+60];% start interval in samples
 nparcel = numel(atlas.parcellationlabel);
-maxlag = 50;
+maxlag = 60;
 
 %% get filenames 
 subjA = mous_db_getfilename('allA','subjectname');
@@ -73,49 +75,139 @@ clear tmp
 
 %% Compute correlation across subjects
 
-% for each vertex position find optimal delay using xcorr for all subject-combinations, then for each combination adjust time-course according to lag and compute
-% correlation
+% for each vertex position find optimal delay using xcorr for all subject-combinations, 
+% for bsl condition
 
-pl = zeros(Nsubj*2,Nsubj*2,nVtx);
-sel = zeros(Nsubj*2,max(tstep));
+pb = zeros(Nsubj*2,Nsubj*2,nVtx);
+sel = zeros(Nsubj*2,size(out.pow,3));
 for k = 1:nVtx
-    for l = 1:length(interval)
-     
-    sel = squeeze(out.pow(:,k,interval(l):interval(l)+tstep(l)));
-      
-    [r,lag] = xcorr(sel',maxlag); % results in a output r which contains 201(lags) * 204^2, where the first 204 columns contain the delays and cross-correlations using the first subject as a reference 
-                           %the next N columns the delays and cross-correlations using the second subject and so on
-    % find lag of maximal correlation for each column of r (each combination of
-    % subjects)
-    [~,index] = max(abs(r));
-    lag = lag(index);
-    lag = reshape(lag,[Nsubj*2,Nsubj*2]);
-    lag = squareform(lag,'tovector');
-    count = 1;
-    for j = 1:Nsubj*2-1 % loop over columns
-        for i = j+1:Nsubj*2 % loop over rows(only lower triangle)
-            %zero pad both signals for same size and adjust lag
-            tmp1 = zeros(1,size(sel,2)+maxlag*2);
-            tmp1(1,(maxlag+1:size(sel,2)+maxlag)) = sel(j,:);
-            tmp2 = zeros(1,size(sel,2)+maxlag*2);
-            tmp2(1,(maxlag+1+lag(count)):(size(sel,2)+maxlag+lag(count))) = sel(i,:);
-            %correlate
-            coef = corr(tmp1',tmp2');
-            pt(count)= abs(coef);
-            count = count+1;
-        end
-    end
-            pl(:,:,k,l) = squareform(pt);
-    end
+    sel = squeeze(outbsl.pow(:,k,:));
+
+    cfg = [];
+    cfg.lag = -maxlag:maxlag;
+    [r,lag] = statfun_xcorr2(cfg,sel,sel); 
+    
+    
+     pb(:,:,k) = max(abs(r),[],3);
 end
-clear tmp1 tmp2 coef r index lag
+
+pbx = zeros(2,2,nVtx);
+P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
+    for k = 1:size(pb,3)
+        pbx(:,:,k)=P*pb(:,:,k)*P';
+    end
+
+pbx=pbx./(Nsubj^2);
+val = max(pbx(:));
+
+% Compute lag for each subject-combination and vertex
+tmp = zeros((Nsubj*2)*(Nsubj*2),1);
+lag = zeros(Nsubj*2,Nsubj*2,nVtx);   
+sel = zeros(Nsubj*2,size(out.pow,3));
+for k = 1:nVtx
+    tic
+    sel = squeeze(out.pow(:,k,:));
+ if all(all(isnan(sel)))
+     lag(:,:,k) = nan(Nsubj*2);
+ else
+    cfg = [];
+    cfg.lag = -maxlag:maxlag;
+    [r,l] = statfun_xcorr2(cfg,sel,sel); 
+
+    % bring cross-correlation functions into form that can be read in by
+    % peakdetect
+    r = reshape(r,size(r,1)*size(r,2),size(r,3));
+
+    % find throughs and peaks of xcorr lag-function
+    [pindx pval] = peakdetect2(r);
+
+    % adjust lag information to be centered around zero.
+    pindx = pindx - ((size(r,2)+1)/2);
+
+    % find lags corresponding to peaks closest to 0;
+    [~,index] = nanmin(abs(pindx),[],2);
+    linearInd = sub2ind(size(pindx), [1:41616]', index);
+    tmp = pindx(linearInd);
+    % if no peak is within maxlag range take 0;
+    tmp(isnan(tmp)) = 0;
+
+    %backwards reshape
+    lag(:,:,k) = reshape(tmp,Nsubj*2,Nsubj*2);
+ end
+ toc
+end
+
+% average lag per condition:
+lagx = zeros(4,2,nVtx);
+for k = 1:nVtx
+tmp=abs(lag(:,:,k));
+tmp=reshape(permute(reshape(tmp,[102 2 102 2]),[1 3 2 4]),102^2,4);
+lagx(:,1,k) = mean(tmp);
+lagx(:,2,k) = std(tmp);
+end
+
+%% load in correlation coefficients per interval ( as computed using mous_rsa_xcorr_parallel.m)matyl
+
+allFiles = dir( '/project/3011020.09/sopara/lags/*_lags.mat' );
+allNames = { allFiles.name };
+C = regexp(allNames, '_', 'split');
+for i = 1:length(C)
+end
+intv = intv(:,1:2,:)
+
+pl = zeros(Nsubj*2,Nsubj*2,nVtx,length(interval));
+tic
+for i = 1:length(intv)
+     load([allNames{i}])
+for  k = intv(:,1,i):intv(:,2,i)
+     for l = 1:length(interval)
+         pl(:,:,k,l) = squareform(squeeze(ptmp(:,k,l)));
+     end
+end
+
+end
+toc
+
 % average
 px = zeros(2,2,nVtx,length(interval));
 P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
 for i = 1:length(interval)
-    for k = 1:size(p,3)
-        px(:,:,k,i)=P*p(:,:,k,i)*P';
+    for k = 1:size(pl,3)
+        px(:,:,k,i)=P*pl(:,:,k,i)*P';
     end
 end
 px=px./(Nsubj^2);
 val = max(px(:));
+
+%% Create model matrix
+% visual-specific model
+mv=ones(204);
+mv(1:102,103:end)=0;
+mv(103:end,:)=0;
+mv = mv-diag(diag(mv));
+mv=squareform(mv,'tovector');
+% auditory-specific model
+ma=zeros(204);
+ma(103:end,103:end)=1;
+ma = ma-diag(diag(ma));
+ma=squareform(ma,'tovector');
+% supramodal model
+ms=ones(204);
+ms(103:end,1:102)=0;
+ms(1:102,103:end)=0;
+ms = ms-diag(diag(ms));
+ms=squareform(ms,'tovector');
+% 
+% 
+% % Correlate dissimilarity matrix with models
+% 
+for k = 1:nVtx
+    for i = 1:size(newp,4)
+        tmp = squeeze(newp(:,:,k,i));
+        tmp(logical(eye(size(tmp)))) = 0;
+        cV(k,i) = corr(squareform(tmp,'tovector')',mv','type','spearman');
+        cA(k,i) = corr(squareform(tmp,'tovector')',ma','type','spearman');
+        cS(k,i) = corr(squareform(tmp,'tovector')',ms','type','spearman');
+    end
+end
+clear tmp
