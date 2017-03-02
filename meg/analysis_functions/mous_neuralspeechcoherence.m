@@ -8,15 +8,15 @@ if nargin < 2 || isempty(foi)
   foi = [0 30];
 end
 
-doplanar = istrue(ft_getopt(varargin, 'doplanar', 1));
+doplanar    = istrue(ft_getopt(varargin, 'doplanar', 1));
 cfgredefine = ft_getopt(varargin, 'cfgredefine', []);
 cfgfreq     = ft_getopt(varargin, 'cfgfreq',     []);
 cfgpreproc  = ft_getopt(varargin, 'cfgpreproc',  []);
 
 %% get the filename of the dataset
-dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
+subjedataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 
-%% define trials, remove artifacts, preprocess data
+%% define trials, remove artifacts,mxUnshareArray(const_cast<mxarray *>(prhs[0]), true); preprocess data
 if numel(dataset) == 1
   mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09/MEG/');
   artfctcfg      = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
@@ -55,37 +55,37 @@ elseif numel(dataset) > 1
   speech.grad = ft_average_sens(tmpsens2, 'weights', weights2);   
 end
 
-%% convert to planar gradient if specified
-tmplabel = data.label;  % use later when combining planar gradient components
-
-if doplanar,
-  cfg              = [];
-  cfg.method       = 'template';
-  cfg.neighbours   = ft_prepare_neighbours(cfg,data);
-  cfg.planarmethod = 'sincos';
-  dataPL           = ft_megplanar(cfg,data);
-end
 
 %% concatenate into one dataset
-dataAX = ft_appenddata([],data,speech);  % axial gradiometers, for subj-specific frequency search
-if doplanar, dataPL = ft_appenddata([],dataPL,speech);  end % planar gradiometers, for grp-level averaging
+data = ft_appenddata([],data,speech);  % axial gradiometers, for subj-specific frequency search
 
 %% cut the data into fragments with overlap (increase data - like welch method)
 cfg         = cfgredefine;
 cfg.length  = ft_getopt(cfgredefine, 'length',  2);  
 cfg.overlap = ft_getopt(cfgredefine, 'overlap', 0.5); % 0 to 1 (exclusive)
-dataAX      = ft_redefinetrial(cfg, dataAX);
-if doplanar, dataPL = ft_redefinetrial(cfg, dataPL); end
+data        = ft_redefinetrial(cfg, data);
 
+%% do a quick and dirty trial rejection based on the threshold z-transformed log10(var)
+for k = 1:numel(data.trial)
+  M(:,k) = var(ft_preproc_polyremoval(data.trial{k},1),[],2);
+end
+Mz     = ft_preproc_standardize(log10(M));
+
+thresh = 3;
+rej    = sum(Mz(1:end-2,:)>thresh,1)>0;
+
+cfg        = [];
+cfg.trials = find(~rej);
+data       = ft_selectdata(cfg, data);
+  
 %% divide data according to the conditions word list / sentence
 cfg        = [];
-cfg.trials = find(ismember(dataAX.trialinfo(:,2),[1 5])); % sent
-data1  = ft_selectdata(cfg,dataAX); % axial
-if doplanar, data3  = ft_selectdata(cfg,dataPL); end % planar
+cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
+data1      = ft_selectdata(cfg,data);
 
-cfg.trials = find(ismember(dataAX.trialinfo(:,2),[3 7])); % WL
-data2  = ft_selectdata(cfg,dataAX); % axial
-if doplanar, data4  = ft_selectdata(cfg,dataPL); end % planar
+cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
+data2      = ft_selectdata(cfg,data);
+clear data;
 
 %% calculate spectral representation
 %  mtmfft:   fourier spectra; contains amplitude and phase
@@ -93,56 +93,63 @@ if doplanar, data4  = ft_selectdata(cfg,dataPL); end % planar
 %            (infer CSD from fourier coefficients)
 %  powandcsd:  cross-spectra, power-spectra; 
 
-cfg            = cfgfreq;
-cfg.method     = 'mtmfft'; 
-cfg.output     = 'powandcsd'; 
-cfg.foilim     = foi;         % calculate fourier for each frequency showing a peak in coherence spectrum
-%cfg.tapsmofrq  = 1;           % 2 Hz smoothing
-cfg.tapsmofrq  = ft_getopt(cfg, 'tapsmofrq', 2);      
-cfg.taper      = ft_getopt(cfg, 'taper',     'dpss');
-cfg.pad        = ft_getopt(cfg, 'pad',       2);
-cfg.channel    = {'MEG';'audio_avg'};
-cfg.channelcmb = {'MEG' 'audio_avg'};
-freq1          = ft_freqanalysis(cfg,data1); % axial
-freq2          = ft_freqanalysis(cfg,data2); 
-if doplanar,
-  freq3          = ft_freqanalysis(cfg,data3); % planar
-  freq4          = ft_freqanalysis(cfg,data4);
-end
+cfgf            = cfgfreq;
+cfgf.method     = 'mtmfft'; 
+cfgf.output     = 'powandcsd'; 
+cfgf.foilim     = foi;
+cfgf.tapsmofrq  = ft_getopt(cfgf, 'tapsmofrq', 2);      
+cfgf.taper      = ft_getopt(cfgf, 'taper',     'dpss');
+cfgf.pad        = ft_getopt(cfgf, 'pad',       4);
+cfgf.channel    = {'MEG';'audio_avg'};
+cfgf.channelcmb = {'MEG' 'audio_avg'};
+cfgf.polyremoval = 1;
+freq1           = ft_freqanalysis(cfgf, data1);
+freq2           = ft_freqanalysis(cfgf, data2); 
 
 %% calculate coherence 
-cfg = [];
-cfg.method     = 'coh';
-cfg.channelcmb = {'MEG' 'UADC003'; 'MEG' 'audio_avg'}; % Specify channel and channelref
-coherence1     = ft_connectivityanalysis(cfg,freq1); % axial
-coherence2     = ft_connectivityanalysis(cfg,freq2);
-
+cfgc            = [];
+cfgc.method     = 'coh';
+coherence1      = ft_connectivityanalysis(cfgc,freq1); % axial
+coherence2      = ft_connectivityanalysis(cfgc,freq2);
+ 
+%% calculate power spectra
 fd1 = ft_freqdescriptives([], freq1);
 fd2 = ft_freqdescriptives([], freq2);
 
 if doplanar,
-  coherence3     = ft_connectivityanalysis(cfg,freq3); % planar
-  coherence4     = ft_connectivityanalysis(cfg,freq4);
+  %% convert to planar gradient if specified
+  tmplabel = data1.label;  % use later when combining planar gradient components
+
+  cfg              = [];
+  cfg.method       = 'template';
+  cfg.neighbours   = ft_prepare_neighbours(cfg,data1);
+  cfg.planarmethod = 'sincos';
+  data3            = ft_megplanar(cfg, data1);
+  freq3            = ft_freqanalysis(cfgf, data3);
+  coherence3       = ft_connectivityanalysis(cfgc, freq3);
+  fd3              = ft_combineplanar([], ft_freqdescriptives([], freq3));
   
-  fd3 = ft_combineplanar([], ft_freqdescriptives([], freq3));
-  fd4 = ft_combineplanar([], ft_freqdescriptives([], freq4));
-end
+  data4            = ft_megplanar(cfg, data2);
+  freq4            = ft_freqanalysis(cfgf, data4);
+  coherence4       = ft_connectivityanalysis(cfgc, freq4);
+  fd4              = ft_combineplanar([], ft_freqdescriptives([], freq4));
 
-%% combine planar gradient's vertical (dV) and horizontal (dH) components
-%  - Freq and Coherence calculation are non-linear (power = take abs)
-%  - If combine components prior to freq/coherence calculation we lose
-%  coherence estimate 
-%  - Combining sensor_dV and sensor_dH using pythagoras leads to coherencePeakdetect_stage2_thres001_smoothing_wl.mata loss
-%  (canceling out) of the coherence estimate.  
-%  - Use of pythagoras works for ERFs/TFRs signal; For ERF (because it's
-%  caluclate is a linear step, one can actually convert and combine prior
-%  to ERF calculation, but not for TFR and coherence calculations).
-%  - Combine dV and dH components by doing an average. 
-%    An alternative is to use max(dV, dH)
 
-%%% SENT %%%
-% select sensors of interest
-if doplanar
+  %% combine planar gradient's vertical (dV) and horizontal (dH) components
+  %  - Freq and Coherence calculation are non-linear (power = take abs)
+  %  - If combine components prior to freq/coherence calculation we lose
+  %  coherence estimate
+  %  - Combining sensor_dV and sensor_dH using pythagoras leads to coherencePeakdetect_stage2_thres001_smoothing_wl.mata loss
+  %  (canceling out) of the coherence estimate.
+  %  - Use of pythagoras works for ERFs/TFRs signal; For ERF (because it's
+  %  caluclate is a linear step, one can actually convert and combine prior
+  %  to ERF calculation, but not for TFR and coherence calculations).
+  %  - Combine dV and dH components by doing an average.
+  %    An alternative is to use max(dV, dH)
+  
+  %%% SENT %%%
+  % select sensors of interest
+  
   sensize = size(coherence3.labelcmb,1)/2; % 273; dv and dH for each audio signal
   tmp1 = coherence3.cohspctrm(1:sensize,:);
   tmp2 = coherence3.cohspctrm((sensize+1):end,:);
@@ -201,11 +208,10 @@ cfg.usefftfilt = ft_getopt(cfg, 'usefftfilt', 'yes');
 data           = ft_preprocessing(cfg);
 
 cfg.channel    = 'UADC003';
-cfg.hpfilter   = 'yes';
+cfg.hpfilter   = 'no';%'yes'; % does not need to be applied, data of this channel are not used anyway
 cfg.hpfreq     = 10;     % remove slow drifts/fluctations. envelope is determined by high frequency activity
 cfg.hpfilttype = 'firws';
 cfg.rectify    = 'yes';  % XOR: hilbert transform or rectify (in data make -ve values +ve using abs())
-% cfg.boxcar     = 0.025;  % remove boxcar!
 speech         = ft_preprocessing(cfg);
 
 % load in the audioenvelopes as constructed from the wav files.
@@ -226,7 +232,7 @@ end
 speech.label = [speech.label;{'audio_avg'}];
 
 %% downsample
-cfg = [];
+cfg             = [];
 cfg.detrend     = 'no';
 cfg.demean      = 'no';  
 cfg.resamplefs  = 300;

@@ -29,6 +29,7 @@ if ~exist('dosourcemodel3d',  'var'),  dosourcemodel3d   = 0;  end
 % coregistration
 if ~exist('dosourcemodel2d4',  'var'), dosourcemodel2d4  = 0;  end
 if ~exist('dosourcemodel2d_reg', 'var'), dosourcemodel2d_reg = 0; end
+if ~exist('dosourcemodel2d_reg2017', 'var'), dosourcemodel2d_reg2017 = 0; end
 
 
 if ~exist('doqualitycheck',   'var'),  doqualitycheck    = 0;  end
@@ -237,6 +238,73 @@ if dosourcemodel2d_reg
   bnd  = ft_read_headshape(fifname,'format','mne_source');
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
   mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', 'bnd', rootdir, 0);
+end
+
+if dosourcemodel2d_reg2017
+  % do the surface-based registration to th fs_average_164k mesh
+  % this results in the nodes being 1-to-1 mapped.
+  % subsequent downsampling to 8196 nodes keeps the nodes in register
+  % this needs an installation of caret and some specific additional scripts
+  % note that this newer version also aims at getting the automatic
+  % parcellation information mapped onto the low-resolution grid
+
+  % create directory that will contain the results
+  subjdirfs   = [rootdir,filesep,subjectname,'/anatomy/',subjectname];
+  outputdir   = tempname('/tmp'); 
+  mkdir(outputdir);
+  targetdir   = '/home/language/jansch/projects/mous/meg/templates/sourcemodel/fsaverage_LR_164k/';  
+
+  str     = which('freesurfer_to_fs_LR.sh');
+  [p,f,e] = fileparts(str);
+  str     = ([p,'/freesurfer_to_fs_LR.sh ',subjdirfs,' ',targetdir,' ',outputdir]);
+  
+  % run the registration script, this is the same as before
+  system(str);
+  
+  % run part2, which also resamples the parcellation information 
+  str     = ([p,'/freesurfer_to_fs_LR_part2.sh ',subjdirfs,' ',outputdir]);
+  system(str);
+  
+  fname  = fullfile(outputdir, subjectname, 'label', 'lefthemi', 'lhlabels164.paint');
+  atlasl = ft_read_atlas(fname, 'format', 'caret_label');
+  fname  = fullfile(outputdir, subjectname, 'label', 'righthemi', 'rhlabels164.paint');
+  atlasr = ft_read_atlas(fname, 'format', 'caret_label');
+ 
+  atlas = rmfield(atlasl, 'rgba');
+  atlas.parcellation      = cat(1, atlasl.parcellation,      atlasr.parcellation+max(atlasl.parcellation));
+  atlas.parcellationlabel = cat(1, atlasl.parcellationlabel, atlasr.parcellationlabel);
+  
+  mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
+  newatlas = bnd;
+  if isfield(newatlas, 'pnt'), newatlas.pos = newatlas.pnt; rmfield(newatlas, 'pnt'); end
+  newatlas.parcellationlabel = atlas.parcellationlabel;
+  newatlas.parcellation      = atlas.parcellation(newatlas.orig.inuse>0);
+  newatlas.orig.parcellation = atlas.parcellation;
+  
+  atlas = rmfield(newatlas, 'area');
+  save(fullfile('/project/3011020.09/MEG',subjectname,'anatomy',[subjectname,'_atlas_aparc_a2009s']), 'atlas');
+  
+  % while we're at it, also create the inflated mesh
+  outputdirsurf = fullfile(outputdir,subjectname,'surf');  
+  mkdir(outputdirsurf);
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.L.inflated.164k_fs_LR.coord.gii']);
+  triname = fullfile(outputdir,subjectname,[subjectname,'.L.164k_fs_LR.topo.gii']);
+  bnd = ft_read_headshape({tmpname triname});
+  ft_write_headshape(fullfile(outputdirsurf,'lh.inflated'),bnd,'format','freesurfer');
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.R.inflated.164k_fs_LR.coord.gii']);
+  triname = fullfile(outputdir,subjectname,[subjectname,'.R.164k_fs_LR.topo.gii']);
+  bnd = ft_read_headshape({tmpname triname});
+  ft_write_headshape(fullfile(outputdirsurf,'rh.inflated'),bnd,'format','freesurfer');
+  
+  bnd = ft_read_headshape({fullfile(outputdirsurf,'lh.inflated') fullfile(outputdirsurf,'rh.inflated')});
+  
+  newbnd = rmfield(atlas, {'parcellation' 'parcellationlabel'});
+  newbnd.orig = rmfield(newbnd.orig, 'parcellation');
+  newbnd.pos = bnd.pos(newbnd.orig.inuse>0,:);
+  
+  bnd = newbnd;
+  save(fullfile('/project/3011020.09/MEG',subjectname,'anatomy',[subjectname,'_inflated']), 'bnd');
+  
 end
 
 %% create a 3D sourcemodel based on the MNI brain
