@@ -227,8 +227,81 @@ if dosource_low_regAC
   end  
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THE PART BELOW IS ADDED BY JM
 
+if ~exist('subjectname', 'var'),
+  error('a subjectname is required input');
+end
 
+if ~exist('dosens_ax',   'var'), dosens_ax   = false; end
+if ~exist('dosens_peak', 'var'), dosens_peak = false; end
+if ~exist('dosource_peak', 'var'), dosource_peak = false; end
 
+if dosens_ax
+  cfgpreproc          = [];
+  cfgpreproc.hpfilter = 'no';
+  [sentcoh, wlcoh, ~, ~, sentpow, wlpow, ~, ~] = mous_neuralspeechcoherence(subjectname, [0 60], 'doplanar', false,'cfgpreproc',cfgpreproc);
+  mous_db_putdata(subjectname, 'meg_coh_sensor','sentcoh','wlcoh','sentpow','wlpow',rootdir,0);
+end
 
+if dosens_peak
+  filename = mous_db_getfilename(subjectname, 'meg_coh_sensor');
+  [sentpeak, sentcoh, wlpeak, wlcoh] = mous_neuralspeechcoherence_peakdetect(subjectname);
+  save(filename{1}, 'sentpeak', 'wlpeak', 'sentcoh', 'wlcoh', '-append');
+end
 
+if dosource_peak
+  if ~exist('condition', 'var'), condition = 'sent'; end
+  source = mous_neuralspeechcoherence_source(subjectname, [], 'condition', condition);
+  mous_db_putdata(subjectname, ['meg_coh_source',condition], 'source');
+end
+
+if dosens_cca
+  [comp, compsent, compseq] = mous_neuralspeechcoherence_cca(subjectname);
+  comp = rmfield(comp, 'trial');
+  compsent = rmfield(compsent, 'trial');
+  compseq  = rmfield(compseq, 'trial');
+  mous_db_putdata(subjectname, 'meg_coh_sensor_cca','comp','compsent','compseq');
+end
+
+if dosource_groupresults
+  subj  = mous_db_getfilename('allA', 'subjectname');
+  [f,s] = mous_db_getfilename(subj, 'meg_coh_sourcesent');
+  subj  = subj(s);
+  
+  delta = nan+zeros(8196,sum(s));
+  theta = nan+zeros(8196,sum(s));
+  for k = 1:numel(subj)
+    mous_db_getdata(subj{k}, 'meg_coh_sourcesent');
+    foi = [source.freq];
+    seldelta = find(foi<=3 & foi>=1);
+    seltheta = find(foi<=8 & foi>=4);
+    
+    if ~isempty(seldelta)
+      D{k} = foi(seldelta);
+      tmp = zeros(8196,1);
+      for m = 1:numel(seldelta)
+        tmp = tmp+source(seldelta(m)).avg.coh;
+      end
+      tmp = tmp./m;
+      delta(:,k) = tmp;
+    else
+      delta(:,k) = nan;
+    end
+    if ~isempty(seltheta)
+      T{k} = foi(seltheta);
+      tmp = zeros(8196,1);
+      for m = 1:numel(seltheta)
+        tmp = tmp+source(seltheta(m)).avg.coh;
+      end
+      tmp = tmp./m;
+      theta(:,k) = tmp;
+    else
+      theta(:,k) = nan;
+    end
+  end
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_delta', 'delta', 'D');
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_theta', 'theta', 'T');
+  
+end
