@@ -173,17 +173,18 @@ for k = 1:nVtx
     k
 end
 clear coef tmp1 tmp2 sel
-save('xcorr_lagmaxvalstim','lag','ptmp','-v7.3')
+
+
 % take average of paired values (slight variation because of slightly
 % different interval): make matrix symmetric again.
 
-
-p = zeros(Nsubj*2,Nsubj*2,nVtx,length(interval));
 for k = 1:nVtx
     for l = 1:length(interval)
-        p(:,:,k,l) = (ptmp(:,:,k,l)+ptmp(:,:,k,l)')./2;
+        ptmp(:,:,k,l) = (ptmp(:,:,k,l)+ptmp(:,:,k,l)')./2;
     end
 end
+
+save('xcorr_lagmaxvalstim','lag','ptmp','-v7.3')
 
 % average
 px = zeros(2,2,nVtx,length(interval));
@@ -265,15 +266,5 @@ stat = ft_statistics_montecarlo(cfg, [dat dat0], design);
 %             sig(k) = 0;
 %         end
 % end
-%% fisher z-transform & t-test
-% take lower triangle and compute mean
-% z transform
-% for k = 1:nparcel
-%     for i = 1:length(interval)
-%     tmp = p(:,:,k,i);
-%     tmp = .5.*log((1+tmp)./(1-tmp));
-%     px(:,:,k,i) = tmp;
-%     end
-% end
-% t-test
+
 
