@@ -3,7 +3,7 @@ load cortex_inflated_8196reg %template surface model
 load atlas_conte69_8196reg_LR_brodmann_subparc
 nVtx = 8196;
 maxlag = 60;
-tstep = 120+maxlag; % in samples
+tstep = 120;%+maxlag; % in samples
 n = 1;
 interval = [n n+tstep n+tstep+360];% start interval in samples
 nparcel = length(atlas.parcellationlabel);
@@ -81,7 +81,7 @@ pb = zeros(Nsubj*2,Nsubj*2,nVtx);
 sel = zeros(Nsubj*2,tstep+maxlag);
 lagb = zeros(Nsubj*2,Nsubj*2,nVtx);
 for k = 1:nVtx
-    sel = squeeze(outbsl.pow(:,k,end-(tstep+maxlag):end));
+    sel = squeeze(outbsl.pow(:,k,end-tstep:end));
     
     if all(all(isnan(sel)))
         lagb(:,:,k) = nan(Nsubj*2);
@@ -100,7 +100,7 @@ for k = 1:nVtx
         pindx = pindx - ((size(r,2)+1)/2);
         
         % find lags corresponding to peaks closest to 0 (nanmin) or maximum correlation (nanmax);
-        [~,index] = nanmin(abs(pval),[],2);
+        [~,index] = nanmax(abs(pval),[],2);
         linearInd = sub2ind(size(pindx), [1:41616]', index);
         tmp = pindx(linearInd);
         % if no peak is within maxlag range take 0;
@@ -114,16 +114,7 @@ for k = 1:nVtx
     end
 end
 save('xcorr_lagmaxvalbsl','lagb','pb','-v7.3')
-clear lagb outbsl
-
-pbx = zeros(2,2,nVtx);
-P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
-    for k = 1:size(pb,3)
-        pbx(:,:,k)=P*abs(pb(:,:,k))*P';
-    end
-
-pbx=pbx./(Nsubj^2);
-val = max(pbx(:));
+clear lagb outbsl pb
 
 %% Compute lag for each subject-combination and vertex
 tmp = zeros((Nsubj*2)*(Nsubj*2),1);
@@ -149,7 +140,7 @@ for k = 1:nVtx
     pindx = pindx - ((size(r,2)+1)/2);
 
     % find lags corresponding to peaks closest to 0;
-    [~,index] = nanmin(abs(pindx),[],2);
+    [~,index] = nanmax(abs(pindx),[],2);
     linearInd = sub2ind(size(pindx), [1:41616]', index);
     tmp = pindx(linearInd);
     % if no peak is within maxlag range take 0;
@@ -160,13 +151,12 @@ for k = 1:nVtx
  end
 end
 clear linearInd pindx pval r
-save('xcorr_lagminindx','lag','-v7.3')
+
 % Compute correlation coefficients for each interval in active condition
 ptmp = zeros(Nsubj*2,Nsubj*2,nVtx,length(interval));
 tmp1 = zeros(Nsubj*2,size(out.pow,3)+maxlag*2);
 tmp2 = zeros(Nsubj*2,size(out.pow,3)+maxlag*2);
 for k = 1:nVtx
-    tic
     sel = squeeze(out.pow(:,k,:));
     if all(all(isnan(sel)))
         ptmp(:,:,k,:) = nan(Nsubj*2,Nsubj*2,3);
@@ -181,12 +171,13 @@ for k = 1:nVtx
         end
     end
     k
-    toc
 end
 clear coef tmp1 tmp2 sel
-
+save('xcorr_lagmaxvalstim','lag','ptmp','-v7.3')
 % take average of paired values (slight variation because of slightly
 % different interval): make matrix symmetric again.
+
+
 p = zeros(Nsubj*2,Nsubj*2,nVtx,length(interval));
 for k = 1:nVtx
     for l = 1:length(interval)
