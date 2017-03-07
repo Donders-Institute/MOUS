@@ -3,7 +3,7 @@ load cortex_inflated_8196reg %template surface model
 load atlas_conte69_8196reg_LR_brodmann_subparc
 nVtx = 8196;
 maxlag = 60;
-tstep = 120;%+maxlag; % in samples
+tstep = 180;%+maxlag; % in samples
 n = 1;
 interval = [n n+tstep n+tstep+360];% start interval in samples
 nparcel = length(atlas.parcellationlabel);
@@ -104,9 +104,7 @@ for k = 1:nVtx
    %      d = sqrt(diag(coef)); % sqrt first to avoid under/overflow
     %     coef = bsxfun(@rdivide,coef,d); coef = bsxfun(@rdivide,coef,d'); % coef = coef ./ d*d';
      coef = corr(sel(:,interval(i):interval(i)+tstep)');
-    % coef = corr(sel');
-    %coef = abs(coef)-abs(pbsl(:,:,k));
-    p(:,:,k,i) = abs(coef);
+    p(:,:,k,i) = coef;
    end
 end
 %p(p<0) = 0;
