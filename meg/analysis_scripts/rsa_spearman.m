@@ -22,11 +22,6 @@ end
 
 %% load in lag-corrected corr coefficients for baseline
 
-load /project/3011020.09/sopara/lags/xcorr_lagmaxvalstim
-clear lag
-load /project/3011020.09/sopara/lags/xcorr_lagmaxvalbsl
-clear lagb
-
 %% subtract absolute bsl values form absolute post-onset values
 
 newp = zeros(Nsubj*2,Nsubj*2,nVtx,length(interval));
@@ -41,7 +36,7 @@ end
 pbx = zeros(2,2,nVtx);
 P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
     for k = 1:size(pb,3)
-        pbx(:,:,k)=P*pb(:,:,k)*P';
+        pbx(:,:,k)=P*abs(pb(:,:,k))*P';
     end
 
 pbx=pbx./(Nsubj^2);
@@ -52,7 +47,7 @@ px = zeros(2,2,nVtx,length(interval));
 P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
 for i = 1:length(interval)
     for k = 1:size(p,3)
-        px(:,:,k,i)=P*p(:,:,k,i)*P';
+        px(:,:,k,i)=P*abs(p(:,:,k,i))*P';
     end
 end
 px=px./(Nsubj^2);
@@ -74,9 +69,8 @@ val = max(newpx(:));
 
 %% Create model matrix
 % visual-specific model
-mv=ones(408);
-mv(1:102,103:end)=0;
-mv(103:end,:)=0;
+mv=zeros(408);
+mv(1:102,1:102)=1;
 mv = mv-diag(diag(mv));
 mv=squareform(mv,'tovector');
 % auditory-specific model
@@ -84,6 +78,18 @@ ma=zeros(408);
 ma(205:306,205:306)=1;
 ma = ma-diag(diag(ma));
 ma=squareform(ma,'tovector');
+%
+ma2=zeros(408);
+ma2(205:306,205:306)=1;
+ma2(307:end,307:end)=1;
+ma2 = ma2-diag(diag(ma2));
+ma2=squareform(ma2,'tovector');
+
+mv2=zeros(408);
+mv2(1:102,1:102)=1;
+mv2(103:204,103:204)=1;
+mv2 = mv2-diag(diag(mv2));
+mv2=squareform(mv2,'tovector');
 % supramodal model
 ms=zeros(408);
 ms(103:204,103:204)=1;
@@ -94,7 +100,7 @@ ms = ms-diag(diag(ms));
 ms=squareform(ms,'tovector');
 % supramodal + early visual/auditory/both and within modality earlyXlate
 % are unspecified & set to 0 at the moment
-fill = zeros( 10404,1);
+fill = NaN( 10404,1);
 %% For each vertex create complex similarity matrix and compare against model
 cV = zeros(1,nVtx);
 cA = zeros(1,nVtx);
@@ -117,8 +123,10 @@ for k = 1:nVtx
 % % Correlate dissimilarity matrix with models
 
         M(logical(eye(size(M)))) = 0;
-        cV(k) = corr(squareform(M,'tovector')',mv','type','spearman');
-        cA(k) = corr(squareform(M,'tovector')',ma','type','spearman');
-        cS(k) = corr(squareform(M,'tovector')',ms','type','spearman');
+        cV(k) = corr(squareform(M,'tovector')',mv','type','spearman','rows','complete');
+        cA(k) = corr(squareform(M,'tovector')',ma','type','spearman','rows','complete');
+        cS(k) = corr(squareform(M,'tovector')',ms','type','spearman','rows','complete');
+        cA2(k) = corr(squareform(M,'tovector')',ma2','type','spearman','rows','complete');
+        cV2(k) = corr(squareform(M,'tovector')',mv2','type','spearman','rows','complete');
     k
 end
