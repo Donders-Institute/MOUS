@@ -1,6 +1,7 @@
 function [mv_corr,ma_corr,ms_corr,ma2_corr,mv2_corr] = rsa_corr(voxelstart,voxelend,latewindow)
 
 % Variables
+
 tstep = 120;%+maxlag; % in samples
 interval = [1 121 latewindow];% start interval in samples
 subjA = mous_db_getfilename('allA','subjectname');
@@ -13,7 +14,7 @@ else
 
 end
 P=[ones(1,Nsubj) zeros(1,Nsubj);zeros(1,Nsubj) ones(1,Nsubj)];
-
+count = 1;
 for k = voxelstart:voxelend
 %% Load mne_source reconstruction for all subjects for one voxel
 load(strcat('/project/3011020.09/sopara/mne_pervoxel/baseline/v',num2str(k)))
@@ -25,6 +26,11 @@ load(strcat('/project/3011020.09/sopara/mne_pervoxel/postonset/v',num2str(k)))
 pb = zeros(Nsubj*2,Nsubj*2);
 sel = zeros(Nsubj*2,size(outbsl,2));
 sel = squeeze(outbsl(:,(end-tstep):end));
+% n= size(sel,2);
+% sel = bsxfun(@minus,sel,sum(sel,2)/n);  % Remove mean
+% coef = sel * sel';
+% d = sqrt(diag(coef)); % sqrt first to avoid under/overflow
+% coef = bsxfun(@rdivide,coef,d); coef = bsxfun(@rdivide,coef,d'); % coef = coef ./ d*d';
 coef = corr(sel');
 pb(:,:)=coef;
 clear sel coef d
@@ -38,13 +44,19 @@ clear sel coef d
 %% Compute correlation across subjects
 
 p = zeros(Nsubj*2,Nsubj*2,length(interval));
-sel = squeeze(out(:,:));
+
 for i = 1:length(interval)
-    coef = corr(sel(:,interval(i):interval(i)+tstep)');
+    sel = squeeze(out(:,interval(i):interval(i)+tstep));
+%     n = size(sel,2);
+%     sel = bsxfun(@minus,sel,sum(sel,2)/n);  % Remove mean
+%     coef = sel * sel';
+%     d = sqrt(diag(coef)); % sqrt first to avoid under/overflow
+%     coef = bsxfun(@rdivide,coef,d); coef = bsxfun(@rdivide,coef,d'); % coef = coef ./ d*d';
+    coef = corr(sel');
     p(:,:,i) = coef;
 end
 clear sel coef
-
+  
 % average
 % px = zeros(2,2,length(interval));
 % for i = 1:length(interval)
@@ -61,7 +73,7 @@ end
 
 
 %average
-% newpx = zeros(2,2,,length(interval));
+% newpx = zeros(2,2,length(interval));
 % for i = 1:length(interval)
 %     newpx(:,:,i)=P*newp(:,:,i)*P';
 % end
@@ -120,11 +132,12 @@ M = col2im(M,[Nsubj Nsubj],[Nsubj*4 Nsubj*4],'distinct');
 % % Correlate dissimilarity matrix with models
 
 M(logical(eye(size(M)))) = 0;
-mv_corr(k) = corr(squareform(M,'tovector')',mv','type','spearman','rows','complete');
-ma_corr(k) = corr(squareform(M,'tovector')',ma','type','spearman','rows','complete');
-ms_corr(k) = corr(squareform(M,'tovector')',ms','type','spearman','rows','complete');
-ma2_corr(k) = corr(squareform(M,'tovector')',ma2','type','spearman','rows','complete');
-mv2_corr(k) = corr(squareform(M,'tovector')',mv2','type','spearman','rows','complete');
+mv_corr(count) = corr(squareform(M,'tovector')',mv','type','spearman','rows','complete');
+ma_corr(count) = corr(squareform(M,'tovector')',ma','type','spearman','rows','complete');
+ms_corr(count) = corr(squareform(M,'tovector')',ms','type','spearman','rows','complete');
+ma2_corr(count) = corr(squareform(M,'tovector')',ma2','type','spearman','rows','complete');
+mv2_corr(count) = corr(squareform(M,'tovector')',mv2','type','spearman','rows','complete');
+count = count+1;
 end
 %save(strcat('/project/3011020.09/sopara/mne_pervoxel/modelcorr/v',num2str(voxelnum)),'mv_corr','ma_corr','ms_corr','ma2_corr','mv2_corr')
 
