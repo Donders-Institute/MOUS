@@ -1,8 +1,8 @@
-function [mv_corr,ma_corr,ms_corr,ma2_corr,mv2_corr] = rsa_corr(voxelstart,voxelend,latewindow)
+function [mv_corr,ma_corr,ms_corr,ma2_corr,mv2_corr] = rsa_corr(voxelstart,voxelend,latewindow,windowsize)
 
 % Variables
 
-tstep = 120;%+maxlag; % in samples
+tstep = windowsize;%+maxlag; % in samples
 interval = [1 121 latewindow];% start interval in samples
 subjA = mous_db_getfilename('allA','subjectname');
 subjV = mous_db_getfilename('allV','subjectname');
@@ -26,12 +26,12 @@ load(strcat('/project/3011020.09/sopara/mne_pervoxel/postonset/v',num2str(k)))
 pb = zeros(Nsubj*2,Nsubj*2);
 sel = zeros(Nsubj*2,size(outbsl,2));
 sel = squeeze(outbsl(:,(end-tstep):end));
-% n= size(sel,2);
-% sel = bsxfun(@minus,sel,sum(sel,2)/n);  % Remove mean
-% coef = sel * sel';
-% d = sqrt(diag(coef)); % sqrt first to avoid under/overflow
-% coef = bsxfun(@rdivide,coef,d); coef = bsxfun(@rdivide,coef,d'); % coef = coef ./ d*d';
-coef = corr(sel');
+n= size(sel,2);
+sel = bsxfun(@minus,sel,sum(sel,2)/n);  % Remove mean
+coef = sel * sel';
+d = sqrt(diag(coef)); % sqrt first to avoid under/overflow
+coef = bsxfun(@rdivide,coef,d); coef = bsxfun(@rdivide,coef,d'); % coef = coef ./ d*d';
+% coef = corr(sel');
 pb(:,:)=coef;
 clear sel coef d
 
@@ -47,12 +47,12 @@ p = zeros(Nsubj*2,Nsubj*2,length(interval));
 
 for i = 1:length(interval)
     sel = squeeze(out(:,interval(i):interval(i)+tstep));
-%     n = size(sel,2);
-%     sel = bsxfun(@minus,sel,sum(sel,2)/n);  % Remove mean
-%     coef = sel * sel';
-%     d = sqrt(diag(coef)); % sqrt first to avoid under/overflow
-%     coef = bsxfun(@rdivide,coef,d); coef = bsxfun(@rdivide,coef,d'); % coef = coef ./ d*d';
-    coef = corr(sel');
+    n = size(sel,2);
+    sel = bsxfun(@minus,sel,sum(sel,2)/n);  % Remove mean
+    coef = sel * sel';
+    d = sqrt(diag(coef)); % sqrt first to avoid under/overflow
+    coef = bsxfun(@rdivide,coef,d); coef = bsxfun(@rdivide,coef,d'); % coef = coef ./ d*d';
+%    coef = corr(sel');
     p(:,:,i) = coef;
 end
 clear sel coef
@@ -138,6 +138,7 @@ ms_corr(count) = corr(squareform(M,'tovector')',ms','type','spearman','rows','co
 ma2_corr(count) = corr(squareform(M,'tovector')',ma2','type','spearman','rows','complete');
 mv2_corr(count) = corr(squareform(M,'tovector')',mv2','type','spearman','rows','complete');
 count = count+1;
+
 end
 %save(strcat('/project/3011020.09/sopara/mne_pervoxel/modelcorr/v',num2str(voxelnum)),'mv_corr','ma_corr','ms_corr','ma2_corr','mv2_corr')
 
