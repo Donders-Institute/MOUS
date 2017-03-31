@@ -13,53 +13,62 @@ for swindow = timex
 % create cell-arrays to run rsa_corr function for x voxels in each call
 for k = 1:manyvox:nVtx
     if k+manyvox<=nVtx
-        jobid{count} = qsubfeval('rsa_corr',k,k+manyvox-1,swindow,windowsize,'memreq',1024^3,'timreq',1000,'batchid',strcat(num2str(swindow),'_',num2str(k)));
+        jobid{count} = qsubfeval('rsa_corr',k,k+manyvox-1,swindow,windowsize,'memreq',1024^3,'timreq',1500,'batchid',strcat(num2str(swindow),'_',num2str(k)));
     else
-        jobid{count} = qsubfeval('rsa_corr',k,nVtx,swindow,windowsize,'memreq',1024^3,'timreq',1000,'batchid',strcat(num2str(swindow),'_',num2str(k)));
+        jobid{count} = qsubfeval('rsa_corr',k,nVtx,swindow,windowsize,'memreq',1024^3,'timreq',1500,'batchid',strcat(num2str(swindow),'_',num2str(k)));
     end
 count = count+1;
 end
 end
 
 supra_corr = zeros(length(timex),nVtx);
-aud_corr = zeros(length(timex),nVtx);
-vis_corr = zeros(length(timex),nVtx);
+within_corr = zeros(length(timex),nVtx);
 count = 1;
 for i = 1:length(timex)
     tmpS = [];
-    tmpA = [];
-    tmpV = [];
+    tmpM = [];
     for k = 1:length(1:manyvox:nVtx)
         %[V A S A2 V2] = qsubget(jobid{count}, 'timeout',100,'sleep',20);
         load(strcat(jobid{count},'_output'))
 
         tmpS = [tmpS max(max(argout{5},argout{6}),argout{7})];
-        tmpA = [tmpA max(argout{3},argout{4})];
-        tmpV = [tmpV max(argout{1},argout{2})];
+        tmpM = [tmpM max(max(argout{3},argout{4}),max(argout{1},argout{2}))];
         count = count+1;
     end
     supra_corr(i,:) = tmpS;
-    aud_corr(i,:) = tmpA;
-    vis_corr(i,:) = tmpV;
+    within_corr(i,:) = tmpM;
+    
 end
 
-mask = (supra_corr > aud_corr) & (supra_corr > vis_corr);
+mask = supra_corr > within_corr;
 
 for i = 1:length(timex)
-x = squeeze(supra_corr(i,:));
- %xmask = squeeze(mask(i,:));
- %x = x.*xmask;
+x = squeeze(within_corr(i,:));
+%xmask = squeeze(mask(i,:));
+%x = x.*xmask;
 figure;ft_plot_mesh(atlas,'vertexcolor',x(:))
 caxis([minval maxval])
 end
-% 
-% for k = 1:steps:nVtx
-% x2{count} = k+99;
-% x{count} = k;
-% xtim{count} = swindow;
-% count = count+1;
-% end
-% 
-% x2{end} = [nVtx];
-% [V,A,S,A2,V2] = qsubcellfun('rsa_corr',x,x2,xtim,'memreq',1024^3,'timreq',100);
+
+%% stats
+design = [ones(1,size(supra_corr,2)) ones(1,size(supra_corr,2))*2; 1:size(supra_corr,2) 1:size(supra_corr,2)];
+
+timeslice = 1;
+% cfg = [];
+% cfg.statistic = 'statfun_mengz';
+% cfg.correctm = 'no';
+% cfg. alpha = 0.025;
+% cfg.ivar = 1;
+% cfg.uvar = 2;
+% [stat, cfg] = ft_statistics_analytic(cfg,[supra_corr(timeslice,:)' within_corr(timeslice,:)'],design);
+
+cfg = [];
+cfg.statistic = 'depsamplesregrT';
+cfg.numrandomization = 100;
+cfg.correctm = 'max';
+cfg.ivar = 1;
+cfg.uvar = 2;
+cfg.tail = 1;
+stat = ft_statistics_montecarlo(cfg, [supra_corr(timeslice,:) within_corr(timeslice,:)], design);
+
 
