@@ -80,12 +80,12 @@ for k = voxelstart:voxelend
     
     
     %average
-    % newpx = zeros(2,2,length(interval));
-    % for i = 1:length(interval)
-    %     newpx(:,:,i)=P*newp(:,:,i)*P';
-    % end
-    % newpx=newpx./(Nsubj^2);
-    % val = max(newpx(:));
+%     newpx = zeros(2,2,length(interval));
+%     for i = 1:length(interval)
+%         newpx(:,:,i)=P*newp(:,:,i)*P';
+%     end
+%     newpx=newpx./(Nsubj^2);
+%     val = max(newpx(:));
     
     %% Create model matrix
     % visual-specific model
@@ -157,7 +157,7 @@ for k = voxelstart:voxelend
     % % Correlate dissimilarity matrix with models
     
     M(logical(eye(size(M)))) = 0;
-    %mv_corr(count) = corr(squareform(M,'tovector')',mv','type','kendall','rows','complete');
+    mv_corr(count) = corr(squareform(M,'tovector')',mv','type','spearman','rows','complete');
     ma_corr(count) = corr(squareform(M,'tovector')',ma','type','spearman','rows','complete');
     ms_corr(count) = corr(squareform(M,'tovector')',ms','type','spearman','rows','complete');
     ma2_corr(count) = corr(squareform(M,'tovector')',ma2','type','spearman','rows','complete');
