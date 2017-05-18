@@ -102,9 +102,9 @@ if nargout > 2
     
 
     
-    resample = zeros(Nperm,20706);
+    resample = zeros(Nperm,62118);
     for i=1:Nperm
-        resample(i,:) = randperm(20706);
+        resample(i,:) = randperm(62118);
     end
     
     
@@ -132,14 +132,18 @@ if nargout > 2
                 withinquadlow(:,tim) = [squareform(squeeze(quads(:,1,:,1,tim)),'tovector') squareform(squeeze(quads(:,2,:,2,tim)),'tovector')];
                 acrosstmp = squeeze(quads(:,2,:,1,tim));
                 acrossquadlow(:,tim) = acrosstmp(:)';
+                end
                 n = size(withinquadlow,1);
                 m = size(acrossquadlow,1);
-                all = [withinquadlow(:,tim); acrossquadlow(:,tim)];
+                all = [withinquadlow(:,:); acrossquadlow(:,:)];
+                all = all(:);
                 all = all(resample(i,:));
-                quads(:,1,:,1,tim) = squareform(all(1:n/2));
-                quads(:,2,:,2,tim) = squareform(all(n/2+1:2*(n/2)));
-                quads(:,2,:,1,tim) = reshape(all((2*(n/2)+1):end),[102 102]);
-                quads(:,1,:,2,tim) = reshape(all((2*(n/2)+1):end),[102 102])';
+                all = reshape(all,[20706 3]);
+                for tim = 2:3
+                quads(:,1,:,1,tim) = squareform(all(1:n/2,tim));
+                quads(:,2,:,2,tim) = squareform(all(n/2+1:2*(n/2),tim));
+                quads(:,2,:,1,tim) = reshape(all((2*(n/2)+1):end,tim),[102 102]);
+                quads(:,1,:,2,tim) = reshape(all((2*(n/2)+1):end,tim),[102 102])';
                 end
  
                 %convert back
@@ -191,6 +195,6 @@ if nargout > 2
     
     % return the observed statistic
     stat.stat = statobs;
-    stat.ref = mean(statrand,2);
+    stat.ref = statrand;
 end
 end

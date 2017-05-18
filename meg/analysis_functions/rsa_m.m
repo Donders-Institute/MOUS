@@ -1,7 +1,7 @@
-function newp = rsa_m(k,latewindow,windowsize)
+function newp = rsa_m(voxelstart,voxelend,latewindow,windowsize)
 
 % Variables
-
+numvox = numel(voxelstart:voxelend);
 tstep = windowsize;%+maxlag; % in samples
 interval = [1 121 latewindow];% start interval in samples
 subjA = mous_db_getfilename('allA','subjectname');
@@ -14,6 +14,8 @@ else
     
 end
 
+newp = zeros(Nsubj*2,Nsubj*2,length(interval),numvox);
+for k = voxelstart:voxelend
     %% Load mne_source reconstruction for all subjects for one voxel
     load(strcat('/project/3011020.09/sopara/mne_pervoxel/baseline/v',num2str(k)))
     outbsl = out;
@@ -71,12 +73,11 @@ end
     % val = max(px(:));
     
     %% Subtract baseline correlation
-    newp = zeros(Nsubj*2,Nsubj*2,length(interval));
     for l = 1:length(interval)
-        newp(:,:,l)=abs(p(:,:,l))-abs(pb(:,:));
+        newp(:,:,l,(k+1) - voxelstart)=abs(p(:,:,l))-abs(pb(:,:));
     end
     
-  
-    
+
+end
 end
 
