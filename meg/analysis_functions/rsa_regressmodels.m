@@ -15,55 +15,18 @@ else
 end
 
 %% Create model matrix
+fill = NaN(102,1);
 % visual-specific model
-mv=zeros(408);
-mv(1:102,1:102)=1;
-mv = mv-diag(diag(mv));
-mv=squareform(mv,'tovector');
+mv = [ones(102,1);fill;zeros(102,1);fill;zeros(102,1);fill;zeros(102,1);zeros(102,1);fill;zeros(102,1)];
 % auditory-specific model
-ma=zeros(408);
-ma(205:306,205:306)=1;
-ma = ma-diag(diag(ma));
-ma=squareform(ma,'tovector');
+ma = [zeros(102,1);fill;zeros(102,1);fill;zeros(102,1);fill;zeros(102,1);ones(102,1);fill;zeros(102,1)];
 %
-ma2=zeros(408);
-ma2(205:306,205:306)=1;
-ma2(307:end,307:end)=1;
-ma2 = ma2-diag(diag(ma2));
-ma2=squareform(ma2,'tovector');
+ma2 = [zeros(102,1);fill;zeros(102,1);fill;zeros(102,1);fill;zeros(102,1);ones(102,1);fill;ones(102,1)];
+%
+mv2 = [ones(102,1);fill;zeros(102,1);fill;ones(102,1);fill;zeros(102,1);zeros(102,1);fill;zeros(102,1)];
 
-mv2=zeros(408);
-mv2(1:102,1:102)=1;
-mv2(103:204,103:204)=1;
-mv2 = mv2-diag(diag(mv2));
-mv2=squareform(mv2,'tovector');
 % supramodal model
-ms=zeros(408);
-ms(103:204,103:204)=1;
-ms(307:408,103:204)=1;
-ms(103:204,307:408)=1;
-ms(307:408,307:408)=1;
-ms = ms-diag(diag(ms));
-ms=squareform(ms,'tovector');
-% supramodal + early visual/auditory/both and within modality earlyXlate
-% supramodal model + early visual
-ms2=zeros(408);
-ms2(1:102,1:102)=1;
-ms2(103:204,103:204)=1;
-ms2(307:408,103:204)=1;
-ms2(103:204,307:408)=1;
-ms2(307:408,307:408)=1;
-ms2 = ms2-diag(diag(ms2));
-ms2=squareform(ms2,'tovector');
-% supramodal model + early auditory
-ms3=zeros(408);
-ms3(205:306,205:306)=1;
-ms3(103:204,103:204)=1;
-ms3(307:408,103:204)=1;
-ms3(103:204,307:408)=1;
-ms3(307:408,307:408)=1;
-ms3 = ms3-diag(diag(ms3));
-ms3=squareform(ms3,'tovector');
+ms = [zeros(102,1);fill;zeros(102,1);fill;ones(102,1);fill;ones(102,1);zeros(102,1);fill;ones(102,1)];
 
 % create data model
 
@@ -72,10 +35,10 @@ p = rsa_m(voxelstart,voxelend,latewindow,windowsize);
 
 %design matrices
 n = size(mv,2);
-design1 = [mv;mv2;ma;ma2];
-design2 = [mv;mv2;ma;ma2;ms];
+design1 = [mv mv2 ma ma2];
+design2 = [mv mv2 ma ma2 ms];
 
-betas = nan(j,size([design1; design2],1)+2);
+%betas = nan(j,size([design1; design2],1)+2);
 stat.p = nan(j,1);
 stat.f = nan(j,1);
 stat.mask = nan(j,1);
@@ -85,18 +48,17 @@ for v = 1:j
     
     if ~all(isnan(tmpp(:)))
         
-        fill = NaN( 10404,1);
-        quads=reshape(permute(reshape(tmpp(:,:,:),[Nsubj 2 Nsubj 2 3]),[1 3 2 4 5]),Nsubj^2,4,3);
-        M = cat(2,squeeze(quads(:,1,2)),fill,squeeze(quads(:,2,2)),fill,fill,squeeze(quads(:,1,3)),fill,squeeze(quads(:,2,3)),squeeze(quads(:,2,2)),fill,squeeze(quads(:,4,2)),fill,fill,squeeze(quads(:,2,3)),fill,squeeze(quads(:,4,3)));
-        M = col2im(M,[Nsubj Nsubj],[Nsubj*4 Nsubj*4],'distinct');
-        M(logical(eye(size(M)))) = 0;
-        Mx = squareform(M, 'tovector');
-        sel = isfinite(Mx);
-        
-        %regression
-        n = size(mv,2);
-        design1 = [mv;mv2;ma;ma2];
-        design2 = [mv;mv2;ma;ma2;ms];
+   
+        %quads=reshape(permute(reshape(tmpp(:,:,:),[Nsubj 2 Nsubj 2 3]),[1 3 2 4 5]),Nsubj^2,4,3);
+        %reduce dimensions by averaging over subjects within condition
+        quads = permute(reshape(tmpp(:,:,:),[Nsubj 2 Nsubj 2 3]),[1 3 2 4 5]);
+        quads = squeeze(mean(quads,2));
+        quads = reshape(quads,[Nsubj 4 3]);
+ 
+        %
+        M = cat(2,squeeze(quads(:,1,2)),fill,squeeze(quads(:,2,2)),fill,squeeze(quads(:,1,3)),fill,squeeze(quads(:,2,3)),squeeze(quads(:,4,2)),fill,squeeze(quads(:,4,3)));
+        M = M(:);
+        sel = isfinite(M);
         
 %         design1(:,sel) = design1(:,sel)-repmat(mean(design1(:,sel),2),[1 sum(sel)]);
 %         design2(:,sel) = design2(:,sel)-repmat(mean(design2(:,sel),2),[1 sum(sel)]);
@@ -108,8 +70,8 @@ for v = 1:j
         %         cfg.glm.standardise = 1; %this only demeans design matrix at the moment
         
         %betas(v,:) = statfun_glm_sa(cfg,Mx(sel),design(:,sel));
-        s1 = regstats(Mx(sel)',design1(:,sel)','linear',{'beta','fstat','r','rsquare'});
-        s2 = regstats(Mx(sel)',design2(:,sel)','linear',{'beta','fstat','r','rsquare'});
+        s1 = regstats(M(sel)',design1(sel,:),'linear',{'beta','fstat','r','rsquare'});
+        s2 = regstats(M(sel)',design2(sel,:),'linear',{'beta','fstat','r','rsquare'});
         
         f = ((s1.fstat.sse - s2.fstat.sse)/(s1.fstat.dfe - s2.fstat.dfe))/(s2.fstat.sse/s2.fstat.dfe);
         pval=1-fcdf(f,s1.fstat.dfe - s2.fstat.dfe,s2.fstat.dfe);
