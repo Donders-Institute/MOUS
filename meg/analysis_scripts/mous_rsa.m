@@ -19,12 +19,12 @@ end
 %% Load single subject sourcedata
 
 for k = 1:Nsubj
-    tmp = mous_db_getdata(subjA{k},'meg_mne_conjunction_seq');
+    tmp = mous_db_getdata(subjA{k},'meg_mne_conjunction_sen');
     tmp.cfg = rmfield(tmp.cfg,'previous');
     tmp.pos = sourcemodel.pnt;
     tmp.tri = sourcemodel.tri;
     sA{k} = tmp;
-    tmp = mous_db_getdata(subjV{k},'meg_mne_conjunction_seq');
+    tmp = mous_db_getdata(subjV{k},'meg_mne_conjunction_sen');
     tmp.cfg = rmfield(tmp.cfg,'previous');
     tmp.pos = sourcemodel.pnt;
     tmp.tri = sourcemodel.tri;

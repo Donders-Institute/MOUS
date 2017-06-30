@@ -19,7 +19,7 @@ for k = voxelstart:voxelend
     %% Load mne_source reconstruction for all subjects for one voxel
     load(strcat('/project/3011020.09/sopara/mne_pervoxel/baseline/v',num2str(k)))
     outbsl = out;
-    load(strcat('/project/3011020.09/sopara/mne_pervoxel/postonset/v',num2str(k)))
+    load(strcat('/project/3011020.09/sopara/mne_pervoxel/postonset_wordlist/v',num2str(k)))
     
     
     %% Compute baseline correlation

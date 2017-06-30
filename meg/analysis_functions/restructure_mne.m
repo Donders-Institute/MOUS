@@ -2,7 +2,7 @@
 % of mous_mne_pipeline({'domne_conjunction', 1}, restructures the pow values in structure dat 
 % according to dimension dimx and saves to directory dir.
 % example use :
-% restructure_mne(out,2,'/project/3011020.09/sopara/mne_pervoxel/baseline','usepow',1)
+% restructure_mne(out,2,'/project/3011020.09/sopara/mne_pervoxel/baseline/')
 
 %% 
 function restructure_mne(dat,dimx,dir)

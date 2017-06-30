@@ -70,8 +70,8 @@ for v = 1:j
         %         cfg.glm.standardise = 1; %this only demeans design matrix at the moment
         
         %betas(v,:) = statfun_glm_sa(cfg,Mx(sel),design(:,sel));
-        s1 = regstats(M(sel)',design1(sel,:),'linear',{'beta','fstat','r','rsquare'});
-        s2 = regstats(M(sel)',design2(sel,:),'linear',{'beta','fstat','r','rsquare'});
+        s1 = regstats(M(sel)',design1(sel,:),'linear',{'beta','fstat'});
+        s2 = regstats(M(sel)',design2(sel,:),'linear',{'beta','fstat'});
         
         f = ((s1.fstat.sse - s2.fstat.sse)/(s1.fstat.dfe - s2.fstat.dfe))/(s2.fstat.sse/s2.fstat.dfe);
         pval=1-fcdf(f,s1.fstat.dfe - s2.fstat.dfe,s2.fstat.dfe);
