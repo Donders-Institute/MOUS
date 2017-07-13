@@ -10,13 +10,15 @@ if ~exist('rootdir', 'var')
     rootdir = '/project/3011020.09/sopara';
 end
 
-if ~exist('doword2vec',       'var'), dopreproc      = 0; end
-if ~exist('dopos',       'var'), dopreproc      = 0; end
-if ~exist('dochannel',       'var'), dopreproc      = 0; end
-if ~exist('dosource',       'var'), dopreproc      = 0; end
-if ~exist('doregression',       'var'), dopreproc      = 0; end
-if ~exist('dofitdata',       'var'), dopreproc      = 0; end
-if ~exist('dofitvector',       'var'), dopreproc      = 0; end
+if ~exist('doword2vec',       'var'), doword2vec      = 0; end
+if ~exist('dopos',       'var'), dopos      = 0; end
+if ~exist('dochannel',       'var'), dochannel      = 0; end
+if ~exist('dosource',       'var'), dosource      = 0; end
+if ~exist('doregression',       'var'), doregression      = 0; end
+if ~exist('dofitdata',       'var'), dofitdata     = 0; end
+if ~exist('dofitvector',       'var'), dofitvector      = 0; end
+if ~exist('dools',       'var'), dools      = 0; end
+if ~exist('doridge',       'var'), doridge      = 0; end
 
 %% Load in data
 %load mne source reconstruction on averaged tlck data to get filter
@@ -180,7 +182,8 @@ for t = 1:length(timesteps)-1
               
               predicted_y       = zeros(2,size(trainfeat,2));
               for i = 1:size(trainfeat,2)
-              jobid{count} = qsubfeval('ridge',trainfeat(:,i),traindata,10^(-6),'memreq',(1024^3)*7,'timreq',300,'batchid',strcat('feat_',num2str(i),'_fold_',num2str(f),'_time_',num2str(t)),'matlabcmd','matlab2016b');
+              jobid{count} = qsubfeval('ridge',trainfeat(:,i),traindata,(10^-6),'memreq',(1024^3)*7,'timreq',1000,'matlabcmd','matlab2016b','batchid',strcat('feat_',num2str(i),'_fold_',num2str(f),'_time_',num2str(t)));
+              pause(15)
               count = count+1;
               end
             end
