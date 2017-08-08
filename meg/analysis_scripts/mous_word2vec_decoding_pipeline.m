@@ -127,127 +127,180 @@ if mod(numobs,2) %if uneven number of observations make even to enable even cros
     numobs = numobs-1;
 end
 %cross = crossvalind('Kfold',numobs,numobs/2);%FIX! leave two out cross validation takes too much time to debug. Maybe better split in three, one third as test data.
-[testind,trainind] = crossvalind('HoldOut',numobs,0.7);
+%FIX: only leave out entire exemplar (if a word repeats all trials should be either in test or training set
+[trainInd,valInd,testInd] = dividerand(numobs,0.5,0.35,0.15);
+if dofindlambda
+    trainind = trainInd;
+    testind  = valInd;
+else
+    trainind = sort([trainInd, valInd]);
+    testind  = testInd;
+end
+
 jobid = {};
-count = 1;
-for t = 1:length(timesteps)-1
-    datasel = data(:,:,timesteps(t):(timesteps(t+1)-1));
-    [m,n,p] = size(datasel);
-    datasel = reshape(datasel,[m,(n*p)]);
-    
-    if dofitdata
+count = 641;
+% find best regularization parameter
+for lambda = [0.001,0.01,1]%[0.0006,0.001,0.01,1]
+    for t = 3:length(timesteps)-1
+        datasel = data(:,:,timesteps(t):(timesteps(t+1)-1));
+        [m,n,p] = size(datasel);
+        datasel = reshape(datasel,[m,(n*p)]);
         
-        
-        %need to do this per source location as full channel matrix is rank
-        %deficient by definition
-        %% Generate design matrix
-        
-        % use channels as regressors
-        % ordinary least squares regression
-        % compute zscore
-        s           = std(datasel,0,1);
-        mu          = mean(datasel,1);
-        x           = datasel - mu;
-        datasel_z   = x./s;
-        design = [ones(size(data,1),1) datasel_z];
-        %zscore?
-        
-        %% Find GLM & test accuracy of predictive power using cross-validation
-        
-        % for f = 1:max(cross) % do in cross-validation manner for each fold
-        %create cross-validation set split
-        
-        traindata       = design(trainind,:);
-        trainfeat       = featv(trainind,:);
-        testdata        = design(testind,:);
-        testfeat        = featv(testind,:);
-        
-        if dools
-            %ordinary least squares multivariate regression %results in
-            %overfitting
-            [betas,se_b,mse]    = lscov(traindata,trainfeat); % X = lscov(A,B); ordinary least squares solution to A*X = B, (MxN)*(Nx1) = (Mxk);
+        if dofitdata
             
-            %predict feature vector for left out samples
-            predicted_y         = testdata * betas;
             
-        end
-        
-        if doridge
-            traindata         = traindata(:,2:end);
-            testdata          = testdata(:,2:end);
+            %need to do this per source location as full channel matrix is rank
+            %deficient by definition
+            %% Generate design matrix
             
-            predicted_y       = zeros(2,size(trainfeat,2));
-            for i = 1:size(trainfeat,2)
-                jobid{count} = qsubfeval('ridge',trainfeat(:,i),traindata,(10^-6),'memreq',(1024^3)*7,'timreq',1500,'matlabcmd','matlab2016b','batchid',strcat('feat_',num2str(i),'_time_',num2str(t)));
-                %system('df /project/3011050.04/betas','-echo')
-                count = count+1;
-                
-            end
-        end
-        %end
-    end
-    
-    if dofitvector
-        %% Generate design matrix
-        
-        %use feature vectors as regressors
-        % ordinary least squares regression
-        s           = std(featv,0,1);
-        mu          = mean(featv,1);
-        x           = featv - mu;
-        featv_z   = x./s;
-        design = [ones(size(data,1),1) featv_z];
-        
-        %zscore data
-        s           = std(datasel,0,1);
-        mu          = mean(datasel,1);
-        x           = datasel - mu;
-        datasel_z   = x./s;
-        
-        %% Generate cross-validation set
-        numobs = size(design,1);
-        %inds = crossvalind('LeaveMOut',numobs,2); %generate new test example at each round, with possible repetitions
-        if mod(numobs,2) %if uneven number of observations make even to enable even crossvalidation split
-            numobs = numobs-1;
-        end
-        cross = crossvalind('Kfold',numobs,numobs/2);
-        %% Find GLM & test accuracy of predictive power using cross-validation
-        
-        correct         = 0;
-        incorrect       = 0;
-        leftout         = zeros(max(cross),2);
-        for f = 1:max(cross) % do in cross-validation manner for each fold
+            % use channels as regressors
+            % ordinary least squares regression
+            % compute zscore
+            s           = std(datasel,0,1);
+            mu          = mean(datasel,1);
+            x           = datasel - mu;
+            datasel_z   = x./s;
+            design = [ones(size(data,1),1) datasel_z];
+            %zscore?
+            
+            
+            %% Find GLM & test accuracy of predictive power using cross-validation
+            
+            % for f = 1:max(cross) % do in cross-validation manner for each fold
             %create cross-validation set split
-            leftout(f,:)    = find(cross==f);
-            traindata       = datasel_z(~(cross==f),:);
-            trainfeat       = design(~(cross==f),:);
-            testdata        = datasel_z(cross==f,:);
-            testfeat        = design(cross==f,:);
+            
+            traindata       = design(trainind,:);
+            trainfeat       = featv(trainind,:);
+            testdata        = design(testind,:);
+            testfeat        = featv(testind,:);
             
             if dools
-                %ordinary least squares multivariate regression
-                [betas,se_b,mse]    = lscov(trainfeat,traindata); % X = lscov(A,B); least squares solution to A*X = B, (MxN)*(Nx1) = (Mxk);
+                %ordinary least squares multivariate regression %results in
+                %overfitting
+                [betas,se_b,mse]    = lscov(traindata,trainfeat); % X = lscov(A,B); ordinary least squares solution to A*X = B, (MxN)*(Nx1) = (Mxk);
+                
                 %predict feature vector for left out samples
-                predicted_y         = testfeat * betas;
+                predicted_y         = testdata * betas;
+                
             end
             
             if doridge
-                trainfeat         = trainfeat(:,2:end);
-                testfeat          = testfeat(:,2:end);
+                traindata         = traindata(:,2:end);
+                testdata          = testdata(:,2:end);
                 
-                predicted_y       = zeros(2,size(traindata,2));
-                for i = 1:size(traindata,2)
-                    betas             = ridge(traindata(:,i),trainfeat,10^(-6));
-                    predicted_y(:,i)  = testfeat * betas;
+                for i = 1:size(trainfeat,2)
+                    jobid{count} = qsubfeval('ridge',trainfeat(:,i),traindata,lambda,'memreq',(1024^3)*5,'timreq',1000,'matlabcmd','matlab2016b','batchid',strcat('feat_',num2str(i),'_time_',num2str(t)));
+                    %system('df /project/3011050.04/betas','-echo')
+                    count = count+1;
                 end
             end
-            %% evaluate prediction
+            %end
+        end
+        
+        if dofitvector
+            %% Generate design matrix
+            
+            %use feature vectors as regressors
+            % ordinary least squares regression
+            s           = std(featv,0,1);
+            mu          = mean(featv,1);
+            x           = featv - mu;
+            featv_z   = x./s;
+            design = [ones(size(data,1),1) featv_z];
+            
+            %zscore data
+            s           = std(datasel,0,1);
+            mu          = mean(datasel,1);
+            x           = datasel - mu;
+            datasel_z   = x./s;
+            
+            %% Generate cross-validation set
+            numobs = size(design,1);
+            %inds = crossvalind('LeaveMOut',numobs,2); %generate new test example at each round, with possible repetitions
+            if mod(numobs,2) %if uneven number of observations make even to enable even crossvalidation split
+                numobs = numobs-1;
+            end
+            cross = crossvalind('Kfold',numobs,numobs/2);
+            %% Find GLM & test accuracy of predictive power using cross-validation
+            
+            correct         = 0;
+            incorrect       = 0;
+            leftout         = zeros(max(cross),2);
+            for f = 1:max(cross) % do in cross-validation manner for each fold
+                %create cross-validation set split
+                leftout(f,:)    = find(cross==f);
+                traindata       = datasel_z(~(cross==f),:);
+                trainfeat       = design(~(cross==f),:);
+                testdata        = datasel_z(cross==f,:);
+                testfeat        = design(cross==f,:);
+                
+                if dools
+                    %ordinary least squares multivariate regression
+                    [betas,se_b,mse]    = lscov(trainfeat,traindata); % X = lscov(A,B); least squares solution to A*X = B, (MxN)*(Nx1) = (Mxk);
+                    %predict feature vector for left out samples
+                    predicted_y         = testfeat * betas;
+                end
+                
+                if doridge
+                    trainfeat         = trainfeat(:,2:end);
+                    testfeat          = testfeat(:,2:end);
+                    
+                    predicted_y       = zeros(2,size(traindata,2));
+                    for i = 1:size(traindata,2)
+                        betas             = ridge(traindata(:,i),trainfeat,10^(-6));
+                        predicted_y(:,i)  = testfeat * betas;
+                    end
+                end
+                %% evaluate prediction
+                %euclidean distance between vectors belonging together should be smaller
+                %than distance between vectors not belonging together.
+                same        = norm(predicted_y-testdata);
+                different   = norm(predicted_y-testdata([2 1],:));
+                success     = same < different;
+                fprintf('timewindow: %d til %d -- fold %d of %d : ',timesteps(t),timesteps(t+1)-1,f,max(cross));
+                if success
+                    fprintf('predicted label matches');
+                    correct = correct+1;
+                else
+                    fprintf('predicted label does NOT match');
+                    incorrect = incorrect + 1;
+                end
+                fprintf('\n');
+            end
+            
+        end%FIXME! does not send off jobs to cluster yet
+    end
+end
+
+
+%% prediction
+count = 1;
+betas = zeros(273*steps-1,size(trainfeat,2));
+correct=0;
+incorrect=0;
+for lambda = [0.001,0.01,1]
+    for t = 1:length(timesteps)-1
+        for f = 1:size(trainfeat,2)
+            jobname = strsplit(jobid{count},'_');
+            jobname = strjoin(jobname(1:5),'_');
+            names = dir(strcat(jobname,'*.mat'));
+            load(names.name);
+            betas(:,f) = argout{1};
+            count = count+1;
+            f
+        end
+        [m,n] = size(testdata);
+        for i = 1:2:m
+            tmpdata = testdata(i:i+1,:);
+            tmpfeat = testfeat(i:i+1,:);
+            predicted_y  = tmpdata * betas;
+            %evaluate prediction
             %euclidean distance between vectors belonging together should be smaller
             %than distance between vectors not belonging together.
-            same        = norm(predicted_y-testdata);
-            different   = norm(predicted_y-testdata([2 1],:));
+            same        = norm(predicted_y-tmpfeat);
+            different   = norm(predicted_y-tmpfeat([2 1],:));
             success     = same < different;
-            fprintf('timewindow: %d til %d -- fold %d of %d : ',timesteps(t),timesteps(t+1)-1,f,max(cross));
+            fprintf('timewindow: %d til %d -- testexample number %d of %d : ',timesteps(t),timesteps(t+1)-1,f,size(trainfeat,2));
             if success
                 fprintf('predicted label matches');
                 correct = correct+1;
@@ -257,39 +310,8 @@ for t = 1:length(timesteps)-1
             end
             fprintf('\n');
         end
-        
-    end%FIXME! does not send off jobs to cluster yet
-end
-%% prediction
-count = 1;
-for t = 1%:length(timesteps)-1
-    for f = 1:17
-        for i = 1:size(trainfeat,2)
-            jobname = strsplit(jobid{count},'_');
-            jobname = strjoin(jobname(1:6),'_');
-            names = dir(strcat(jobname,'*.mat'));
-            load(names.name);
-            betas(:,i) = argout{1};
-            count = count+1;
-        end
-        predicted_y  = testdata * betas;
-        %evaluate prediction
-        %euclidean distance between vectors belonging together should be smaller
-        %than distance between vectors not belonging together.
-        same        = norm(predicted_y-testfeat);
-        different   = norm(predicted_y-testfeat([2 1],:));
-        success     = same < different;
-        fprintf('timewindow: %d til %d -- fold %d of %d : ',timesteps(t),timesteps(t+1)-1,f,max(cross));
-        if success
-            fprintf('predicted label matches');
-            correct = correct+1;
-        else
-            fprintf('predicted label does NOT match');
-            incorrect = incorrect + 1;
-        end
-        fprintf('\n');
+        accuracy(t,:) = correct/(m/2);
     end
-    accuracy(t,:) = correct/max(cross);
 end
 %%
 %%
