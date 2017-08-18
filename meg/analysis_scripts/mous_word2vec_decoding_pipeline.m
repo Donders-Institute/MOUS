@@ -131,15 +131,18 @@ div              = range(rem(numobs,range) == 0);
 leaveout         = div(nearest(div,10));
 cross            = sort(crossvalind('Kfold',numobs,numobs/leaveout));
 %FIX: only leave out entire exemplar (if a word repeats all trials should be either in test or training set;
-all_betas        = NaN(n*steps,numfeat,length(timesteps)-1,max(cross),'single');
+all_betas        = NaN(n*steps,numfeat,length(timesteps)-1,max(cross));
 %% Regression
-for t = 1:length(timesteps)-1
+for t = 1:length(timesteps)-1 %FIX: does not take last timewindow for now
     %select timeslice & append timepoints
     datasel = data(:,:,timesteps(t):(timesteps(t+1)-1));
     [numobs,n,p] = size(datasel);
     datasel = reshape(datasel,[numobs,(n*p)]);
+    
     for fold = 1:max(cross)
+        tic;
         fprintf('processing fold %d; timeslice %d\n', fold, t);
+        
         %assign data according to fold indices and coding direction
         %(encoding/decoding)
         x_train = [];
@@ -159,66 +162,33 @@ for t = 1:length(timesteps)-1
         if doridge
             %zscore
             [x_train, Mu, Sigma] = zscore(x_train);
-            all_Mu(:,t,fold) = Mu;
-            all_Sigma(:,t,fold) = Sigma;
+            all_Mu(:,t,fold)     = Mu;
+            all_Sigma(:,t,fold)  = Sigma;
             %Q:zscore testset with mean and stdv from trainingset??
             %pre-compute data variance
             varx                 = x_train * x_train';
-            %% Compute optimal Lambda
-            %% train ridge regression with several labda values using cross-validation
-            [m,n]       = size(y_train);
-            indx        = sort(crossvalind('Kfold', m, k));
-            y_hat       = NaN(m, n, length(lambdas), 'single');
+
+            %% train ridge regression with several labda values using cross-validation       
+            [R, lambdas]         = get_R_and_lambda(varx, y_train, k, 10); %k =  folds for crossval; 10 lambda values
             
-            for Lfold = 1 : k
-                
-                trainl   = Lfold ~= indx;
-                S       = sum(trainl);
-                betasl  = NaN(S, n,length(lambdas), 'single');
-                I       = eye(S, 'single');
-                testl    = Lfold == indx;
-                
-                foo     = varx(trainl, trainl);
-                bar     = y_train(trainl, :);
-                
-                parfor lambda = 1 : length(lambdas)
-                    
-                    betasl(:, :, lambda) = (foo + lambdas(lambda) * I) \ bar;
-                    
-                end
-                
-                y_hat(testl, :, :) = reshape(varx(testl, trainl) * reshape(betasl, S, n * length(lambdas)), sum(testl), n, length(lambdas));
-                %multiply the standardized slope (beta weight) by the correlation for each independent variable and add to calculate R2.
-                %What this does is to include both the correlation, (which will overestimate the total R2 because of shared Y)
-                %and the beta weight (which underestimates R2 because it only includes the unique Y and discounts the shared Y).
-                %Appropriately combined, they yield the correct R2.
-                
-            end
-            
-            %% compute residuals
-            R = NaN(n, length(lambdas), 'single');
-            for lambda = 1 : length(lambdas)
-                
-                c_1 = bsxfun(@minus, y_train, mean(y_train));
-                c_2 = bsxfun(@minus, y_hat(:, :, lambda), mean(y_hat(:, :, lambda)));
-                
-                R(:, lambda) = sum(c_1 .* c_2) ./ (sqrt(sum(c_1 .^ 2)) .* sqrt(sum(c_2 .^ 2)));
-                
-            end
             %% select optimal lambda values
-            r_hat      = NaN(n, 1, 'single');
-            lambda_hat = NaN(n, 1, 'single');
-            for feat = 1 : n
+            [m,n]      = size(y_train);
+            r_hat      = NaN(n, 1);
+            lambda_hat = NaN(n, 1);
+            
+            for feat   = 1 : n
                 
                 [r_hat(feat), I] = max(R(feat, :));
                 lambda_hat(feat) = lambdas(I);
                 
             end
+            
             % Compute beta values with optimal Lambda
-            C        = unique(lambda_hat);
-            beta_hat = NaN(m, n, 'single');
-            I        = eye(m, 'single');
-            for lambda = 1 : length(C)
+            C           = unique(lambda_hat);
+            beta_hat    = NaN(m, n);
+            I           = eye(m);
+            
+            for lambda  = 1 : length(C)
                 
                 beta_hat(:, C(lambda) == lambda_hat) = (varx + C(lambda) * I) \ y_train(:, C(lambda) == lambda_hat);
                 
@@ -228,10 +198,11 @@ for t = 1:length(timesteps)-1
             %system('df /project/3011050.04/betas','-echo')
             
         end
+        toc
         all_betas(:,:,t,fold) = x_train' * beta_hat;
     end
 end
-
+%save('/project/3011020.09/sopara/betas/all_betas','all_betas','-v7.3')
 
 %% prediction for fitdata
 accuracy    = zeros(length(timesteps)-1,1) ;
@@ -268,6 +239,10 @@ for t = 1:length(timesteps)-1
         different            = norm(y_hat1-y_test2)+ norm(y_hat2-y_test1);
         success              = same < different;
         fprintf('timewindow: %d til %d -- testexample number %d of %d : ',timesteps(t),timesteps(t+1)-1,fold,max(cross));
+        fprintf('\n');
+        fprintf('same = %.2f ', same);
+        fprintf('different = %.2f', different);
+        fprintf('\n');
         if success
             fprintf('predicted label matches');
             correct = correct+1;
