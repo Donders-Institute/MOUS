@@ -112,10 +112,11 @@ for k = 1:numel(selfix)-1
     trg1 = tmpval(kk);
     trg2 = tmpval(kk-1);
     if trg1==15 && (trg2 ==1 || trg2 ==2 || trg2 ==5 || trg2 ==6)
-      endsmp = min(tmpsmp(end), tmpsmp(kk+1));
+      endsmp = min([tmpsmp(end), tmpsmp(kk+1), fixsmp+20.*1200]);
       break;
     elseif trg1==15 && (trg2 ==8 || trg2 ==7 || trg2 ==3 || trg2 ==4)
-      endsmp = tmpsmp(end);
+      %endsmp = tmpsmp(end);
+      endsmp = min(tmpsmp(end), fixsmp+20.*1200); % maximize the length to 20 seconds, due to some logical flaw, the block-breaks occasionally add to the last sequence of the block: jms 20170821
       break;
     end
   end
