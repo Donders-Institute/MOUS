@@ -1,0 +1,30 @@
+#############GET FIlE LENGTH##################
+
+
+ sub int fileLength (                          # ---INPUT ARGUMENT(S)
+     string FileNameF                                           #|File name
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: READFILE\n");                           #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   input_file File = new input_file;                            #|Declare new input file File
+   File.open(FileNameF);                                        #|Open file FileNameF
+   string TextStr;
+   int Pos;                                           #|Declare string TextStr
+                                                                #|
+   loop                                                         #|Loop over text lines in FileNameF
+     Pos = 1                                                #|
+   until                                                        #|
+     File.end_of_file() == true                                 #|
+   begin                                                        #|
+     TextStr = TextStr + File.get_line() + "\n";                #|Update text line from FileNameF
+     Pos = Pos + 1;                                             #|
+   end;                                                         #|
+                                                                #|
+   return Pos-1;                                              #|Return string TextStr
+                                                                #|
+ end; 

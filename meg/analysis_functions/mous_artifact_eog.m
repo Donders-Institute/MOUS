@@ -1,6 +1,6 @@
 function [cfgout, cfgout2] = mous_artifact_eog(filename, trl)
 
-% $Id: mous_artifact_eog.m 44 2012-05-16 10:42:21Z jansch $
+% $Id: mous_artifact_eogb.m 44 2012-05-16 10:42:21Z jansch $
 
 % vEOG
 cfg                          = [];
@@ -25,6 +25,7 @@ cfg.artfctdef.reject         = 'partial';
 cfg    = ft_checkconfig(cfg, 'dataset2files', 'yes');
 cfgout = ft_artifact_zvalue(cfg);
 
+<<<<<<< HEAD
 % hEOG
 % cfg                          = [];
 % cfg.trl                      = trl;
@@ -39,6 +40,22 @@ cfgout = ft_artifact_zvalue(cfg);
 % cfg.artfctdef.zvalue.interactive= 'yes';
 % cfg.artfctdef.zvalue.custom.funhandle = @mous_preproc_saccades;
 % cfg.artfctdef.zvalue.custom.varargin = [];
+=======
+% % hEOG
+% % cfg                          = [];
+% % cfg.trl                      = trl;
+% % cfg.continuous               = 'yes';
+% % cfg.dataset                  = filename;
+% % cfg    = ft_checkconfig(cfg, 'dataset2files', 'yes');
+% % cfg.artfctdef.zvalue.channel    = {'EEG057'};
+% % cfg.artfctdef.zvalue.cutoff     = 4;
+% % cfg.artfctdef.zvalue.fltpadding = 0;
+% % cfg.artfctdef.zvalue.trlpadding = 0.1;
+% % cfg.artfctdef.zvalue.artpadding = 0.1;
+% % cfg.artfctdef.zvalue.interactive= 'yes';
+% % cfg.artfctdef.zvalue.custom.funhandle = @mous_preproc_saccades;
+% % cfg.artfctdef.zvalue.custom.varargin = [];
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 cfg.artfctdef.zvalue.channel    = {'EEG057'};
 cfg.artfctdef.zvalue.medianfilter  = 'yes';
 cfg.artfctdef.zvalue.medianfiltord = 301;
@@ -46,5 +63,9 @@ cfg.artfctdef.zvalue.absdiff       = 'yes';
 cfg.artfctdef.zvalue.bpfilter      = 'no';
 cfg.artfctdef.zvalue.demean        = 'yes';
 cfg.artfctdef.zvalue.boxcar        = 0.1;
+<<<<<<< HEAD
 cfgout2                      = ft_artifact_zvalue(cfg);
 
+=======
+cfgout2                      = ft_artifact_zvalue(cfg);
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78

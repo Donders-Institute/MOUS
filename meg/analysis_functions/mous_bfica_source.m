@@ -105,7 +105,11 @@ cfg.dics.fixedori = 'yes';
 cfg.dics.realfilter = 'yes';
 cfg.dics.keepfilter = 'yes';
 cfg.dics.lambda = '5%';
+<<<<<<< HEAD
 cfg.headmodel = headmodel;
+=======
+cfg.headmodel = ft_datatype_headmodel(headmodel); % to fix pnt/pos issue
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 cfg.grid = sourcemodel;
 cfg.keepleadfield = 'yes';
 source = ft_sourceanalysis(cfg, tmp);

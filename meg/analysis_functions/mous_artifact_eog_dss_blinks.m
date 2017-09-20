@@ -28,7 +28,11 @@ eog             = ft_channelnormalise([], ft_preprocessing(cfg2));
 clear p
 newtrl = zeros(0,3);
 for k = 1:numel(eog.trial)
+<<<<<<< HEAD
   p = peakdetect2(eog.trial{k}(1,:),0.5,120);
+=======
+  p = peakdetect2(eog.trial{k}(1,:),8,120);
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   if ~isempty(p)
     for kk = 1:numel(p)
       if p(kk)>0.1*1200 && p(kk)<size(eog.trial{k},2)-0.1*1200
@@ -43,6 +47,10 @@ end
 cfg1.trl = newtrl;
 cfg2.trl = newtrl;
 cfg2.rectify = 'no';
+<<<<<<< HEAD
+=======
+cfg2.bpfilter = 'no';
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 cfg2         = rmfield(cfg2, 'boxcar');
 
 data   = ft_resampledata(cfg3, ft_preprocessing(cfg1));
@@ -53,6 +61,7 @@ for k = 1:numel(eognew.trial)
 end
 
 % do componentanalysis for eye blinks
+<<<<<<< HEAD
 addpath /home/language/jansch/matlab/toolboxes/dss_1-0
 params.tr       = eognew.sampleinfo(:,1)+offset(:);
 params.tr_begin = eognew.sampleinfo(:,1);
@@ -62,15 +71,36 @@ s.X             = 1;
 params.computenew = 0;
 [~,~,avgpre]    = denoise_avg2(params,cat(2,data.trial{:}),s);
 [~,~,avgeog]    = denoise_avg2(params,cat(2,eognew.trial{:}),s);
+=======
+% params.tr       = eognew.sampleinfo(:,1)+offset(:);
+% params.tr_begin = eognew.sampleinfo(:,1);
+% params.tr_end   = eognew.sampleinfo(:,2);
+params.time     = eognew.time;
+params.demean   = 1;
+s.X             = 1;
+params.computenew = 0;
+[~,~,avgpre]    = denoise_avg2(params,data.trial,s);%cat(2,data.trial{:}),s);
+[~,~,avgeog]    = denoise_avg2(params,eognew.trial,s);%cat(2,eognew.trial{:}),s);
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 params.computenew = 1;
 
 cfg                   = [];
 cfg.method            = 'dss';
 cfg.dss.denf.function = 'denoise_avg2';
 cfg.dss.denf.params   = params;
+<<<<<<< HEAD
 cfg.channel           = 'MEG';
 cfg.numcomponent      = 16;
 comp                  = ft_componentanalysis(cfg, data);
 params.computenew     = 0;
 [~,~,avgcomp]         = denoise_avg2(params,cat(2,comp.trial{:}),s);
+=======
+cfg.dss.wdim          = 25;
+cfg.channel           = 'MEG';
+cfg.numcomponent      = 16;
+cfg.cellmode          = 'yes';
+comp                  = ft_componentanalysis(cfg, data);
+params.computenew     = 0;
+[~,~,avgcomp]         = denoise_avg2(params,comp.trial,s);%cat(2,comp.trial{:}),s);
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 comp                  = rmfield(comp, 'trial');

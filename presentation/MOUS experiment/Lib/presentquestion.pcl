@@ -1,0 +1,221 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # PRESENTQUESTION                                              #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Present online questions                                   #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   presentquestion(FileName,Delay,ButtonCodes)                #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   FileName = FileName file name                              #
+ #   DelayF = Delay time (ms) for requested questionair response#
+ #   ButtonCodes = Button codes                                 #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   string     FileName = "Q1.txt";                            # File name
+ #   int        Delay = 1000;                                   # Delay response time (ms)
+ #   array<int> ButtonCodes[2] = {1,2};                         # Button codes {Left,Right}
+ #   presentquestion(FileName,Delay,ButtonCodes);               #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   GETPICURE                                                  #
+ #   GETTRIAL                                                   #
+ #   GETTEXT                                                    #
+ #   LOGDATA                                                    #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   10 text objects in text objects array Texts                #
+ #   Trial object Trial                                         #
+ #   Picure object Picture                                      #
+ #   Text object Text                                           #
+ #                                                              #
+ # Last version 23-Oct-2008 02:27:57, Christian Forkstam        #
+ #==============================================================#
+ sub presentquestion(                                           # ---INPUT ARGUMENT(S)
+     string        FileNameF,                                   #|FileNameF file name
+     int           DelayF,                                      #|Delay time (ms) for requested questionair response
+     array<int,1>& ButtonCodesF                                 #|Button codes
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: PRESENTQUESTION\n");                    #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   int LeftKey  = ButtonCodesF[1];                              #|Set left key button code
+   int RightKey = ButtonCodesF[2];                              #|Set right key button code
+                                                                #|
+   input_file TextIn = new input_file;                          #|Open file
+   TextIn.open(FileNameF);                                      #|
+   array<string> Question[3];                                   #|Get Question
+   loop                                                         #|
+     int Pos = 1                                                #|
+   until                                                        #|
+     Pos > 3                                                    #|
+   begin                                                        #|
+     Question[Pos] = TextIn.get_line();                         #| 
+     Pos = Pos + 1;                                             #|
+   end;                                                         #|
+                                                                #|
+   trial QuestionTrial = gettrial(Trial);                       #|Questionair response trial
+   QuestionTrial.set_type(first_response);                      #|Any key press will stop this trial
+   QuestionTrial.set_duration(forever);                         #|Set duration time to wait forever
+   picture QuestionPicture = getpicture(Picture);               #|
+   QuestionPicture.clear();                                     #|
+   StimulusEvent.set_stimulus(QuestionPicture);                 #|
+   StimulusEvent.set_event_code("Questionnaire");               #|
+   StimulusEvent.set_port_code(0);                              #|
+                                                                #|
+   text QuestionInstr = gettext(Texts[1]);                      #|QuestionInstr
+   QuestionInstr.set_font_size(20);                             #|
+   QuestionInstr.set_align(align_left);                         #|
+   QuestionInstr.set_font_color(255,0,0);                       #|
+   QuestionInstr.set_caption(Question[1]);                      #|
+   QuestionInstr.redraw();                                      #| 
+   QuestionPicture.add_part( QuestionInstr    ,    0 ,  100 );  #|
+                                                                #|
+   text QuestionResponse = gettext(Texts[2]);                   #|QuestionResponse
+   QuestionResponse.set_font_size(20);                          #|
+   QuestionResponse.set_caption("|");                           #|
+   QuestionResponse.redraw();                                   #| 
+   QuestionPicture.add_part( QuestionResponse ,    0 , -100 );  #|
+                                                                #|
+   text QuestionLow = gettext(Texts[3]);                        #|QuestionLow
+   QuestionLow.set_font_size(20);                               #|
+   QuestionLow.set_font_color(255,0,0);                         #|
+   QuestionLow.set_caption(Question[2]);                        #| 
+   QuestionLow.redraw();                                        #| 
+   QuestionPicture.add_part( QuestionLow      , -300 ,   50 );  #|
+                                                                #|
+   text QuestionHigh = gettext(Texts[4]);                       #|QuestionHigh
+   QuestionHigh.set_font_size(20);                              #|
+   QuestionHigh.set_font_color(255,0,0);                        #|
+   QuestionHigh.set_caption(Question[3]);                       #| 
+   QuestionHigh.redraw();                                       #| 
+   QuestionPicture.add_part( QuestionHigh     ,  300 ,   50 );  #|
+                                                                #|
+   text QuestionCont = gettext(Texts[5]);                       #|QuestionCont
+   QuestionCont.set_font_size(20);                              #|
+   QuestionCont.set_font_color(255,0,0);                        #|
+   QuestionCont.set_caption(" ");                               #|
+   QuestionCont.redraw();                                       #|
+   QuestionPicture.add_part( QuestionCont     , -300 , -100 );  #|
+                                                                #|
+   text QuestionStop = gettext(Texts[6]);                       #|QuestionStop
+   QuestionStop.set_font_size(20);                              #|
+   QuestionStop.set_font_color(255,0,0);                        #|
+   QuestionStop.set_caption(" ");                               #|
+   QuestionStop.redraw();                                       #|
+   QuestionPicture.add_part( QuestionStop     ,  300 , -100 );  #|
+                                                                #|
+   text QuestionBar = gettext(Texts[7]);                        #|QuestionBar
+   QuestionBar.set_font_size(20);                               #|
+   QuestionBar.set_caption("__|__________________________|__"); #|
+   QuestionBar.redraw();                                        #| 
+   QuestionPicture.add_part( QuestionBar      ,    0 ,    0 );  #|
+                                                                #|
+   text QuestionLevel0 = gettext(Texts[8]);                     #|QuestionLevel0
+   QuestionLevel0.set_font_size(20);                            #|
+   QuestionLevel0.set_font_color(255,0,0);                      #|
+   QuestionLevel0.set_caption("0");                             #|
+   QuestionLevel0.redraw();                                     #| 
+   QuestionPicture.add_part( QuestionLevel0   , -200 ,  -50 );  #|
+                                                                #|
+   text QuestionLevel10 = gettext(Texts[9]);                    #|QuestionLevel10
+   QuestionLevel10.set_font_size(20);                           #|
+   QuestionLevel10.set_font_color(255,0,0);                     #|
+   QuestionLevel10.set_caption("10");                           #|
+   QuestionLevel10.redraw();                                    #| 
+   QuestionPicture.add_part( QuestionLevel10  ,  200 ,  -50 );  #|
+                                                                #|
+   int LastKey;                                                 #| Set variable to hold last key press
+   int StopKey;                                                 #| Set variable to hold stop key press
+   int Jump    = 20;                                            #| Set jump distance = 20
+   int JumpPos = 0;                                             #| Set start position to centre of screen (x-dim) 
+   QuestionPicture.set_part_x(2, JumpPos);                      #| Set cursor position to origo
+   QuestionTrial.present();                                     #| Wait until fresh response
+                                                                #|
+   int EndTime = clock.time() + DelayF;                         #| Set end time to DelayF ms from now
+   loop                                                         #| Loop until Stop == 1
+     int Stop = 0                                               #|
+   until                                                        #|
+     Stop == 1                                                  #|
+   begin                                                        #|
+     LastKey = response_manager.last_response();                #| Get last response key
+     if                                                         #| 
+       clock.time() < EndTime                                   #| 
+     then                                                       #| 
+                                                                #|
+       if                                                       #| Do nothing if first key press after stop cycle
+         StopKey == 1                                           #|
+       then                                                     #|
+         StopKey = ' ';                                         #| Reset stop key
+       elseif                                                   #|
+         StopKey != 1       &&                                  #|
+         LastKey == LeftKey &&                                  #|
+         JumpPos > -220                                         #|
+       then                                                     #|
+         JumpPos = JumpPos - Jump;                              #| Jump 20 dots to the left
+       elseif                                                   #|
+         LastKey == RightKey &&                                 #|
+         JumpPos <  220                                         #|
+       then                                                     #|
+         JumpPos = JumpPos + Jump;                              #| Jump 20 dots to the right
+       end;                                                     #|
+       EndTime = clock.time() + DelayF;                         #| Update end time to DelayF ms from now
+       QuestionPicture.set_part_x(2, JumpPos);                  #| Set updated cursor position
+       QuestionTrial.set_duration(DelayF);                      #| Reset duration time to wait for DelayF ms
+       QuestionTrial.present();                                 #| Update screen
+                                                                #|
+     else                                                       #|
+                                                                #|
+       QuestionCont.set_caption(Instrs[4]);                     #| Update question
+       QuestionCont.redraw();                                   #|
+       QuestionStop.set_caption(Instrs[5]);                     #|
+       QuestionStop.redraw();                                   #|
+       QuestionTrial.set_duration(forever);                     #| Wait forever
+       QuestionTrial.present();                                 #| Update screen
+                                                                #|
+       StopKey = response_manager.last_response();              #| Get last response key
+       if                                                       #| If last key = 2 then
+         StopKey == 2                                           #|
+       then                                                     #|
+         Stop = 1;                                              #| Set Stop == 1 and finish loop
+       elseif                                                   #| If last key = 1 then
+         StopKey == 1                                           #|
+       then                                                     #|
+         QuestionCont.set_caption(" ");                         #| Reset question
+         QuestionCont.redraw();                                 #|
+         QuestionStop.set_caption(" ");                         #|
+         QuestionStop.redraw();                                 #|
+         QuestionTrial.set_duration(DelayF);                    #| Reset duration time to wait for DelayF ms
+         QuestionTrial.present();                               #| Reset screen
+         EndTime = clock.time() + DelayF;                       #| Update end time to DelayF ms from now
+       end;                                                     #|
+                                                                #|
+     end;                                                       #|
+                                                                #|
+   end;                                                         #|
+                                                                #|
+   double Final = 5.0 + 0.5 * double(JumpPos) / double(Jump);   #| Set final response
+   logdata("\n"+Question[1]+"\t"+string(Final)+"\n",LogFile,    #| Write final response to LOG
+     false);                                                    #|
+                                                                #|
+ end;                                                           # ---

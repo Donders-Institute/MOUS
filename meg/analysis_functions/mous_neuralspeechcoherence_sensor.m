@@ -57,7 +57,11 @@ cfg = [];
 cfg.method       = 'template';
 cfg.neighbours   = ft_prepare_neighbours(cfg,data);
 cfg.planarmethod = 'sincos';
+<<<<<<< HEAD
 %dataPL           = ft_megplanar(cfg,data);
+=======
+dataPL           = ft_megplanar(cfg,data);
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 
 
 %% apply hilbert transform to MEG signal to extract gamma envelope
@@ -92,11 +96,19 @@ dataPL = ft_redefinetrial(cfg, dataPL);
 
 %% split conditions
 cfg = [];
+<<<<<<< HEAD
 cfg.trials = find(ismember(data.trialinfo(:,2),[1 5])); % sent
 data1  = ft_selectdata(cfg,dataAX); % axial
 data3  = ft_selectdata(cfg,dataPL); % planar
 
 cfg.trials = find(ismember(data.trialinfo(:,2),[3 7])); % WL
+=======
+cfg.trials = find(ismember(dataAX.trialinfo(:,2),[1 5])); % sent
+data1  = ft_selectdata(cfg,dataAX); % axial
+data3  = ft_selectdata(cfg,dataPL); % planar
+
+cfg.trials = find(ismember(dataAX.trialinfo(:,2),[3 7])); % WL
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 data2  = ft_selectdata(cfg,dataAX); % axial
 data4  = ft_selectdata(cfg,dataPL); % planar
 

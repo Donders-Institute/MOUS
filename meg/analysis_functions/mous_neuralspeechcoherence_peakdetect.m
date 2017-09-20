@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 function mous_neuralspeechcoherence_peakdetect(condition)
+=======
+function [peakfreqfirst,peakfreqsecond,cohallsubj] = mous_neuralspeechcoherence_peakdetect(condition, thres)
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 %  This function searches for peaks in each channel
 %  frequencies with peaks in each channel are contender peaks
 %  the contender peak that is (1) found in >25 channels, has (2) highest peak value
@@ -30,11 +34,16 @@ function mous_neuralspeechcoherence_peakdetect(condition)
         % standardize data to have zero mean, unit SD
         % value at each frequency is on same scale -> amplifies peaks
 
+<<<<<<< HEAD
       % ft_preproc_smooth
+=======
+      % ft_preproc_smoothhead
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
         % smooths out peaks. In some cases there are frequencies side by side with
         % prominent peaks which are smoothed into one.
 
 
+<<<<<<< HEAD
 [subj,s] = mous_db_getfilename('allA','subjectname');
 allfreq = 0.5:0.5:30;
 numpeak = zeros(numel(subj),numel(allfreq)); % subj x frequencies
@@ -48,6 +57,33 @@ for k = 1:102
       sentcoh = wlcoh;
     case 'common' 
       sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
+=======
+
+%% first round of peak detection (rough)
+if ischar(condition)
+  % Nietzsche's original implementation
+  subj = mous_db_getfilename('allA','subjectname');
+else
+  subj = {condition};
+end
+allfreq = 0.5:0.5:30;
+numpeak = zeros(numel(subj),numel(allfreq)); % subj x frequencies
+
+for k = 1:numel(subj)
+  
+  if ischar(condition)
+    mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial_june2016','/project/3011020.09/MEG/');
+    dat{k} = sentcoh;
+    
+    switch condition
+      case 'wl'
+        sentcoh = wlcoh;
+      case 'common'
+        sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
+    end
+  else
+    sentcoh = subj{k};
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   end
   
   cfg = [];
@@ -63,10 +99,24 @@ for k = 1:102
 
   % Difficult to determine subject specific threshold
   % using heuristic of 0.1; option to not set a threshold. 
+<<<<<<< HEAD
   thres    = 0.02;
 
   for chancnt = 1:numchan
     [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak   
+=======
+  if nargin<2
+    thres    = 0.02;
+  elseif numel(thres)==numel(sentcoh.freq)
+    sentcoh.cohspctrm = sentcoh.cohspctrm-ones(size(sentcoh.cohspctrm,1),1)*thres;
+    thres    = 0;
+  end
+
+  for chancnt = 1:numchan
+    % [p,v]  = peakdetect2NL(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak   
+    [p,v]  = peakdetect2(sentcoh.cohspctrm(coi(chancnt),:),thres);  % peak index in data>thres & value of peak   
+    
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
     tmp    = allfreq(p);   % determine frequency from peak value
 
     if ~isempty(p)              
@@ -82,6 +132,7 @@ for k = 1:102
   numpeak(k,:)            = sum(fcohpeak,1); % numpeak = number of channels with a peak at a certain frequency
 end                        % subjloop
 
+<<<<<<< HEAD
   
   switch condition
     case 'wl'
@@ -92,11 +143,14 @@ end                        % subjloop
       save('/project/3011020.09/nielam/groupresults/coh/speechenvelope/coherencePeakdetect_stage1_thres001common','numpeak');
   end
 
+=======
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% standardize and smooth at the single-subject level, then do a second round of peak detection
 %  after first round, the peaks are still not that clear
 
+<<<<<<< HEAD
 [subj,s]       = mous_db_getfilename('allA','subjectname');
 allfreq           = 0.5:0.5:30;
 peakallsubj    = zeros(numel(subj),numel(allfreq)); % exclude 0 Hz
@@ -111,6 +165,23 @@ for k = 1:102
     sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
   end
   
+=======
+%[subj,s]       = mous_db_getfilename('allA','subjectname');
+%allfreq           = 0.5:0.5:30;
+peakallsubj    = zeros(numel(subj),numel(allfreq)); % exclude 0 Hz
+cohallsubj     = zeros(numel(subj),numel(allfreq));
+for k = 1:numel(subj)
+  
+%   mous_db_getdata(subj{k},'meg_coh_sensor_0-30Hz_axial','/project/3011020.09/MEG/');
+% 
+%   switch condition  % default is using sentences only
+%   case 'wl'
+%     sentcoh = wlcoh;
+%   case 'common' 
+%     sentcoh.cohspctrm = (sentcoh.cohspctrm+wlcoh.cohspctrm)/2;
+%   end
+  sentcoh = dat{k};
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   cfg = [];
   cfg.frequency = [allfreq(1) allfreq(end)];
   sentcoh       = ft_selectdata(cfg,sentcoh);
@@ -119,12 +190,27 @@ for k = 1:102
   % standardize matrix
   % mean across channels
   % multiple standardized (mean) by peaks
+<<<<<<< HEAD
   sentcoh.cohspctrm = ft_preproc_smooth(numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)),2); 
   cohallsubj(k,:)   = sentcoh.cohspctrm; % smoothed and standardized data from all subjs
   
   thres  = 2;      % thres =2, and thres=4 have also been tried but less optimal
 
   [p,v]  = peakdetect3NL(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
+=======
+  sentcoh.cohspctrm = numpeak(k,:).*mean(ft_preproc_standardize(sentcoh.cohspctrm)); 
+  cohallsubj(k,:)   = sentcoh.cohspctrm; % smoothed and standardized data from all subjs
+  
+  thres  = 2;     % standardzation means part of signal is below 2. 
+                  % the 10 subjs without peaks is because (i) too few
+                  % channels with theta peak (ii) threshold is stringent;
+                  % when lowered to -2 7 out of these 10 subjs will have a
+                  % peak (But this also means more peak in alpha /beta band
+                  % that are noise)
+
+  %[p,v]  = peakdetect3NL(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
+  [p,v]  = peakdetect3(sentcoh.cohspctrm,thres); % p = peak index, v = value of peak
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   tmp    = sentcoh.freq(p); % determine frequency from peak value
   if ~isempty(p)            % keep count which frequencies have peaks in a binary matrix (1 = peak)
     peakallsubj(k,:) = ismember(sentcoh.freq,tmp);
@@ -144,15 +230,24 @@ end      % subj loop
 % gamma 31  - 100
 
 allfreq = 0.5:0.5:30;
+<<<<<<< HEAD
 peakfreqfirst  = nan(60,4); % matrix to store subject specific peak for each frequency range
 peakfreqsecond = nan(60,4); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
+=======
+peakfreqfirst  = nan(numel(subj),4); % matrix to store subject specific peak for each frequency range
+peakfreqsecond = nan(numel(subj),4); % use 'nan', can differentiate between subjs with no peaks vs. peak at sentcoh.freq(1) i.e. 0 Hz
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 delta   = 1:6;    % indices of sentcoh.freq
 theta   = 8:14;
 alpha   = 16:24;
 beta    = 26:60;
 
 
+<<<<<<< HEAD
 for sc = 1:102
+=======
+for sc = 1:numel(subj)
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   for fb = 1:4
     % assign frequency range 
       if fb == 1
@@ -171,11 +266,19 @@ for sc = 1:102
       idx = find(peakallsubj(sc,frange));  % get data in foi
       [v,i] = sort(idx,'descend');
       if ~isempty(idx)
+<<<<<<< HEAD
         peakfreqfirst(sc,fb) = allfreq(frange(idx(1)));
 
         if numel(idx) > 1              % data with >1 max peak:
           [v,i] = sort(idx,'descend'); % i(2) is always second largest peak (assuming >2 peaks found)
           peakfreqsecond(sc,fb) = allfreq(frange(idx(2)));
+=======
+        peakfreqfirst(sc,fb) = allfreq(frange(idx(i(1))));
+
+        if numel(idx) > 1              % data with >1 max peak:
+          [v,i] = sort(idx,'descend'); % i(2) is always second largest peak (assuming >2 peaks found)
+          peakfreqsecond(sc,fb) = allfreq(frange(idx(i(2))));
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 
         end
       end
@@ -189,6 +292,7 @@ end
 idx = find(peakfreqfirst == 0);
 peakfreqfirst(idx) = nan;
 
+<<<<<<< HEAD
   
 switch condition
   case 'wl'
@@ -300,3 +404,5 @@ end
 
 
 
+=======
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78

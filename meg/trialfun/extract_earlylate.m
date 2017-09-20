@@ -15,7 +15,17 @@ for k = 1:size(trialinfo,1)
   tmp    = trialinfo(k,:);
   sentid = tmp(6);
   wordid = tmp(5);
+<<<<<<< HEAD
   nw     = stimuli(sentid).numwords;
+=======
+  if isfinite(sentid)
+    nw     = stimuli(sentid).numwords;
+  else
+    % make a guess
+    dummy = tmp(1);
+    nw    = max(trialinfo(trialinfo(:,1)==dummy,5));
+  end
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   
   if wordid==2||wordid==3||wordid==4
     early(k) = true;

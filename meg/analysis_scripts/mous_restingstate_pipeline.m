@@ -6,6 +6,7 @@ if ~exist('dogranger1', 'var'), dogranger1 = 0; end
 if ~exist('dogranger2', 'var'), dogranger2 = 0; end
 if ~exist('domim', 'var'),      domim = 0; end
 if ~exist('domim_freq_type1', 'var'), domim_freq_type1 = 0; end
+<<<<<<< HEAD
 
 collectresults = false;
 docardiacconfound = 0;
@@ -13,6 +14,33 @@ rootdir = '/project/3011020.09/jansch';
 if dopreproc
   [data, ecg] = mous_restingstate_preprocessing(subjectname);
   mous_db_putdata(subjectname, 'meg_restingstate_data', 'data', 'ecg', rootdir);
+=======
+if ~exist('dodss_osc', 'var'), dodss_osc = 0; end
+if ~exist('dodss_F', 'var'), dodss_F = 0; end
+if ~exist('dodss_osc_source', 'var'), dodss_osc_source = 0; end
+
+global ft_default;
+ft_default.checksize = inf;
+
+collectresults = false;
+docardiacconfound = 0;
+
+if dopreproc
+  [data, ecg] = mous_restingstate_preprocessing(subjectname, rootdir, options);
+  if exist('savedir','var')
+    % Get artifact data from /project/3011020.09./MEG, save data to diff directory
+    mous_db_putdata(subjectname, 'meg_restingstate_data', 'data', 'ecg', savedir);
+  else
+    mous_db_putdata(subjectname, 'meg_restingstate_data', 'data', 'ecg', rootdir);
+  end 
+end
+
+if dodss
+  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
+  data = ft_appenddata([], data, ecg);
+  [comp, avgpre, avgcomp] = mous_restingstate_dss(data);
+  mous_db_putdata(subjectname, 'meg_restingstate_dss', 'comp', 'avgpre', 'avgcomp', rootdir);
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 end
 
 if dofreq
@@ -38,6 +66,7 @@ if dofreq
   mous_db_putdata(subjectname, 'meg_restingstate_freq', 'freq', 'fd', rootdir);
 end
 
+<<<<<<< HEAD
 if dodss
   mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
   data = ft_appenddata([], data, ecg);
@@ -45,6 +74,8 @@ if dodss
   mous_db_putdata(subjectname, 'meg_restingstate_dss', 'comp', 'avgpre', 'avgcomp', rootdir);
 end
 
+=======
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 if doccc
   addpath /home/language/jansch/projects/ccc_new
   addpath /home/language/jansch/matlab/fieldtrip/qsub
@@ -411,3 +442,273 @@ if domim_freq_type1
 
 end
 
+<<<<<<< HEAD
+=======
+if dodss_osc
+  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
+  mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdir);
+  
+  v = var(avgcomp,[],2);
+  v = v./v(1);
+
+  % NOTE: this avoids a crash later on, but not sure which grad structure is
+  % used in ft_rejectcomponent.
+  if isfield(comp,'grad')
+    comp = rmfield(comp, 'grad');
+  end 
+  dataorig = data;
+  
+  cfg           = [];
+  cfg.component = find(v>0.1);
+  data          = ft_rejectcomponent(cfg, comp, data);
+  clear comp;
+  
+  nsmp     = cellfun('size',data.trial,2);
+  nsmp     = nsmp(:)';
+  
+  cfg = [];
+  cfg.trials = find(nsmp>5*data.fsample);
+  data     = ft_selectdata(cfg, data);
+  dataorig = ft_selectdata(cfg, dataorig);
+  
+  cfg = [];
+  cfg.hpfilter = 'yes';
+  cfg.hpfreq   = 1;
+  cfg.hpfilttype = 'firws';
+  data = ft_preprocessing(cfg, data);
+  
+  nsmp     = cellfun('size',data.trial,2);
+  nsmp     = nsmp(:)';
+  tr_begin = cumsum([0 nsmp(1:end-1)])+1;
+  tr_end   = cumsum(nsmp);
+  
+   
+  cfg               = [];
+  cfg.numcomponent  = 15;
+  cfg.cellmode      = 'yes';
+  cfg.method        = 'dss';
+  %cfg.method        = 'icasso';
+  %cfg.icasso.method = 'dss';
+  %cfg.icasso.Niter  = 5;
+  cfg.dss.algorithm = 'pca';
+  cfg.dss.denf.function = 'denoise_filter2';
+  cfg.dss.denf.params.filter_filtfilt.A = [];
+  cfg.dss.denf.params.filter_filtfilt.B = [];
+  cfg.dss.denf.params.tr_begin = tr_begin(:);
+  cfg.dss.denf.params.tr_end   = tr_end(:);
+  
+  cfgr         = [];
+  cfgr.length  = 2;
+  cfgr.overlap = 0.5;
+  
+  cfgf = [];
+  cfgf.output = 'pow';
+  cfgf.method = 'mtmfft';
+  %cfgf.taper  = 'dpss';
+  %cfgf.tapsmofrq = 1;
+  cfgf.taper = 'hanning';
+  cfgf.foilim    = [0 40];
+  
+  if ~exist('freqs','var'),  
+    freqs = (1:0.5:30);
+  end
+  
+  for k = 1:numel(freqs)
+    [b,a]   = mous_iirpeak_coeffs(2.*freqs(k)./data.fsample, freqs(k)./(data.fsample.*2.5));
+    cfg.dss.denf.params.filter_filtfilt.A = a;
+    cfg.dss.denf.params.filter_filtfilt.B = b;
+    comp(k) = ft_componentanalysis(cfg, data);
+    freq(k) = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, comp(k)));
+  end
+  
+  for k = 1:59
+    f(:,k) = var(comp(k).topo(:,1:15)*cellrowselect(comp(k).trial,1:15),[],2)./var(data.trial);
+  end
+  F.label  = data.label;
+  F.dimord = 'chan_freq';
+  F.freq   = freqs;
+  F.powspctrm = f;
+  
+  if numel(freqs)==1
+    mous_db_putdata(subjectname, ['meg_restingstate_dssosc',num2str(freqs,'%03d')], 'comp', 'freq', 'F', '/project/3011020.09/jansch',0);
+  else
+    mous_db_putdata(subjectname, 'meg_restingstate_dssosc', 'comp', 'freq', 'F', '/project/3011020.09/jansch',1);
+  end
+  
+end
+
+if dodss_osc_source
+  rootdirdss = '/project/3011020.09/jansch';
+  rootdirrs  = '/project/3011020.09/nielam';
+  
+  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdirrs);
+  mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdirrs);
+  
+  v = var(avgcomp,[],2);
+  v = v./v(1);
+
+  % NOTE: this avoids a crash later on, but not sure which grad structure is
+  % used in ft_rejectcomponent.
+  if isfield(comp,'grad')
+    comp = rmfield(comp, 'grad');
+  end 
+
+  cfg           = [];
+  cfg.component = find(v>0.1);
+  data          = ft_rejectcomponent(cfg, comp, data);
+  clear comp;
+  
+  d = dir(fullfile(rootdirdss,subjectname,'restingstate','*.mat'));
+  
+  % get the mixing/unmixing/pow
+  for k = 1:numel(d)
+    load(fullfile(rootdirdss,subjectname,'restingstate',d(k).name));
+    
+    N = zeros(size(comp.topo,2),1);
+    for m = 1:size(comp.topo,2)
+      N(m,1) = norm(comp.topo(:,m));
+    end
+%     comp.topo     = comp.topo*diag(1./N);
+%     comp.unmixing = diag(N)*comp.unmixing;
+%     freq.powspctrm = diag(N.^2)*freq.powspctrm;
+%     
+    if k==1
+      P = zeros(0,numel(freq.freq));
+      U = zeros(0,size(comp.unmixing,2));
+      M = zeros(size(comp.topo,1),0);
+    end
+    n = 20;
+    P = cat(1,P,freq.powspctrm(1:n,:));
+    U = cat(1,U,comp.unmixing(1:n,:));
+    M = cat(2,M,comp.topo(:,1:n));
+  end
+
+  % create the channel level covariance
+  cfg = [];
+  cfg.vartrllength = 2;
+  cfg.covariance   = 'yes';
+  tlck = ft_timelockanalysis(cfg, data);
+  
+  % get the necessary geometric objects
+  mous_db_getdata(subjectname,'meg_anatomy_headmodel');
+  mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2Dsurfreg');
+  
+%   % source reconstruction with beamformer
+%   cfg = [];
+%   cfg.method = 'lcmv';
+%   cfg.headmodel = vol;
+%   cfg.grid = bnd;
+%   %cfg.grid.inside = false(8196,1); cfg.grid.inside(5000) = true;
+%   %try, cfg.grid = rmfield(cfg.grid, 'outside'); end
+%   cfg.grid.inside = true(8196,1);
+%   cfg.lcmv.subspace = U;
+%   cfg.lcmv.keepfilter = 'yes';
+%   cfg.lcmv.fixedori = 'yes';
+%   cfg.lcmv.weightnorm= 'nai';%'unitnoisegain';
+%   cfg.lcmv.projectnoise = 'yes';
+%   %cfg.lcmv.lambda = 0.001.*trace(U*tlck.cov*U')./numel(tlck.label);
+%   source_sub = ft_sourceanalysis(cfg, tlck);
+%   
+%   cfg.lcmv = rmfield(cfg.lcmv, 'subspace');
+%   source = ft_sourceanalysis(cfg, tlck);
+%   
+%   cfgr         = [];
+%   cfgr.length  = 2;
+%   cfgr.overlap = 0.5;
+%   
+%   cfgf = [];
+%   cfgf.output = 'pow';
+%   cfgf.method = 'mtmfft';
+%   %cfgf.taper  = 'dpss';
+%   %cfgf.tapsmofrq = 1;
+%   cfgf.taper = 'hanning';
+%   cfgf.foilim    = [0 40];
+%  
+%   tmp  = data;
+%   for m = 1:10
+%     if m==1
+%       P = zeros(0,81);
+%       P_sub = zeros(0,81);
+%     end
+%     
+%     selx = (m-1)*820+(1:820);
+%     selx(selx>8196) = [];
+%     F = cat(1,source.avg.filter{selx});
+%     F_sub = cat(1,source_sub.avg.filter{selx});
+%     
+%     tmp.label = {};
+%     for k = 1:numel(selx)
+%       tmp.label{k} = sprintf('chan%03d',k);
+%     end
+%     tmp.trial = F*data.trial;
+%     tmpfreq   = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, tmp));
+%     P = cat(1,P,tmpfreq.powspctrm);
+%     tmp.trial = F_sub*data.trial;
+%     tmpfreq   = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, tmp));
+%     P_sub = cat(1,P_sub,tmpfreq.powspctrm);
+%   end
+%     
+  
+end
+
+if dodss_F
+  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
+  mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdir);
+  
+  v = var(avgcomp,[],2);
+  v = v./v(1);
+
+  % NOTE: this avoids a crash later on, but not sure which grad structure is
+  % used in ft_rejectcomponent.
+  if isfield(comp,'grad')
+    comp = rmfield(comp, 'grad');
+  end 
+
+  cfg           = [];
+  cfg.component = find(v>0.1);
+  dataorig      = ft_rejectcomponent(cfg, comp, data);
+  clear comp;
+  
+  load('ctf275_neighb.mat');
+  cfg            = [];
+  cfg.neighbours = neighbours;
+  data           = ft_megplanar(cfg, dataorig);
+  
+  mous_db_getdata(subjectname, 'meg_restingstate_dssosc', '/project/3011020.09/jansch');
+  
+  % create the projection matrix from axial to planar for the component
+  % data
+  labelfrom = comp(1).topolabel;
+  labelto   = data.label;
+  
+  [i1,dummy] = match_str(labelto,   data.grad.balance.planar.labelnew);
+  [i2,dummy] = match_str(labelfrom, data.grad.balance.planar.labelorg);
+  T          = full(data.grad.balance.planar.tra(i1,i2));
+  
+  labelto   = labelto(i1);
+  labelfrom = labelfrom(i2);
+   
+  sel1 = 1:(numel(labelto)./2);
+  sel2 = sel1(end)+(1:(numel(labelto)./2));
+  for k = 1:59
+    k
+    %F(:,k) = var((T*comp(k).topo(:,1:5))*cellrowselect(comp(k).trial,1:5),[],2)./var(data.trial);
+    
+    num1 = var((T(sel1,:)*comp(k).topo(:,1:5))*cellrowselect(comp(k).trial,1:5),[],2);
+    num2 = var((T(sel2,:)*comp(k).topo(:,1:5))*cellrowselect(comp(k).trial,1:5),[],2);
+    denom1 = var(cellrowselect(data.trial,sel1),[],2);
+    denom2 = var(cellrowselect(data.trial,sel2),[],2);
+    f(:,k) = (num1+num2)./(denom1+denom2);
+    
+    %F(:,k) = var((T*comp(k).topo(:,1:5))*cellrowselect(comp(k).trial,1:5),[],2)./var(data.trial);
+
+    forig(:,k) = var(comp(k).topo(:,1:5)*cellrowselect(comp(k).trial,1:5),[],2)./var(dataorig.trial);
+  end
+  F.label  = dataorig.label;
+  F.dimord = 'chan_freq';
+  F.freq   = 1:0.5:30;
+  F.powspctrm = f;
+  F.powspctrmorig = forig;
+  mous_db_putdata(subjectname, 'meg_restingstate_dssosc_F', 'F', '/project/3011020.09/jansch');
+end
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78

@@ -29,7 +29,12 @@ if hascrs,
     end
   end
 elseif hasfourier,
+<<<<<<< HEAD
   nsmp = input.cfg.t_ftimwin(1)*fsample;
+=======
+  t_ftimwin = ft_findcfg(input.cfg.previous, 't_ftimwin');
+  %nsmp = t_ftimwin(1)*fsample;
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   if isfield(input.cfg, 'tapsmofrq')
     if ~all(input.cfg.tapsmofrq==input.cfg.tapsmofrq(1)), error('cannot do reformatting, since a different number of tapers is used for the frequencies'); end
     ntap = input.cumtapcnt(1);
@@ -37,7 +42,13 @@ elseif hasfourier,
     input.cfg.tapsmofrq = ones(1,numel(input.freq));
     ntap = 1;
   end
+<<<<<<< HEAD
   if ~all(input.cfg.t_ftimwin==input.cfg.t_ftimwin(1)), error('cannot do reformatting, since a different window is used for the frequencies');           end
+=======
+  if isfield(input.cfg, 't_ftimwin')
+  if ~all(input.cfg.t_ftimwin==input.cfg.t_ftimwin(1)), error('cannot do reformatting, since a different window is used for the frequencies');           end
+  end
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   
   siz          = size(input.fourierspctrm);
   siz2         = size(input.cumtapcnt,1);

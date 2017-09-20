@@ -29,8 +29,9 @@ cfg.parcellation = 'parcellation2';
 
 [p,f,e] = fileparts('mous_mne_groupanalysis_parcellated');
 sel     = strfind(p, '/');
-fname   = fullfile(p(1:sel),'templates','atlas_conte69_8196reg_LR');
-load(fname);
+%fname   = fullfile(p(1:sel),'templates','atlas_conte69_8196reg_LR');
+%load(fname);
+load atlas_conte69_8196reg_LR_brodmann_subparc;
 
 % load in the data
 for k = 1:numel(subj)

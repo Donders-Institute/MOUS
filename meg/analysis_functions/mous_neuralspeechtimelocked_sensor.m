@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 function [tlck, tlck_sent, tlck_seq] = mous_neuralspeechtimelocked_sensor(subjectname, ramp) %, varargin)
+=======
+function [tlck, tlck_sent, tlck_seq, tlck_seq2, freq] = mous_neuralspeechtimelocked_sensor(subjectname, ramp) %, varargin)
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 
 if nargin<2
   ramp = 'up';
@@ -66,6 +70,7 @@ elseif strcmp(ramp, 'down')
   end
 end
 
+<<<<<<< HEAD
 data = ft_appenddata([], data, speechorig);
 
 s.X        = 1;
@@ -100,6 +105,123 @@ tlck_sent.dof = cnt_sent;
 tlck_seq      = tlck;
 tlck_seq.avg  = avg_seq;
 tlck_seq.dof  = cnt_seq;
+=======
+for k = 1:numel(p)
+  D{k} = [diff(p{k});min(size(data.trial{k},2)-p{k}(end),300)];
+  Dindx{k} = ones(numel(D{k}),1).*k;
+  Dpre{k}  = ones(numel(D{k}),1).*30;
+end
+
+
+data = ft_appenddata([], data, speechorig);
+
+pre = 30;
+pst = 359;
+
+s.X        = 1;
+params.pre = pre;
+params.pst = pst;
+params.tr_inds = p;
+params.demean  = 'prezero';
+params.time    = data.time;
+[~,~,avg,cnt] = denoise_avg2(params,data.trial,s);
+params.pre = Dpre;
+params.pst = D;
+[~,~,avg2,cnt2] = denoise_avg2(params,data.trial,s);
+
+% sentences only
+sel1  = find(ismember(data.trialinfo(:,2),[1 2 5 6]));
+data1 = ft_selectdata(data, 'rpt', sel1);
+
+params.pre     = pre;
+params.pst     = pst;
+params.tr_inds = p(sel1);
+params.time    = data1.time;
+[~,~,avg_sent,cnt_sent] = denoise_avg2(params,data1.trial,s);
+params.pre = Dpre(sel1);
+params.pst = D(sel1);
+[~,~,avg_sent2,cnt_sent2] = denoise_avg2(params,data1.trial,s);
+
+% word lists only
+sel2  = find(ismember(data.trialinfo(:,2),[3 4 7 8]));
+data2 = ft_selectdata(data, 'rpt', sel2);
+
+params.pre     = pre;
+params.pst     = pst;
+params.tr_inds = p(sel2);
+params.time    = data2.time;
+[~,~,avg_seq,cnt_seq]  = denoise_avg2(params,data2.trial,s);
+params.pre = Dpre(sel2);
+params.pst = D(sel2);
+[~,~,avg_seq2,cnt_seq2] = denoise_avg2(params,data2.trial,s);
+
+% get the histograms of the inter-ramp intervals:
+dp1 = cat(1,D{sel1});
+dp1indx = cat(1,Dindx{sel1});
+dp2 = cat(1,D{sel2});
+dp2indx = cat(1,Dindx{sel2});
+dp  = cat(1,D{:});
+dpindx = cat(1,Dindx{:});
+
+% now get the average from a subset of the wordlist ramps, where the next
+% ramp is at least 1/2 seconds away
+D = D(sel2); % subselect the word lists
+Dindx = Dindx(sel2);
+for k = 1:numel(D)
+  sel = find(D{k}>data2.fsample./3);
+  D{k} = D{k}(sel);
+  Dindx{k} = Dindx{k}(sel);
+  params.tr_inds{k} = params.tr_inds{k}(sel);
+end
+params.pre     = pre;
+params.pst     = pst;
+[~,~,avg_seq2b,cnt_seq2b]  = denoise_avg2(params,data2.trial,s);
+
+tlck       = [];
+tlck.time  = (-pre:pst)./300;
+tlck.grad  = data.grad;
+tlck.label = data.label;
+tlck.dimord = 'chan_time';
+tlck.delta  = dp;
+tlck.delta_indx  = dpindx;
+
+tlck.avg      = avg;
+tlck.avg2     = avg2;
+tlck.dof      = cnt;
+tlck.dof2     = cnt2;
+tlck_sent     = tlck;
+tlck_sent.avg = avg_sent;
+tlck_sent.avg2 = avg_sent2;
+tlck_sent.dof = cnt_sent;
+tlck_sent.dof2 = cnt_sent2;
+tlck_sent.delta = dp1;
+tlck_sent.delta_indx = dp1indx;
+tlck_seq      = tlck;
+tlck_seq.avg  = avg_seq;
+tlck_seq.dof  = cnt_seq;
+tlck_seq.avg2 = avg_seq2;
+tlck_seq.dof2 = cnt_seq2;
+tlck_seq.delta = dp2; 
+tlck_seq.delta_indx = dp2indx;
+tlck_seq2      = tlck;
+tlck_seq2.avg  = avg_seq2b;
+tlck_seq2.dof  = cnt_seq2b;
+tlck_seq2.delta = cat(1,D{:});
+tlck_seq2.delta_indx = cat(1,Dindx{:});
+
+cfg = [];
+cfg.length = 2;
+cfg.overlap = 0.5;
+data = ft_redefinetrial(cfg, data);
+
+cfg        = [];
+cfg.method = 'mtmfft';
+cfg.output = 'pow';
+cfg.taper  = 'hanning';
+cfg.pad    = 4;
+cfg.foilim = [0 80];
+freq       = ft_freqanalysis(cfg, data);
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 
 %%%%%%%%%%%%%%%%%%%%
 %%% SUBFUNCTION %%%%
@@ -127,9 +249,15 @@ cfg.channel    = 'MEG';
 %cfg.bsfreq     = [49 51];
 %cfg.bsfilttype = 'firws'; % windowed sinc FIR filter
 cfg.bpfilter = 'yes';
+<<<<<<< HEAD
 cfg.bpfreq   = [0.1 40];
 cfg.bpfilttype = 'firws';
 %cfg.padding    = 10;
+=======
+cfg.bpfreq   = [1 30];
+cfg.bpfilttype = 'firws';
+cfg.padding    = 10;
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 cfg.usefftfilt = 'yes'; 
 data           = ft_preprocessing(cfg);
 

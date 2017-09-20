@@ -10,12 +10,24 @@ T    = data.trialinfo(:,2);
 sel1 = find(ismember(T, [1 2 5 6])); n1 = numel(sel1);
 sel2 = find(ismember(T, [3 4 7 8])); n2 = numel(sel2);
 
+<<<<<<< HEAD
 n    = min(n1,n2);
 tmp1 = randperm(n1);
 tmp2 = randperm(n2);
 sel1 = sel1(sort(tmp1(1:n)));
 sel2 = sel2(sort(tmp2(1:n)));
 
+=======
+if isempty(sel1) || isempty(sel2)
+  % don't do a subselection
+else
+  n    = min(n1,n2);
+  tmp1 = randperm(n1);
+  tmp2 = randperm(n2);
+  sel1 = sel1(sort(tmp1(1:n)));
+  sel2 = sel2(sort(tmp2(1:n)));
+end
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 sel  = [sel1(:);sel2(:)];
 data = ft_selectdata(data, 'rpt', sel);
 
@@ -23,7 +35,16 @@ cfg = [];
 cfg.covariance   = 'yes';
 cfg.channel      = 'MEG';
 cfg.preproc.demean = 'yes';
+<<<<<<< HEAD
 cfg.preproc.baselinewindow = [-0.1 0];
+=======
+if strcmp(subjectname(1),'V')
+  cfg.preproc.baselinewindow = [-0.1 0];
+else
+  cfg.preproc.baselinewindow = [-inf inf];
+  data.time(:) = data.time(1);
+end
+>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 tlck = ft_timelockanalysis(cfg, data);
 tlck.grad = ft_convert_units(tlck.grad, 'm');
 

@@ -23,7 +23,7 @@ cfg.showlabels = 'no';
 cfg.fontsize = 6; 
 cfg.interactive = 'yes';
 cfg.layout = 'CTF275.lay';
-figure; ft_multiplotER(cfg,SentTar, SeqTar);
+figure; ft_multiplotER(cfg,senWord_CPG, seqWord_CPG);
 
 % %ft_multiplotER(cfg,RCsent, MCsent, RCseq, MCseq);
 
@@ -53,6 +53,17 @@ load matlab/MOUS/meg/templates/cortex_inflated_8196reg.mat
 % % %  
 
 
+%%MNE still 
+
+cfg = [];
+cfg.method = 'surface';
+cfg.funparameter = 'pow';
+cfg.funcolorlim   = [-0.5 0.5];
+
+fmri = mous_db_getdata(subjectname,'meg_mne_{_mri_seqVSsent_interpol}', rootdir); 
+fmri.pos = sourcemodel.pnt; 
+ 
+ft_sourceplot(cfg,fmri)
 
 %% sensor clusters (channels)
 
@@ -124,9 +135,13 @@ roi(5).channel  = {'MRF56','MRF65','MRF66','MRF67','MRT12','MRT13','MRT14','MRT2
 % plot selected roi sent vs seq
 
 find(strcmp(stat.label(:), 'L_6_B05'))
-
+%visual
 roi = [33 25 15 21 13 12 18 ];% LH
 %roi = [74 66 56 62 54 53 59];% RH
+
+%auditory
+roi = [25 15 21 13 12 18 ];% LH
+%roi = [66 56 62 54 53 59];% RH
 
 
 figure(1) 
@@ -134,15 +149,15 @@ figure(1)
 for r = 1:length(roi)
     %sig = find(stat.prob(roi(r),:) < 0.05);
     sig = find(stat.prob(roi(r),:) < 0.95);
-    subplot(2,4,r);hold on 
+    subplot(2,3,r);hold on 
     
        for s = 1:length(sig)
-        line([stat.time(sig(s)) stat.time(sig(s))],[0 0.7], 'color', [0.9 0.9 0.9]);hold on
+        line([stat.time(sig(s)) stat.time(sig(s))],[0 10e-12], 'color', [0.9 0.9 0.9]);hold on
        end
     plot(stat.time, datsent(roi(r), :)); 
     plot(stat.time, datseq(roi(r), :),'r');
     title(stat.label(roi(r)),'Interpreter','none')
-    axis([-0.1 0.6 0 0.7])
+    axis([-0.2 0.6 0 10e-12])
     sig =  []; 
 end
 
@@ -160,11 +175,11 @@ for r = 1:size(stat.prob,1)
     end
     subplot(2,4, f);hold on
     for s = 1:length(sig)
-        line([stat.time(sig(s)) stat.time(sig(s))],[0 0.7], 'color', [0.9 0.9 0.9]);hold on
+        line([stat.time(sig(s)) stat.time(sig(s))],[0 10e-12], 'color', [0.9 0.9 0.9]);hold on
     end
     plot(stat.time, datsent(r, :)); hold on
     plot(stat.time, datseq(r, :), 'r'); hold on
-    axis([-0.1 0.6 0 0.7])
+    axis([-0.2 0.6 0 10e-12])
     title(stat.label(r),'Interpreter','none')
     clear sig
 end
@@ -175,14 +190,44 @@ find(strcmp(stat.label(:), 'L_6_B05'))
 roi = [33 25 15 21 13 12 18 ];% LH
 %roi = [74 66 56 62 54 53 59];% RH
 
-
-
-col = {'b' 'g' 'r' 'm' 'k' 'c'};
+col = {'b' 'g' 'r' 'c' 'm' 'k' 'y'};
 for r = 1:length(roi)
-    plot(stat.time, datsent(roi(r), :), col{r}); hold on;
-    leg(r) = stat.label(roi(r));
+    plot(time, datsent(roi(r), :), col{r}); hold on;
+    leg(r) = atlas.parcellation2label(roi(r));
 end
 legend(leg,'Interpreter','none')
 title('LEFT time course for selected ROI')
+
+
+%plot each parcel with a different color
+load matlab/MOUS/meg/templates/cortex_inflated_8196reg.mat
+%load atlas_conte69_8196reg
+load atlas_conte69_8196reg_LR
+%load atlas_conte69_8196reg_LR_brodmann_subparc;
+
+atlas.pos = sourcemodel.pnt;
+
+%parcel = 'L_39_B05_06';
+parcel = 'L_11_B05';
+atlas.sel = nan(size(atlas.parcellation));
+t = find(strncmp(atlas.parcellationlabel, parcel,length(parcel)));
+ta = find(atlas.parcellation == t);
+atlas.sel(ta) = 0;
+
+cfg = [];
+cfg.method = 'surface';
+cfg.funparameter = 'sel';
+%cfg.funcolormap = 'lines';
+ cfg.colorbar      = 'no' ;
+ft_sourceplot(cfg, atlas);
+
+
+cfg = [];
+%cfg.method = 'surface';
+cfg.funparameter = 'anatomy';
+%cfg.funcolormap = 'lines';
+ft_sourceplot(cfg, mri);
+
+
 
 

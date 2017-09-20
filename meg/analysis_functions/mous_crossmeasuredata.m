@@ -77,6 +77,6 @@ outside          = ~isfinite(tmp.pow);
 
 cfg.interpmethod =  'sphere_weighteddistance';
 cfg.sphereradius = 8; 
-cfg.outputfile   = param.fmrioutput; % param,fmrioutput = mous_db_getfilename(subjectname,'meg_megmri_{sentLTibsln_interpol}',0,param.outdir);
+cfg.outputfile   = param.fmrioutput{1}; % param,fmrioutput = mous_db_getfilename(subjectname,'meg_megmri_{sentLTibsln_interpol}',0,param.outdir);
 ft_sourceinterpolate(cfg, mri, meg);  
 end
