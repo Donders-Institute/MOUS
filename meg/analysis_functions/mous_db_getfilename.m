@@ -73,6 +73,7 @@ try
     success = false;
   end
 catch
+  filename = [];
 end
 if isempty(filename)
   success = false;
@@ -247,14 +248,20 @@ switch type{2}
         case 'pos'
           % Polhemus .pos file
           D = fullfile(rootdir,'raw',subject);
-          d = dir([D, '*.pos']);
+          d = dir([D, '/*.pos']);
         case 'fidpic'
           % Photograph of fiducials
           D = fullfile(rootdir,'raw',subject);
-          d = dir([D, '*.JPG']);
+          d = dir([D, '/*.JPG']);
         case 'log'
-          D = fullfile(rootdir,'raw',subject);
-          d = dir([D, '*.log']);    
+          if any(ismember(subject, cannotdetectdatasetsubjects))
+            d = datasets_exceptions(subject,D2);
+          else
+            % heuristic: totalbytes > 1e9
+            [m,ix] = find(totalbytes>1e9);
+            d = d(ix);         
+          end
+          d = dir([d(1).folder, '/*.log']);    
         otherwise
       end
     end
