@@ -10,18 +10,17 @@ if nargin==1
   bits = [];
 end
 
-if numel(dataset)<6
+if numel(dataset)<9
   % assume it's the name of a subject
   subjname = dataset;
   dataset = mous_db_getfilename(dataset, 'meg_raw_task');
   dataset = dataset{1};
 else
-  tmp = strfind(dataset, 'V');
-  tmp2 = strfind(dataset, 'A');
-  if ~isempty(tmp)
-    subjname = dataset(tmp(1)+(0:4));
-  else
-    subjname = dataset(tmp2(1)+(0:4));
+  [p,f,e] = fileparts(dataset);
+  if strncmp(f, 'sub-', 4);
+    subjname = f(1:8);
+  elseif any(strncmp(f,{'V' 'A'}))
+    subjname = f(1:5);
   end
 end
 
@@ -30,7 +29,7 @@ end
 % and trigger-1 (first word onset). This is fixed at line 122.
 logfname = mous_db_getfilename(subjname,'meg_raw_log');
 eventlog = read_logfile_audio(subjname);
-if numel(eventlog) == 1;
+if numel(eventlog) == 1
   eventlog = eventlog{1};
 elseif numel(eventlog) == 2 && ~isequal(eventlog{1}, eventlog{2})
   % this is probably weird, but concatenate the two
