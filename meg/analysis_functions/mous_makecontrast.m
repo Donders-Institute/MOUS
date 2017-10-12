@@ -234,7 +234,7 @@ switch contrast
   case {'wordsent_parametric', 'wordsent_parametric_blc', 'wordseq_parametric', 'wordseq_parametric_blc',...
       'wordsent_rc_parametric_blc', 'wordsent_mix_parametric_blc', 'wordseq_rc_parametric_blc', 'wordseq_mix_parametric_blc',...
       'wordsent_rc_parametric', 'wordsent_mix_parametric', 'wordseq_rc_parametric', 'wordseq_mix_parametric',...
-      'wordsenttar_parametric', 'wordseqtar_parametric', 'wordsenttar_parametric_blc', 'wordseqtar_parametric_blc'};
+      'wordsenttar_parametric', 'wordseqtar_parametric', 'wordsenttar_parametric_blc', 'wordseqtar_parametric_blc', 'wordsent_parametric2_blc', 'wordseq_parametric2_blc'}
 
     switch ft_datatype(data)
       case 'timelock'
@@ -247,9 +247,9 @@ switch contrast
         % assume single 'trial' data, i.e. an estimate per word
         Xcond = data.trialinfo(:,3);
         switch contrast
-          case {'wordsent_parametric' 'wordsent_parametric_blc'}
+          case {'wordsent_parametric' 'wordsent_parametric_blc' 'wordsent_parametric2_blc'}
             sel   = find(ismember(Xcond,[1 2 5 6]));
-          case {'wordseq_parametric' 'wordseq_parametric_blc'}
+          case {'wordseq_parametric' 'wordseq_parametric_blc' 'wordseq_parametric2_blc'}
             sel   = find(ismember(Xcond,[3 4 7 8]));
           case {'wordsenttar_parametric' 'wordsenttar_parametric_blc'}
             sel   = find(ismember(Xcond,[2 6]));
@@ -326,6 +326,10 @@ switch contrast
     % fit glm (for parametric contrasts)
     cfg                 = [];
     cfg.design          = (1:size(tmp.trial,1))-mean(1:size(tmp.trial,1)); % zero mean
+    if any(strcmp(contrast, '2'))
+      % add quadratic regressor for non-linear fit
+      cfg.design(2,:) = cfg.design(1,:).^2;
+    end
     cfg.statistic       = 'glm';
     cfg.glm.statistic   = 'beta';
     cfg.glm.standardise = 0;
