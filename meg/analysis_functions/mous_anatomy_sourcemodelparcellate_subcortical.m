@@ -5,8 +5,8 @@ mri.coordsys = 'ctf';
 sourcemodel  = mous_anatomy_sourcemodel3D(mri, resolution);
 sourcemodelin = sourcemodel;
 
-atlasdir = '/opt/fsl_5.0.4/data/atlases/';
-stdrddir = '/opt/fsl_5.0.4/data/standard/';
+atlasdir = '/opt/fsl/5.0.4/data/atlases/';
+stdrddir = '/opt/fsl/5.0.4/data/standard/';
 
 % Cerebellum
 f_a = fullfile(atlasdir,'Cerebellum_MNIfnirt.xml');
