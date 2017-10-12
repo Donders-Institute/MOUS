@@ -6,15 +6,19 @@ function filename = datasets_exceptions(subject,templatepath)
 % we don't need to change this function
 [p,n,e] = fileparts(templatepath); 
 switch subject
-  case 'A2052'
+  case {'A2052' 'sub-2052'}
       filename(1).name = [n(1:end-1),'3',e];
-  case 'A2062'
+  case {'A2062' 'sub-2062'}
       filename(1).name = [n(1:end-1),'2',e];
       filename(2).name = [n(1:end-1),'3',e];
-  case 'A2063'
+  case {'A2063' 'sub-2063'}
       filename(1).name = [n(1:end-1),'2',e];
       filename(2).name = [n(1:end-1),'3',e];     
-  case 'A2115'
+  case {'A2115' 'sub-2115'}
       filename(1).name = [n(1:end-1),'2',e];
       filename(2).name = [n(1:end-1),'3',e];
+end
+
+for k = 1:numel(filename)
+  filename(k).folder = p;
 end
