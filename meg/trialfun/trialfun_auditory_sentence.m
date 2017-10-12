@@ -171,12 +171,14 @@ end
 % end
 
 % the following has been added on 20150106
-if adjustdelay,
+if adjustdelay
   % adjust the timing for the delay between the trigger and the actual
   % presentation of the sound, added (as default) on 20141111
   fprintf('adjusting the timing for the audio delay\n');
   [p,f,e] = fileparts(cfg.dataset);
-  f       = mous_db_getfilename(f(1:5), 'meg_qualitycheck_audiodelay');
+  f       = strrep(f, 'A', 'sub-'); 
+  f       = strrep(f, 'V', 'sub-');
+  f       = mous_db_getfilename(f(1:8), 'meg_qualitycheck_audiodelay');
   tmp     = load(f{1});
   for k = 1:size(trl,1)
     indx = find(tmp.stimid==trl(k,8));
