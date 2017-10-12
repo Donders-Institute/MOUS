@@ -1,4 +1,4 @@
-function [trlclean] = mous_artifact_remove(trl, filename, artifactcfg, method, minlength)
+function [trlclean] = mous_artifact_remove(trl, filename, artifactcfg, method, minlength, data)
 
 % MOUS_ARTIFACT_REMOVE removes epochs with artifacts from the input trial
 % definition. 
@@ -35,9 +35,16 @@ if nargin<5
   minlength = 0.1;
 end
 
+hasdata = false;
+if isstruct(trl)
+  hasdata = true;
+end
+
 cfg         = [];
-cfg.trl     = trl;
-cfg.dataset = filename;
+if ~hasdata
+  cfg.trl     = trl;
+  cfg.dataset = filename;
+end
 
 for k = 1:numel(artifactcfg)
   if isfield(artifactcfg{k}.artfctdef, 'type')
@@ -58,6 +65,10 @@ for k = 1:numel(artifactcfg)
 end
 cfg.artfctdef.reject       = method;
 cfg.artfctdef.minaccepttim = minlength;
-cfg         = ft_rejectartifact(cfg);
-trlclean    = cfg.trl;
 
+if ~hasdata
+  cfg         = ft_rejectartifact(cfg);
+  trlclean    = cfg.trl;
+else
+  trlclean    = ft_rejectartifact(cfg, trl);
+end
