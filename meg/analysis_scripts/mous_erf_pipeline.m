@@ -30,6 +30,7 @@ if ~exist('doerf_dependency_shortlong', 'var'), doerf_dependency_shortlong = 0; 
 if ~exist('doerf_speech_tlck', 'var'), doerf_speech_tlck = 0;                         end
 if ~exist('doerf_speech_tlck_surrogate', 'var'), doerf_speech_tlck_surrogate = 0;                         end
 if ~exist('doerf_speech_itc',  'var'), doerf_speech_itc  = 0;                         end
+if ~exist('doerf_speech_trf',  'var'), doerf_speech_trf  = 0;                         end
 if ~exist('condition',        'var'), condition        = '';                          end
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
 if ~exist('contrast',         'var'), contrast         = 'wordsent_parametric_blc';   end
@@ -121,7 +122,7 @@ if doerf_parametric
   stat = stat_seq;
   mous_db_putdata(subjectname, [inputdata,'_' contrast], 'tlck', 'stat', outrootdir);
   
-  % parametric without basline 
+  % parametric without baseline 
   contrast = strrep(contrast, '_blc', '');
   [tlck_seq,  stat_seq,  stat2_seq]  = mous_makecontrast(data, contrast);
   tlck = tlck_seq;
@@ -839,6 +840,11 @@ end
 if doerf_speech_tlck
   [tlck, tlck_sent, tlck_seq, tlck_seq2, freq] = mous_neuralspeechtimelocked_sensor(subjectname, 'up');
   mous_db_putdata(subjectname, 'meg_erf_speech_tlck' ,'tlck', 'tlck_sent', 'tlck_seq', 'tlck_seq2', 'freq', outrootdir,1);
+end
+
+if doerf_speech_trf
+  [tlck, tlck_sent, tlck_seq] = mous_neuralspeech_trf_sensor(subjectname);
+  mous_db_putdata(subjectname, 'meg_erf_speech_trf', 'tlck', 'tlck_sent', 'tlck_seq', outrootdir);
 end
 
 if doerf_speech_tlck_surrogate
