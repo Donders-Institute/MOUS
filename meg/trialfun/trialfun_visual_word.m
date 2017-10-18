@@ -138,7 +138,8 @@ end
 
 try,
   [p,f,e]             = fileparts(cfg.dataset);
-  subjectname         = f(1:5);
+  f                   = strrep(f, 'V1', 'sub-1'); % needed for new naming convention, Oct 2017
+  subjectname         = f(1:8);
   [newtext, sentence, wordduration] = read_logfile_visual(subjectname);
 end
 

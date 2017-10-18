@@ -2,6 +2,9 @@ function [event] = read_logfile_audio(subjectname)
 
 filename = mous_db_getfilename(subjectname, 'meg_raw_log');
 
+% ensure the subjectname to start with 'A', rather than 'sub-'
+subjectname = strrep(subjectname, 'sub-', 'A');
+
 for k = 1:numel(filename)        % loop created since A2036 has >1 logfile to be used 
   
   % open logfile

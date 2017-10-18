@@ -257,6 +257,24 @@ if dosource_peak
   mous_db_putdata(subjectname, ['meg_coh_source',condition], 'source');
 end
 
+if ~exist('dosource_delta', 'var'), dosource_delta = false; end
+if dosource_delta
+  % do a fixed frequency delta coherence
+  if ~exist('condition', 'var'), condition = 'sent'; end
+  cfgfreq.tapsmofrq = 1;
+  source = mous_neuralspeechcoherence_source(subjectname, 2, 'condition', condition, 'cfgfreq', cfgfreq);
+  mous_db_putdata(subjectname, ['meg_coh_source',condition,'_delta'], 'source');
+end
+
+if ~exist('dosource_theta', 'var'), dosource_theta = false; end
+if dosource_theta
+  % do a fixed frequency delta coherence
+  if ~exist('condition', 'var'), condition = 'sent'; end
+  source = mous_neuralspeechcoherence_source(subjectname, 4, 'condition', condition);
+  mous_db_putdata(subjectname, ['meg_coh_source',condition,'_theta'], 'source');
+end
+
+
 if dosens_cca
   [comp, compsent, compseq] = mous_neuralspeechcoherence_cca(subjectname);
   comp = rmfield(comp, 'trial');
@@ -265,6 +283,7 @@ if dosens_cca
   mous_db_putdata(subjectname, 'meg_coh_sensor_cca','comp','compsent','compseq');
 end
 
+if ~exist('dosource_groupresults', 'var'), dosource_groupresults = false; end
 if dosource_groupresults
   subj  = mous_db_getfilename('allA', 'subjectname');
   [f,s] = mous_db_getfilename(subj, 'meg_coh_sourcesent');
@@ -304,4 +323,285 @@ if dosource_groupresults
   save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_delta', 'delta', 'D');
   save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_theta', 'theta', 'T');
   
+  load('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_cortex_stats.mat');
+  
+  % let's have a look at the distribution of A1
+  tmp = false(8196,102);
+  for k = 1:numel(stats)
+    sell = match_str(stats(k).atlas.parcellationlabel, 'lh.G_temp_sup-G_T_transv.label');
+    selr = match_str(stats(k).atlas.parcellationlabel, 'rh.G_temp_sup-G_T_transv.label');
+    
+    tmp(:,k) = (ismember(stats(k).atlas.parcellation,[sell selr]));
+  end
+  
+  alllab = {'lh.G_temp_sup-G_T_transv.label'
+    'lh.G_temp_sup-Plan_tempo.label'
+    'lh.Lat_Fis-post.label'
+    'lh.S_circular_insula_inf.label'
+    'lh.S_temporal_transverse.label'};
+  nlab = numel(alllab);
+  
+  % get the entrainment in the subject optimized A1
+  d = zeros(nlab,102,2);
+  t = zeros(nlab,102,2);
+  dmax = zeros(nlab+1,102,2);
+  tmax = zeros(nlab+1,102,2);
+  dmed = zeros(nlab,102,2);
+  tmed = zeros(nlab,102,2);
+  
+  for m = 1:numel(alllab)
+    lab = alllab{m};
+    for k = 1:numel(stats)
+      sell = stats(k).atlas.parcellation==match_str(stats(k).atlas.parcellationlabel, lab);
+      selr = stats(k).atlas.parcellation==match_str(stats(k).atlas.parcellationlabel, strrep(lab, 'lh', 'rh'));
+      
+      t(m,k,1) = mean(theta(sell,k));
+      t(m,k,2) = mean(theta(selr,k));
+      d(m,k,1) = mean(delta(sell,k));
+      d(m,k,2) = mean(delta(selr,k));
+      tmax(m,k,1) = max(theta(sell,k));
+      tmax(m,k,2) = max(theta(selr,k));
+      dmax(m,k,1) = max(delta(sell,k));
+      dmax(m,k,2) = max(delta(selr,k));
+      tmed(m,k,1) = median(theta(sell,k));
+      tmed(m,k,2) = median(theta(selr,k));
+      dmed(m,k,1) = median(delta(sell,k));
+      dmed(m,k,2) = median(delta(selr,k));
+    end
+  end
+  
+  for k = 1:numel(stats)
+    % also extract the functional value as the max within a 2.5 cm radius
+    % sphere around the centre of the selected voxels, to account for
+    % registration issues
+    sell = ismember(stats(k).atlas.parcellation,match_str(stats(k).atlas.parcellationlabel, alllab([1:3 5])));
+    selr = ismember(stats(k).atlas.parcellation,match_str(stats(k).atlas.parcellationlabel, strrep(alllab([1:3 5]), 'lh', 'rh')));
+    
+    meanl = mean(stats(k).atlas.pos(sell,:));
+    meanr = mean(stats(k).atlas.pos(selr,:));
+    
+    dpl = sqrt(sum((stats(k).atlas.pos - repmat(meanl,[8196 1])).^2,2));
+    dpr = sqrt(sum((stats(k).atlas.pos - repmat(meanr,[8196 1])).^2,2));
+    
+    tmpl = delta(:,k); tmpl(dpl>2.5)=nan;
+    tmpr = delta(:,k); tmpr(dpr>2.5)=nan;
+    dmax(end,k,1) = nanmax(tmpl);
+    dmax(end,k,2) = nanmax(tmpr);
+    
+    tmpl = theta(:,k); tmpl(dpl>2.5)=nan;
+    tmpr = theta(:,k); tmpr(dpr>2.5)=nan;
+    tmax(end,k,1) = nanmax(tmpl);
+    tmax(end,k,2) = nanmax(tmpr);    
+  end
+  
+  cfg           = [];
+  cfg.statistic = 'ft_statfun_wilcoxon';
+  cfg.numrandomization = 5000;
+  cfg.correctm = 'max';
+  cfg.ivar = 1;
+  cfg.uvar = 2;
+  design = [ones(1,102) ones(1,102)*2;1:102 1:102];
+  stat_d = ft_statistics_montecarlo(cfg, cat(2, d(:,:,2), d(:,:,1))./repmat(d(:,:,2)+d(:,:,1),[1 2]), design);
+  stat_t = ft_statistics_montecarlo(cfg, cat(2, t(:,:,2), t(:,:,1))./repmat(t(:,:,2)+t(:,:,1),[1 2]), design);
+  
+  stat_dmax = ft_statistics_montecarlo(cfg, cat(2, dmax(:,:,2), dmax(:,:,1))./repmat(dmax(:,:,2)+dmax(:,:,1),[1 2]), design);
+  stat_tmax = ft_statistics_montecarlo(cfg, cat(2, tmax(:,:,2), tmax(:,:,1))./repmat(tmax(:,:,2)+tmax(:,:,1),[1 2]), design);
+  
+  stat_dmed = ft_statistics_montecarlo(cfg, cat(2, dmed(:,:,2), dmed(:,:,1))./repmat(dmed(:,:,2)+dmed(:,:,1),[1 2]), design);
+  stat_tmed = ft_statistics_montecarlo(cfg, cat(2, tmed(:,:,2), tmed(:,:,1))./repmat(tmed(:,:,2)+tmed(:,:,1),[1 2]), design);
+  
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_parcels_individualpeaks', 't', 'd', 'tmed', 'dmed', 'tmax', 'dmax', ...
+    'stat_d', 'stat_t', 'stat_dmed', 'stat_tmed', 'stat_dmax', 'stat_tmax', 'alllab');
+
+  
+  % get some structural parameters in a matrix as well
+  area = zeros(5,102,2);
+  volume = zeros(5,102,2);
+  for m = 1:numel(alllab)
+    for k = 1:numel(stats)
+      sel = match_str(stats(k).label,alllab{m}(4:end-6));
+      area(m,k,1) = stats(k).L_area(sel);
+      area(m,k,2) = stats(k).R_area(sel);
+      volume(m,k,1) = stats(k).L_volume(sel);
+      volume(m,k,2) = stats(k).R_volume(sel);
+      
+    end
+  end
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_parcels_individualpeaks', 'area', 'volume', '-append');
+end
+
+if dosource_groupresults2
+  % create a delta and theta matrix, but now for each individual peak
+  subj  = mous_db_getfilename('allA', 'subjectname');
+  [f,s] = mous_db_getfilename(subj, 'meg_coh_sourcesent');
+  subj  = subj(s);
+  
+  delta = zeros(8196,0);
+  theta = zeros(8196,0);
+  subD = zeros(1,0);
+  subT = zeros(1,0);
+  D    = zeros(1,0);
+  T    = zeros(1,0);
+  for k = 1:numel(subj)
+    mous_db_getdata(subj{k}, 'meg_coh_sourcesent');
+    foi = [source.freq];
+    seldelta = find(foi<=3 & foi>=1);
+    seltheta = find(foi<=8 & foi>=4);
+    
+    if ~isempty(seldelta)
+      D = cat(2,D,foi(seldelta));
+      for m = 1:numel(seldelta)
+        tmp = source(seldelta(m)).avg.coh;
+        delta = cat(2, delta, tmp);
+        subD  = cat(2, subD, k);
+      end
+    end
+    if ~isempty(seltheta)
+      T = cat(2,T,foi(seltheta));
+      for m = 1:numel(seltheta)
+        tmp = source(seltheta(m)).avg.coh;
+        theta = cat(2, theta, tmp);
+        subT  = cat(2, subT, k);
+      end
+    end
+  end
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_delta_allpeaks', 'delta', 'D', 'subD', 'subj');
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_theta_allpeaks', 'theta', 'T', 'subT', 'subj');
+
+
+  % get the speech-ramp locked signals as a function of frequency
+  set1 = subT(T<5);
+  set2 = setdiff(subT(T>5),set1);
+  
+  for k = 1:numel(set1)
+    subjectname = subj{set1(k)};
+    mous_db_getdata(subjectname, 'meg_erf_speech_tlck');
+    dat1{k} = tlck_sent;
+  end
+  for k = 1:numel(set2)
+    subjectname = subj{set2(k)};
+    mous_db_getdata(subjectname, 'meg_erf_speech_tlck');
+    dat2{k} = tlck_sent;
+  end
+end
+
+if dosource_groupresults3
+  % create a delta and theta matrix, but now for each individual peak
+  subj  = mous_db_getfilename('allA', 'subjectname');
+  [f,s] = mous_db_getfilename(subj, 'meg_coh_sourcesent_delta');
+  subjd  = subj(s);
+  [f,s] = mous_db_getfilename(subj, 'meg_coh_sourcesent_theta');
+  subjt  = subj(s);
+  
+  delta = zeros(8196, numel(subjd));
+  for k = 1:numel(subjd)
+    mous_db_getdata(subjd{k}, 'meg_coh_sourcesent_delta');
+    delta(:,k) = source.avg.coh;
+  end
+  theta = zeros(8196, numel(subjt));
+  for k = 1:numel(subjt)
+    mous_db_getdata(subjt{k}, 'meg_coh_sourcesent_theta');
+    theta(:,k) = source.avg.coh;
+  end
+  
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_delta_fixedband', 'delta', 'subjd');
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_theta_fixedband', 'theta', 'subjt');
+  
+  load('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_cortex_stats.mat');
+    
+  
+  alllab = {'lh.G_temp_sup-G_T_transv.label'
+    'lh.G_temp_sup-Plan_tempo.label'
+    'lh.Lat_Fis-post.label'
+    'lh.S_circular_insula_inf.label'
+    'lh.S_temporal_transverse.label'};
+  nlab = numel(alllab);
+  
+  % get the entrainment in the subject optimized A1
+  d = zeros(nlab,102,2);
+  t = zeros(nlab,102,2);
+  dmax = zeros(nlab+1,102,2);
+  tmax = zeros(nlab+1,102,2);
+  dmed = zeros(nlab,102,2);
+  tmed = zeros(nlab,102,2);
+  
+  for m = 1:numel(alllab)
+    lab = alllab{m};
+    for k = 1:numel(stats)
+      sell = stats(k).atlas.parcellation==match_str(stats(k).atlas.parcellationlabel, lab);
+      selr = stats(k).atlas.parcellation==match_str(stats(k).atlas.parcellationlabel, strrep(lab, 'lh', 'rh'));
+      
+      t(m,k,1) = mean(theta(sell,k));
+      t(m,k,2) = mean(theta(selr,k));
+      d(m,k,1) = mean(delta(sell,k));
+      d(m,k,2) = mean(delta(selr,k));
+      tmax(m,k,1) = max(theta(sell,k));
+      tmax(m,k,2) = max(theta(selr,k));
+      dmax(m,k,1) = max(delta(sell,k));
+      dmax(m,k,2) = max(delta(selr,k));
+      tmed(m,k,1) = median(theta(sell,k));
+      tmed(m,k,2) = median(theta(selr,k));
+      dmed(m,k,1) = median(delta(sell,k));
+      dmed(m,k,2) = median(delta(selr,k));
+    end
+  end
+  
+  for k = 1:numel(stats)
+    % also extract the functional value as the max within a 2.5 cm radius
+    % sphere around the centre of the selected voxels, to account for
+    % registration issues
+    sell = ismember(stats(k).atlas.parcellation,match_str(stats(k).atlas.parcellationlabel, alllab([1:3 5])));
+    selr = ismember(stats(k).atlas.parcellation,match_str(stats(k).atlas.parcellationlabel, strrep(alllab([1:3 5]), 'lh', 'rh')));
+    
+    meanl = mean(stats(k).atlas.pos(sell,:));
+    meanr = mean(stats(k).atlas.pos(selr,:));
+    
+    dpl = sqrt(sum((stats(k).atlas.pos - repmat(meanl,[8196 1])).^2,2));
+    dpr = sqrt(sum((stats(k).atlas.pos - repmat(meanr,[8196 1])).^2,2));
+    
+    tmpl = delta(:,k); tmpl(dpl>2.5)=nan;
+    tmpr = delta(:,k); tmpr(dpr>2.5)=nan;
+    dmax(end,k,1) = nanmax(tmpl);
+    dmax(end,k,2) = nanmax(tmpr);
+    
+    tmpl = theta(:,k); tmpl(dpl>2.5)=nan;
+    tmpr = theta(:,k); tmpr(dpr>2.5)=nan;
+    tmax(end,k,1) = nanmax(tmpl);
+    tmax(end,k,2) = nanmax(tmpr);    
+  end
+  
+  cfg           = [];
+  cfg.statistic = 'ft_statfun_wilcoxon';
+  cfg.numrandomization = 5000;
+  cfg.correctm = 'max';
+  cfg.ivar = 1;
+  cfg.uvar = 2;
+  design = [ones(1,102) ones(1,102)*2;1:102 1:102];
+  stat_d = ft_statistics_montecarlo(cfg, cat(2, d(:,:,2), d(:,:,1))./repmat(d(:,:,2)+d(:,:,1),[1 2]), design);
+  stat_t = ft_statistics_montecarlo(cfg, cat(2, t(:,:,2), t(:,:,1))./repmat(t(:,:,2)+t(:,:,1),[1 2]), design);
+  
+  stat_dmax = ft_statistics_montecarlo(cfg, cat(2, dmax(:,:,2), dmax(:,:,1))./repmat(dmax(:,:,2)+dmax(:,:,1),[1 2]), design);
+  stat_tmax = ft_statistics_montecarlo(cfg, cat(2, tmax(:,:,2), tmax(:,:,1))./repmat(tmax(:,:,2)+tmax(:,:,1),[1 2]), design);
+  
+  stat_dmed = ft_statistics_montecarlo(cfg, cat(2, dmed(:,:,2), dmed(:,:,1))./repmat(dmed(:,:,2)+dmed(:,:,1),[1 2]), design);
+  stat_tmed = ft_statistics_montecarlo(cfg, cat(2, tmed(:,:,2), tmed(:,:,1))./repmat(tmed(:,:,2)+tmed(:,:,1),[1 2]), design);
+  
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_parcels', 't', 'd', 'tmed', 'dmed', 'tmax', 'dmax', ...
+    'stat_d', 'stat_t', 'stat_dmed', 'stat_tmed', 'stat_dmax', 'stat_tmax', 'alllab');
+ 
+  % get some structural parameters in a matrix as well
+  area = zeros(5,102,2);
+  volume = zeros(5,102,2);
+  for m = 1:numel(alllab)
+    for k = 1:numel(stats)
+      sel = match_str(stats(k).label,alllab{m}(4:end-6));
+      area(m,k,1) = stats(k).L_area(sel);
+      area(m,k,2) = stats(k).R_area(sel);
+      volume(m,k,1) = stats(k).L_volume(sel);
+      volume(m,k,2) = stats(k).R_volume(sel);
+      
+    end
+  end
+  save('/project/3011020.09/jansch/results/20170103_audioentrainment/groupresults_parcels', 'area', 'volume', '-append');
+
 end

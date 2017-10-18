@@ -13,7 +13,7 @@ params      = [];
 params.time = data.time;
 params.demean = 'prezero';
 params.pre = 120;
-params.pst = 719;
+params.pst = 719; 
 
 [~,~,avgorig] = denoise_avg2(params,data.trial,s);
 
@@ -30,7 +30,7 @@ cfgp = [];
 cfgp.layout = 'CTF275.lay';
 cfgp.component = 1;
 
-for k = 1:Ncomp;
+for k = 1:Ncomp
   comp(k) = ft_componentanalysis(cfg, data);
   figure;ft_topoplotIC(cfgp, comp(k));drawnow;
   

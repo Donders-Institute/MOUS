@@ -7,6 +7,7 @@ end
 globalscale = ft_getopt(varargin, 'globalscale', true);
 lay         = ft_getopt(varargin, 'layout');
 cmap        = ft_getopt(varargin, 'colormap', []);
+doannotate  = ft_getopt(varargin, 'doannotate', true);
 
 if isempty(lay)
   % get the default layout
@@ -142,6 +143,7 @@ for k = 1:size(C,3)
   ft_plot_lay(laynew, plotlayoptions{:});
   axis([-1.2 1.2 -1.2 1.2]);
   
+  if doannotate,
   % annotate the figure with left/right, and
   % frontal/parietal/temporal/occitpital, this only works with the default
   % lay
@@ -183,6 +185,7 @@ for k = 1:size(C,3)
   
   title(['component ',num2str(k)],'fontname','arial','fontsize',16);
   set(gcf, 'color', 'w');
+  end
   
   %set(gcf,'renderer','painters');
   out(:,:,k) = X;
