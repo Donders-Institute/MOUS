@@ -57,18 +57,31 @@ if doword2vec
     %information & extract label information per stimulus
     load /project/3011020.09/MEG/misc/mous_stimuli.mat
     indsel = [];
-    vec = [];
+    ind_noun = [];
+    ind_verb = [];
+    ind_adj = [];
+    featv = [];
+    wordv = {};
     for i = 1:length(tlck_sent.trialinfo)
         wavid = tlck_sent.trialinfo(i,6);
         posword = tlck_sent.trialinfo(i,5);
         vec = stimuli(wavid).words(posword).word2vec;
-        if ~isempty(vec)
+        label = strtok(stimuli(wavid).words(posword).POS,'(');
+        if ~isempty(vec) %&& (strcmp(label,'N') || strcmp(label,'WW') || strcmp(label,'ADJ'))
             featv(i,:) = vec;
             indsel = [indsel i];
+            wordv{i} = label;%stimuli(wavid).words(posword).word;
+            if strcmp(label,'N')
+                ind_noun = [ind_noun i];
+            elseif strcmp(label,'WW')
+                ind_verb = [ind_verb i];
+            elseif strcmp(label,'ADJ')
+                ind_adj = [ind_adj i];
+            end
         end
     end
     featv = featv(indsel,:);
-    
+    wordv = wordv(indsel);
     tlck_sent = ft_selectdata(tlck_sent, 'rpt', indsel);
     clear stimuli
 end
@@ -114,146 +127,107 @@ end
 
 %%
 % observations should be even number
-data             = data(4:end,:,:); %% temporary fix
-featv            = featv(4:end,:);
 %select time window of interest
 [numobs,n,p]     = size(data);
 [numobs,numfeat] = size(featv);
 steps            = 31;
 timesteps        = 1:steps:p;
-%lambdas          = [0.0001,0.001,0.01,0.1,1,5];
+%lambdas          = [0.000000001,0.0000000001,0.000000001,0.00000001,0.0000001,0.000001,1,5,8];%,0.0001,0.001,0.01,0.1,1,5];
 k                = 5; % number of folds for Lambda
 %% Generate cross-validation set
-%find divisor without remainder
 %leave out several vectors at a time for higher sensibility
+% 1. find divisor without remainder
 range            = 1:numobs;
 div              = range(rem(numobs,range) == 0);
-leaveout         = div(nearest(div,10));
-cross            = sort(crossvalind('Kfold',numobs,numobs/leaveout));
-%FIX: only leave out entire exemplar (if a word repeats all trials should be either in test or training set;
-all_betas        = NaN(n*steps,numfeat,length(timesteps)-1,max(cross));
+leaveout         = div(nearest(div,6));
+cross            = crossvalind('Kfold',numobs,numobs/leaveout);
+% 2. Get rid of repetitions (each examplar only exists once)
+[C,IA,IC] = unique(featv,'rows');
+data = data(IA,:,:);
+featv = featv(IA,:);
+[numobs,numfeat] = size(featv);
+range            = 1:numobs;
+div              = range(rem(numobs,range) == 0);
+leaveout         = div(nearest(div,2));
+cross            = crossvalind('Kfold',numobs,numobs/leaveout);
 %% Regression
+accuracy    = zeros(length(timesteps)-1,1) ;
+misswords   = [];
 for t = 1:length(timesteps)-1 %FIX: does not take last timewindow for now
     %select timeslice & append timepoints
     datasel = data(:,:,timesteps(t):(timesteps(t+1)-1));
     [numobs,n,p] = size(datasel);
     datasel = reshape(datasel,[numobs,(n*p)]);
-    
+    correct          = 0;
     for fold = 1:max(cross)
-        tic;
-        fprintf('processing fold %d; timeslice %d\n', fold, t);
-        
+%         fprintf('processing timewindow: %d til %d -- testexample number %d of %d : ',timesteps(t),timesteps(t+1)-1,fold,max(cross));
+%         fprintf('\n');
         %assign data according to fold indices and coding direction
         %(encoding/decoding)
-        x_train = [];
-        y_train = [];
+        %indfold = or((IC == fold),(IC==(fold+1)));
         if dofitdata
             x_train       = datasel(cross~=fold,:);
             y_train       = featv(cross~=fold,:);
             x_test        = datasel(cross==fold,:);
             y_test        = featv(cross==fold,:);
-        elseif dofitvector
+         elseif dofitvector
             y_train       = datasel(cross~=fold,:);
             x_train       = featv(cross~=fold,:);
             y_test        = datasel(cross==fold,:);
             x_test        = featv(cross==fold,:);
         end
         
-        if doridge
-            %zscore
-            [x_train, Mu, Sigma] = zscore(x_train);
-            all_Mu(:,t,fold)     = Mu;
-            all_Sigma(:,t,fold)  = Sigma;
-            %Q:zscore testset with mean and stdv from trainingset??
-            %pre-compute data variance
-            varx                 = x_train * x_train';
-
-            %% train ridge regression with several labda values using cross-validation       
-            [R, lambdas]         = get_R_and_lambda(varx, y_train, k, 10); %k =  folds for crossval; 10 lambda values
-            
-            %% select optimal lambda values
-            [m,n]      = size(y_train);
-            r_hat      = NaN(n, 1);
-            lambda_hat = NaN(n, 1);
-            
-            for feat   = 1 : n
-                
-                [r_hat(feat), I] = max(R(feat, :));
-                lambda_hat(feat) = lambdas(I);
-                
-            end
-            
-            % Compute beta values with optimal Lambda
-            C           = unique(lambda_hat);
-            beta_hat    = NaN(m, n);
-            I           = eye(m);
-            
-            for lambda  = 1 : length(C)
-                
-                beta_hat(:, C(lambda) == lambda_hat) = (varx + C(lambda) * I) \ y_train(:, C(lambda) == lambda_hat);
-                
-            end
-            
-            
-            %system('df /project/3011050.04/betas','-echo')
-            
-        end
-        toc
-        all_betas(:,:,t,fold) = x_train' * beta_hat;
-    end
-end
-%save('/project/3011020.09/sopara/betas/all_betas','all_betas','-v7.3')
-
-%% prediction for fitdata
-accuracy    = zeros(length(timesteps)-1,1) ;
-for t = 1:length(timesteps)-1
-    correct     = 0 ;
-    incorrect   = 0 ;
-    %select timeslice & append timepoints
-    datasel = data(:,:,timesteps(t):(timesteps(t+1)-1));
-    [numobs,n,p] = size(datasel);
-    datasel = reshape(datasel,[numobs,(n*p)]);
-    for fold = 1:max(cross)
-        %zscore testset with mean and stdv from trainingset??
-        x_test               = datasel(cross==fold,:);
-        x_test               = bsxfun(@rdivide, bsxfun(@minus, x_test, squeeze(all_Mu(:,t,fold))'), squeeze(all_Sigma(:,t,fold))');
-        y_test               = featv(cross==fold,:);
-        % concatenate left out testvectors into two
-        [num,tmp]            = size(y_test);
-        y_test1              = y_test(1:num/2,:)' ;
-        y_test2              = y_test(num/2+1:end,:)' ;
-        y_test1              = y_test1(:) ;
-        y_test2              = y_test2(:) ;
-        betas                = squeeze(all_betas(:,:,t,fold));
-        y_hat                = x_test * betas;
-        %evaluate prediction
-        %euclidean distance between vectors belonging together should be smaller
-        %than distance between vectors not belonging together.
-        y_hat1               = y_hat(1:num/2,:)' ;
-        y_hat2               = y_hat(num/2+1:end,:)' ;
-        % number of trials is odd, therfore folds are odd, therefore test1
-        % longer than test2 - problematic?
-        y_hat1               = y_hat1(:) ;
-        y_hat2               = y_hat2(:) ;
-        same                 = norm(y_hat1-y_test1)+ norm(y_hat2-y_test2);
-        different            = norm(y_hat1-y_test2)+ norm(y_hat2-y_test1);
-        success              = same < different;
-        fprintf('timewindow: %d til %d -- testexample number %d of %d : ',timesteps(t),timesteps(t+1)-1,fold,max(cross));
-        fprintf('\n');
-        fprintf('same = %.2f ', same);
-        fprintf('different = %.2f', different);
-        fprintf('\n');
-        if success
-            fprintf('predicted label matches');
-            correct = correct+1;
-        else
-            fprintf('predicted label does NOT match');
-            incorrect = incorrect + 1;
-        end
-        fprintf('\n');
+        %sanity check: permute labels
+        %y_train = y_train(randperm(size(y_train,1)),:);
+        
+        [y_hat,beta_hat,lambda_hat]     = ridgeregression_sa(x_train,x_test,y_train,5,10);
+        %y_hat = randn(leaveout,320);y_hat = y_hat*0.05;%create random vector as
+        %prediction
+        success = eval_euclideandistance(y_hat,y_test);
+        
+        %success = eval_corr(y_hat,y_test,featv,1);
+        correct = correct + success;
+        
+%         indices = find(cross==fold);
+%         leftoutword1 = cell2mat(wordv{indices(1)});
+%         leftoutword2 = cell2mat(wordv{indices(2)});
+%         fprintf('left out words: %s and %s',leftoutword1,leftoutword2);
+%         fprintf('\n')
+%          if success
+%              fprintf('predicted label matches');
+%          else
+%              fprintf('predicted label does NOT match');
+%              misswords(t,fold,:) = indices;
+%          end
+%          fprintf('\n');
     end
     accuracy(t,:) = correct/max(cross);
 end
+%save('/project/3011020.09/sopara/betas/all_betas','all_betas','-v7.3')
 
+function success = eval_euclideandistance(y_hat,y_test)
+
+[num,tmp]            = size(y_test);
+y_test1              = y_test(1:num/2,:)' ;
+y_test2              = y_test(num/2+1:end,:)' ;
+y_test1              = y_test1(:) ;
+y_test2              = y_test2(:) ;
+
+y_hat1               = y_hat(1:num/2,:)' ;
+y_hat2               = y_hat(num/2+1:end,:)' ;
+y_hat1               = y_hat1(:) ;
+y_hat2               = y_hat2(:) ;
+
+%evaluate prediction
+%euclidean distance between vectors belonging together should be smaller
+%than distance between vectors not belonging together.
+same                 = norm(y_hat1-y_test1)+ norm(y_hat2-y_test2);
+different            = norm(y_hat1-y_test2)+ norm(y_hat2-y_test1);
+success              = same < different;
+fprintf('same = %.2f ', same);
+fprintf('different = %.2f', different);
+fprintf('distance test vectors = %.2f',norm(y_test1-y_test2))
+fprintf('\n');
+end
 %%
 %%
