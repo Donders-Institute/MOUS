@@ -94,8 +94,8 @@ if domne_main,
   % define the medial wall parcel as outside. NOTE: this assumes
   % the medial wall te have a value of 2
   load atlas_conte69_8196reg_LR_brodmann_subparc
-  sourcemodel.inside  = find(atlas.parcellation~=2);
-  sourcemodel.outside = find(atlas.parcellation==2);
+  sourcemodel.inside  = find(atlas.parcellation~=[1 2 194 195]);
+  sourcemodel.outside = find(atlas.parcellation==[1 2 194 195]);
   sourcemodelorig     = sourcemodel;
   
   % load the volume conduction model of the head
@@ -109,7 +109,7 @@ if domne_main,
   % pre-compute the leadfields
   cfg          = [];
   cfg.grad     = tlck.grad;
-  cfg.vol      = headmodel;
+  cfg.headmodel = headmodel;
   cfg.grid     = sourcemodel;
   cfg.channel  = 'MEG';
   cfg.feedback = 'textbar';
@@ -193,7 +193,7 @@ if domne_main,
   
   cfg                 = [];
   cfg.method          = 'mne';
-  cfg.vol             = headmodel;
+  cfg.headmodel       = headmodel;
   cfg.grid            = sourcemodel;
   cfg.mne.prewhiten   = 'yes';
   cfg.mne.lambda      = 3; % used to be 2
