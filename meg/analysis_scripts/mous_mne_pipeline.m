@@ -109,8 +109,8 @@ if domne_main,
   % pre-compute the leadfields
   cfg          = [];
   cfg.grad     = tlck.grad;
-  cfg.headmodel = headmodel;
-  cfg.grid     = sourcemodel;
+  cfg.headmodel = removefields(headmodel, 'cfg');
+  cfg.grid     = removefields(sourcemodel,'cfg');
   cfg.channel  = 'MEG';
   cfg.feedback = 'textbar';
   %cfg.normalize = 'yes';
@@ -149,7 +149,7 @@ if domne_main,
   data1 = ft_selectdata(data1, 'toilim', [-inf 0.6]);
   data2 = ft_selectdata(data2, 'toilim', [-inf 0.6]);
   
-  if 1,
+  if 1
     % this part computes the area per triangle and uses the squared area as a
     % prior on the source covariance matrix. This is equivalent to how it's
     % done in brainstorm
@@ -193,8 +193,8 @@ if domne_main,
   
   cfg                 = [];
   cfg.method          = 'mne';
-  cfg.headmodel       = headmodel;
-  cfg.grid            = sourcemodel;
+  cfg.headmodel = removefields(headmodel, 'cfg');
+  cfg.grid      = removefields(sourcemodel,'cfg');
   cfg.mne.prewhiten   = 'yes';
   cfg.mne.lambda      = 3; % used to be 2
   cfg.mne.scalesourcecov  = 'yes';
@@ -202,13 +202,16 @@ if domne_main,
   cfg.mne.noiselambda = 0.2*trace(data1.cov)./size(data1.cov,1);
   cfg.mne.sourcecov   = S;
   source_sent         = ft_sourceanalysis(cfg, data1);
+  %source_sent.cfg.callinfo.usercfg.grid = rmfield(source_sent.cfg.callinfo.usercfg.grid, {'leadfield' 'leadfielddimord'});
+  source_sent.cfg.callinfo = rmfield(source_sent.cfg.callinfo,'usercfg');
   
   % don't keep the filter for the list condition,
   % the spatial filter will be the same as for source_sent.
   % added this line 2014-06-19
   cfg.mne.keepfilter  = 'no'; 
   source_seq          = ft_sourceanalysis(cfg, data2);
-  
+  %source_seq.cfg.callinfo.usercfg.grid = rmfield(source_seq.cfg.callinfo.usercfg.grid, {'leadfield' 'leadfielddimord'});
+  source_seq.cfg.callinfo = rmfield(source_seq.cfg.callinfo,'usercfg');
   
   cfg                = [];
   cfg.demean         = 'yes';
@@ -223,7 +226,7 @@ if domne_main,
   
   source         = source_sent; 
   inside         = source.inside;
-  if islogical(inside),
+  if islogical(inside)
     inside = find(inside);
   end
   for k = 1:numel(inside)
@@ -236,7 +239,7 @@ if domne_main,
   
   % replace the pow with the orientation from the combined data
   
- if islogical(sd.inside),
+ if islogical(sd.inside)
     inside = find(sd.inside);
  end
   
@@ -250,7 +253,7 @@ if domne_main,
   sd_Seq.tri  = sourcemodelorig.tri;
   
   % do the normalisation to get a 'dSPM'
-  if dodspm,
+  if dodspm
     npnt = size(sd_Sent.pos,1);
     sd_Sent.avg.dspm = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Sent.avg.pow;
     sd_Seq.avg.dspm  = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Seq.avg.pow;
