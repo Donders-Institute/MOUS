@@ -127,7 +127,7 @@ if domne_main,
   % FIXME, also make the filename configurable, because now it will always
   % work.
   mous_db_getdata(subjectname, suffix_erfdata, rootdir);
-  rootdir = '/project/3011020.09/MEG';
+  %rootdir = '/project/3011020.09/MEG';
   if exist('senWord_AG', 'var')
     data1 = senWord_AG;
     data2 = seqWord_AG;
@@ -166,7 +166,7 @@ if domne_main,
     
     % this part computes the sum of squares of the leadfields, and uses the
     % inverse of it for depth weighting.
-    Lss = zeros(8192,1)+nan;
+    Lss = zeros(8196,1)+nan;
     if islogical(sourcemodel.inside)
       inside = find(sourcemodel.inside);
     else
@@ -181,7 +181,8 @@ if domne_main,
     minLss = min(Lss(sourcemodelorig.inside));
     Lss(Lss>minLss.*weightlim.^2) = minLss.*weightlim.^2;
     
-    A = ((vertex_area(:).^2).*Lss(:)).^weightexp;
+    %A = ((vertex_area(:).^2).*Lss(:)).^weightexp;
+    A = Lss(:).^weightexp;
     A = repmat(A(inside),[1 3])';
     
     % create a source covariance matrix that is equivalent to the area(^2)
@@ -260,10 +261,10 @@ if domne_main,
   
   % save the output
   source = sd_Seq;
-  mous_db_putdata(subjectname, [suffix_mnedata,'_seq'],  'source', rootdir, 1);
+  mous_db_putdata(subjectname, [suffix_mnedata,'_seq'],  'source', rootdir, 0);
   
   source = sd_Sent;
-  mous_db_putdata(subjectname, [suffix_mnedata,'_sent'], 'source', rootdir, 1);
+  mous_db_putdata(subjectname, [suffix_mnedata,'_sent'], 'source', rootdir, 0);
 end
 
 if domne_parametric
