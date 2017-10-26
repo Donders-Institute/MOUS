@@ -94,13 +94,13 @@ if domne_main,
   % define the medial wall parcel as outside. NOTE: this assumes
   % the medial wall te have a value of 2
   load atlas_conte69_8196reg_LR_brodmann_subparc
-  sourcemodel.inside  = find(atlas.parcellation~=[1 2 194 195]);
-  sourcemodel.outside = find(atlas.parcellation==[1 2 194 195]);
+  sourcemodel.inside  = find(~ismember(atlas.parcellation,[2 195]));
+  sourcemodel.outside = find( ismember(atlas.parcellation,[2 195]));
   sourcemodelorig     = sourcemodel;
   
   % load the volume conduction model of the head
   mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
-  if exist('vol', 'var'),
+  if exist('vol', 'var')
     headmodel = vol; 
     clear vol;
   end
@@ -326,12 +326,12 @@ if domne_parametric
   stat = stat_sent;
   stat = rmfield(stat, {'prob', 'mask', 'cirange'});
   mu   = single(mu_sent);
-  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,0);
   tlck = ft_struct2single(tlck_seq);
   stat = stat_seq;
   stat = rmfield(stat, {'prob', 'mask', 'cirange'});
   mu   = single(mu_seq);
-  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,0);
 end
 
 if domne_parametric_rc
