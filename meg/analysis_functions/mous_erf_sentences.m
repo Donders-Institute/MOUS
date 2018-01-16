@@ -1,5 +1,16 @@
-function [data] = mous_erf_sentences(subjectname)
+function [data] = mous_erf_sentences(subjectname, cond)
 
+if nargin<2
+  cond = 1;
+end
+
+if cond==1
+  triggers = [1 2 5 6];
+elseif cond==2
+  triggers = [3 4 7 8];
+elseif cond==3
+  triggers = 1:8;
+end
 
 %% load raw data
 dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
@@ -8,14 +19,14 @@ dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 if numel(dataset) == 1
   mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09/MEG/');
   artfctcfg      = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
-  [data, speech] = computedata(dataset{1}, artfctcfg);
+  [data, speech] = computedata(dataset{1}, artfctcfg, triggers);
  
 elseif numel(dataset) > 1
   for k = 1:numel(dataset)
     tmpdataset = dataset{k};
     mous_db_getdata(subjectname, ['meg_artifact_cfg_pt',num2str(k)]);  % separate artifact cfg for each task file
     tmpartfctcfg         = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
-    [tmpdata, tmpspeech] = computedata(tmpdataset, tmpartfctcfg);
+    [tmpdata, tmpspeech] = computedata(tmpdataset, tmpartfctcfg, triggers);
     
     if k==1,
       tmpsens1(k) = tmpdata.grad;
@@ -48,12 +59,12 @@ data = ft_appenddata([], data, speech);
 
 %%%%%%%%%%%%%%%%%%%%
 %%% SUBFUNCTION %%%%
-function [data, speech] = computedata(dataset, artfctcfg)
+function [data, speech] = computedata(dataset, artfctcfg, triggers)
 
 %% define trial
 cfg                   = [];
 cfg.dataset           = dataset;
-if ~isempty(strfind(dataset, 's-2'))
+if ~isempty(strfind(dataset, 'sub-2'))
   cfg.trialfun          = 'trialfun_auditory_sentence';
   cfg.trialdef.prestim  = 'audioonset';
   cfg.trialdef.poststim = 0.05;
@@ -68,11 +79,12 @@ else
   cfg.trialdef.prestim  = 0;  
 end
 cfg = ft_definetrial(cfg);
+cfg.trl = cfg.trl(ismember(cfg.trl(:,5),triggers),:);
 cfg.trl(:,2) = min(cfg.trl(:,1)+12*1200,cfg.trl(:,2));
+
 cfg.trl(:,1) = cfg.trl(:,1)-600;
 cfg.trl(:,3) = cfg.trl(:,3)-600;
 
-cfg.trl = cfg.trl(ismember(cfg.trl(:,5),[1 2 5 6]),:);
 
 %% preprocess neural data and speech audio file
 cfg.continuous = 'yes';
@@ -82,7 +94,7 @@ cfg.channel    = 'MEG';
 %cfg.bsfreq     = [49 51];
 %cfg.bsfilttype = 'firws'; % windowed sinc FIR filter
 cfg.bpfilter = 'yes';
-cfg.bpfreq   = [0.5 30];
+cfg.bpfreq   = [1 10];%[0.5 20];
 cfg.bpfilttype = 'firws';
 cfg.padding    = 12;
 cfg.usefftfilt = 'yes';
@@ -120,10 +132,17 @@ if ~isempty(strfind(dataset, 's-2'))
   speech.label = [speech.label;{'audio_avg'}];
 else
   tmpcfg = [];
-  tmpcfg.channel = 'MLC11';
+  tmpcfg.channel = data.label(1);
   speech = ft_selectdata(tmpcfg, data);
   speech.label = {'audio_avg'}; % just a dummy channel to make this work
 end
+
+% widen the scope of the eye artifacts a bit, because of the heavy
+% filtering there may be a wider spread
+tmp = artfctcfg{1}.artfctdef.zvalue.artifact;
+tmp(:,1) = tmp(:,1) - 150;
+tmp(:,2) = tmp(:,2) + 150;
+artfctcfg{1}.artfctdef.zvalue.artifact = tmp;
 
 %% define audio onset to be time point 0, and remove artifacts
 data = mous_artifact_remove(data, dataset, artfctcfg, 'nan', 1); 
