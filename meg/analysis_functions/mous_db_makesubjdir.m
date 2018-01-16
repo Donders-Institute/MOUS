@@ -12,7 +12,8 @@ function mous_db_makesubjdir(subjectname, rootdir, subdir)
 %                 be created. Default = '/project/3011020.09/MEG'.
 
 if nargin<2
-  rootdir = '/project/3011020.09/MEG';
+  %rootdir = '/project/3011020.09/MEG';
+  rootdir = '/project/3011020.09/processed';
 end
 
 if nargin<3
@@ -20,7 +21,7 @@ if nargin<3
 end
 
 if isempty(subdir)
-  subdir = {'anatomy';'erf';'tfr';'corrmnebf';'mne';'bfica';'RAW';'artifact';'test';'other';'qualitycheck';'headposition';'restingstate';'megmri';};
+  subdir = {'multisetcca';'anatomy';'erf';'tfr';'corrmnebf';'mne';'bfica';'RAW';'artifact';'test';'other';'qualitycheck';'headposition';'restingstate';'megmri';};
 end
 
 if ischar(subdir)
