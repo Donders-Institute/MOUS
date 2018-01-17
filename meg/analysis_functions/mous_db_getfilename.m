@@ -87,7 +87,7 @@ end
 
 % ----------------------------------------------------
 % create as a subfunction, to avoid infinite recursion
-function [filename, st, info] = mous_db_getfilename_new(subject, type, infoflag, rootdir);
+function [filename, st, info] = mous_db_getfilename_new(subject, type, infoflag, rootdir)
 
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
@@ -191,6 +191,22 @@ switch type{1}
     st       = nan;
     info     = struct([]);
     return;
+  case 'scenario'
+    [filename, st, info] = mous_db_getfilename(subject, 'meg_raw_log');
+    for k = 1:numel(filename)
+      [~,filename{k},~] = fileparts(filename{k});
+      filename{k} = strrep(filename{k},'-MEG-MOUS-', '');
+      filename{k} = filename{k}(end-3:end);
+    end
+    if numel(filename)==1
+    elseif numel(filename)>1 && ~all(strcmp(filename,filename{1}))
+      filename = {'NA'};
+      st = true; % otherwise the function recurses into an error
+    else
+    
+    end
+      
+    return;  
   case 'meg'
     if isempty(rootdir)
       rootdir = '/project/3011020.09';
