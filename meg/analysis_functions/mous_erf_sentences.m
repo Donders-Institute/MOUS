@@ -94,7 +94,7 @@ cfg.channel    = 'MEG';
 %cfg.bsfreq     = [49 51];
 %cfg.bsfilttype = 'firws'; % windowed sinc FIR filter
 cfg.bpfilter = 'yes';
-cfg.bpfreq   = [1 10];%[0.5 20];
+cfg.bpfreq   = [0.5 20];
 cfg.bpfilttype = 'firws';
 cfg.padding    = 12;
 cfg.usefftfilt = 'yes';
@@ -148,11 +148,20 @@ artfctcfg{1}.artfctdef.zvalue.artifact = tmp;
 data = mous_artifact_remove(data, dataset, artfctcfg, 'nan', 1); 
 
 
-%% downsample
+%% downsample, using a time axis that has 0, allowing for a good alignment
+% between time axes
+time = cell(1,numel(data.trial));
+for k =1:numel(data.trial)
+  idx0 = nearest(data.time{k},0);
+  idx  = mod(idx0-1,10)+1;
+  time{k} = data.time{k}(idx:10:end);
+end
+
 cfg = [];
 cfg.detrend     = 'no';
 cfg.demean      = 'no';  
-cfg.resamplefs  = 120;
+%cfg.resamplefs  = 120;
+cfg.time        = time;
 speech          = ft_resampledata(cfg,speech);
 cfg.resamplemethod = 'downsample'; % assumes lpfilter to already be applied 
 cfg.demean      = 'no';
