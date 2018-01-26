@@ -163,8 +163,9 @@ cfg.demean      = 'no';
 %cfg.resamplefs  = 120;
 cfg.time        = time;
 speech          = ft_resampledata(cfg,speech);
-cfg.resamplemethod = 'downsample'; % assumes lpfilter to already be applied 
+%cfg.resamplemethod = 'downsample'; % assumes lpfilter to already be applied 
 cfg.demean      = 'no';
+cfg.method      = 'nearest'; % using interp1 when supplying a time axis requires this
 data            = ft_resampledata(cfg,data);
 
 

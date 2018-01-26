@@ -70,8 +70,8 @@ if computealignment
   
   trialid = (1:1000)';
   sel     = false(1000,numel(D));
-  nsmp    = nan(1000,numel(D));
-  begtim  = nan(1000,numel(D));
+  nsmp    =   nan(1000,numel(D));
+  begtim  =   nan(1000,numel(D));
   
   for k = 1:numel(D)
     % identify the sentences that occur in any of the input datasets
@@ -111,6 +111,11 @@ if computealignment
 end
 
 if domscca_searchlight
+  nfold = 5;
+  shift = zeros(1,numel(subj));
+  if ~exist('skip_noshuffle', 'var')
+    skip_noshuffle = false;
+  end
   if ~exist('parcel_indx', 'var')
     error('a parcel index needs to be specified');
   end
@@ -125,19 +130,43 @@ if domscca_searchlight
     source_parc.filterlabel = filterlabel;
     mous_db_getdata(subj{k}, 'meg_multisetcca_timinginfo');
     mous_db_getdata(subj{k}, 'meg_multisetcca_groupinfo');
-    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, data, source_parc, timinginfo, groupinfo, parcel_indx);
+    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, data, source_parc, timinginfo, groupinfo, parcel_indx, shift(k));
   end
   for k = 1:numel(subj)
     cfg = [];
     cfg.method = 'acrosschannel';
     groupdata{1,k} = ft_channelnormalise(cfg, groupdata{1,k});
   end
-  [W, A, rho, C, comp] = mous_multisetcca(groupdata, 1, 4, [],false); % no cv for now
-  [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
-  comp                 = ft_struct2single(comp);
   
+  if ~skip_noshuffle
+    [W, A, rho, C, comp] = mous_multisetcca(groupdata, nfold, 4, [],false); % no cv for now
+    [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
+    coh                  = mous_multisetcca_coh(comp);
+    comp                 = ft_struct2single(comp);
+    savedir = '/project/3011020.09/jansch/mscca_group';
+    system(sprintf('mkdir -p %s', savedir));
+    filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
+    save(filename, 'rho', 'W', 'A', 'comp', 'coh');
+  end
+  
+  nrand = 50;
+  for m = 1:nrand
+    groupdatashuf               = mous_multisetcca_shuffle(groupdata, {(1:17) (18:33)}); % shuffle before folding
+    [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(groupdatashuf, nfold, 4, [], false);
+    [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
+    cohshuf(m)                  = ft_struct2single(mous_multisetcca_coh(compshuf));
+    Rshuf(:,:,:,m)              = single(rhoshuf);
+  end
+  Cshuf = cat(4,cohshuf.cohspctrm);
+  Cshuf = Cshuf(:,:,1:41,:);
+  foi   = cohshuf(1).freq(1:41);
   savedir = '/project/3011020.09/jansch/mscca_group';
-  system(sprintf('mkdir -p %s', savedir));
-  filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
-  save(filename, 'rho', 'W', 'A', 'comp');
+  filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf',scenario,parcel_indx));
+  if exist([filename,'.mat'], 'file')
+    tmp = load(filename);
+    Cshuf = cat(4,tmp.Cshuf,Cshuf);
+    Rshuf = cat(4,tmp.Rshuf,Rshuf);
+  end
+  save(filename,'Rshuf','Cshuf', 'foi');
+  
 end

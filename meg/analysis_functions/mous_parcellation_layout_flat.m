@@ -64,7 +64,7 @@ sel = 1:numel(source.([parcelparam,'label']));
 for k = 1:numel(sel)
   selpos = find(source.(parcelparam)==sel(k));
   if ~isempty(selpos)
-    pos(k,1:3) = mean(flatmap.pnt(selpos,:));
+    pos(k,1:3) = median(flatmap.pnt(selpos,:));
     label(k,1) = source.([parcelparam,'label'])(sel(k));
   else
     pos(k,:) = nan;

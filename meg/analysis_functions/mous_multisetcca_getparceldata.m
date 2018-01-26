@@ -1,4 +1,4 @@
-function dataout = mous_multisetcca_getparceldata(subjectname, data, source, timinginfo, groupinfo, parcel_indx)
+function dataout = mous_multisetcca_getparceldata(subjectname, data, source, timinginfo, groupinfo, parcel_indx, shift)
 
 % this function projects the sensor-level data into source space, for the
 % specified parcel, and then reorganizes the trials such, that they align
@@ -7,8 +7,9 @@ function dataout = mous_multisetcca_getparceldata(subjectname, data, source, tim
 
 [a,b] = match_str(source.filterlabel, data.label);
 
-data.trial = source.F{parcel_indx}(1:5,a)*cellrowselect(data.trial,b);
-data.label = data.label(1:5);
+indx       = 1:min(5,size(source.F{parcel_indx},1));
+data.trial = source.F{parcel_indx}(indx,a)*cellrowselect(data.trial,b);
+data.label = data.label(indx);
 
 % first select the trials according to the earlier determined selection
 % based on timing inaccuracies:
@@ -49,7 +50,7 @@ for k = 1:numel(data.trial)
     smpin_idx  = smpin_idx(keep_idx);
     smpout_idx = smpout_idx(keep_idx);
     
-    datout(:,smpout_idx) = datin(:,smpin_idx);
+    datout(:,smpout_idx) = datin(:,smpin_idx);%-repmat(nanmean(datin,2),[1 numel(smpin_idx)]);
   end
   datout  = datout(:,1:smpout_idx(end));
   timeout = timeout(1:smpout_idx(end));
@@ -86,6 +87,20 @@ for k = 1:numel(trial)
     trialinfo(k,end) = groupinfo.trialid(k);
   end
 end
+
+% if shift is different from 0, shift the data with the specified number of
+% samples: per definition if shift>0, the data shifts to the left, which
+% means that time is delayed (equivalently)
+if shift>0
+  for k = 1:numel(trial)
+    trial{k} = [trial{k}(:,(1+shift):end) nan(size(trial{k},1),shift)];
+  end
+elseif shift<0
+  for k = 1:numel(trial)
+    trial{k} = [nan(size(trial{k},1),abs(shift)) trial{k}(:,1:(end+shift))];
+  end
+end
+
 dataout = keepfields(data, {'label'});
 dataout.trial = trial;
 dataout.time  = time;
