@@ -50,7 +50,7 @@ for k = 1:numel(data.trial)
     smpin_idx  = smpin_idx(keep_idx);
     smpout_idx = smpout_idx(keep_idx);
     
-    datout(:,smpout_idx) = datin(:,smpin_idx);%-repmat(nanmean(datin,2),[1 numel(smpin_idx)]);
+    datout(:,smpout_idx) = datin(:,smpin_idx)-repmat(nanmean(datin(:,smpin_idx),2),[1 numel(smpin_idx)]);
   end
   datout  = datout(:,1:smpout_idx(end));
   timeout = timeout(1:smpout_idx(end));
