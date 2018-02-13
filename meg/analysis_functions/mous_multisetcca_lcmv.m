@@ -5,7 +5,7 @@ function [source_parc, filterlabel] = mous_multisetcca_lcmv(subjectname, data)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % get rid of the nans
-fsample = mean(diff(data.time{1}));
+fsample = 1./mean(diff(data.time{1}));
 for k = 1:numel(data.trial)
   data.trial{k}(:,~isfinite(data.trial{k}(1,:))) = [];
   data.time{k} = (0:(size(data.trial{k},2)-1))./fsample;
