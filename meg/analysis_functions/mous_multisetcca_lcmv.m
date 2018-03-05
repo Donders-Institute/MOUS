@@ -1,4 +1,4 @@
-function [source_parc, filterlabel] = mous_multisetcca_lcmv(subjectname, data)
+function [source_parc, filterlabel, source] = mous_multisetcca_lcmv(subjectname, data)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % computation of the covariance matrix
@@ -27,6 +27,9 @@ tlck = ft_timelockanalysis(cfg, data);
 data.trial{1} = cat(2,data.trial{:});
 data.trial    = data.trial(1);
 data.time     = {(0:(size(data.trial{1},2)-1))./fsample};
+
+tmp = ft_timelockanalysis(cfg, data);
+tlck.cov = tmp.cov; clear tmp;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % preparation of the anatomical data
@@ -92,7 +95,7 @@ source_parc.F     = cell(numel(source_parc.label),1);
 source_parc.avg   = zeros(numel(selparc),numel(source_parc.time));
 source_parc.dimord = 'chan_time';
 
-for k = 1:numel(selparc)
+for k = [111 112]%1:numel(selparc)
   tmpF = F(atlas.parcellation==selparc(k),:);
   tmp.trial = tmpF*data.trial;
   tmp.label = data.label(1:size(tmpF,1));

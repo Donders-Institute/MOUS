@@ -1,13 +1,17 @@
-function out = addstimchan(data,modality,lags)
+function out = addstimchan(data,modality,lags,parametricflag)
 
 load mous_stimuli;
 
-if nargin<2
+if nargin<2 || isempty(modality)
   modality = 'vis';
 end
 
-if nargin<3 || isempty(modality)
+if nargin<3 || isempty(lags)
   lags = 0;
+end
+
+if nargin<4
+  parametricflag = false;
 end
 
 T = data.trialinfo(:,end);
@@ -24,9 +28,14 @@ for k = 1:numel(out.time)
   case 'aud'
     timing  = stimuli(stim_id).timinginfo;
   end
-
-  for m = 1:(size(timing,1)-1)
-    out.trial{k}(nearest(out.time{k},timing(m,2))) = 1;
+  
+  nword = size(timing,1)-1;
+  for m = 1:nword
+    if ~parametricflag
+      out.trial{k}(nearest(out.time{k},timing(m,2))) = 1;
+    else
+      out.trial{k}(nearest(out.time{k},timing(m,2))) = m-nword/2;
+    end
   end
 end
 

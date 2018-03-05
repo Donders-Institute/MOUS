@@ -11,4 +11,4 @@ else
   allshufvec = blocks;
 end
 
-Y = shuffletrials(X, allshufvec);
+Y = shuffletrials(X, allshufvec, 2);

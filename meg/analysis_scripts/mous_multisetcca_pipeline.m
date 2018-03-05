@@ -4,7 +4,7 @@ if ~exist('computedata', 'var'), computedata = false;                       end
 if ~exist('cleandata',   'var'), cleandata   = false;                       end
 if ~exist('dolcmv',      'var'), dolcmv      = false;                       end
 if ~exist('computealignment', 'var'), computealignment = false;             end
-if ~exist('domscca_searchlight', 'var'), domscca_searchlight = true;        end
+if ~exist('domscca_searchlight', 'var'), domscca_searchlight = false;       end
 
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
   error('at least a subjectname or a scenario number needs to be defined');
@@ -48,15 +48,15 @@ if computealignment
   % to align the trials such that the timing is optimised for multisetcca
   
   
-  for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, 'meg_multisetcca_data');
-    if strcmp(sce{k}(2:end), 'Vis')
-      timinginfo = mous_multisetcca_adjusttiming_vis(subj{k}, data);
-      elseif strcmp(sce{k}(2:end), 'Aud')
-      timinginfo = mous_multisetcca_adjusttiming_aud(subj{k}, data);
-    end
-    mous_db_putdata(subj{k}, 'meg_multisetcca_timinginfo', 'timinginfo');
-  end
+%   for k = 1:numel(subj)
+%     mous_db_getdata(subj{k}, 'meg_multisetcca_data');
+%     if strcmp(sce{k}(2:end), 'Vis')
+%       timinginfo = mous_multisetcca_adjusttiming_vis(subj{k}, data);
+%       elseif strcmp(sce{k}(2:end), 'Aud')
+%       timinginfo = mous_multisetcca_adjusttiming_aud(subj{k}, data);
+%     end
+%     mous_db_putdata(subj{k}, 'meg_multisetcca_timinginfo', 'timinginfo');
+%   end
   
   % the following chunk of code is needed to get a specification of how to
   % align the trials across subjects, and to accommodate the different time
@@ -105,6 +105,16 @@ if computealignment
   groupinfo.mintim  = mintim;
   groupinfo.maxtim  = maxtim;
   groupinfo.subj    = subj;
+  
+  % add some stimulus information to the structure
+  load mous_stimuli
+  stimuli = stimuli(trialid);
+  for k = 1:numel(trialid)
+    stiminfo(k) = keepfields(stimuli(k),{'words','string','id','timinginfo_visual'});
+    stiminfo(k).timinginfo_visual = stiminfo(k).timinginfo_visual(:,1:2);
+  end
+  groupinfo.stiminfo = stiminfo;
+  
   for k = 1:numel(subj)
     mous_db_putdata(subj{k}, 'meg_multisetcca_groupinfo', 'groupinfo');
   end
@@ -113,6 +123,7 @@ end
 if domscca_searchlight
   nfold = 5;
   shift = zeros(1,numel(subj));
+  stretch = zeros(1,numel(subj));
   if ~exist('skip_noshuffle', 'var')
     skip_noshuffle = false;
   end
@@ -130,7 +141,7 @@ if domscca_searchlight
     source_parc.filterlabel = filterlabel;
     mous_db_getdata(subj{k}, 'meg_multisetcca_timinginfo');
     mous_db_getdata(subj{k}, 'meg_multisetcca_groupinfo');
-    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, data, source_parc, timinginfo, groupinfo, parcel_indx, shift(k));
+    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, data, source_parc, timinginfo, groupinfo, parcel_indx, shift(k), stretch(k));
   end
   for k = 1:numel(subj)
     cfg = [];
@@ -147,7 +158,7 @@ if domscca_searchlight
     system(sprintf('mkdir -p %s', savedir));
     filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
     %filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dpcoh',scenario,parcel_indx));
-    save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim');
+    save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim', 'Ti');
   end
   
   nrand = 50;
@@ -173,7 +184,9 @@ if domscca_searchlight
     stimdata.trialinfo = stimdata.trialinfo(reorder,:);
     stimdata.time      = stimdata.time(reorder);
     stimdata.trial     = stimdata.trial(reorder);
-    
+    for k = 1:numel(stimdata.trial)
+      stimdata.trial{k}(~isfinite(stimdata.trial{k})) = 0;
+    end
     % compute coherence etc
     [cohshufstim(m), cohshuf(m)] = mous_multisetcca_coh(compshuf,stimdata);
     Rshuf(:,:,:,m)              = single(rhoshuf);

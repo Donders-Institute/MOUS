@@ -1,4 +1,4 @@
-function dataout = mous_multisetcca_getparceldata(subjectname, data, source, timinginfo, groupinfo, parcel_indx, shift)
+function dataout = mous_multisetcca_getparceldata(subjectname, data, source, timinginfo, groupinfo, parcel_indx, shift, stretch)
 
 % this function projects the sensor-level data into source space, for the
 % specified parcel, and then reorganizes the trials such, that they align
@@ -50,7 +50,21 @@ for k = 1:numel(data.trial)
     smpin_idx  = smpin_idx(keep_idx);
     smpout_idx = smpout_idx(keep_idx);
     
-    datout(:,smpout_idx) = datin(:,smpin_idx)-repmat(nanmean(datin(:,smpin_idx),2),[1 numel(smpin_idx)]);
+    if ~isempty(stretch) && stretch>1
+      nsmp   = numel(smpout_idx);
+      tmpdat = datin(:,smpin_idx(1):end);
+    
+      % stretch the time axis
+      x_in = 0:(size(tmpdat,2)-1);
+      x_out = linspace(0,(nsmp-1)./stretch, nsmp);
+      
+      tmpdat = interp1(x_in(:),tmpdat',x_out(:),'linear')';
+      
+    else
+      tmpdat = datin(:,smpin_idx);
+    end
+    
+    datout(:,smpout_idx) = tmpdat-repmat(nanmean(tmpdat,2),[1 numel(smpin_idx)]);
   end
   datout  = datout(:,1:smpout_idx(end));
   timeout = timeout(1:smpout_idx(end));

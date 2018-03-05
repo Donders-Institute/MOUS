@@ -36,8 +36,8 @@ if ~exist('wordtype',         'var'), wordtype         = 'all';                 
 if ~exist('contrast',         'var'), contrast         = 'wordsent_parametric_blc';   end
 if ~exist('doerf_earlylate',  'var'), doerf_earlylate  = 0; end
 
-if strcmp(subjectname(1), 'V') && ~exist('length', 'var'), length = '02-nextword';    end
-if strcmp(subjectname(1), 'A') && ~exist('length', 'var'), length = '02-10'; end
+if (strcmp(subjectname(1), 'V')||strcmp(subjectname(5), '1')) && ~exist('length', 'var'), length = '02-nextword';    end
+if (strcmp(subjectname(1), 'A')||strcmp(subjectname(5), '2')) && ~exist('length', 'var'), length = '02-10';          end
 
 % this is the old default, added 20141111, to allow for a flexible
 % (shorter) baseline for the auditory data: NOTE: consider recomputing the

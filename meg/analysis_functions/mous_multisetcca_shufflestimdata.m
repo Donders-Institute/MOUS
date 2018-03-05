@@ -11,6 +11,6 @@ tmp = ft_selectdata(cfg, tmp);
 
 tmp = {tmp};
 tmp = repmat(tmp, [1 size(allshufvec,1)]);
-stimdata = shuffletrials(tmp, allshufvec);
+stimdata = shuffletrials(tmp, allshufvec, 2);
 
 
