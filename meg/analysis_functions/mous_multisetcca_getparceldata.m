@@ -50,6 +50,10 @@ for k = 1:numel(data.trial)
     smpin_idx  = smpin_idx(keep_idx);
     smpout_idx = smpout_idx(keep_idx);
     
+    keep_idx   = smpout_idx<=size(datout,2);
+    smpin_idx  = smpin_idx(keep_idx);
+    smpout_idx = smpout_idx(keep_idx);
+    
     if ~isempty(stretch) && stretch>1
       nsmp   = numel(smpout_idx);
       tmpdat = datin(:,smpin_idx(1):end);

@@ -1,5 +1,8 @@
 function out = addstimchan(data,modality,lags,parametricflag)
 
+% ADDSTIMCHAN takes a data structure, and creates a corresponding
+% stick-function 'stim-channel', to be used e.g. for a trf analysis
+
 load mous_stimuli;
 
 if nargin<2 || isempty(modality)

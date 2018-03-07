@@ -110,7 +110,7 @@ if computealignment
   load mous_stimuli
   stimuli = stimuli(trialid);
   for k = 1:numel(trialid)
-    stiminfo(k) = keepfields(stimuli(k),{'words','string','id','timinginfo_visual'});
+    stiminfo(k) = keepfields(stimuli(k),{'words','string','id','timinginfo_visual','timinginfo'});
     stiminfo(k).timinginfo_visual = stiminfo(k).timinginfo_visual(:,1:2);
   end
   groupinfo.stiminfo = stiminfo;
@@ -121,9 +121,14 @@ if computealignment
 end
 
 if domscca_searchlight
-  nfold = 5;
+  if ~exist('nfold', 'var')
+    nfold = 5;
+  end
   shift = zeros(1,numel(subj));
   stretch = zeros(1,numel(subj));
+  if ~exist('shuftype', 'var')
+    shuftype = 'lenient';
+  end
   if ~exist('skip_noshuffle', 'var')
     skip_noshuffle = false;
   end
@@ -150,7 +155,7 @@ if domscca_searchlight
   end
   
   if ~skip_noshuffle
-    [W, A, rho, C, comp] = mous_multisetcca(groupdata, nfold, 4, [],false); % no cv for now
+    [W, A, rho, C, comp] = mous_multisetcca(groupdata, nfold, 4, [],false);
     [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
     [cohstim, coh]       = mous_multisetcca_coh(comp);
     comp                 = ft_struct2single(comp);
@@ -158,52 +163,96 @@ if domscca_searchlight
     system(sprintf('mkdir -p %s', savedir));
     filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
     %filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dpcoh',scenario,parcel_indx));
-    save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim', 'Ti');
+     save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim');
   end
   
-  nrand = 50;
-  for m = 1:nrand
-    [groupdatashuf, allshufvec] = mous_multisetcca_shuffle(groupdata, {(1:17) (18:33)}); % shuffle before folding
-    stimdata                    = mous_multisetcca_shufflestimdata(groupdata{1}, allshufvec([1 18],:));
-    T = stimdata{1}.trialinfo;
-    cfg = [];
-    cfg.operation = 'add';
-    cfg.parameter = 'trial';
-    stimdata = ft_math(cfg, stimdata{:});
-    stimdata.trialinfo = T;
+  switch shuftype
+    case 'lenient'
+      % lenient shuffling, that maintins the timing within sensory
+      % modality, but does not obey individual word onsets across
+      % modalities
+      nrand    = 50;
+      selaudio = find(strncmp(subj, 'sub-2', 5));
+      selvis   = find(strncmp(subj, 'sub-1', 5));
+      for m = 1:nrand
+        [groupdatashuf, allshufvec] = mous_multisetcca_shuffle(groupdata, {selvis(:)' selaudio(:)'}); % shuffle before folding
+        stimdata                    = mous_multisetcca_shufflestimdata(groupdata{1}, allshufvec([selvis(1) selaudio(1)],:));
+        T = stimdata{1}.trialinfo;
+        cfg = [];
+        cfg.operation = 'add';
+        cfg.parameter = 'trial';
+        stimdata = ft_math(cfg, stimdata{:});
+        stimdata.trialinfo = T;
+        
+        % perform the cca
+        [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(groupdatashuf, nfold, 4, [], false);
+        [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
+        
+        % reorder the stimonset data
+        reorder = zeros(numel(stimdata.trial),1);
+        for k = 1:numel(reorder)
+          reorder(k) = find(stimdata.trialinfo(:,end)==compshuf.trialinfo(k));
+        end
+        stimdata.trialinfo = stimdata.trialinfo(reorder,:);
+        stimdata.time      = stimdata.time(reorder);
+        stimdata.trial     = stimdata.trial(reorder);
+        for k = 1:numel(stimdata.trial)
+          stimdata.trial{k}(~isfinite(stimdata.trial{k})) = 0;
+        end
+        % compute coherence etc
+        [cohshufstim(m), cohshuf(m)] = mous_multisetcca_coh(compshuf,stimdata);
+        Rshuf(:,:,:,m)              = single(rhoshuf);
+      end
+      Cshuf = single(cat(4,cohshuf.cohspctrm));
+      Cshuf = Cshuf(:,:,1:41,:);
+      Cshufstim = single(cat(3,cohshufstim.cohspctrm));
+      Cshufstim = Cshufstim(:,1:41,:);
+      foi   = cohshuf(1).freq(1:41);
+      savedir = '/project/3011020.09/jansch/mscca_group';
+      filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf',scenario,parcel_indx));
+      if exist([filename,'.mat'], 'file')
+        tmp = load(filename);
+        Cshuf = cat(4,tmp.Cshuf,Cshuf);
+        Rshuf = cat(4,tmp.Rshuf,Rshuf);
+        Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
+      end
+      save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim');
     
-    % perform the cca
-    [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(groupdatashuf, nfold, 4, [], false);
-    [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
-    
-    % reorder the stimonset data 
-    reorder = zeros(numel(stimdata.trial),1);
-    for k = 1:numel(reorder)
-      reorder(k) = find(stimdata.trialinfo(:,end)==compshuf.trialinfo(k));
-    end
-    stimdata.trialinfo = stimdata.trialinfo(reorder,:);
-    stimdata.time      = stimdata.time(reorder);
-    stimdata.trial     = stimdata.trial(reorder);
-    for k = 1:numel(stimdata.trial)
-      stimdata.trial{k}(~isfinite(stimdata.trial{k})) = 0;
-    end
-    % compute coherence etc
-    [cohshufstim(m), cohshuf(m)] = mous_multisetcca_coh(compshuf,stimdata);
-    Rshuf(:,:,:,m)              = single(rhoshuf);
+    case 'conservative'
+      % unfold the audio data to maintain word onsets across modalities,
+      % but after swapping sentences
+      
+      nrand = 100;
+      selaudio = find(strncmp(subj, 'sub-2', 5));
+      selvis   = find(strncmp(subj, 'sub-1', 5));
+      for m = 1:nrand
+        [reorder, stimid] = mous_multisetcca_createshuffle(groupinfo);
+        groupdatashuf     = mous_multisetcca_reorderaudio(groupdata, subj, reorder, stimid, parcel_indx, shift, stretch);
+        
+        % perform the cca
+        [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(groupdatashuf, nfold, 4, [], false);
+        [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
+        
+        % compute coherence etc
+        [cohshufstim(m), cohshuf(m)] = mous_multisetcca_coh(compshuf);
+        Rshuf(:,:,:,m)              = single(rhoshuf);
+      end
+      Cshuf = single(cat(4,cohshuf.cohspctrm));
+      Cshuf = Cshuf(:,:,1:41,:);
+      Cshufstim = single(cat(3,cohshufstim.cohspctrm));
+      Cshufstim = Cshufstim(:,1:41,:);
+      foi   = cohshuf(1).freq(1:41);
+      savedir = '/project/3011020.09/jansch/mscca_group';
+      filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2',scenario,parcel_indx));
+      if exist([filename,'.mat'], 'file')
+        tmp = load(filename);
+        Cshuf = cat(4,tmp.Cshuf,Cshuf);
+        Rshuf = cat(4,tmp.Rshuf,Rshuf);
+        Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
+      end
+      save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim');
+      
+      
   end
-  Cshuf = single(cat(4,cohshuf.cohspctrm));
-  Cshuf = Cshuf(:,:,1:41,:);
-  Cshufstim = single(cat(3,cohshufstim.cohspctrm));
-  Cshufstim = Cshufstim(:,1:41,:);
-  foi   = cohshuf(1).freq(1:41);
-  savedir = '/project/3011020.09/jansch/mscca_group';
-  filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf',scenario,parcel_indx));
-  if exist([filename,'.mat'], 'file')
-    tmp = load(filename);
-    Cshuf = cat(4,tmp.Cshuf,Cshuf);
-    Rshuf = cat(4,tmp.Rshuf,Rshuf);
-    Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
-  end
-  save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim');
   
 end
