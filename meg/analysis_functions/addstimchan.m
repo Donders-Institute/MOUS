@@ -35,6 +35,7 @@ for k = 1:numel(out.time)
   nword = size(timing,1)-1;
   for m = 1:nword
     if ~parametricflag
+      %nearest(out.time{k},timing(m,2))
       out.trial{k}(nearest(out.time{k},timing(m,2))) = 1;
     else
       out.trial{k}(nearest(out.time{k},timing(m,2))) = m-nword/2;

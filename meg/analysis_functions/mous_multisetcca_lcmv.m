@@ -95,7 +95,7 @@ source_parc.F     = cell(numel(source_parc.label),1);
 source_parc.avg   = zeros(numel(selparc),numel(source_parc.time));
 source_parc.dimord = 'chan_time';
 
-for k = [111 112]%1:numel(selparc)
+for k = 1:numel(selparc)
   tmpF = F(atlas.parcellation==selparc(k),:);
   tmp.trial = tmpF*data.trial;
   tmp.label = data.label(1:size(tmpF,1));

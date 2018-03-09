@@ -24,14 +24,14 @@ if computedata
 end
 
 if cleandata
-  for k = 11:numel(subj)
-  mous_db_getdata(subj{k}, 'meg_multisetcca_data');
-  cfg = [];
-  cfg.method = 'summary';
-  cfg.keeptrial = 'nan';
-  cfg.channel = 'MEG';
-  data = ft_rejectvisual(cfg, data);
-  mous_db_putdata(subj{k}, 'meg_multisetcca_data', 'data');
+  for k = 1:numel(subj)
+    mous_db_getdata(subj{k}, 'meg_multisetcca_data');
+    cfg = [];
+    cfg.method = 'summary';
+    cfg.keeptrial = 'nan';
+    cfg.channel = 'MEG';
+    data = ft_rejectvisual(cfg, data);
+    mous_db_putdata(subj{k}, 'meg_multisetcca_data', 'data');
   end
 end
 
@@ -48,15 +48,15 @@ if computealignment
   % to align the trials such that the timing is optimised for multisetcca
   
   
-%   for k = 1:numel(subj)
-%     mous_db_getdata(subj{k}, 'meg_multisetcca_data');
-%     if strcmp(sce{k}(2:end), 'Vis')
-%       timinginfo = mous_multisetcca_adjusttiming_vis(subj{k}, data);
-%       elseif strcmp(sce{k}(2:end), 'Aud')
-%       timinginfo = mous_multisetcca_adjusttiming_aud(subj{k}, data);
-%     end
-%     mous_db_putdata(subj{k}, 'meg_multisetcca_timinginfo', 'timinginfo');
-%   end
+  for k = 1:numel(subj)
+    mous_db_getdata(subj{k}, 'meg_multisetcca_data');
+    if strcmp(sce{k}(2:end), 'Vis')
+      timinginfo = mous_multisetcca_adjusttiming_vis(subj{k}, data);
+      elseif strcmp(sce{k}(2:end), 'Aud')
+      timinginfo = mous_multisetcca_adjusttiming_aud(subj{k}, data);
+    end
+    mous_db_putdata(subj{k}, 'meg_multisetcca_timinginfo', 'timinginfo');
+  end
   
   % the following chunk of code is needed to get a specification of how to
   % align the trials across subjects, and to accommodate the different time
@@ -127,7 +127,7 @@ if domscca_searchlight
   shift = zeros(1,numel(subj));
   stretch = zeros(1,numel(subj));
   if ~exist('shuftype', 'var')
-    shuftype = 'lenient';
+    shuftype = 'none';
   end
   if ~exist('skip_noshuffle', 'var')
     skip_noshuffle = false;

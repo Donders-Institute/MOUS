@@ -11,6 +11,11 @@ indx       = 1:min(5,size(source.F{parcel_indx},1));
 data.trial = source.F{parcel_indx}(indx,a)*cellrowselect(data.trial,b);
 data.label = data.label(indx);
 
+cfg = [];
+cfg.demean = 'yes';
+cfg.baselinewindow = [-0.5 0];
+data = ft_preprocessing(cfg, data);
+
 % first select the trials according to the earlier determined selection
 % based on timing inaccuracies:
 data.trial = data.trial(timinginfo.trials);
@@ -68,7 +73,7 @@ for k = 1:numel(data.trial)
       tmpdat = datin(:,smpin_idx);
     end
     
-    datout(:,smpout_idx) = tmpdat-repmat(nanmean(tmpdat,2),[1 numel(smpin_idx)]);
+    datout(:,smpout_idx) = tmpdat;%-repmat(nanmean(tmpdat,2),[1 numel(smpin_idx)]);
   end
   datout  = datout(:,1:smpout_idx(end));
   timeout = timeout(1:smpout_idx(end));

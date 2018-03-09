@@ -226,7 +226,7 @@ switch type{2}
   case {'raw' 'ds'}
     % MEG .ds directory
     D = fullfile(rootdir,'raw',subject);
-    d = dir([D, '/*/*.ds']);
+    d = dir([D, '/*/*/*.ds']);
     % FIXME:  crashes if there are no files in RAW directory, need to
     % circumvent this
     if numel(type)>2 
