@@ -1,20 +1,36 @@
-function dataout = mous_multisetcca_getparceldata(subjectname, data, source, timinginfo, groupinfo, parcel_indx, shift, stretch)
+function [dataout, stim] = mous_multisetcca_getparceldata(subjectname, data, source, timinginfo, groupinfo, parcel_indx, shift, stretch)
 
 % this function projects the sensor-level data into source space, for the
 % specified parcel, and then reorganizes the trials such, that they align
 % across a set of subjects, according to the specified timinginfo and
 % groupinfo
 
-[a,b] = match_str(source.filterlabel, data.label);
+hasstim = strncmp(data.label{end},'stim',4);
+if hasstim
+  cfg = [];
+  cfg.channel = data.label(end);
+  stim = ft_selectdata(cfg, data);
+else
+  stim = [];
+end
 
+% ensure the channel labels in the data to match the order of the channels
+% in the spatial filter, and compute the parcel specific time courses
+[a,b]      = match_str(source.filterlabel, data.label);
 indx       = 1:min(5,size(source.F{parcel_indx},1));
 data.trial = source.F{parcel_indx}(indx,a)*cellrowselect(data.trial,b);
 data.label = data.label(indx);
 
-cfg = [];
-cfg.demean = 'yes';
+if hasstim
+  %stim.fsample = data.fsample;
+  data = ft_appenddata([], data, stim);
+end
+
+% mean subtract using the pre-sentence average
+cfg                = [];
+cfg.demean         = 'yes';
 cfg.baselinewindow = [-0.5 0];
-data = ft_preprocessing(cfg, data);
+data               = ft_preprocessing(cfg, data);
 
 % first select the trials according to the earlier determined selection
 % based on timing inaccuracies:
@@ -22,13 +38,14 @@ data.trial = data.trial(timinginfo.trials);
 data.time  = data.time(timinginfo.trials);
 data.trialinfo = data.trialinfo(timinginfo.trials,:);
 
+% sanity check
 assert(isequal(data.trialinfo, timinginfo.trialinfo));
 
 % sort the stuff according to the trialid
-[srt,srt_idx] = sort(data.trialinfo(:,end));
-data.trial = data.trial(srt_idx);
+[srt,srt_idx]  = sort(data.trialinfo(:,end));
+data.trial     = data.trial(srt_idx);
 data.trialinfo = data.trialinfo(srt_idx,:);
-data.time = data.time(srt_idx);
+data.time      = data.time(srt_idx);
 fn = fieldnames(timinginfo);
 for k = 1:numel(fn)
   try
@@ -38,7 +55,34 @@ for k = 1:numel(fn)
   end
 end
 
-% now, 'unfold' the trials according to the timinginfo
+if ~hasstim
+  % create a stim channel that can be used for debugging, i.e. to check
+  % whether the unfolding worked well
+  if strcmp(subjectname(5),'2')
+    stim = addstimchan(data,'aud');
+  elseif strcmp(subjectname(5),'1')
+    stim = addstimchan(data,'vis');
+  else
+    error('wrong subjectname');
+  end
+  for k = 1:numel(stim.trial)
+    tmp = stim.trial{k};
+    tmp(end+1)=1;
+    sel = find(tmp);
+    for m = 1:numel(sel)-1
+      tmp(sel(m):sel(m+1)) = linspace(m,m+1,sel(m+1)-sel(m)+1);
+    end
+    tmp = tmp(1:end-1);
+    stim.trial{k} = tmp;
+  end
+  stim.fsample = data.fsample;
+  data = ft_appenddata([], data, stim);
+else
+  % it has been taken from above, and added again
+end
+
+% now, 'unfold' the trials according to the timinginfo. This maps the
+% timeseries as 'timed' by smpin onto smpout
 for k = 1:numel(data.trial)
   smpin  = timinginfo.smpin{k};
   smpout = timinginfo.smpout{k}; 
@@ -124,8 +168,15 @@ elseif shift<0
   end
 end
 
-dataout = keepfields(data, {'label'});
-dataout.trial = trial;
-dataout.time  = time;
+stim = keepfields(data, {'label'});
+stim.label = data.label(end);
+stim.trial    = cellrowselect(trial, size(trial{1},1));
+stim.time     = time;
+stim.trialinfo = trialinfo;
+
+dataout           = keepfields(data, {'label'});
+dataout.label     = dataout.label(1:end-1);
+dataout.trial     = cellrowselect(trial, 1:(size(trial{1},1)-1));
+dataout.time      = time;
 dataout.trialinfo = trialinfo;
 

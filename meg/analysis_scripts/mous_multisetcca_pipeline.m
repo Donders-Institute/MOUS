@@ -135,6 +135,9 @@ if domscca_searchlight
   if ~exist('parcel_indx', 'var')
     error('a parcel index needs to be specified');
   end
+  if ~exist('nrand', 'var')
+    nrand = 100;
+  end
   % this step does a mscca on a specified parcel, and requires the
   % parcellation to have been computed. Also, it is a bit inefficient,
   % because it processes the data up until the level of a parcellated
@@ -171,7 +174,7 @@ if domscca_searchlight
       % lenient shuffling, that maintins the timing within sensory
       % modality, but does not obey individual word onsets across
       % modalities
-      nrand    = 50;
+      
       selaudio = find(strncmp(subj, 'sub-2', 5));
       selvis   = find(strncmp(subj, 'sub-1', 5));
       for m = 1:nrand
@@ -222,7 +225,7 @@ if domscca_searchlight
       % unfold the audio data to maintain word onsets across modalities,
       % but after swapping sentences
       
-      nrand = 100;
+      
       selaudio = find(strncmp(subj, 'sub-2', 5));
       selvis   = find(strncmp(subj, 'sub-1', 5));
       for m = 1:nrand
