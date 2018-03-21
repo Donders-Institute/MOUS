@@ -30,6 +30,7 @@ for k = 1:numel(out.time)
     timing(end+1,:) = 0;
   case 'aud'
     timing  = stimuli(stim_id).timinginfo;
+    timing(:,2) = timing(:,2)-timing(1,2); % adjust so that the first word starts at 0
   end
   
   nword = size(timing,1)-1;
@@ -41,6 +42,12 @@ for k = 1:numel(out.time)
       out.trial{k}(nearest(out.time{k},timing(m,2))) = m-nword/2;
     end
   end
+  
+%   if strcmp(modality, 'aud')
+%     out.trial{k} = out.trial{k}(:,1:nearest(out.time{k},timing(end,2)));
+%     out.time{k}  = out.time{k}(1:nearest(out.time{k},timing(end,2)));
+%   end
+  
 end
 
 if lags(1)~=0 || numel(lags)>1

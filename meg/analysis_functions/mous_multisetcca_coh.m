@@ -55,6 +55,6 @@ if computeTi
     Ti(k) = (abs(det(tmp(1:n(1),1:n(1)))).*abs(det(tmp(n(1)+(1:n(2)),n(1)+(1:n(2))))))./abs(det(tmp(1:sum(n),1:sum(n))));
   end
 else
-  Ti = [];
+  Ti = ft_freqdescriptives([],freq);
 end
 

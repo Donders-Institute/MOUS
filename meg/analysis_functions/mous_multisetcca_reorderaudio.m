@@ -1,28 +1,36 @@
-function groupdata = mous_multisetcca_reorderaudio(groupdata, subj, reorder, stimid, parcel_indx, shift, stretch)
+function [groupdata, stim] = mous_multisetcca_reorderaudio(subj, subjectdata, subjecttiming, groupinfo, reorder, stimid, shift, stretch)
 
-selaudio = find(strncmp(subj,'sub-2',5))';
-for k = selaudio
-  mous_db_getdata(subj{k}, 'meg_multisetcca_data');
-  mous_db_getdata(subj{k}, 'meg_multisetcca_lcmv_parc');
-  source_parc.filterlabel = filterlabel;
-  mous_db_getdata(subj{k}, 'meg_multisetcca_timinginfo');
-  mous_db_getdata(subj{k}, 'meg_multisetcca_groupinfo');
-
-  % create a stim channel that can be used for debugging, i.e. to check
-  % whether the unfolding worked well
-  stim = addstimchan(data,'aud');
-  for kk = 1:numel(stim.trial)
-    tmp = stim.trial{kk};
-    tmp(end+1)=1;
-    sel = find(tmp);
-    for m = 1:numel(sel)-1
-      tmp(sel(m):sel(m+1)) = linspace(m,m+1,sel(m+1)-sel(m)+1);
+for k = 1:numel(subjectdata)
+  data = subjectdata{k};
+  
+  if 0
+    hasstim = strncmp(data.label{end},'stim',4);
+    if ~hasstim
+      % create a stim channel that can be used for debugging, i.e. to check
+      % whether the unfolding worked well
+      if strcmp(subj{k}(5),'2')
+        stimdat = addstimchan(data,'aud');
+      elseif strcmp(subj{k}(5),'1')
+        stimdat = addstimchan(data,'vis');
+      else
+        error('wrong subjectname');
+      end
+      for kk = 1:numel(stimdat.trial)
+        tmp = stimdat.trial{kk};
+        tmp(end+1)=1;
+        sel = find(tmp);
+        for m = 1:numel(sel)-1
+          tmp(sel(m):sel(m+1)) = linspace(m,m+1,sel(m+1)-sel(m)+1);
+        end
+        tmp = tmp(1:end-1);
+        stimdat.trial{kk} = tmp;
+      end
+      stimdat.fsample = data.fsample;
+      data = ft_appenddata([], data, stimdat);
     end
-    tmp = tmp(1:end-1);
-    stim.trial{kk} = tmp;
   end
-  stim.fsample = data.fsample;
-  data = ft_appenddata([], data, stim);
+    
+  timinginfo = subjecttiming{k};
   
   % reorder the trials in the data structure, to achieve an unfolded
   % representation of audio data with identical timing info, but different
@@ -69,9 +77,13 @@ for k = selaudio
   newtiminginfo.smpout = newsmpout;
   clear newtrial newtime newtime2 newsmpin newsmpout;
   
-  groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, data, source_parc, newtiminginfo, groupinfo, parcel_indx, shift(k), stretch(k));
+  if nargout>1
+    [groupdata{1,k}, stim{1,k}] = mous_multisetcca_getparceldata(subj{k}, data, newtiminginfo, groupinfo, shift(k), stretch(k));
+  else
+    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, data, newtiminginfo, groupinfo, shift(k), stretch(k));
+  end
 end
-for k = selaudio
+for k = 1:numel(groupdata)
   cfg = [];
   cfg.method = 'acrosschannel';
   groupdata{1,k} = ft_channelnormalise(cfg, groupdata{1,k});

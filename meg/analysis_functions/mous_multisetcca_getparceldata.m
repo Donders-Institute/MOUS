@@ -1,36 +1,10 @@
-function [dataout, stim] = mous_multisetcca_getparceldata(subjectname, data, source, timinginfo, groupinfo, parcel_indx, shift, stretch)
+function [dataout, stim] = mous_multisetcca_getparceldata(subjectname, data, timinginfo, groupinfo, shift, stretch)
 
-% this function projects the sensor-level data into source space, for the
-% specified parcel, and then reorganizes the trials such, that they align
+% this function reorganizes the parcel-based time seriessuch, that the trials align
 % across a set of subjects, according to the specified timinginfo and
 % groupinfo
 
 hasstim = strncmp(data.label{end},'stim',4);
-if hasstim
-  cfg = [];
-  cfg.channel = data.label(end);
-  stim = ft_selectdata(cfg, data);
-else
-  stim = [];
-end
-
-% ensure the channel labels in the data to match the order of the channels
-% in the spatial filter, and compute the parcel specific time courses
-[a,b]      = match_str(source.filterlabel, data.label);
-indx       = 1:min(5,size(source.F{parcel_indx},1));
-data.trial = source.F{parcel_indx}(indx,a)*cellrowselect(data.trial,b);
-data.label = data.label(indx);
-
-if hasstim
-  %stim.fsample = data.fsample;
-  data = ft_appenddata([], data, stim);
-end
-
-% mean subtract using the pre-sentence average
-cfg                = [];
-cfg.demean         = 'yes';
-cfg.baselinewindow = [-0.5 0];
-data               = ft_preprocessing(cfg, data);
 
 % first select the trials according to the earlier determined selection
 % based on timing inaccuracies:
@@ -45,6 +19,7 @@ assert(isequal(data.trialinfo, timinginfo.trialinfo));
 [srt,srt_idx]  = sort(data.trialinfo(:,end));
 data.trial     = data.trial(srt_idx);
 data.trialinfo = data.trialinfo(srt_idx,:);
+if isfield(data,'sampleinfo'), data.sampleinfo = data.sampleinfo(srt_idx,:); end
 data.time      = data.time(srt_idx);
 fn = fieldnames(timinginfo);
 for k = 1:numel(fn)
@@ -55,7 +30,7 @@ for k = 1:numel(fn)
   end
 end
 
-if ~hasstim
+if ~hasstim && nargout==2
   % create a stim channel that can be used for debugging, i.e. to check
   % whether the unfolding worked well
   if strcmp(subjectname(5),'2')
@@ -77,6 +52,7 @@ if ~hasstim
   end
   stim.fsample = data.fsample;
   data = ft_appenddata([], data, stim);
+  hasstim = true;
 else
   % it has been taken from above, and added again
 end
@@ -168,15 +144,21 @@ elseif shift<0
   end
 end
 
-stim = keepfields(data, {'label'});
-stim.label = data.label(end);
-stim.trial    = cellrowselect(trial, size(trial{1},1));
-stim.time     = time;
-stim.trialinfo = trialinfo;
-
-dataout           = keepfields(data, {'label'});
-dataout.label     = dataout.label(1:end-1);
-dataout.trial     = cellrowselect(trial, 1:(size(trial{1},1)-1));
-dataout.time      = time;
-dataout.trialinfo = trialinfo;
-
+if hasstim
+  stim = keepfields(data, {'label'});
+  stim.label = data.label(end);
+  stim.trial    = cellrowselect(trial, size(trial{1},1));
+  stim.time     = time;
+  stim.trialinfo = trialinfo;
+  
+  dataout           = keepfields(data, {'label'});
+  dataout.label     = dataout.label(1:end-1);
+  dataout.trial     = cellrowselect(trial, 1:(size(trial{1},1)-1));
+  dataout.time      = time;
+  dataout.trialinfo = trialinfo;
+else
+  dataout           = keepfields(data, {'label'});
+  dataout.trial     = trial;
+  dataout.time      = time;
+  dataout.trialinfo = trialinfo;
+end

@@ -19,15 +19,32 @@ if shufflag==2
   error('shufflag of ''2'' is not supported anymore');
 end
 
-if numel(nfold)==1 && nfold>1
-    
-  % create the folds
-  nobs     = numel(X{1}.trial);
-  obs_shuf = randperm(nobs);
-  ix       = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
-  testfold = cell(nfold,1);
-  for k = 1:nfold
-    testfold{k,1} = obs_shuf((ix(k)+1):ix(k+1));
+% check the input data
+if iscell(X)
+  % one structure per set
+  nset = numel(X);
+else
+  % single structure, where the assumption is that the set i.d. can be
+  % recovered from the label list
+  X = {X};
+  nset = 1;
+end
+  
+testfold = nfold;
+if (numel(nfold)==1 && nfold>1) || iscell(nfold)
+  
+  if iscell(nfold)
+    testfold = nfold;
+    nfold    = numel(testfold);
+  else
+    % create the folds
+    nobs     = numel(X{1}.trial);
+    obs_shuf = randperm(nobs);
+    ix       = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
+    testfold = cell(nfold,1);
+    for k = 1:nfold
+      testfold{k,1} = obs_shuf((ix(k)+1):ix(k+1));
+    end
   end
   
   % loop over the folds
@@ -73,6 +90,9 @@ if numel(nfold)==1 && nfold>1
     xold = x;
     
     %disp(sum(flipmat(:)<0));
+    if size(flipmat,2)<size(Xtest{1}.topo,2)
+      flipmat = repmat(flipmat, [1 size(Xtest{1}.topo,2)./size(flipmat,2)]);
+    end
     
     for k = 1:size(Xtest,2)
       for m = 1:size(Xtest,1)
@@ -82,10 +102,11 @@ if numel(nfold)==1 && nfold>1
       end
     end
     
-    % also flip A as appropriate
-    for k = 1:size(flipmat,1)
-      for m = 1:size(flipmat,2)
+    % also flip A and W as appropriate
+    for k = 1:nfold
+      for m = 1:ncomp
         A(:,m,:,k) = A(:,m,:,k).*flipmat(k,m);
+        W(m,:,:,k) = W(m,:,:,k).*flipmat(k,m);
       end
     end
     
@@ -95,7 +116,6 @@ if numel(nfold)==1 && nfold>1
   return;
 end
 
-nset = numel(X);
 
 % preprocess the data: get the covariance matrix and the masked block-diagonal matrix
 
@@ -149,44 +169,74 @@ else
   Xtest = X;
 end
 
-% get number of channels per set
-n = zeros(nset,1);
-for k = 1:nset
-  n(k) = numel(X{k}.label);
+if nset>1
+  % get number of channels per set in case of a multiple cell-array as
+  % input
+  n = zeros(nset,1);
+  for k = 1:nset
+    n(k) = numel(X{k}.label);
+  end
+  sumn = cumsum([0 n(:)']);
+else
+  % decode the label in case of a single data structure as input
+  label = X{1}.label;
+  for k = 1:numel(label)
+    tmp = tokenize(label{k},'_');
+    label{k} = tmp{1};
+  end
+  ulabel = unique(label);
+  n = zeros(numel(ulabel),1);
+  for k = 1:numel(ulabel)
+    n(k) = sum(strcmp(label,ulabel{k}));
+  end
+  sumn = cumsum([0 n(:)']);
 end
-sumn = cumsum([0 n(:)']);
 
 R     = zeros(sum(n));
 if computeRtest, Rtest = R; end
 mask  = [];
 
-for k = 1:nset
-  for m = k:nset
-    % compute the covariance in blocks, pairwise across sets
-    nchan1 = n(k);
-    nchan2 = n(m);
-    
-    % i1 and i2 are the indices into the overall covariance matrix of
-    % this particular sub-block
-    i1 = sumn(k) + (1:nchan1);
-    i2 = sumn(m) + (1:nchan2);
-    
-    %fprintf('%2.1f\n',100*cnt/nblocks);
-    if k==m
-      mask    = blkdiag(mask,ones(nchan1)); % this is the mask for the setwise block diagonal matrix
-    end
-    R(i1,i2) = nancov_shuf(X{k}.trial,X{m}.trial,0);
-    if k~=m
-      R(i2,i1) = ctranspose(R(i1,i2));
-    end
-    if computeRtest
-      Rtest(i1,i2) = nancov_shuf(Xtest{k}.trial,Xtest{m}.trial,0);
+if nset>1
+  % compute covariance in a blockwise fashion, with relatively slow for
+  % loops
+  for k = 1:nset
+    for m = k:nset
+      % compute the covariance in blocks, pairwise across sets
+      nchan1 = n(k);
+      nchan2 = n(m);
+      
+      % i1 and i2 are the indices into the overall covariance matrix of
+      % this particular sub-block
+      i1 = sumn(k) + (1:nchan1);
+      i2 = sumn(m) + (1:nchan2);
+      
+      %fprintf('%2.1f\n',100*cnt/nblocks);
+      if k==m
+        mask    = blkdiag(mask,ones(nchan1)); % this is the mask for the setwise block diagonal matrix
+      end
+      R(i1,i2) = nancov_shuf(X{k}.trial,X{m}.trial,0);
       if k~=m
-        Rtest(i2,i1) = ctranspose(Rtest(i1,i2));
+        R(i2,i1) = ctranspose(R(i1,i2));
+      end
+      if computeRtest
+        Rtest(i1,i2) = nancov_shuf(Xtest{k}.trial,Xtest{m}.trial,0);
+        if k~=m
+          Rtest(i2,i1) = ctranspose(Rtest(i1,i2));
+        end
       end
     end
   end
+else
+  % compute covariances in a single shot
+  R = nancov_shuf(X{1}.trial,X{1}.trial,0);
+  if computeRtest
+    Rtest = nancov_shuf(Xtest{1}.trial,Xtest{1}.trial,0);
+  end
+  for k = 1:numel(n)
+    mask = blkdiag(mask,ones(n(k)));
+  end
 end
+
 S = R.*mask;
 
 % compute the spatial filter and its inverse
@@ -199,8 +249,6 @@ else
   rho   = getrho(R,W,K,n);
   Rtest = R;
 end
-W = W(:,:,1:nset);
-A = A(:,:,1:nset);
 
 % post-process the data if the input contained a cell array of fieldtrip
 % data structures
@@ -209,19 +257,43 @@ for k = 1:K
   complabel{k,1} = sprintf('mscca%03d',k);
 end
 
-for k = 1:nset
-  Xtest{k}.trial = W(:,1:n(k),k)*Xtest{k}.trial;
-  if ~isfield(Xtest{k}, 'topo')
-    Xtest{k}.topo  = A(1:n(k),:,k);
-  else
-    Xtest{k}.topo  = Xtest{k}.topo*A(1:n(k),:,k);
+if nset>1
+  W = W(:,:,1:nset);
+  A = A(:,:,1:nset);
+  for k = 1:nset
+    Xtest{k}.trial = W(:,1:n(k),k)*Xtest{k}.trial;
+    if ~isfield(Xtest{k}, 'topo')
+      Xtest{k}.topo  = A(1:n(k),:,k);
+    else
+      Xtest{k}.topo  = Xtest{k}.topo*A(1:n(k),:,k);
+    end
+    if ~isfield(Xtest{k},'unmixing')
+      Xtest{k}.unmixing = W(:,1:n(k),k);
+    else
+      Xtest{k}.unmixing = W(:,1:n(k),k)*Xtest{k}.unmixing;
+    end
+    Xtest{k}.label = complabel;
   end
-  if ~isfield(Xtest{k},'unmixing')
-    Xtest{k}.unmixing = W(:,1:n(k),k);
-  else
-    Xtest{k}.unmixing = W(:,1:n(k),k)*Xtest{k}.unmixing;
+else
+  Wall = [];
+  Aall = [];
+  for k = 1:size(W,3)
+    Wall = blkdiag(Wall,W(:,:,k));
+    Aall = blkdiag(Aall,A(:,:,k));
   end
-  Xtest{k}.label = complabel;
+  Xtest{1}.label = complabel;
+  Xtest{1}.trial = Wall*Xtest{1}.trial;
+  if isfield(Xtest{1},'topo')
+    % well, what to do here?
+    error('don''t know what to do');
+  else
+    Xtest{1}.topo = Aall;
+  end
+  if isfield(Xtest{1},'unmixing')
+    error('don''t know what to do');
+  else
+    Xtest{1}.unmixing = Wall;
+  end
 end
 
 
