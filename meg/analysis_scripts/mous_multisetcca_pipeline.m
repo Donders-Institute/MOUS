@@ -7,8 +7,12 @@ if ~exist('cleandata_seq',   'var'), cleandata_seq   = false;                   
 if ~exist('dolcmv',          'var'), dolcmv          = false;                       end
 if ~exist('dolcmv_seq',      'var'), dolcmv_seq      = false;                       end
 if ~exist('computealignment', 'var'), computealignment = false;             end
-if ~exist('domscca_searchlight', 'var'), domscca_searchlight = false;       end
+if ~exist('computealignment_seq', 'var'), computealignment_seq = false;             end
+if ~exist('domscca_searchlight', 'var'),     domscca_searchlight     = false;       end
+if ~exist('domscca_searchlight_seq', 'var'), domscca_searchlight_seq = false;       end
 if ~exist('domscca_searchlight_stretch', 'var'), domscca_searchlight_stretch = false;       end
+if ~exist('create_shuffle_indx', 'var'), create_shuffle_indx = false; end
+if ~exist('create_shuffle_indx_seq', 'var'), create_shuffle_indx_seq = false; end
 
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
   error('at least a subjectname or a scenario number needs to be defined');
@@ -155,7 +159,35 @@ if computealignment || computealignment_seq
   end
 end
 
-if domscca_searchlight
+if create_shuffle_indx
+  mous_db_getdata(subj{1},'meg_multisetcca_groupinfo');
+  for m = 1:500
+    [reorder, stimid]       = mous_multisetcca_createshuffle(groupinfo);
+    savedir = '/project/3011020.09/jansch/mscca_group';
+    save(fullfile(savedir,'params',sprintf('shuff_sce%d_indx%04d',scenario,m)),'reorder','stimid'); % use precomputed ordering for consistency across parcels
+    clear reorder stimid;
+  end
+end
+
+if create_shuffle_indx_seq
+  mous_db_getdata(subj{1},'meg_multisetcca_groupinfo_seq');
+  for m = 1:500
+    [reorder, stimid]       = mous_multisetcca_createshuffle(groupinfo);
+    savedir = '/project/3011020.09/jansch/mscca_group';
+    save(fullfile(savedir,'params',sprintf('shuff_sce%d_indx%04d_seq',scenario,m)),'reorder','stimid'); % use precomputed ordering for consistency across parcels
+    clear reorder stimid;
+  end
+end
+
+if domscca_searchlight || domscca_searchlight_seq
+  if domscca_searchlight &&  domscca_searchlight_seq
+    error('not both can be true at the same time');
+  elseif domscca_searchlight
+    suffix = ''; % the filenames don't have a suffix
+  elseif domscca_searchlight_seq
+    suffix = '_seq';
+  end
+  
   load mous_stimuli; 
   if ~exist('nfold', 'var')
     nfold = 5;
@@ -185,8 +217,8 @@ if domscca_searchlight
   subjectdata = cell(1,numel(subj));
   subjecttiming = cell(1,numel(subj));
   for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, 'meg_multisetcca_data');
-    mous_db_getdata(subj{k}, 'meg_multisetcca_lcmv_parc');
+    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_data%s',suffix));
+    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc%s',suffix));
     source_parc.filterlabel = filterlabel; % for checking channel order
     subjectdata{1,k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
     if strncmp(subj{k}, 'sub-2', 5)
@@ -205,8 +237,8 @@ if domscca_searchlight
       tmp = tmp - nanmean(tmp,2)*ones(1,size(tmp,2));
       subjectdata{1,k}.trial{kk} = tmp;
     end
-    mous_db_getdata(subj{k}, 'meg_multisetcca_timinginfo');
-    mous_db_getdata(subj{k}, 'meg_multisetcca_groupinfo');
+    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_timinginfo%s',suffix));
+    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_groupinfo%s',suffix));
     subjecttiming{1,k} = timinginfo; % subject specific information about timing
     groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
   
@@ -221,23 +253,17 @@ if domscca_searchlight
   end
   
   if ~skip_noshuffle
-    [W, A, rho, C, comp] = mous_multisetcca(groupdata, nfold, 4, [],false);
+    tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
+    [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 4, [],false);
     [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
     [cohstim, coh]       = mous_multisetcca_coh(comp);
     comp                 = ft_struct2single(comp);
     savedir = '/project/3011020.09/jansch/mscca_group';
     system(sprintf('mkdir -p %s', savedir));
-    filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
+    filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
     %filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dpcoh',scenario,parcel_indx));
     save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim');
   end
-  
-%   for m = 1:nrand
-%     [reorder, stimid]       = mous_multisetcca_createshuffle(groupinfo);
-%     system(sprintf('mkdir -p %s/params',savedir));
-%     save(fullfile(savedir,'params',sprintf('shuff_sce%d_indx%04d',scenario,m)),'reorder', 'stimid');
-%     clear reorder stimid
-%   end
   
   switch shuftype
     case 'lenient'
@@ -294,16 +320,18 @@ if domscca_searchlight
     case 'conservative'
       % unfold the audio data to maintain word onsets across modalities,
       % but after swapping sentences
-      
-      
+            
       selaudio = find(strncmp(subj, 'sub-2', 5));
       selvis   = find(strncmp(subj, 'sub-1', 5));
       groupdatashuf = groupdata;
       
       cnt = 0;
+      Cshufstim = zeros(81,2,numel(nrand));
+      Cshuf     = zeros(81,3,numel(nrand));
       for m = nrand(:)'
+        fprintf('performing permutation %d/%d\n',find(m==nrand),numel(nrand));
         cnt = cnt + 1;
-        load(fullfile(savedir,'params',sprintf('shuff_sce%d_indx%04d',scenario,m))); % use precomputed ordering for consistency across parcels
+        load(fullfile(savedir,'params',sprintf('shuff_sce%d_indx%04d%s',scenario,m,suffix))); % use precomputed ordering for consistency across parcels
         
         groupdatashuf(selaudio) = mous_multisetcca_reorderaudio(subj(selaudio), subjectdata(selaudio), subjecttiming(selaudio), groupinfo, reorder, stimid, shift, stretch);
         
@@ -315,29 +343,36 @@ if domscca_searchlight
           end
         end
         % perform the cca
-        [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(groupdatashuf, nfold, 4, [], false);
+        tmpdata                              = mous_multisetcca_groupdata2singlestruct(groupdatashuf, subj);
+        [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(tmpdata, nfold, 4, [], false);
         [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
         
         % compute coherence etc
-        [cohshufstim(cnt), cohshuf(cnt)] = mous_multisetcca_coh(compshuf);
-        Rshuf(:,:,:,cnt)                 = single(rhoshuf);
+        [cohshufstim, cohshuf] = mous_multisetcca_coh(compshuf);
+        Rshuf(:,:,:,cnt)       = single(rhoshuf);
+        
+        tmpCshuf       = cohshuf.cohspctrm;
+        Cshuf(:,1,cnt) = mean(mean(tmpCshuf(selvis,selvis,:,:)))-1./numel(selvis);
+        Cshuf(:,2,cnt) = mean(mean(tmpCshuf(selaudio,selaudio,:,:)))-1./numel(selaudio);
+        Cshuf(:,3,cnt) = mean(mean(tmpCshuf(selvis,selaudio,:,:)))
+      
+        tmpCshufstim       = cohshufstim.cohspctrm;
+        Cshufstim(:,1,cnt) = mean(abs(tmpCshufstim(selvis,:,:)));
+        Cshufstim(:,2,cnt) = mean(abs(tmpCshufstim(selaudio,:,:)));
       end
-      Cshuf = single(cat(4,cohshuf.cohspctrm));
-      Cshuf = Cshuf(:,:,1:41,:);
-      Cshufstim = single(cat(3,cohshufstim.cohspctrm));
-      Cshufstim = Cshufstim(:,1:41,:);
-      foi   = cohshuf(1).freq(1:41);
+      
+      
+      foi   = cohshuf(1).freq;
       savedir = '/project/3011020.09/jansch/mscca_group';
-      filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2',scenario,parcel_indx));
+      filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2%s',scenario,parcel_indx,suffix));
       if exist([filename,'.mat'], 'file')
         tmp = load(filename);
-        Cshuf = cat(4,tmp.Cshuf,Cshuf);
+        Cshuf = cat(3,tmp.Cshuf,Cshuf);
         Rshuf = cat(4,tmp.Rshuf,Rshuf);
         Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
       end
       save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim');
-      
-      
+    
   end
 end
 

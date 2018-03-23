@@ -13,6 +13,11 @@ for k = 1:numel(groupdata)
 end
 T = [T groupdata{k}.trialinfo(:,end)];
 
-
-out = ft_appenddata([],groupdata{:});
+out = groupdata{1};
+label = out.label;
+for k = 2:numel(groupdata)
+  out.trial = cellcat(1,out.trial,groupdata{k}.trial);
+  label = cat(1,label,groupdata{k}.label);
+end
 out.trialinfo = T;
+out.label     = label;

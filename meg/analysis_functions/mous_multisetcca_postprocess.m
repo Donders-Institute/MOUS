@@ -26,9 +26,10 @@ if iscell(comp)
   end
   cfg = [];
   for k = 1:nset
-    cfg.channel = compout{k}.label(1);
+    sel = strncmp(compout{k}.label,'mscca001',8);
+    cfg.channel = compout{k}.label(sel);
     compout{k}  = ft_selectdata(cfg, compout{k});
-    compout{k}.label = {sprintf('%s_%02d',label,k)};
+    compout{k}.label = strrep(compout{k}.label,'mscca001',label);
     compout{k}.time  = compout{1}.time;
     T(:,k) = compout{k}.trialinfo(:,end);
   end

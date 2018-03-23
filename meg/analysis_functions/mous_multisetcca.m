@@ -98,7 +98,13 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
       for m = 1:size(Xtest,1)
         Xtest{m,k}.topo     = Xtest{m,k}.topo*diag(flipmat(m,:));
         Xtest{m,k}.unmixing = diag(flipmat(m,:))*Xtest{m,k}.unmixing;
-        Xtest{m,k}.trial    = diag(flipmat(m,:))*Xtest{m,k}.trial;
+        for mm = 1:numel(Xtest{m,k}.trial)
+          tmp = Xtest{m,k}.trial{mm};
+          tmp(~isfinite(tmp)) = 0;
+          tmp = diag(flipmat(m,:))*tmp;
+          tmp(tmp==0) = nan;
+          Xtest{m,k}.trial{mm} = tmp;
+        end
       end
     end
     
@@ -281,8 +287,13 @@ else
     Wall = blkdiag(Wall,W(:,:,k));
     Aall = blkdiag(Aall,A(:,:,k));
   end
-  Xtest{1}.label = complabel;
-  Xtest{1}.trial = Wall*Xtest{1}.trial;
+  for k = 1:numel(Xtest{1}.trial)
+    tmp = Xtest{1}.trial{k};
+    tmp(~isfinite(tmp)) = 0;
+    tmp = Wall*tmp;
+    tmp(tmp==0) = nan;
+    Xtest{1}.trial{k} = tmp;
+  end
   if isfield(Xtest{1},'topo')
     % well, what to do here?
     error('don''t know what to do');
@@ -294,6 +305,15 @@ else
   else
     Xtest{1}.unmixing = Wall;
   end
+  
+  % expand the complabel, to match the data
+  ncomp     = numel(complabel);
+  complabel = repmat(complabel, [numel(ulabel) 1]);
+  for k = 1:numel(complabel)
+    complabel{k} = sprintf('%s_%s',complabel{k}, ulabel{ceil(k./ncomp)});
+  end
+  Xtest{1}.label = complabel;
+  
 end
 
 
