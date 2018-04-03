@@ -13,6 +13,7 @@ if ~exist('domscca_searchlight_seq', 'var'), domscca_searchlight_seq = false;   
 if ~exist('domscca_searchlight_stretch', 'var'), domscca_searchlight_stretch = false;       end
 if ~exist('create_shuffle_indx', 'var'), create_shuffle_indx = false; end
 if ~exist('create_shuffle_indx_seq', 'var'), create_shuffle_indx_seq = false; end
+if ~exist('makemodels', 'var'), makemodels = false; end
 
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
   error('at least a subjectname or a scenario number needs to be defined');
@@ -354,7 +355,7 @@ if domscca_searchlight || domscca_searchlight_seq
         tmpCshuf       = cohshuf.cohspctrm;
         Cshuf(:,1,cnt) = mean(mean(tmpCshuf(selvis,selvis,:,:)))-1./numel(selvis);
         Cshuf(:,2,cnt) = mean(mean(tmpCshuf(selaudio,selaudio,:,:)))-1./numel(selaudio);
-        Cshuf(:,3,cnt) = mean(mean(tmpCshuf(selvis,selaudio,:,:)))
+        Cshuf(:,3,cnt) = mean(mean(tmpCshuf(selvis,selaudio,:,:)));
       
         tmpCshufstim       = cohshufstim.cohspctrm;
         Cshufstim(:,1,cnt) = mean(abs(tmpCshufstim(selvis,:,:)));
@@ -465,4 +466,91 @@ if domscca_searchlight_stretch
   %filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dpcoh',scenario,parcel_indx));
   save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim');
   
+end
+
+if makemodels
+  if ~exist('parcel_indx', 'var')
+    error('please supply parcel_indx');
+  end
+  if ~exist('stimuli', 'var')
+    load mous_stimuli;
+  end
+  suffix = ''; % for now
+  loaddir = '/project/3011020.09/jansch/mscca_group';
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
+  load(filename, 'comp');
+  
+  % this part gets the number of 'trials' that went into each fold. The
+  % rationale is to fit the beta-weights for each fold separately, and to
+  % combine the models to get an F statistic.
+  nfold = 5;
+  nobs  = numel(comp.trial);
+  ix    = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
+  testfold = cell(nfold,1);
+  for k = 1:nfold
+    testfold{k,1} = (ix(k)+1):ix(k+1);
+  end
+  [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli, testfold);
+  
+  % identify the nouns, adjectives and verbs
+  sel = cell(1,5);
+  for k = 1:5
+    sel{k} =          double(strncmp([words{k}.POS], 'N',   1))*1;
+    sel{k} = sel{k} + double(strncmp([words{k}.POS], 'WW',  2))*2;
+    sel{k} = sel{k} + double(strncmp([words{k}.POS], 'ADJ', 3))*3;
+  end
+  
+  % select these from the data
+  for k = 1:5
+    words{k}.POS      = words{k}.POS(sel{k}>0);
+    words{k}.duration = words{k}.duration(sel{k}>0);
+    words{k}.word     = words{k}.word(sel{k}>0);
+    
+    cfg        = [];
+    cfg.trials = find(sel{k});
+    tlck{k}    = ft_selectdata(cfg, tlck{k});
+    
+    X{k} = X{k}(sel{k}>0,:);
+    V{k} = V{k}(sel{k}>0,:);
+  end
+  [~,~,~,~,stats] = mous_multisetcca_regress(tlck,V,X);
+  
+  tlck_smooth = tlck;
+  for k = 1:numel(tlck)
+    tmp = tlck{k};
+    for m = 1:size(tmp.trial,1)
+      tmp.trial(m,:,:) = ft_preproc_smooth(squeeze(tmp.trial(m,:,:)),6);
+    end
+    tlck_smooth{k} = tmp;
+  end
+  [~,~,~,~,stats_smooth] = mous_multisetcca_regress(tlck_smooth,V,X);
+  
+  
+  nrand = 250;
+  for j = 1:nrand
+    % mean subtracted duration is in column 4, this shuffles the words
+    % maintaining the distribution in binned duration
+    for k = 1:numel(X)
+      dur = X{k}(:,4);
+      edges = -0.2:0.05:0.15;
+      edges(end+1) = 0.5;
+      [n,bin] = histc(dur,edges);
+      r_idx = (1:numel(dur))';
+      for m = 1:numel(n)-1
+        tmp = r_idx(bin==m);
+        r_idx(bin==m)=tmp(randperm(numel(tmp)));
+      end
+      Xtmp{k} = X{k}(r_idx,:);
+      Vtmp{k} = V{k}(r_idx,:);
+    end
+    [~,~,~,~,stats_rand(j)] = mous_multisetcca_regress(tlck_smooth,Vtmp,Xtmp);
+    stats_rand(j).w2v.F      = stats_rand(j).w2v.F(1:3,:);
+    stats_rand(j).w2v_orth.F = stats_rand(j).w2v_orth.F(1:3,:);
+    stats_rand(j).x.F        = stats_rand(j).x.F(1:3,:,:);
+    stats_rand(j).xorth.F    = stats_rand(j).xorth.F(1:3,:,:);
+    
+  end
+  
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
+  save(filename, 'ivar', 'X', 'V', 'statsall', 'stats', 'words', 'stats_smooth', 'stats_rand');
 end
