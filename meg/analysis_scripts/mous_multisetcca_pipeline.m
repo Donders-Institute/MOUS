@@ -528,10 +528,10 @@ if makemodels
   
   nrand = 250;
   for j = 1:nrand
-    % mean subtracted duration is in column 4, this shuffles the words
+    % mean subtracted duration is in column 3, this shuffles the words
     % maintaining the distribution in binned duration
     for k = 1:numel(X)
-      dur = X{k}(:,4);
+      dur = X{k}(:,3);
       edges = -0.2:0.05:0.15;
       edges(end+1) = 0.5;
       [n,bin] = histc(dur,edges);

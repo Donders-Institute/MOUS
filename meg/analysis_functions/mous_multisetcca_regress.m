@@ -1,6 +1,10 @@
-function [Y,X,V,ivar,stats,words] = mous_multisetcca_regress(comp, stimuli, folds)
+function [Y,X,V,ivar,stats,words] = mous_multisetcca_regress(comp, stimuli, folds, cvflag)
 
-if nargin > 2 && ~iscell(comp) && ~ft_datatype(comp, 'timelock')
+if nargin<4
+  cvflag = false;
+end
+
+if nargin > 2 && ~iscell(comp) && ~ft_datatype(comp, 'timelock') && ~cvflag
   cfg = [];
   for k = 1:numel(folds)
     cfg.trials = folds{k};
@@ -225,8 +229,8 @@ if ~ft_datatype(comp, 'timelock')
   Ya(~isfinite(Ya))   = 0;
   Yall(~isfinite(Yall)) = 0;
   
-  X = [ones(sum(sel(:)),1)./sum(sel(:)) indx(sel(:)) nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:))];
-  X(:,5:6) = log10(X(:,5:6));
+  X = [ones(sum(sel(:)),1)./sum(sel(:)) nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:))];
+  X(:,[4 6]) = log10(X(:,[4 6]));
   X(~isfinite(X)) = 0;
   X(:,2:end) = X(:,2:end) - nanmean(X(:,2:end));
   
@@ -253,84 +257,134 @@ else
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-ivar = {'const','index','nchar','duration','log10(lexfreq)','log10(perplexity)','entropy','lefbranch','rightbranch','dleftbranch','drightbranch'};
+if ~cvflag
+  ivar = {'const','nchar','duration','log10(lexfreq)','index','log10(perplexity)','entropy','lefbranch','rightbranch','dleftbranch','drightbranch'};
+  
+  %% do the regressions
+  [F, p, R0, R, n, p1, p2, B] = dat2F(Y.trial, V, [], 1);
+  stats.w2v.F  = F;
+  stats.w2v.p  = p;
+  stats.w2v.R  = R;
+  stats.w2v.R0 = R0;
+  stats.w2v.p1 = p1;
+  stats.w2v.p2 = p2;
+  stats.w2v.n  = n;
+  stats.w2v.B  = B;
+  stats.w2v.ivar = {'w2v'};
+  
+  % regress out the first 4 columns of X
+  y   = V(:,2:end);
+  x   = X(:,1:4);
+  y   = y-x*((x'*x)\(x'*y));
+  Vnew = [x y];
+  [F, p, R0, R, n, p1, p2, B] = dat2F(Y.trial, Vnew, [1 2 3 4], 1);
+  stats.w2v_orth.F  = F;
+  stats.w2v_orth.p  = p;
+  stats.w2v_orth.R  = R;
+  stats.w2v_orth.R0 = R0;
+  stats.w2v_orth.p1 = p1;
+  stats.w2v_orth.p2 = p2;
+  stats.w2v_orth.n  = n;
+  stats.w2v_orth.B  = B;
+  stats.w2v_orth.ivar = {'w2v'};
+  
+  clear F p R0 R n p1 p2 B;
+  for k = 1:size(X,2)-1
+    [F(:,:,k), p(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]));
+  end
+  
+  stats.x.F  = F;
+  stats.x.p  = p;
+  stats.x.R  = R;
+  stats.x.R0 = R0;
+  stats.x.p1 = p1;
+  stats.x.p2 = p2;
+  stats.x.n  = n;
+  stats.x.B  = B;
+  stats.x.ivar = ivar(2:end);
+  
+  clear F p R0 R n p1 p2 B;
+  
+  % orthogonalise the design(:,5:end) with respect to the first 4 columns
+  y   = X(:,5:end);
+  x   = X(:,1:4);
+  y   = y-x*((x'*x)\(x'*y));
+  Xnew = [x y];
+  for k = 1:size(Xnew,2)-4
+    %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
+    tmpX = Xnew(:,[1 2 3 4 4+k]);
+    [F(:,:,k), p(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4]);
+  end
+  stats.xorth.F  = F;
+  stats.xorth.p  = p;
+  stats.xorth.R  = R;
+  stats.xorth.R0 = R0;
+  stats.xorth.p1 = p1;
+  stats.xorth.p2 = p2;
+  stats.xorth.n  = n;
+  stats.xorth.B  = B;
+  stats.xorth.ivar = ivar(5:end);
+  
+  V = single(V);
+  Y = ft_struct2single(Y);
+else
+  
+  ivar = {'const','nchar','duration','log10(lexfreq)','index','log10(perplexity)','entropy','lefbranch','rightbranch','dleftbranch','drightbranch'};
+  
+  %% do the regressions
+  [F] = dat2F(Y.trial, V, [], 1, folds);
+  stats.w2v.dR = F;
+  stats.w2v.ivar = {'w2v'};
+  
+  % regress out the first 4 columns of X
+  y   = V(:,2:end);
+  x   = X(:,1:4);
+  y   = y-x*((x'*x)\(x'*y));
+  Vnew = [x y];
+  [F] = dat2F(Y.trial, Vnew, [1 2 3 4], 1, folds);
+  stats.w2v_orth.dR  = F;
+  stats.w2v_orth.ivar = {'w2v'};
+  
+  clear F;
+  for k = 1:size(X,2)-1
+    [F(:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]), folds);
+  end
+  
+  stats.x.dR = F;
+  stats.x.ivar = ivar(2:end);
+  
+  clear F;
+  
+  % orthogonalise the design(:,5:end) with respect to the first 4 columns
+  y   = X(:,5:end);
+  x   = X(:,1:4);
+  y   = y-x*((x'*x)\(x'*y));
+  Xnew = [x y];
+  for k = 1:size(Xnew,2)-4
+    %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
+    tmpX = Xnew(:,[1 2 3 4 4+k]);
+    [F(:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4], folds);
+  end
+  stats.xorth.dR = F;
+  stats.xorth.ivar = ivar(5:end);
+  
+  V = single(V);
+  Y = ft_struct2single(Y);
 
-%% do the regressions
-[F, p, R0, R, n, p1, p2, B] = dat2F(Y.trial, V, [], 1);
-stats.w2v.F  = F;
-stats.w2v.p  = p;
-stats.w2v.R  = R;
-stats.w2v.R0 = R0;
-stats.w2v.p1 = p1;
-stats.w2v.p2 = p2;
-stats.w2v.n  = n;
-stats.w2v.B  = B;
-stats.w2v.ivar = {'w2v'};
-
-% regress out the first 5 columns of X
-y   = V(:,2:end);
-x   = X(:,1:5);
-y   = y-x*((x'*x)\(x'*y));
-Vnew = [x y];
-[F, p, R0, R, n, p1, p2, B] = dat2F(Y.trial, Vnew, [1 2 3 4 5], 1);
-stats.w2v_orth.F  = F;
-stats.w2v_orth.p  = p;
-stats.w2v_orth.R  = R;
-stats.w2v_orth.R0 = R0;
-stats.w2v_orth.p1 = p1;
-stats.w2v_orth.p2 = p2;
-stats.w2v_orth.n  = n;
-stats.w2v_orth.B  = B;
-stats.w2v_orth.ivar = {'w2v'};
-
-clear F p R0 R n p1 p2 B;
-for k = 1:size(X,2)-1
-  [F(:,:,k), p(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]));
 end
 
-stats.x.F  = F;
-stats.x.p  = p;
-stats.x.R  = R;
-stats.x.R0 = R0;
-stats.x.p1 = p1;
-stats.x.p2 = p2;
-stats.x.n  = n;
-stats.x.B  = B;
-stats.x.ivar = ivar(2:end);
-
-clear F p R0 R n p1 p2 B;
-
-% orthogonalise the design(:,6:end) with respect to the first 5 columns
-y   = X(:,6:end);
-x   = X(:,1:5);
-y   = y-x*((x'*x)\(x'*y));
-Xnew = [x y];
-for k = 1:size(Xnew,2)-5
-  %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
-  tmpX = Xnew(:,[1 2 3 4 5 5+k]);
-  [F(:,:,k), p(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4 5]);
-end
-stats.xorth.F  = F;
-stats.xorth.p  = p;
-stats.xorth.R  = R;
-stats.xorth.R0 = R0;
-stats.xorth.p1 = p1;
-stats.xorth.p2 = p2;
-stats.xorth.n  = n;
-stats.xorth.B  = B;
-stats.xorth.ivar = ivar(6:end);
-
-V = single(V);
-Y = ft_struct2single(Y);
-
-function [F, p, R0, R, n, p1, p2, B] = dat2F(alldat, design, col0, lambda)
+function [F, R0, R, n, p1, p2, B] = dat2F(alldat, design, col0, lambda, B)
 
 if nargin<3 || isempty(col0)
   col0 = 1;
 end
 
-if nargin<4
+if nargin<4 || isempty(lambda)
   lambda = 0;
+end
+
+if nargin<5
+  B = [];
 end
 
 n  = size(design,1);
@@ -339,14 +393,40 @@ p1 = numel(col0);
 
 siz = size(alldat);
 dat = reshape(permute(alldat,[1 3 2]),[siz(1) siz(2)*siz(3)]);
-if ~lambda
-  B   = design\dat;
+%dat = dat - nanmean(dat,1);
+%dat = normc(dat);
+if isempty(B)
+  if ~lambda
+    B   = design\dat;
+  else
+    B   = ((design'*design+lambda.*eye(size(design,2)))\design')*dat;
+  end
+elseif iscell(B)
+  % assume that B is a cell-array containing the indices of the test-folds.
+  for k = 1:numel(B)
+    ix = B{k};
+    iy = setdiff(1:size(alldat,1),ix);
+    [~,  ~, ~, ~, ~, ~, Btmp] = dat2F(alldat(iy,:,:), design(iy,:), col0, lambda); 
+    [~, tmpR0, tmpR]          = dat2F(alldat(ix,:,:), design(ix,:), col0, lambda, Btmp); 
+    if k==1
+      R0 = tmpR0.*numel(ix);
+      R  =  tmpR.*numel(ix);
+      n  =        numel(ix);
+    else
+      R0 = tmpR0.*numel(ix) + R0;
+      R  = tmpR .*numel(ix) + R;
+      n  =        numel(ix) + n;
+    end
+  end
+  F = (R0-R)./R;
+  return;
 else
-  B   = ((design'*design+lambda.*eye(size(design,2)))\design')*dat;
+  % use the pre-supplied weights
+  B = reshape(permute(B, [1 3 2]), [size(B,1) size(B,2)*size(B,3)]);
 end
+
 R0 = permute(reshape(sum((dat-design(:,col0)*B(col0,:)).^2),[siz(3) siz(2)]),[2 1]);
 R  = permute(reshape(sum((dat-design*B).^2),[siz(3) siz(2)]),[2 1]);
 
 F  = ((R0-R)./(p2-p1))./(R./(n-p2));
-p  = nan(size(F));%1-fcdf(F, p2-p1, n-p2);
 B  = permute(reshape(B,[size(B,1) siz(3) siz(2)]),[1 3 2]);

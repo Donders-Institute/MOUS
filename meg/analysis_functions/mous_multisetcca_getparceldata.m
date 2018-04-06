@@ -71,32 +71,36 @@ for k = 1:numel(data.trial)
     smpin_idx  = smpin(m,1)-1+(1:nsmp);
     smpout_idx = smpout(m,1):smpout(m,2);
     
-    keep_idx   = smpin_idx<=size(datin,2);
-    smpin_idx  = smpin_idx(keep_idx);
-    smpout_idx = smpout_idx(keep_idx);
+    keep_idx   = smpin_idx<=size(datin,2); % this can become empty in rare cases, i.e. when shuffling
     
-    keep_idx   = smpout_idx<=size(datout,2);
-    smpin_idx  = smpin_idx(keep_idx);
-    smpout_idx = smpout_idx(keep_idx);
-    
-    if ~isempty(stretch) && stretch>1
-      nsmp   = numel(smpout_idx);
-      tmpdat = datin(:,smpin_idx(1):end);
-    
-      % stretch the time axis
-      x_in = 0:(size(tmpdat,2)-1);
-      x_out = linspace(0,(nsmp-1)./stretch, nsmp);
+    if sum(keep_idx)
+      smpin_idx  = smpin_idx(keep_idx);
+      smpout_idx = smpout_idx(keep_idx);
       
-      tmpdat = interp1(x_in(:),tmpdat',x_out(:),'linear')';
+      keep_idx   = smpout_idx<=size(datout,2);
+      smpin_idx  = smpin_idx(keep_idx);
+      smpout_idx = smpout_idx(keep_idx);
       
-    else
-      tmpdat = datin(:,smpin_idx);
+      if ~isempty(stretch) && stretch>1
+        nsmp   = numel(smpout_idx);
+        tmpdat = datin(:,smpin_idx(1):end);
+        
+        % stretch the time axis
+        x_in = 0:(size(tmpdat,2)-1);
+        x_out = linspace(0,(nsmp-1)./stretch, nsmp);
+        
+        tmpdat = interp1(x_in(:),tmpdat',x_out(:),'linear')';
+        
+      else
+        tmpdat = datin(:,smpin_idx);
+      end
+      
+      datout(:,smpout_idx) = tmpdat;%-repmat(nanmean(tmpdat,2),[1 numel(smpin_idx)]);
+      last_idx = smpout_idx(end);
     end
-    
-    datout(:,smpout_idx) = tmpdat;%-repmat(nanmean(tmpdat,2),[1 numel(smpin_idx)]);
   end
-  datout  = datout(:,1:smpout_idx(end));
-  timeout = timeout(1:smpout_idx(end));
+  datout  = datout(:,1:last_idx);
+  timeout = timeout(1:last_idx);
 
   data.trial{k} = datout;
   data.time{k}  = timeout;
