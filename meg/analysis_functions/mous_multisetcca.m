@@ -71,7 +71,7 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
       covAs(:,:,k) = sign(covA(:,:,k))*sign(covA(:,:,k))';
     end
     
-    x  = squeeze(sum(covAs));
+    x  = shiftdim(sum(covAs));
     ok = false(1,ncomp);
     
     flipmat = ones(nfold,ncomp);
