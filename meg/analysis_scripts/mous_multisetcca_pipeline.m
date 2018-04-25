@@ -1,11 +1,11 @@
 
-if ~exist('rootdir',         'var'), rootdir         = '/project/3011020.09/MEG/';  end
-if ~exist('computedata',     'var'), computedata     = false;                       end
-if ~exist('computedata_seq', 'var'), computedata_seq = false;                       end
-if ~exist('cleandata',       'var'), cleandata       = false;                       end
-if ~exist('cleandata_seq',   'var'), cleandata_seq   = false;                       end
-if ~exist('dolcmv',          'var'), dolcmv          = false;                       end
-if ~exist('dolcmv_seq',      'var'), dolcmv_seq      = false;                       end
+if ~exist('rootdir',          'var'), rootdir          = '/project/3011020.09/MEG/';  end
+if ~exist('computedata',      'var'), computedata      = false;                       end
+if ~exist('computedata_seq',  'var'), computedata_seq  = false;                       end
+if ~exist('cleandata',        'var'), cleandata        = false;                       end
+if ~exist('cleandata_seq',    'var'), cleandata_seq    = false;                       end
+if ~exist('dolcmv',           'var'), dolcmv           = false;                       end
+if ~exist('dolcmv_seq',       'var'), dolcmv_seq       = false;                       end
 if ~exist('computealignment', 'var'), computealignment = false;             end
 if ~exist('computealignment_seq', 'var'), computealignment_seq = false;             end
 if ~exist('domscca_searchlight', 'var'),     domscca_searchlight     = false;       end
@@ -194,7 +194,7 @@ if domscca_searchlight || domscca_searchlight_seq
     nfold = 5;
   end
   shift = zeros(1,numel(subj));
-  stretch = zeros(1,numel(subj));
+  stretch = ones(1,numel(subj));
   if ~exist('shuftype', 'var')
     shuftype = 'none';
   end
@@ -253,7 +253,7 @@ if domscca_searchlight || domscca_searchlight_seq
     end
   end
   
-  if ~skip_noshuffle
+   if ~skip_noshuffle
     tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
     [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 4, [],false);
     [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
@@ -378,6 +378,7 @@ if domscca_searchlight || domscca_searchlight_seq
 end
 
 if domscca_searchlight_stretch
+  suffix='';    
   if ~exist('nfold', 'var')
     nfold = 5;
   end
@@ -391,7 +392,7 @@ if domscca_searchlight_stretch
     error('a parcel index needs to be specified');
   end
   if ~exist('nrand', 'var')
-    nrand = 100;
+    nrand = 1:10;
   end
   % this step does a mscca on a specified parcel, and requires the
   % parcellation to have been computed. Also, it is a bit inefficient,
@@ -417,7 +418,8 @@ if domscca_searchlight_stretch
     groupdata{1,k} = ft_channelnormalise(cfg, groupdata{1,k});
   end
   
-  [W, A, rho, C, comp, nfold] = mous_multisetcca(groupdata, nfold, 4, [],false);
+  tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
+  [W, A, rho, C, comp, nfold] = mous_multisetcca(tmpdata, nfold, 4, [],false);
   [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
   [cohstim, coh]       = mous_multisetcca_coh(comp);
   
@@ -427,9 +429,10 @@ if domscca_searchlight_stretch
   selvis   = find(strncmp(subj, 'sub-1', 5));
   groupdatastretch = groupdata;
   
-  stretch_vals = [1.05 1.10 1.15 1.20 1.25];
+  stretch_vals = [0.9:0.025:1.3];%1 1.05 1.10 1.15 1.20 1.25];
   nstretch = numel(stretch_vals);
   for m = 1:nstretch
+    stretch(selaudio) = stretch_vals(m);
     for k = selaudio(:)'
       groupdatastretch{1,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch_vals(m));
     
@@ -439,33 +442,70 @@ if domscca_searchlight_stretch
     end
   
     % perform the cca
-    [Wstretch, Astretch, rhostretch, ~, compstretch] = mous_multisetcca(groupdatastretch, nfold, 4, [], false);
+    tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdatastretch, subj);
+    [Wstretch, Astretch, rhostretch, ~, compstretch] = mous_multisetcca(tmpdata, nfold, 4, [], false);
     [compstretch, rhostretch] = mous_multisetcca_postprocess(compstretch, rhostretch, source_parc.label{parcel_indx});
     
     % compute coherence etc
-    [cohstretchstim(m), cohstretch(m)] = mous_multisetcca_coh(compstretch);
-    Rstretch(:,:,:,m)                  = rhostretch;
-    Cstretch(:,:,:,m)                  = cohstretch(m).cohspctrm(:,:,1:41);
-    Cstretchstim(:,:,m)                = cohstretchstim(m).cohspctrm(:,1:41);
-  end
-  foi   = cohstretch(1).freq(1:41);
-  savedir = '/project/3011020.09/jansch/mscca_group';
-  filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dstretch2',scenario,parcel_indx));
-  if exist([filename,'.mat'], 'file')
-    tmp = load(filename);
-    Cstretch = cat(4,tmp.Cstretch,Cstretch);
-    Rshuf = cat(4,tmp.Rshuf,Rshuf);
-    Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
-  end
-  save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim');
-  
+    [cohstretchstim(m), cohstretch(m)] = mous_multisetcca_coh(compstretch, [], [], 'real');
+    Rstretch(:,:,m)                  = rhostretch(:,:,1);
     
-  savedir = '/project/3011020.09/jansch/mscca_group';
-  system(sprintf('mkdir -p %s', savedir));
-  filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d_stretch',scenario,parcel_indx));
-  %filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dpcoh',scenario,parcel_indx));
-  save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim');
+    tmpCstretch     = cohstretch(m).cohspctrm;
+    Cstretch(:,1,m) = mean(mean(tmpCstretch(selvis,selvis,:,:)))-1./numel(selvis);
+    Cstretch(:,2,m) = mean(mean(tmpCstretch(selaudio,selaudio,:,:)))-1./numel(selaudio);
+    Cstretch(:,3,m) = mean(mean(tmpCstretch(selvis,selaudio,:,:)));
+      
+    tmpCstretchstim       = cohstretchstim.cohspctrm;
+    Cstretchstim(:,1,m) = mean(abs(tmpCstretchstim(selvis,:,:)));
+    Cstretchstim(:,2,m) = mean(abs(tmpCstretchstim(selaudio,:,:)));
+    
+    groupdatashuf = groupdatastretch;
+    cnt = 0;
+    savedir = '/project/3011020.09/jansch/mscca_group';
   
+    if ~isempty(nrand)
+      for mm = nrand(:)'
+        fprintf('performing permutation %d/%d\n',find(mm==nrand),numel(nrand));
+        cnt = cnt + 1;
+        load(fullfile(savedir,'params',sprintf('shuff_sce%d_indx%04d%s',scenario,mm,suffix))); % use precomputed ordering for consistency across parcels
+        
+        groupdatashuf(selaudio) = mous_multisetcca_reorderaudio(subj(selaudio), subjectdata(selaudio), subjecttiming(selaudio), groupinfo, reorder, stimid, shift(selaudio), stretch(selaudio));
+        
+        for k = 1:numel(groupdatashuf)
+          for kk = 1:numel(groupdatashuf{1,k}.trial)
+            sel = nearest(groupdatashuf{1,k}.time{kk},-0.1);
+            groupdatashuf{1,k}.trial{kk} = groupdatashuf{1,k}.trial{kk}(:,sel:end);
+            groupdatashuf{1,k}.time{kk}  = groupdatashuf{1,k}.time{kk}(sel:end);
+          end
+        end
+        % perform the cca
+        tmpdata                              = mous_multisetcca_groupdata2singlestruct(groupdatashuf, subj);
+        [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(tmpdata, nfold, 4, [], false);
+        [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
+        
+        % compute coherence etc
+        [cohshufstim, cohshuf] = mous_multisetcca_coh(compshuf, [], [], 'real');
+        
+        tmpCshuf       = cohshuf.cohspctrm;
+        Cshuf(:,1,m,cnt) = mean(mean(tmpCshuf(selvis,selvis,:,:)))-1./numel(selvis);
+        Cshuf(:,2,m,cnt) = mean(mean(tmpCshuf(selaudio,selaudio,:,:)))-1./numel(selaudio);
+        Cshuf(:,3,m,cnt) = mean(mean(tmpCshuf(selvis,selaudio,:,:)));
+        
+        tmpCshufstim       = cohshufstim.cohspctrm;
+        Cshufstim(:,1,m,cnt) = mean(abs(tmpCshufstim(selvis,:,:)));
+        Cshufstim(:,2,m,cnt) = mean(abs(tmpCshufstim(selaudio,:,:)));
+      end
+    else
+      Cshuf = [];
+      Cshufstim = [];
+    end  
+  end
+  foi   = cohstretch(1).freq(1:81);
+  label = source_parc.label{parcel_indx};
+  savedir = '/project/3011020.09/jansch/mscca_group';
+  filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dstretch',scenario,parcel_indx));
+     
+  save(filename, 'Cstretch', 'Cstretchstim', 'Rstretch', 'foi', 'label', 'stretch_vals', 'Cshuf', 'Cshufstim');
 end
 
 if makemodels
@@ -480,77 +520,112 @@ if makemodels
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
   
-  % this part gets the number of 'trials' that went into each fold. The
-  % rationale is to fit the beta-weights for each fold separately, and to
-  % combine the models to get an F statistic.
-  nfold = 5;
-  nobs  = numel(comp.trial);
-  ix    = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
-  testfold = cell(nfold,1);
-  for k = 1:nfold
-    testfold{k,1} = (ix(k)+1):ix(k+1);
-  end
-  [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli, testfold);
+%   % this part gets the number of 'trials' that went into each fold. The
+%   % rationale is to fit the beta-weights for each fold separately, and to
+%   % combine the models to get an F statistic.
+%   nfold = 5;
+%   nobs  = numel(comp.trial);
+%   ix    = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
+%   testfold = cell(nfold,1);
+%   for k = 1:nfold
+%     testfold{k,1} = (ix(k)+1):ix(k+1);
+%   end
+%   [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli, testfold);
+%   
+%   % identify the nouns, adjectives and verbs
+%   sel = cell(1,5);
+%   for k = 1:5
+%     sel{k} =          double(strncmp([words{k}.POS], 'N',   1))*1;
+%     sel{k} = sel{k} + double(strncmp([words{k}.POS], 'WW',  2))*2;
+%     sel{k} = sel{k} + double(strncmp([words{k}.POS], 'ADJ', 3))*3;
+%   end
+%   
+%   % select these from the data
+%   for k = 1:5
+%     words{k}.POS      = words{k}.POS(sel{k}>0);
+%     words{k}.duration = words{k}.duration(sel{k}>0);
+%     words{k}.word     = words{k}.word(sel{k}>0);
+%     
+%     cfg        = [];
+%     cfg.trials = find(sel{k});
+%     tlck{k}    = ft_selectdata(cfg, tlck{k});
+%     
+%     X{k} = X{k}(sel{k}>0,:);
+%     V{k} = V{k}(sel{k}>0,:);
+%   end
+%   [~,~,~,~,stats] = mous_multisetcca_regress(tlck,V,X);
+
+  [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli);
   
   % identify the nouns, adjectives and verbs
-  sel = cell(1,5);
-  for k = 1:5
-    sel{k} =          double(strncmp([words{k}.POS], 'N',   1))*1;
-    sel{k} = sel{k} + double(strncmp([words{k}.POS], 'WW',  2))*2;
-    sel{k} = sel{k} + double(strncmp([words{k}.POS], 'ADJ', 3))*3;
-  end
+  sel =          double(strncmp([words.POS], 'N',   1))*1;
+  sel = sel + double(strncmp([words.POS], 'WW',  2))*2;
+  sel = sel + double(strncmp([words.POS], 'ADJ', 3))*3;
   
   % select these from the data
-  for k = 1:5
-    words{k}.POS      = words{k}.POS(sel{k}>0);
-    words{k}.duration = words{k}.duration(sel{k}>0);
-    words{k}.word     = words{k}.word(sel{k}>0);
+  words.POS      = words.POS(sel>0);
+  words.duration = words.duration(sel>0);
+  words.word     = words.word(sel>0);
     
-    cfg        = [];
-    cfg.trials = find(sel{k});
-    tlck{k}    = ft_selectdata(cfg, tlck{k});
+  cfg        = [];
+  cfg.trials = find(sel);
+  tlck       = ft_selectdata(cfg, tlck);
     
-    X{k} = X{k}(sel{k}>0,:);
-    V{k} = V{k}(sel{k}>0,:);
-  end
-  [~,~,~,~,stats] = mous_multisetcca_regress(tlck,V,X);
-  
+  X = X(sel>0,:);
+  V = V(sel>0,:);
+  design = struct('V',V,'X',X);
+  [~,~,~,~,stats] = mous_multisetcca_regress(tlck,design);
+
   tlck_smooth = tlck;
-  for k = 1:numel(tlck)
-    tmp = tlck{k};
-    for m = 1:size(tmp.trial,1)
-      tmp.trial(m,:,:) = ft_preproc_smooth(squeeze(tmp.trial(m,:,:)),6);
-    end
-    tlck_smooth{k} = tmp;
+  %for k = 1:numel(tlck)
+  %  tmp = tlck{k};
+  %  for m = 1:size(tmp.trial,1)
+  %    tmp.trial(m,:,:) = ft_preproc_smooth(squeeze(tmp.trial(m,:,:)),6);
+  %  end
+  %  tlck_smooth{k} = tmp;
+  %end
+  for m = 1:size(tlck.trial,1)
+    tlck_smooth.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),6);
   end
-  [~,~,~,~,stats_smooth] = mous_multisetcca_regress(tlck_smooth,V,X);
+  
+  folds = mous_makefolds(size(tlck_smooth.trial,1), 5);
+  [~,~,~,~,stats_smooth] = mous_multisetcca_regress(tlck_smooth,design,folds,true);
   
   
-  nrand = 250;
+  nrand = 500;
+  
+  tlck_smooth.trial = tlck_smooth.trial(:,1:3,:);
+  tlck_smooth.label = tlck_smooth.label(1:3);
   for j = 1:nrand
     % mean subtracted duration is in column 3, this shuffles the words
     % maintaining the distribution in binned duration
-    for k = 1:numel(X)
-      dur = X{k}(:,3);
-      edges = -0.2:0.05:0.15;
-      edges(end+1) = 0.5;
-      [n,bin] = histc(dur,edges);
-      r_idx = (1:numel(dur))';
-      for m = 1:numel(n)-1
-        tmp = r_idx(bin==m);
-        r_idx(bin==m)=tmp(randperm(numel(tmp)));
+    fprintf('performing randomization %d/%d\n',j,nrand);
+    dur = X(:,3);
+    edges1 = eqspace(dur,5);
+    lf  = X(:,4);
+    edges2 = eqspace(lf,5);
+    [n1,bin1] = histc(dur,edges1);
+    [n2,bin2] = histc(lf, edges2);
+    
+    r_idx = (1:numel(dur))';
+    for m = 1:numel(n1)-1
+      for mm = 1:numel(n2)-1
+        tmp = r_idx(bin1==m&bin2==mm);
+        r_idx(bin1==m&bin2==mm)=tmp(randperm(numel(tmp)));
       end
-      Xtmp{k} = X{k}(r_idx,:);
-      Vtmp{k} = V{k}(r_idx,:);
     end
-    [~,~,~,~,stats_rand(j)] = mous_multisetcca_regress(tlck_smooth,Vtmp,Xtmp);
-    stats_rand(j).w2v.F      = stats_rand(j).w2v.F(1:3,:);
-    stats_rand(j).w2v_orth.F = stats_rand(j).w2v_orth.F(1:3,:);
-    stats_rand(j).x.F        = stats_rand(j).x.F(1:3,:,:);
-    stats_rand(j).xorth.F    = stats_rand(j).xorth.F(1:3,:,:);
+    tmpdesign.X = X(r_idx,:);
+    tmpdesign.V = V(r_idx,:);
+    
+    folds = mous_makefolds(size(tlck_smooth.trial,1), 5);
+    [~,~,~,~,stats_rand(j)] = mous_multisetcca_regress(tlck_smooth,tmpdesign,folds,true);
+    stats_rand(j).w2v.dR      = stats_rand(j).w2v.dR(1:3,:);
+    stats_rand(j).w2v_orth.dR = stats_rand(j).w2v_orth.dR(1:3,:);
+    stats_rand(j).x.dR        = stats_rand(j).x.dR(1:3,:,:);
+    stats_rand(j).xorth.dR    = stats_rand(j).xorth.dR(1:3,:,:);
     
   end
   
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
-  save(filename, 'ivar', 'X', 'V', 'statsall', 'stats', 'words', 'stats_smooth', 'stats_rand');
+  save(filename, 'ivar', 'X', 'V', 'words', 'stats_smooth', 'stats_rand');
 end

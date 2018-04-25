@@ -1,4 +1,4 @@
-function [coh,cohall,data,Ti] = mous_multisetcca_coh(data,stim,n)
+function [coh,cohall,data,Ti] = mous_multisetcca_coh(data,stim,n,complexoutput)
 
 % account for nans in the data
 for k = 1:numel(data.trial)
@@ -16,10 +16,14 @@ elseif nargin>1
   partchannel = stim.label;  
 end
 
-if nargin>2
+if nargin>2 && ~isempty(n)
   computeTi = true;
 else
   computeTi = false;
+end
+
+if nargin<4 || isempty(complexoutput)
+  complexoutput = 'abs';
 end
 
 cfg         = [];
@@ -42,6 +46,7 @@ coh         = ft_connectivityanalysis(cfg, freq);
 
 cfg             = [];
 cfg.method      = 'coh';
+cfg.complex     = complexoutput;
 %cfg.partchannel = partchannel;
 cohall          = ft_connectivityanalysis(cfg, ft_checkdata(freq, 'cmbrepresentation','fullfast'));
 

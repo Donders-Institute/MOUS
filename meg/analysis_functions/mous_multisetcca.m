@@ -63,7 +63,7 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
     [nchan,ncomp,nset,nfold] = size(A);
     tmpA = reshape(permute(A,[1 3 4 2]),[nchan*nset nfold ncomp]);
     
-    siz  = size(tmpA);
+    siz  = [size(tmpA) 1];
     covA = zeros(siz(2),siz(2),siz(3));
     covAs = covA;
     for k = 1:size(tmpA,3)

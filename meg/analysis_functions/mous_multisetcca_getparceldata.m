@@ -81,7 +81,7 @@ for k = 1:numel(data.trial)
       smpin_idx  = smpin_idx(keep_idx);
       smpout_idx = smpout_idx(keep_idx);
       
-      if ~isempty(stretch) && stretch>1
+      if ~isempty(stretch) && stretch~=1
         nsmp   = numel(smpout_idx);
         tmpdat = datin(:,smpin_idx(1):end);
         
@@ -128,7 +128,8 @@ for k = 1:numel(trial)
     trialinfo(k,:) = data.trialinfo(sel,:);
   else
     % create an all-nan trial
-    timaxis = groupinfo.mintim(k) + (0:(groupinfo.maxnsmp(k)-1))./120;
+    %timaxis = groupinfo.mintim(k) + (0:(groupinfo.maxnsmp(k)-1))./120;
+    timaxis = (round(120.*groupinfo.mintim(k)):round(120.*groupinfo.maxtim(k)))./120;
     time{k} = timaxis;
     trial{k} = nan(numel(data.label),numel(timaxis));
     trialinfo(k,end) = groupinfo.trialid(k);

@@ -282,8 +282,11 @@ else
   hs1 = ft_plot_mesh(source, 'edgecolor', 'none', 'facecolor', [0.5 0.5 0.5]);
 end
 lighting gouraud
+material dull
 hs = ft_plot_mesh(source, 'edgecolor', 'none', 'vertexcolor', 0*opt.dat(:,1,1), 'facealpha', 0*opt.mask(:,1,1));
+
 lighting gouraud
+material dull
 cam1 = camlight('left');
 cam2 = camlight('right');
 caxis(cfg.zlim);

@@ -1,4 +1,4 @@
-function [Y,X,V,ivar,stats,words] = mous_multisetcca_regress(comp, stimuli, folds, cvflag)
+function [Y,X,V,ivar,stats,words] = mous_multisetcca_regress(comp, stimuli, folds, cvflag, extra)
 
 if nargin<4
   cvflag = false;
@@ -120,17 +120,16 @@ if ~ft_datatype(comp, 'timelock')
     end
   end
   
-  % create a set of matrices that hold potentially interesting independent
-  % variables
-  perpl = nan(numel(comp.trial),nword);
-  entr  = nan(numel(comp.trial),nword);
+  % create a set of matrices that hold potentially interesting independent variables
+  perpl   = nan(numel(comp.trial),nword);
+  entr    = nan(numel(comp.trial),nword);
   lexfreq = nan(numel(comp.trial),nword);
-  lb = nan(numel(comp.trial),nword);
-  rb = nan(numel(comp.trial),nword);
-  w2v = nan(numel(comp.trial), 320, nword);
-  nchar = nan(numel(comp.trial),nword);
-  dur_v = nan(numel(comp.trial),nword);
-  indx  = nan(numel(comp.trial),nword);
+  lb      = nan(numel(comp.trial),nword);
+  rb      = nan(numel(comp.trial),nword);
+  w2v     = nan(numel(comp.trial), 320, nword);
+  nchar   = nan(numel(comp.trial),nword);
+  dur_v   = nan(numel(comp.trial),nword);
+  indx    = nan(numel(comp.trial),nword);
   
   for k = 1:numel(comp.trial)
     id         = comp.trialinfo(k,end);
@@ -177,9 +176,8 @@ if ~ft_datatype(comp, 'timelock')
   dlb = lb - [zeros(size(lb,1),1) lb(:,1:end-1)];
   drb = rb - [zeros(size(rb,1),1) rb(:,1:end-1)];
   
-  
   begtim = -0.1;
-  endtim = 1.5;
+  endtim = 0.8;
   begs = nearest(tlck(1).time,begtim);
   ends = nearest(tlck(1).time,endtim);
   N    = ends-begs+1;
@@ -229,10 +227,13 @@ if ~ft_datatype(comp, 'timelock')
   Ya(~isfinite(Ya))   = 0;
   Yall(~isfinite(Yall)) = 0;
   
-  X = [ones(sum(sel(:)),1)./sum(sel(:)) nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:))];
-  X(:,[4 6]) = log10(X(:,[4 6]));
+  % create design matrix
+  X               = [ones(sum(sel(:)),1)./sum(sel(:)) nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:))];
+  X(:,[4 6])      = log10(X(:,[4 6]));
   X(~isfinite(X)) = 0;
-  X(:,2:end) = X(:,2:end) - nanmean(X(:,2:end));
+  X(:,2:end)      = X(:,2:end) - nanmean(X(:,2:end));
+  
+  
   
   Y.time         = tim;
   Y.trial(:,1,:) = Yv;
@@ -252,8 +253,11 @@ if ~ft_datatype(comp, 'timelock')
   V = [ones(size(V,1),1) V-mean(V)]; % add constant regressor
 else
   Y = comp;
-  V = stimuli;
-  X = folds;
+  V = stimuli.V;
+  X = stimuli.X;
+  
+  %V = stimuli;
+  %X = folds;
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -261,9 +265,8 @@ if ~cvflag
   ivar = {'const','nchar','duration','log10(lexfreq)','index','log10(perplexity)','entropy','lefbranch','rightbranch','dleftbranch','drightbranch'};
   
   %% do the regressions
-  [F, p, R0, R, n, p1, p2, B] = dat2F(Y.trial, V, [], 1);
+  [F, R0, R, n, p1, p2, B] = dat2F(Y.trial, V, [], 1);
   stats.w2v.F  = F;
-  stats.w2v.p  = p;
   stats.w2v.R  = R;
   stats.w2v.R0 = R0;
   stats.w2v.p1 = p1;
@@ -277,9 +280,8 @@ if ~cvflag
   x   = X(:,1:4);
   y   = y-x*((x'*x)\(x'*y));
   Vnew = [x y];
-  [F, p, R0, R, n, p1, p2, B] = dat2F(Y.trial, Vnew, [1 2 3 4], 1);
+  [F, R0, R, n, p1, p2, B] = dat2F(Y.trial, Vnew, [1 2 3 4], 1);
   stats.w2v_orth.F  = F;
-  stats.w2v_orth.p  = p;
   stats.w2v_orth.R  = R;
   stats.w2v_orth.R0 = R0;
   stats.w2v_orth.p1 = p1;
@@ -288,13 +290,12 @@ if ~cvflag
   stats.w2v_orth.B  = B;
   stats.w2v_orth.ivar = {'w2v'};
   
-  clear F p R0 R n p1 p2 B;
+  clear F R0 R n p1 p2 B;
   for k = 1:size(X,2)-1
-    [F(:,:,k), p(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]));
+    [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]));
   end
   
   stats.x.F  = F;
-  stats.x.p  = p;
   stats.x.R  = R;
   stats.x.R0 = R0;
   stats.x.p1 = p1;
@@ -303,7 +304,7 @@ if ~cvflag
   stats.x.B  = B;
   stats.x.ivar = ivar(2:end);
   
-  clear F p R0 R n p1 p2 B;
+  clear F R0 R n p1 p2 B;
   
   % orthogonalise the design(:,5:end) with respect to the first 4 columns
   y   = X(:,5:end);
@@ -313,10 +314,9 @@ if ~cvflag
   for k = 1:size(Xnew,2)-4
     %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
     tmpX = Xnew(:,[1 2 3 4 4+k]);
-    [F(:,:,k), p(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4]);
+    [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4]);
   end
   stats.xorth.F  = F;
-  stats.xorth.p  = p;
   stats.xorth.R  = R;
   stats.xorth.R0 = R0;
   stats.xorth.p1 = p1;
@@ -328,6 +328,8 @@ if ~cvflag
   V = single(V);
   Y = ft_struct2single(Y);
 else
+  V = normc(V);
+  X = normc(X);
   
   ivar = {'const','nchar','duration','log10(lexfreq)','index','log10(perplexity)','entropy','lefbranch','rightbranch','dleftbranch','drightbranch'};
   
@@ -347,7 +349,7 @@ else
   
   clear F;
   for k = 1:size(X,2)-1
-    [F(:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]), folds);
+    [F(:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]), 1, 1, folds);
   end
   
   stats.x.dR = F;
@@ -363,7 +365,7 @@ else
   for k = 1:size(Xnew,2)-4
     %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
     tmpX = Xnew(:,[1 2 3 4 4+k]);
-    [F(:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4], folds);
+    [F(:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4], 1, folds);
   end
   stats.xorth.dR = F;
   stats.xorth.ivar = ivar(5:end);
@@ -392,7 +394,8 @@ p2 = size(design,2);
 p1 = numel(col0);
 
 siz = size(alldat);
-dat = reshape(permute(alldat,[1 3 2]),[siz(1) siz(2)*siz(3)]);
+%dat = reshape(permute(alldat,[1 3 2]),[siz(1) siz(2)*siz(3)]);
+dat = reshape(alldat,[siz(1) siz(2)*siz(3)]);
 %dat = dat - nanmean(dat,1);
 %dat = normc(dat);
 if isempty(B)
@@ -422,11 +425,14 @@ elseif iscell(B)
   return;
 else
   % use the pre-supplied weights
-  B = reshape(permute(B, [1 3 2]), [size(B,1) size(B,2)*size(B,3)]);
+  %B = reshape(permute(B, [1 3 2]), [size(B,1) size(B,2)*size(B,3)]);
+  B = reshape(B, [size(B,1) size(B,2)*size(B,3)]);
+
 end
 
-R0 = permute(reshape(sum((dat-design(:,col0)*B(col0,:)).^2),[siz(3) siz(2)]),[2 1]);
-R  = permute(reshape(sum((dat-design*B).^2),[siz(3) siz(2)]),[2 1]);
+R0 = reshape(sum((dat-design(:,col0)*B(col0,:)).^2),[siz(2) siz(3)]);
+R  = reshape(sum((dat-design*B).^2),[siz(2) siz(3)]);
 
 F  = ((R0-R)./(p2-p1))./(R./(n-p2));
-B  = permute(reshape(B,[size(B,1) siz(3) siz(2)]),[1 3 2]);
+%B  = permute(reshape(B,[size(B,1) siz(3) siz(2)]),[1 3 2]);
+B  = reshape(B,[size(B,1) siz(2) siz(3)]);

@@ -7,9 +7,9 @@ function [compout, rhoout] = mous_multisetcca_postprocess(comp, rho, label)
 % reorganize the rho matrix such that it contains correlation values, and
 % only keep the on-diagonal blocks
 
-if iscell(comp)
+if iscell(comp) && size(comp,2)>1
   [nfold, nset] = size(comp);
-  ncomp         = size(comp{1}.trial{1},1);
+  ncomp = numel(comp{1}.label);
   
   % deal with comp
   for k = 1:numel(comp)
@@ -35,6 +35,25 @@ if iscell(comp)
   end
   compout = ft_appenddata([], compout{:});
   compout.trialinfo = nanmedian(T,2);
+elseif iscell(comp)
+  lab = comp{1}.label;
+  for k = 1:numel(lab)
+    tok = tokenize(lab{k},'_');
+    lab{k} = tok{1};
+  end
+  ncomp = numel(unique(lab));
+  nset  = numel(lab)./ncomp;
+  
+  % deal with comp
+  for k = 1:numel(comp)
+    comp{k} = rmfield(comp{k}, {'unmixing' 'topo'});
+  end
+  compout = ft_appenddata([], comp{:});
+  
+  cfg = [];
+  cfg.channel = compout.label(1:ncomp:end);
+  compout = ft_selectdata(cfg, compout);
+  
 else
   nset    = comp(1);
   ncomp   = comp(2);
