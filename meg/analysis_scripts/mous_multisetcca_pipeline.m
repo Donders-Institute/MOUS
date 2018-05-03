@@ -14,6 +14,7 @@ if ~exist('domscca_searchlight_stretch', 'var'), domscca_searchlight_stretch = f
 if ~exist('create_shuffle_indx', 'var'), create_shuffle_indx = false; end
 if ~exist('create_shuffle_indx_seq', 'var'), create_shuffle_indx_seq = false; end
 if ~exist('makemodels', 'var'), makemodels = false; end
+if ~exist('dotrc', 'var'), dotrc = false; end
 
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
   error('at least a subjectname or a scenario number needs to be defined');
@@ -253,17 +254,19 @@ if domscca_searchlight || domscca_searchlight_seq
     end
   end
   
+   rng('default'); % reset the number generator, in order to be able to compare across parcels
    if ~skip_noshuffle
     tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
     [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 4, [],false);
     [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
     [cohstim, coh]       = mous_multisetcca_coh(comp);
+    trc                  = mous_multisetcca_trc(comp, stimuli);
     comp                 = ft_struct2single(comp);
-    savedir = '/project/3011020.09/jansch/mscca_group';
+    savedir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d', scenario);
     system(sprintf('mkdir -p %s', savedir));
     filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
     %filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dpcoh',scenario,parcel_indx));
-    save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim');
+    save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim', 'trc');
   end
   
   switch shuftype
@@ -332,7 +335,8 @@ if domscca_searchlight || domscca_searchlight_seq
       for m = nrand(:)'
         fprintf('performing permutation %d/%d\n',find(m==nrand),numel(nrand));
         cnt = cnt + 1;
-        load(fullfile(savedir,'params',sprintf('shuff_sce%d_indx%04d%s',scenario,m,suffix))); % use precomputed ordering for consistency across parcels
+        paramdir = '/project/3011020.09/jansch/mscca_group/';
+        load(fullfile(paramdir,'params',sprintf('shuff_sce%d_indx%04d%s',scenario,m,suffix))); % use precomputed ordering for consistency across parcels
         
         groupdatashuf(selaudio) = mous_multisetcca_reorderaudio(subj(selaudio), subjectdata(selaudio), subjecttiming(selaudio), groupinfo, reorder, stimid, shift, stretch);
         
@@ -350,8 +354,15 @@ if domscca_searchlight || domscca_searchlight_seq
         
         % compute coherence etc
         [cohshufstim, cohshuf] = mous_multisetcca_coh(compshuf);
+        trctmp                 = mous_multisetcca_trc(compshuf, stimuli);
         Rshuf(:,:,:,cnt)       = single(rhoshuf);
         
+        if cnt==1
+          trcshuf = trctmp;
+        else
+          trcshuf.rho(:,:,cnt) = trctmp.rho;
+        end
+                
         tmpCshuf       = cohshuf.cohspctrm;
         Cshuf(:,1,cnt) = mean(mean(tmpCshuf(selvis,selvis,:,:)))-1./numel(selvis);
         Cshuf(:,2,cnt) = mean(mean(tmpCshuf(selaudio,selaudio,:,:)))-1./numel(selaudio);
@@ -364,15 +375,16 @@ if domscca_searchlight || domscca_searchlight_seq
       
       
       foi   = cohshuf(1).freq;
-      savedir = '/project/3011020.09/jansch/mscca_group';
+      savedir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
       filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2%s',scenario,parcel_indx,suffix));
-      if exist([filename,'.mat'], 'file')
-        tmp = load(filename);
-        Cshuf = cat(3,tmp.Cshuf,Cshuf);
-        Rshuf = cat(4,tmp.Rshuf,Rshuf);
-        Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
-      end
-      save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim');
+%       if exist([filename,'.mat'], 'file')
+%         tmp = load(filename);
+%         Cshuf = cat(3,tmp.Cshuf,Cshuf);
+%         Rshuf = cat(4,tmp.Rshuf,Rshuf);
+%         Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
+%         trcshuf.rho = cat(3,tmp.trcshuf.rho, trcshuf.rho);
+%       end
+      save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim','trcshuf');
     
   end
 end
@@ -383,7 +395,7 @@ if domscca_searchlight_stretch
     nfold = 5;
   end
   shift = zeros(1,numel(subj));
-  stretch = zeros(1,numel(subj));
+  stretch = ones(1,numel(subj));
   if ~exist('shuftype', 'var')
     shuftype = 'none';
   end
@@ -419,7 +431,7 @@ if domscca_searchlight_stretch
   end
   
   tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
-  [W, A, rho, C, comp, nfold] = mous_multisetcca(tmpdata, nfold, 4, [],false);
+  [W, A, rho, C, comp, nfold] = mous_multisetcca(tmpdata, nfold, 4, [],false); % returns a deterministic folding for this parcel
   [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
   [cohstim, coh]       = mous_multisetcca_coh(comp);
   
@@ -447,7 +459,7 @@ if domscca_searchlight_stretch
     [compstretch, rhostretch] = mous_multisetcca_postprocess(compstretch, rhostretch, source_parc.label{parcel_indx});
     
     % compute coherence etc
-    [cohstretchstim(m), cohstretch(m)] = mous_multisetcca_coh(compstretch, [], [], 'real');
+    [cohstretchstim(m), cohstretch(m)] = mous_multisetcca_coh(compstretch);
     Rstretch(:,:,m)                  = rhostretch(:,:,1);
     
     tmpCstretch     = cohstretch(m).cohspctrm;
@@ -484,7 +496,7 @@ if domscca_searchlight_stretch
         [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
         
         % compute coherence etc
-        [cohshufstim, cohshuf] = mous_multisetcca_coh(compshuf, [], [], 'real');
+        [cohshufstim, cohshuf] = mous_multisetcca_coh(compshuf);
         
         tmpCshuf       = cohshuf.cohspctrm;
         Cshuf(:,1,m,cnt) = mean(mean(tmpCshuf(selvis,selvis,:,:)))-1./numel(selvis);
@@ -516,7 +528,7 @@ if makemodels
     load mous_stimuli;
   end
   suffix = ''; % for now
-  loaddir = '/project/3011020.09/jansch/mscca_group';
+  loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
   
@@ -628,4 +640,79 @@ if makemodels
   
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
   save(filename, 'ivar', 'X', 'V', 'words', 'stats_smooth', 'stats_rand');
+end
+
+if dotrc
+  % do time resolved correlation
+  if ~exist('parcel_indx', 'var')
+    error('please supply parcel_indx');
+  end
+  if ~exist('stimuli', 'var')
+    load mous_stimuli;
+  end
+  suffix = ''; % for now
+  loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
+  load(filename, 'comp');
+  
+  [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli);
+  
+  % identify the nouns, adjectives and verbs
+  sel =          double(strncmp([words.POS], 'N',   1))*1;
+  sel = sel + double(strncmp([words.POS], 'WW',  2))*2;
+  sel = sel + double(strncmp([words.POS], 'ADJ', 3))*3;
+  
+  % select these from the data
+  words.POS      = words.POS(sel>0);
+  words.duration = words.duration(sel>0);
+  words.word     = words.word(sel>0);
+    
+  cfg        = [];
+  cfg.trials = find(sel);
+  tlck        = ft_selectdata(cfg, tlck);
+  tlck_smooth = tlck;
+  for m = 1:size(tlck.trial,1)
+    tlck_smooth.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5); % use a smoothing kernel of odd number of samples
+  end
+  
+  selaudio = find(contains(comp.label, 'sub-2'));
+  selvis   = find(contains(comp.label, 'sub-1'));
+  
+  
+  tmp = permute(tlck_smooth.trial(:,4:end,:),[2 1 3]);
+  %tmp = tmp-nanmean(tmp(:,:,6:8),3);
+  tmp = tmp-nanmean(tmp,2);
+  
+  for k = 1:109
+    tmpx=tmp(:,:,k);
+    %tmpx=tmpx-nanmean(tmp(:,:,1:(k-1)),3);
+    tmpc=tmpx*tmpx';
+    c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
+  end
+  %C(:,1) = squeeze(mean(mean(c(selvis,selvis,:))))-1./numel(selvis);
+  %C(:,2) = squeeze(mean(mean(c(selaudio,selaudio,:))))-1./numel(selaudio);
+  C(:,1) = squeeze(mean(mean(c(selvis,selaudio,:))));
+  
+  rng('default'); % ensure same 'random' behaviour for each parcel.
+  nrand = 5000;
+  Cx = zeros(size(C,1),nrand);
+  for m = 1:nrand
+    if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
+    tmp2 = tmp;
+    tmp2(selvis,:,:) = tmp(selvis,randperm(size(tmp,2)),:);
+    for k = 1:109
+      tmpx=tmp2(:,:,k);
+      %tmpx=tmpx-nanmean(tmp(:,:,1:(k-1)),3);
+      tmpc=tmpx*tmpx';
+      c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
+    end
+    %Cx(:,1,m) = squeeze(mean(mean(c(selvis,selvis,:))))-1./numel(selvis);
+    %Cx(:,2,m) = squeeze(mean(mean(c(selaudio,selaudio,:))))-1./numel(selaudio);
+    Cx(:,m) = squeeze(mean(mean(c(selvis,selaudio,:))));
+  end
+  tim = tlck.time;
+  
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_trc',scenario,parcel_indx,suffix));
+  save(filename, 'C', 'Cx', 'tim');
+
 end
