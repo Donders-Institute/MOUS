@@ -2,10 +2,7 @@ function source2d = mous_mne_3dto2d(source3d, varargin)
 
 target = ft_getopt(varargin, 'target');
 method = ft_getopt(varargin, 'method', 'fieldtrip');
-<<<<<<< HEAD
-=======
 parcellation = ft_getopt(varargin, 'parcellation', []);
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 
 switch method
   case 'fieldtrip'
@@ -23,8 +20,6 @@ switch method
     cfg.sphereradius = ft_getopt(varargin, 'sphereradius', 1);
     source2d         = ft_sourceinterpolate(cfg, source3d, target);
 
-<<<<<<< HEAD
-=======
     if ~isempty(parcellation)
       % do parcellation
       cfg = [];
@@ -39,7 +34,6 @@ switch method
       source2d = ft_sourceparcellate(cfg, source2d, parcellation);
     end
   
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   case 'wb'
     % this is the new way of doing it, use it when specified
     
@@ -76,11 +70,7 @@ switch method
     % potentially first (two) is baseline: [(-0.15,) -0.1, 0.25 0.35 0.45]
     % workbench assumes equal time steps therefore [-0.l, 0.25 0.35 0.45
     % will look like 0.25 0.35 0.45 0.55] 
-<<<<<<< HEAD
-    if isfield(source3d, 'time') & numel(source3d.time)>1
-=======
     if isfield(source3d, 'time') && numel(source3d.time)>1
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
       tmp = find(sign(source3d.time) > 0);
       tstep  = sprintf('%2.2f',source3d.time(tmp(2))-source3d.time(tmp(1)));  
       %tstart = sprintf('%2.2f',source3d.time(tmp(1))); 
@@ -95,13 +85,10 @@ switch method
     end
     source2d = ciftiname;
     
-<<<<<<< HEAD
-=======
     delete(niftiname);
     delete(giftiname1);
     delete(giftiname2);
     
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
   otherwise
     error('unknown method of interpolation requested');
 end

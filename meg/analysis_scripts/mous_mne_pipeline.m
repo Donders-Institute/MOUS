@@ -8,10 +8,8 @@ if ~exist('domne_denoise',     'var'), domne_denoise     = 0; end
 if ~exist('dodspm',            'var'), dodspm            = 0; end     
 if ~exist('domne_earlylate',   'var'), domne_earlylate   = 0; end
 if ~exist('domne_parametric_rc', 'var'), domne_parametric_rc = 0; end
-<<<<<<< HEAD
-=======
 if ~exist('domne_conjunction', 'var'), domne_conjunction = 0; end
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
+if ~exist('domne_parametric_correctonly', 'var'),  domne_parametric_correctonly  = 0; end
 
 % specify the directory into which the results will be saved
 if ~exist('rootdir', 'var')
@@ -97,13 +95,13 @@ if domne_main,
   % define the medial wall parcel as outside. NOTE: this assumes
   % the medial wall te have a value of 2
   load atlas_conte69_8196reg_LR_brodmann_subparc
-  sourcemodel.inside  = find(atlas.parcellation~=2);
-  sourcemodel.outside = find(atlas.parcellation==2);
+  sourcemodel.inside  = find(~ismember(atlas.parcellation,[2 195]));
+  sourcemodel.outside = find( ismember(atlas.parcellation,[2 195]));
   sourcemodelorig     = sourcemodel;
   
   % load the volume conduction model of the head
   mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
-  if exist('vol', 'var'),
+  if exist('vol', 'var')
     headmodel = vol; 
     clear vol;
   end
@@ -112,8 +110,8 @@ if domne_main,
   % pre-compute the leadfields
   cfg          = [];
   cfg.grad     = tlck.grad;
-  cfg.vol      = headmodel;
-  cfg.grid     = sourcemodel;
+  cfg.headmodel = removefields(headmodel, 'cfg');
+  cfg.grid     = removefields(sourcemodel,'cfg');
   cfg.channel  = 'MEG';
   cfg.feedback = 'textbar';
   %cfg.normalize = 'yes';
@@ -130,7 +128,7 @@ if domne_main,
   % FIXME, also make the filename configurable, because now it will always
   % work.
   mous_db_getdata(subjectname, suffix_erfdata, rootdir);
-  rootdir = '/project/3011020.09/MEG';
+  %rootdir = '/project/3011020.09/MEG';
   if exist('senWord_AG', 'var')
     data1 = senWord_AG;
     data2 = seqWord_AG;
@@ -152,7 +150,7 @@ if domne_main,
   data1 = ft_selectdata(data1, 'toilim', [-inf 0.6]);
   data2 = ft_selectdata(data2, 'toilim', [-inf 0.6]);
   
-  if 1,
+  if 1
     % this part computes the area per triangle and uses the squared area as a
     % prior on the source covariance matrix. This is equivalent to how it's
     % done in brainstorm
@@ -169,7 +167,7 @@ if domne_main,
     
     % this part computes the sum of squares of the leadfields, and uses the
     % inverse of it for depth weighting.
-    Lss = zeros(8192,1)+nan;
+    Lss = zeros(8196,1)+nan;
     if islogical(sourcemodel.inside)
       inside = find(sourcemodel.inside);
     else
@@ -184,7 +182,8 @@ if domne_main,
     minLss = min(Lss(sourcemodelorig.inside));
     Lss(Lss>minLss.*weightlim.^2) = minLss.*weightlim.^2;
     
-    A = ((vertex_area(:).^2).*Lss(:)).^weightexp;
+    %A = ((vertex_area(:).^2).*Lss(:)).^weightexp;
+    A = Lss(:).^weightexp;
     A = repmat(A(inside),[1 3])';
     
     % create a source covariance matrix that is equivalent to the area(^2)
@@ -195,8 +194,8 @@ if domne_main,
   
   cfg                 = [];
   cfg.method          = 'mne';
-  cfg.vol             = headmodel;
-  cfg.grid            = sourcemodel;
+  cfg.headmodel = removefields(headmodel, 'cfg');
+  cfg.grid      = removefields(sourcemodel,'cfg');
   cfg.mne.prewhiten   = 'yes';
   cfg.mne.lambda      = 3; % used to be 2
   cfg.mne.scalesourcecov  = 'yes';
@@ -204,13 +203,16 @@ if domne_main,
   cfg.mne.noiselambda = 0.2*trace(data1.cov)./size(data1.cov,1);
   cfg.mne.sourcecov   = S;
   source_sent         = ft_sourceanalysis(cfg, data1);
+  %source_sent.cfg.callinfo.usercfg.grid = rmfield(source_sent.cfg.callinfo.usercfg.grid, {'leadfield' 'leadfielddimord'});
+  source_sent.cfg.callinfo = rmfield(source_sent.cfg.callinfo,'usercfg');
   
   % don't keep the filter for the list condition,
   % the spatial filter will be the same as for source_sent.
   % added this line 2014-06-19
   cfg.mne.keepfilter  = 'no'; 
   source_seq          = ft_sourceanalysis(cfg, data2);
-  
+  %source_seq.cfg.callinfo.usercfg.grid = rmfield(source_seq.cfg.callinfo.usercfg.grid, {'leadfield' 'leadfielddimord'});
+  source_seq.cfg.callinfo = rmfield(source_seq.cfg.callinfo,'usercfg');
   
   cfg                = [];
   cfg.demean         = 'yes';
@@ -225,7 +227,7 @@ if domne_main,
   
   source         = source_sent; 
   inside         = source.inside;
-  if islogical(inside),
+  if islogical(inside)
     inside = find(inside);
   end
   for k = 1:numel(inside)
@@ -238,7 +240,7 @@ if domne_main,
   
   % replace the pow with the orientation from the combined data
   
- if islogical(sd.inside),
+ if islogical(sd.inside)
     inside = find(sd.inside);
  end
   
@@ -252,7 +254,7 @@ if domne_main,
   sd_Seq.tri  = sourcemodelorig.tri;
   
   % do the normalisation to get a 'dSPM'
-  if dodspm,
+  if dodspm
     npnt = size(sd_Sent.pos,1);
     sd_Sent.avg.dspm = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Sent.avg.pow;
     sd_Seq.avg.dspm  = spdiags(1./sqrt(sd.avg.noise),0,npnt,npnt)*sd_Seq.avg.pow;
@@ -263,10 +265,10 @@ if domne_main,
   
   % save the output
   source = sd_Seq;
-  mous_db_putdata(subjectname, [suffix_mnedata,'_seq'],  'source', rootdir, 1);
+  mous_db_putdata(subjectname, [suffix_mnedata,'_seq'],  'source', rootdir, 0);
   
   source = sd_Sent;
-  mous_db_putdata(subjectname, [suffix_mnedata,'_sent'], 'source', rootdir, 1);
+  mous_db_putdata(subjectname, [suffix_mnedata,'_sent'], 'source', rootdir, 0);
 end
 
 if domne_parametric
@@ -328,12 +330,12 @@ if domne_parametric
   stat = stat_sent;
   stat = rmfield(stat, {'prob', 'mask', 'cirange'});
   mu   = single(mu_sent);
-  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,0);
   tlck = ft_struct2single(tlck_seq);
   stat = stat_seq;
   stat = rmfield(stat, {'prob', 'mask', 'cirange'});
   mu   = single(mu_seq);
-  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,1);
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc'], 'tlck', 'stat', 'mu', rootdir,0);
 end
 
 if domne_parametric_rc
@@ -582,11 +584,7 @@ if domne_parcellate
     if ~isempty(strfind(suffix_output, 'sent')) && numel(data)==2 && k==1
       tlck = tmp;
       mous_db_putdata(subjectname, suffix_output, 'tlck', rootdir);
-<<<<<<< HEAD
-    elseif ~isempty(strfind(suffix_output, 'sent')) && numel(data)==2 k==2
-=======
     elseif ~isempty(strfind(suffix_output, 'sent')) && numel(data)==2 && k==2
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
       tlck = tmp;
       mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', rootdir);
     else
@@ -679,17 +677,18 @@ if domne_parcellate2
   mous_db_putdata(subjectname, strrep(suffix_output,'sent','seq'), 'tlck', 'parcellation', rootdir);
 end
 
-<<<<<<< HEAD
-=======
 if domne_conjunction,
   % get the covariance of the noise (take the pre sentence baseline)
   mous_db_getdata(subjectname, 'meg_erf_bslchopped');
   C = tlck.cov;
-  clear tlck;
-  
+  cfg = [];
+  cfg.latency = [tlck.time(1) tlck.time(721)];
+  tlckbsl = ft_selectdata(cfg,tlck)
+
   mous_db_getdata(subjectname, 'meg_erf_chopped');
   tlck.cov = C;
   clear C;
+  tlck.grad = ft_convert_units(tlck.grad, 'm');
   
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % preparation of the anatomical data
@@ -739,8 +738,7 @@ if domne_conjunction,
   % computation of the MNE inverse operator
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-  % the following is to ensure the correct order of channels in the covariance
-  % compared to the data. added 2014-06-20
+
   
   if 1,
     % this part computes the area per triangle and uses the squared area as a
@@ -794,9 +792,9 @@ if domne_conjunction,
   cfg.mne.noiselambda = 0.2*trace(tlck.cov)./size(tlck.cov,1);
   cfg.mne.sourcecov   = S;
   sourceall              = ft_sourceanalysis(cfg, tlck);
- 
- 
-  % get condition specific data
+  sourcebsl             = ft_sourceanalysis(cfg, tlckbsl);
+  
+  %   get condition specific data
   mous_db_getdata(subjectname, 'meg_erf_sen_chopped')
   tlcksen = tlck;
   mous_db_getdata(subjectname, 'meg_erf_seq_chopped')
@@ -804,38 +802,151 @@ if domne_conjunction,
   % apply the spatial filter to the condition specific data
   cfg.mne.keepfilter = 'no';
   cfg.grid.filter    = sourceall.avg.filter;
-  sourcesent              = ft_sourceanalysis(cfg, tlcksen);
-  sourceseq              = ft_sourceanalysis(cfg, tlckseq);
+  sourcesent         = ft_sourceanalysis(cfg, tlcksen);
+  sourceseq          = ft_sourceanalysis(cfg, tlckseq);
+  
+  
+  % this ugly hack is done to provide the output variable to be too large,
+  % saving disk space
+  sourcesent.cfg.callinfo.usercfg.grid = rmfield(sourcesent.cfg.callinfo.usercfg.grid, {'filter' 'leadfield'});
+  sourceseq.cfg.callinfo.usercfg.grid = rmfield(sourceseq.cfg.callinfo.usercfg.grid, {'filter' 'leadfield'});
+  sourcebsl.cfg.callinfo.usercfg.grid = rmfield(sourcebsl.cfg.callinfo.usercfg.grid, {'leadfield'});
   
   %% New code change to fit
   cfg                = [];
   cfg.demean         = 'yes';
-  cfg.baselinewindow = [-0.0742 0];
+  cfg.baselinewindow = [-0.0992 0];
   cfg.projectmom     = 'yes';
   cfg.zscore         = 'no';
   sd_Sent        = ft_sourcedescriptives(cfg, sourcesent);
   sd_Seq         = ft_sourcedescriptives(cfg, sourceseq);
+  cfg.baselinewindow = [sourcebsl.time(1) sourcebsl.time(end)];
+  sd_Bsl         = ft_sourcedescriptives(cfg, sourcebsl);
+  
+ source         = sourcesent; 
+  inside         = source.inside;
+  if islogical(inside),
+    inside = find(inside);
+  end
+  for k = 1:numel(inside)
+    mom = (source.avg.mom{inside(k)} + sourceseq.avg.mom{inside(k)})./2;
+    source.avg.mom{inside(k)} = mom;
+  end
+  sd              = ft_sourcedescriptives(cfg, source);
+  sd_Seq.avg.ori  = sd.avg.ori;
+  sd_Sent.avg.ori = sd.avg.ori;
+  
+  % replace the pow with the orientation from the combined data
+  
+ if islogical(sd.inside),
+    inside = find(sd.inside);
+ end
+  
+  for k = 1:numel(inside)
+    indx = inside(k);
+    sd_Sent.avg.pow(indx,:) = sd.avg.ori{indx}*sourcesent.avg.mom{indx};
+    sd_Seq.avg.pow(indx,:)  = sd.avg.ori{indx}*sourceseq.avg.mom{indx};
+    sd_Bsl.avg.pow(indx,:)  = sd_Bsl.avg.ori{indx}*sourcebsl.avg.mom{indx};
+    sd_Sent.avg.noise(indx) = sd.avg.ori{indx}*sourcesent.avg.noisecov{indx}*sd.avg.ori{indx}';
+    sd_Seq.avg.noise(indx)  = sd.avg.ori{indx}*sourceseq.avg.noisecov{indx}*sd.avg.ori{indx}';
+    sd_Bsl.avg.noise(indx)  = sd_Bsl.avg.ori{indx}*sourcebsl.avg.noisecov{indx}*sd_Bsl.avg.ori{indx}';
+  end
+   
+  sd_Sent.tri = sourcemodelorig.tri;
+  sd_Seq.tri  = sourcemodelorig.tri;
+  sd_Bsl.tri = sourcemodelorig.tri;
   
   % do the normalisation to get a 'dSPM'
-    npos = size(sd_Sent.pos,1);
-    sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
-    sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
-  
+%     npos = size(sd_Sent.pos,1);
+%     sd_Sent.avg.dspm = spdiags(1./(sd_Sent.avg.noise),0,npos,npos)*sd_Sent.avg.pow;
+%     sd_Seq.avg.dspm  = spdiags(1./(sd_Seq.avg.noise),0,npos,npos)*sd_Seq.avg.pow;
+%     sd_Bsl.avg.dspm  = spdiags(1./(sd_Bsl.avg.noise),0,npos,npos)*sd_Bsl.avg.pow;
+
+%   
   sd_Sent.avg = rmfield(sd_Sent.avg, 'mom');
   sd_Seq.avg  = rmfield(sd_Seq.avg,  'mom');
+  sd_Bsl.avg  = rmfield(sd_Bsl.avg,  'mom');
+
   %% 
   
-  % 'dSPM' old way
-%   npos  = size(sourcesen.pos,1);
-%   noise = nan(npos,1);
-%   noise(sourcesen.inside) = cellfun(@trace,sourcesen.avg.noisecov(sourcesen.inside));
-%   sourcesen.avg.dspm      = spdiags(1./(noise),0,npos,npos)*sourcesen.avg.pow;
-
-  
   % save the output
-  mous_db_putdata(subjectname, 'meg_mne_conjunction_seq',  'sd_Sent', rootdir, 1);
-  
-  mous_db_putdata(subjectname, 'meg_mne_conjunction_sen', 'sd_Seq', rootdir, 1);
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_sen', 'sd_Sent', rootdir, 1);
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_seq', 'sd_Seq', rootdir, 1);
+  mous_db_putdata(subjectname, 'meg_mne_conjunction_bsl', 'sd_Bsl', rootdir, 1);
     
 end
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
+
+%--------------------------------------------------------------------------
+if domne_parametric_correctonly
+  % for ANNIKA's revision of NI, 06-2018
+  
+  % This section computes the source level representation of the 'parametric'
+  % effect, i.e. the slope fitted (for each time point in the ERF) as a function
+  % of ordinal word position. 
+  % This part assumes that it can use precomputed MNE filters, and that the
+  % filters have been computed on the same data as the one that will be
+  % projected
+  
+  if ~exist('suffix_rawdata', 'var')
+    suffix_rawdata = 'meg_erf_allwords_02-nextword';
+    % error('you need to specify the file suffix for the preprocessed data');
+  end
+  mous_db_getdata(subjectname, suffix_rawdata, rootdir);
+  
+  if ~exist('suffix_mne', 'var')
+    suffix_mne = strrep(suffix_rawdata, 'erf', 'mne');
+    suffix_mne = cat(2, suffix_mne, '_sent');
+    % error('you need to specify the file suffix for the mne data');
+  end
+  %IMPORTANT: always use the sent condition in the suffix, because this is
+  %assumed later on. Otherwise the conditions will be swapped, and because
+  %as of 2014-06-19 only the sentence condition file contains the spatial
+  %filters
+  mous_db_getdata(subjectname, suffix_mne, rootdir);
+  
+  % create the spatial filter matrix
+  inside         = source.inside;
+  if islogical(inside),
+    inside = find(inside);
+  end
+  F = zeros(8196, size(source.avg.filter{inside(1)},2));
+  for k = 1:numel(inside)
+    F(inside(k),:) = source.avg.ori{inside(k)}*source.avg.filter{inside(k)};
+  end
+ 
+  error_id = mous_artifact_errortrials(subjectname);
+  error_id(~isfinite(error_id)) = [];
+  
+  % make the number of trials per condition equal
+  sel1 = find(ismember(data.trialinfo(:,2),[1 2 5 6])&~ismember(data.trialinfo(:,end),error_id));
+  sel2 = find(ismember(data.trialinfo(:,2),[3 4 7 8])&~ismember(data.trialinfo(:,end),error_id));
+  
+  n1 = numel(sel1); sel1 = sel1(randperm(n1));
+  n2 = numel(sel2); sel2 = sel2(randperm(n2));
+  n  = min(n1,n2);
+  sel1 = sort(sel1(1:n));
+  sel2 = sort(sel2(1:n));
+  data = ft_selectdata(data, 'rpt', [sel1(:);sel2(:)]);
+  data = ft_selectdata(data, 'toilim', [-inf 0.6]);
+  
+  % move around the columns in the trialinfo field so that the condition
+  % trigger ends up in the third column and the word ordinal indicator in
+  % the second, this is hard coded!
+  data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
+  
+  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
+  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
+  
+  tlck = ft_struct2single(tlck_sent);
+  stat = stat_sent;
+  stat = ft_struct2single(stat);
+  stat = rmfield(stat, {'prob', 'mask', 'cirange' 'grad'});
+  mu   = single(mu_sent);
+  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc_correctonly'], 'tlck', 'stat', 'mu', rootdir);
+  tlck = ft_struct2single(tlck_seq);
+  stat = stat_seq;
+  stat = ft_struct2single(stat);
+  stat = rmfield(stat, {'prob', 'mask', 'cirange' 'grad'});
+  mu   = single(mu_seq);
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc_correctonly'], 'tlck', 'stat', 'mu', rootdir);
+end

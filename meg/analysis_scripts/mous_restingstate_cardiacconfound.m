@@ -38,7 +38,7 @@ params        = comp.cfg.dss.denf.params;
 % based on which to divide the trials
 cfg                 = [];
 cfg.method          = 'fastica';
-cfg.cellmode        = 'yes';
+%cfg.cellmode        = 'yes';
 cfg.fastica.g       = 'tanh';
 cfg.fastica.lastEig = 50;
 cfg.fastica.maxNumIterations = 2000;
@@ -118,15 +118,18 @@ icohdelta = icohlow;
 icohdelta.cohspctrm = icohlow.cohspctrm-icohhigh.cohspctrm;
 
 %% visualization
-% cfg             = [];
-% cfg.layout      = 'CTF275.lay';
-% cfg.interactive = 'yes';
-% cfg.refchannel  = 'EEG059';
-% cfg.parameter   = 'cohspctrm';
-% figure;ft_topoplotTFR(cfg, cohlow);
-% figure;ft_topoplotTFR(cfg, icohlow);
-% figure;ft_topoplotTFR(cfg, cohdelta);
-% figure;ft_topoplotTFR(cfg, icohdelta);
+cfg             = [];
+cfg.layout      = 'CTF275_helmet.mat';
+cfg.interactive = 'yes';
+cfg.refchannel  = 'EEG059';
+cfg.parameter   = 'cohspctrm';
+figure;ft_topoplotTFR(cfg, cohlow);
+figure;ft_topoplotTFR(cfg, icohlow);
+
+cfg.xlim = [8 12];
+cfg.refchannel = 'MLT11';
+figure;ft_topoplotTFR(cfg, cohdelta);
+figure;ft_topoplotTFR(cfg, icohdelta);
 
 %% compute powerspectra
 fdhigh = ft_freqdescriptives([], freqhigh);
@@ -150,60 +153,64 @@ fd              = fdlow;
 
 % %% reconstruct sensor-level data keeping the cardiac activity and the single
 % % component only
-% cfg = [];
-% cfg.component = compsel;
-% data3         = ft_rejectcomponent(cfg, comp2, data2);
-% 
-% for k = 1:numel(data3.trial)
-%   data3.trial{k}(1:273,:) = ft_preproc_baselinecorrect(data.trial{k}(1:273,:)-data3.trial{k}(1:273,:));
-% end
-% 
-% % split the data
-% data3low  = ft_selectdata(data3, 'rpt', sel1);
-% data3high = ft_selectdata(data3, 'rpt', sel2);
-% 
-% % do spectral analysis
-% cfg        = [];
-% cfg.method = 'mtmfft';
-% cfg.output = 'fourier';
-% cfg.foilim = [0 40];
-% cfg.tapsmofrq = 1;
-% freq3low  = ft_freqanalysis(cfg, data3low);
-% freq3high = ft_freqanalysis(cfg, data3high);
-% 
-% tmp3low  = ft_checkdata(freq3low, 'cmbrepresentation', 'fullfast');
-% tmp3high = ft_checkdata(freq3high, 'cmbrepresentation', 'fullfast'); 
-% 
-% % compute connectivity
-% cfg = [];
-% cfg.method  = 'coh';
-% cohlow  = ft_connectivityanalysis(cfg, tmp3low);
-% cohhigh = ft_connectivityanalysis(cfg, tmp3high);
-% cfg.complex = 'imag';
-% icohlow  = ft_connectivityanalysis(cfg, tmp3low);
-% icohhigh = ft_connectivityanalysis(cfg, tmp3high);
-% 
-% c1 = reshape(cohlow.cohspctrm, 274.^2, []);
-% c2 = reshape(cohhigh.cohspctrm, 274.^2, []);
-% ic1 = reshape(icohlow.cohspctrm, 274.^2, []);
-% ic2 = reshape(icohhigh.cohspctrm, 274.^2, []);
-% 
-% cohdelta = cohlow;
-% cohdelta.cohspctrm = cohlow.cohspctrm-cohhigh.cohspctrm;
-% 
-% icohdelta = icohlow;
-% icohdelta.cohspctrm = icohlow.cohspctrm-icohhigh.cohspctrm;
-% 
-% % visualization
-% cfg             = [];
-% cfg.layout      = 'CTF275.lay';
-% cfg.interactive = 'yes';
-% cfg.refchannel  = 'EEG059';
-% cfg.parameter   = 'cohspctrm';
-% figure;ft_topoplotTFR(cfg, cohlow);
-% figure;ft_topoplotTFR(cfg, icohlow);
-% figure;ft_topoplotTFR(cfg, cohdelta);
-% figure;ft_topoplotTFR(cfg, icohdelta);
+cfg = [];
+cfg.component = compsel;
+data3         = ft_rejectcomponent(cfg, comp2, data2);
+
+for k = 1:numel(data3.trial)
+  data3.trial{k}(1:273,:) = ft_preproc_baselinecorrect(data.trial{k}(1:273,:)-data3.trial{k}(1:273,:));
+end
+
+% split the data
+data3low  = ft_selectdata(data3, 'rpt', sel1);
+data3high = ft_selectdata(data3, 'rpt', sel2);
+
+% do spectral analysis
+cfg        = [];
+cfg.method = 'mtmfft';
+cfg.output = 'fourier';
+cfg.foilim = [0 40];
+cfg.tapsmofrq = 1;
+freq3low  = ft_freqanalysis(cfg, data3low);
+freq3high = ft_freqanalysis(cfg, data3high);
+
+tmp3low  = ft_checkdata(freq3low, 'cmbrepresentation', 'fullfast');
+tmp3high = ft_checkdata(freq3high, 'cmbrepresentation', 'fullfast'); 
+
+% compute connectivity
+cfg = [];
+cfg.method  = 'coh';
+cohlow  = ft_connectivityanalysis(cfg, tmp3low);
+cohhigh = ft_connectivityanalysis(cfg, tmp3high);
+cfg.complex = 'imag';
+icohlow  = ft_connectivityanalysis(cfg, tmp3low);
+icohhigh = ft_connectivityanalysis(cfg, tmp3high);
+
+c1 = reshape(cohlow.cohspctrm, 274.^2, []);
+c2 = reshape(cohhigh.cohspctrm, 274.^2, []);
+ic1 = reshape(icohlow.cohspctrm, 274.^2, []);
+ic2 = reshape(icohhigh.cohspctrm, 274.^2, []);
+
+cohdelta = cohlow;
+cohdelta.cohspctrm = cohlow.cohspctrm-cohhigh.cohspctrm;
+
+icohdelta = icohlow;
+icohdelta.cohspctrm = icohlow.cohspctrm-icohhigh.cohspctrm;
+
+% visualization
+cfg             = [];
+cfg.layout      = 'CTF275_helmet.mat';
+cfg.interactive = 'yes';
+cfg.refchannel  = 'EEG059';
+cfg.parameter   = 'cohspctrm';
+figure;ft_topoplotTFR(cfg, cohlow);
+figure;ft_topoplotTFR(cfg, icohlow);
+figure;ft_topoplotTFR(cfg, cohdelta);
+figure;ft_topoplotTFR(cfg, icohdelta);
+
+cfg.refchannel = 'MLT11';
+figure;ft_topoplotTFR(cfg, icohdelta);
+
 % 
 % fdhigh = ft_freqdescriptives([], freq3high);
 % fdlow  = ft_freqdescriptives([], freq3low);

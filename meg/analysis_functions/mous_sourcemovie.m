@@ -34,15 +34,12 @@ function [cfg, M] = mous_sourcemovie(cfg, source, source2)
 
 revision = '$Id: ft_sourcemovie.m 8384 2013-08-07 15:13:23Z roboos $';
 
-%<<<<<<< HEAD
-%=======
-ft_nargin = nargin;
-ft_nargout = nargout;
+ft_nargin   = nargin;
+ft_nargout  = nargout;
 
-%>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 % do the general setup of the function
 ft_defaults
-ft_preamble init
+%ft_preamble init
 ft_preamble provenance
 ft_preamble trackconfig
 ft_preamble debug
@@ -285,8 +282,11 @@ else
   hs1 = ft_plot_mesh(source, 'edgecolor', 'none', 'facecolor', [0.5 0.5 0.5]);
 end
 lighting gouraud
+material dull
 hs = ft_plot_mesh(source, 'edgecolor', 'none', 'vertexcolor', 0*opt.dat(:,1,1), 'facealpha', 0*opt.mask(:,1,1));
+
 lighting gouraud
+material dull
 cam1 = camlight('left');
 cam2 = camlight('right');
 caxis(cfg.zlim);

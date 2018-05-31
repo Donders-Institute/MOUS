@@ -3,7 +3,7 @@ function [filename, st, info] = mous_db_getfilename(subject, type, infoflag, roo
 % [filename, status, info] = mous_db_getfilename(subject, type)
 %
 % Input arguments:
-%   subject = string that identifies subject, e.g. 'V1001', can be
+%   subject = string that identifies subject, e.g. 'sub-1001', can be
 %   'all','subjectname' (lists all the subjectnames)
 %   type    = string that identifies the type of data, e.g. 'meg_ds'
 %
@@ -61,16 +61,44 @@ if nargin<4
   rootdir = [];
 end
 
+% This section is for backward compatibility purposes: reorganization of 
+% the data, has led to new subject names, as well as a different directory
+% layout. This is needed to accommodate the data for RDM.
+success = false;
+try
+  [filename, st, info] = mous_db_getfilename_new(subject, type, infoflag, rootdir);
+  success = true;
+  if numel(filename)==1 && st==0
+    % the file does not seem to exist, so try with the fallback function
+    success = false;
+  end
+catch
+  filename = [];
+end
+if isempty(filename)
+  success = false;
+end
+
+if success
+  return;
+else
+  [filename, st, info] = mous_db_getfilename_old(subject, type, infoflag, rootdir);
+end
+
+% ----------------------------------------------------
+% create as a subfunction, to avoid infinite recursion
+function [filename, st, info] = mous_db_getfilename_new(subject, type, infoflag, rootdir)
+
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
 % these reflect subjects in which there was problem with the MEG data, but
-% does not consider issue in the MRI (whereby MEG data was still fine)
+% does not consider issues in the MRI (whereby MEG data was still fine)
 
 % JM has updated this list 20140908 based on the SitePage on BigU, named
 % Subject Replacements
-badsubjects = {'V1014';'V1018';'V1021';'V1023';'V1041';'V1043';'V1047';'V1051';'V1056';'V1060';'V1067';'V1082';'V1091';'V1096';'V1112';...
-               'A2001';'A2012';'A2018';'A2022';'A2023';'A2026';'A2043';'A2044';'A2045';'A2048';'A2054';'A2060';'A2074';'A2081';'A2082';'A2087';'A2093';...
-               'A2100';'A2107';'A2112';'A2115';'A2118';'A2123';'AP02'};
+badsubjects = {'sub-1014';'sub-1018';'sub-1021';'sub-1023';'sub-1041';'sub-1043';'sub-1047';'sub-1051';'sub-1056';'sub-1060';'sub-1067';'sub-1082';'sub-1091';'sub-1096';'sub-1112';...
+               'sub-2001';'sub-2012';'sub-2018';'sub-2022';'sub-2023';'sub-2026';'sub-2043';'sub-2044';'sub-2045';'sub-2048';'sub-2054';'sub-2060';'sub-2074';'sub-2081';'sub-2082';'sub-2087';'sub-2093';...
+               'sub-2100';'sub-2107';'sub-2112';'sub-2115';'sub-2118';'sub-2123';'AP02'};
            
            
 % subjects with more than one dataset because MEG acquisition PC crashed           
@@ -79,35 +107,39 @@ badsubjects = {'V1014';'V1018';'V1021';'V1023';'V1041';'V1043';'V1047';'V1051';'
 % considered as a task dataset by the heuristic. Therefore they are hard coded 
 % A2052 is an exception, no crash happened, but the first recording was
 % very bad so we started again.
-cannotdetectdatasetsubjects = {'A2052';'A2062';'A2063';'A2115'};
-
-
+cannotdetectdatasetsubjects = {'sub-2052';'sub-2062';'sub-2063';'sub-2115'};
           
 if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
   % 'all' is not consistent but kept for backward compatibility
 
   % request all visual subjects -> convert into cell-array and call function
   % recursively
-  if isempty(rootdir), rootdir = '/project/3011020.09/MEG'; end
-  d       = dir(fullfile(rootdir,'V*'));
+  if isempty(rootdir)
+    rootdir = '/project/3011020.09/raw';
+  end
+  d       = dir(fullfile(rootdir,'sub-1*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   subject = setdiff(subject, badsubjects);
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
   return;
 elseif ischar(subject) && strcmp(subject, 'allA')
-  % request all visual subjects -> convert into cell-array and call function
+  % request all auditory subjects -> convert into cell-array and call function
   % recursively
-  if isempty(rootdir), rootdir = '/project/3011020.09/MEG'; end
-  d = dir(fullfile(rootdir,'A*'));
+  if isempty(rootdir)
+    rootdir = '/project/3011020.09/raw';
+  end
+  d = dir(fullfile(rootdir,'sub-2*'));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   subject = setdiff(subject, badsubjects);
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
 elseif ischar(subject) && strcmp(subject, 'allAV')
   % request all subjects -> convert into cell-array and call function
   % recursively
-  if isempty(rootdir), rootdir = '/project/3011020.09/MEG'; end
-  d = dir(fullfile(rootdir,'V*'));
-  d = cat(1, d, dir(fullfile(rootdir,'A*')));
+  if isempty(rootdir)
+    rootdir = '/project/3011020.09/raw'
+  end
+  d = dir(fullfile(rootdir,'sub-1*'));
+  d = cat(1, d, dir(fullfile(rootdir,'sub-2*')));
   subject = {d.name};  % because d has multiple elements, so do subject; elements are strings
   subject = setdiff(subject, badsubjects);
   [filename, st, info] = mous_db_getfilename(subject, type, infoflag, rootdir); 
@@ -138,6 +170,10 @@ if iscell(subject)
   return;
 end
 
+% create the new naming convention
+subject = strrep(subject,'A','sub-');
+subject = strrep(subject,'V','sub-');
+
 % throw a warning for the bad subjects. NOTE: consider making it an
 % explicit error
 % V1041 has only 3 min worth of resting state, I'd say this is not a
@@ -146,7 +182,8 @@ if ismember(subject, badsubjects)
   warning('subject %s is considered a BAD subjects', subject);
 end
 
-% determine the root directory, i.e. either Annika's or Julia's home-dir
+% determine the root directory of the database 
+% note that the type string always starts with 'meg_', 'mri_', or is 'subjectname
 type = tokenize(type, '_');
 switch type{1}
   case 'subjectname'
@@ -154,13 +191,29 @@ switch type{1}
     st       = nan;
     info     = struct([]);
     return;
+  case 'scenario'
+    [filename, st, info] = mous_db_getfilename(subject, 'meg_raw_log');
+    for k = 1:numel(filename)
+      [~,filename{k},~] = fileparts(filename{k});
+      filename{k} = strrep(filename{k},'-MEG-MOUS-', '');
+      filename{k} = filename{k}(end-3:end);
+    end
+    if numel(filename)==1
+    elseif numel(filename)>1 && ~all(strcmp(filename,filename{1}))
+      filename = {'NA'};
+      st = true; % otherwise the function recurses into an error
+    else
+    
+    end
+      
+    return;  
   case 'meg'
     if isempty(rootdir)
-      rootdir = '/project/3011020.09/MEG';
+      rootdir = '/project/3011020.09';
     end
   case 'mri'
     if isempty(rootdir)
-      rootdir = '/home/language/juludd/MOUS';
+      rootdir = '/project/3011020.09/MRI';
     end
   otherwise
     error('unrecognized type requested');
@@ -172,14 +225,14 @@ st       = false;
 switch type{2}
   case {'raw' 'ds'}
     % MEG .ds directory
-    D = [rootdir filesep subject filesep 'RAW' filesep];
-    d = dir([D, '*.ds']);
+    D = fullfile(rootdir,'raw',subject);
+    d = dir([D, '/*/*/*.ds']);
     % FIXME:  crashes if there are no files in RAW directory, need to
     % circumvent this
     if numel(type)>2 
       % some additional specification has been made
       for k = 1:numel(d)
-        D2 = [rootdir filesep subject filesep 'RAW' filesep d(k).name];
+        D2 = fullfile(d(k).folder,d(k).name);
         d2 = dir(D2);
         totalbytes(k) = sum([d2.bytes]);
       end
@@ -196,36 +249,35 @@ switch type{2}
             d = d(ix);         
           end
         case 'rest'
-%<<<<<<< HEAD
-          % heuristic: totalbytes > .1e9 and <.7e9, does not work for V1012
-%=======
           % heuristic: totalbytes > .1e9 and <.7e9, doesnt work for 3 subjs
-%>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
           [m,ix] = find(totalbytes>0.1e9 & totalbytes<0.7e9);
-          if strcmp(subject, 'V1012')
+          if strcmp(subject, 'sub-1012')
             ix = ix(2); % according to the notes, subject fell asleep during 1st resting
           end
-%<<<<<<< HEAD
-%=======
-          if strcmp(subject, 'A2036') % m/ix are empty
+          if strcmp(subject, 'sub-2036') % m/ix are empty
             ix = 1;
           end
-          if strcmp(subject, 'A2061')
+          if strcmp(subject, 'sub-2061')
             ix = ix(2);
           end
-%>>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
           d = d(ix);
         case 'pos'
           % Polhemus .pos file
-          D = [rootdir filesep subject filesep 'RAW' filesep];
-          d = dir([D, '*.pos']);
+          D = fullfile(rootdir,'raw',subject);
+          d = dir([D, '/*.pos']);
         case 'fidpic'
           % Photograph of fiducials
-          D = [rootdir filesep subject filesep 'RAW' filesep];
-          d = dir([D, '*.JPG']);
+          D = fullfile(rootdir,'raw',subject);
+          d = dir([D, '/*.JPG']);
         case 'log'
-          D = [rootdir filesep subject filesep 'RAW' filesep];
-          d = dir([D, '*.log']);    
+          if any(ismember(subject, cannotdetectdatasetsubjects))
+            d = datasets_exceptions(subject,D2);
+          else
+            % heuristic: totalbytes > 1e9
+            [m,ix] = find(totalbytes>1e9);
+            d = d(ix);         
+          end
+          d = dir([d(1).folder, '/*.log']);    
         otherwise
       end
     end
@@ -406,7 +458,7 @@ switch type{2}
 end
 
 for k = 1:numel(d)
-  filename{k} = fullfile(D,d(k).name);
+  filename{k} = fullfile(d(k).folder,d(k).name);
 end
 
 if ~isempty(filename)

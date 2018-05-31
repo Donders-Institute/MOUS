@@ -1,4 +1,4 @@
-function [newtext, stimuli, wordduration] = read_logfile_visual(subjectname)
+function [newtext, stimuli, wordduration, start] = read_logfile_visual(subjectname)
 
 % READ_LOGFILE_VISUAL reads in the logfile for a particular visual dataset.
 % nielam 2013
@@ -6,6 +6,8 @@ function [newtext, stimuli, wordduration] = read_logfile_visual(subjectname)
 % Use as
 % 
 %   [text, stimuli, wordduratin] = read_logfile_visual(subjectname)
+
+subjectname = strrep(subjectname, 'sub-1', 'V1');
 
 %% Read in logfile
 filename = mous_db_getfilename(subjectname,'meg_raw_log');
@@ -48,11 +50,11 @@ for k = 1:numel(idx)-1
   newtext{k} = alltxt(idx(k):idx(k+1)-1);  % easier to find relevant entry lines in txtfile
 end
 
-[stimuli,wordduration] = parselogfile(newtext);
+[stimuli,wordduration, start] = parselogfile(newtext);
 stimuli      = stimuli(:);
 wordduration = wordduration(:);
 
-function [sentence, wordduration] = parselogfile(txt)
+function [sentence, wordduration, starttime] = parselogfile(txt)
 
 % extract the sentence/sequence content + the word duration as coded in the
 % log file
@@ -106,6 +108,8 @@ for k = 1:numel(selfix)-1
       ind =[ind numel(remain)+1];
     end
     duration(m) = str2double(remain((ind(2)+1):(ind(3)-1)));
+    start(m,1)  = str2double(remain((ind(3)+1):(ind(4)-1)));
+    start(m,2)  = str2double(remain((ind(6)+1):(ind(7)-1)));
     
     % the following only works for sentences, because they end with a full
     % stop
@@ -113,6 +117,7 @@ for k = 1:numel(selfix)-1
       word{m} = word{m}(1:(strfind(word{m},'.')-1));
       word    = word(1:m);
       duration = duration(1:m);
+      start    = start(1:m,:);
       break;
     end
   end
@@ -128,6 +133,7 @@ for k = 1:numel(selfix)-1
       duration = duration(1:end-1);
     end
     wordduration{k} = duration;
+    starttime{k}    = start;
   end
 end
 

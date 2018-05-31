@@ -6,15 +6,6 @@ if ~exist('dogranger1', 'var'), dogranger1 = 0; end
 if ~exist('dogranger2', 'var'), dogranger2 = 0; end
 if ~exist('domim', 'var'),      domim = 0; end
 if ~exist('domim_freq_type1', 'var'), domim_freq_type1 = 0; end
-<<<<<<< HEAD
-
-collectresults = false;
-docardiacconfound = 0;
-rootdir = '/project/3011020.09/jansch';
-if dopreproc
-  [data, ecg] = mous_restingstate_preprocessing(subjectname);
-  mous_db_putdata(subjectname, 'meg_restingstate_data', 'data', 'ecg', rootdir);
-=======
 if ~exist('dodss_osc', 'var'), dodss_osc = 0; end
 if ~exist('dodss_F', 'var'), dodss_F = 0; end
 if ~exist('dodss_osc_source', 'var'), dodss_osc_source = 0; end
@@ -40,7 +31,6 @@ if dodss
   data = ft_appenddata([], data, ecg);
   [comp, avgpre, avgcomp] = mous_restingstate_dss(data);
   mous_db_putdata(subjectname, 'meg_restingstate_dss', 'comp', 'avgpre', 'avgcomp', rootdir);
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 end
 
 if dofreq
@@ -66,16 +56,6 @@ if dofreq
   mous_db_putdata(subjectname, 'meg_restingstate_freq', 'freq', 'fd', rootdir);
 end
 
-<<<<<<< HEAD
-if dodss
-  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
-  data = ft_appenddata([], data, ecg);
-  [comp, avgpre, avgcomp] = mous_restingstate_dss(data);
-  mous_db_putdata(subjectname, 'meg_restingstate_dss', 'comp', 'avgpre', 'avgcomp', rootdir);
-end
-
-=======
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 if doccc
   addpath /home/language/jansch/projects/ccc_new
   addpath /home/language/jansch/matlab/fieldtrip/qsub
@@ -442,8 +422,6 @@ if domim_freq_type1
 
 end
 
-<<<<<<< HEAD
-=======
 if dodss_osc
   mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
   mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdir);
@@ -484,7 +462,7 @@ if dodss_osc
   
    
   cfg               = [];
-  cfg.numcomponent  = 15;
+  cfg.numcomponent  = 200;
   cfg.cellmode      = 'yes';
   cfg.method        = 'dss';
   %cfg.method        = 'icasso';
@@ -537,12 +515,11 @@ if dodss_osc
   
 end
 
-if dodss_osc_source
-  rootdirdss = '/project/3011020.09/jansch';
-  rootdirrs  = '/project/3011020.09/nielam';
+if dodss_osc_source 
   
-  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdirrs);
-  mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdirrs);
+  
+  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
+  mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdir);
   
   v = var(avgcomp,[],2);
   v = v./v(1);
@@ -552,63 +529,120 @@ if dodss_osc_source
   if isfield(comp,'grad')
     comp = rmfield(comp, 'grad');
   end 
-
+  dataorig = data;
+  
   cfg           = [];
   cfg.component = find(v>0.1);
   data          = ft_rejectcomponent(cfg, comp, data);
   clear comp;
   
-  d = dir(fullfile(rootdirdss,subjectname,'restingstate','*.mat'));
-  
-  % get the mixing/unmixing/pow
-  for k = 1:numel(d)
-    load(fullfile(rootdirdss,subjectname,'restingstate',d(k).name));
-    
-    N = zeros(size(comp.topo,2),1);
-    for m = 1:size(comp.topo,2)
-      N(m,1) = norm(comp.topo(:,m));
-    end
-%     comp.topo     = comp.topo*diag(1./N);
-%     comp.unmixing = diag(N)*comp.unmixing;
-%     freq.powspctrm = diag(N.^2)*freq.powspctrm;
-%     
-    if k==1
-      P = zeros(0,numel(freq.freq));
-      U = zeros(0,size(comp.unmixing,2));
-      M = zeros(size(comp.topo,1),0);
-    end
-    n = 20;
-    P = cat(1,P,freq.powspctrm(1:n,:));
-    U = cat(1,U,comp.unmixing(1:n,:));
-    M = cat(2,M,comp.topo(:,1:n));
-  end
-
-  % create the channel level covariance
-  cfg = [];
-  cfg.vartrllength = 2;
-  cfg.covariance   = 'yes';
-  tlck = ft_timelockanalysis(cfg, data);
-  
+  % get the leadfields
   % get the necessary geometric objects
   mous_db_getdata(subjectname,'meg_anatomy_headmodel');
   mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2Dsurfreg');
   
-%   % source reconstruction with beamformer
-%   cfg = [];
-%   cfg.method = 'lcmv';
-%   cfg.headmodel = vol;
-%   cfg.grid = bnd;
-%   %cfg.grid.inside = false(8196,1); cfg.grid.inside(5000) = true;
-%   %try, cfg.grid = rmfield(cfg.grid, 'outside'); end
-%   cfg.grid.inside = true(8196,1);
-%   cfg.lcmv.subspace = U;
-%   cfg.lcmv.keepfilter = 'yes';
-%   cfg.lcmv.fixedori = 'yes';
-%   cfg.lcmv.weightnorm= 'nai';%'unitnoisegain';
-%   cfg.lcmv.projectnoise = 'yes';
-%   %cfg.lcmv.lambda = 0.001.*trace(U*tlck.cov*U')./numel(tlck.label);
-%   source_sub = ft_sourceanalysis(cfg, tlck);
-%   
+  % source reconstruction with beamformer
+  cfg = [];
+  cfg.headmodel   = vol;
+  cfg.grid        = bnd;
+  cfg.grid.inside = true(8196,1);
+  cfg.channel     = 'MEG';
+  cfg.backproject = 'no';
+  leadfield       = ft_prepare_leadfield(cfg, data);
+
+  % prepare some cfgs
+  nsmp     = cellfun('size',data.trial,2);
+  nsmp     = nsmp(:)';
+  
+  cfg = [];
+  cfg.trials = find(nsmp>5*data.fsample);
+  data     = ft_selectdata(cfg, data);
+  dataorig = ft_selectdata(cfg, dataorig);
+  
+  cfg = [];
+  cfg.bpfilter = 'yes';
+  cfg.bpfreq   = [1 40];
+  cfg.bpfilttype = 'firws';
+  data = ft_preprocessing(cfg, data);
+  
+  nsmp     = cellfun('size',data.trial,2);
+  nsmp     = nsmp(:)';
+  tr_begin = cumsum([0 nsmp(1:end-1)])+1;
+  tr_end   = cumsum(nsmp);
+   
+  cfg               = [];
+  cfg.numcomponent  = 5;
+  cfg.cellmode      = 'yes';
+  cfg.method        = 'dss';
+  cfg.dss.algorithm = 'pca';
+  cfg.dss.denf.function = 'denoise_filter2';
+  cfg.dss.denf.params.filter_filtfilt.A = [];
+  cfg.dss.denf.params.filter_filtfilt.B = [];
+  cfg.dss.denf.params.tr_begin = tr_begin(:);
+  cfg.dss.denf.params.tr_end   = tr_end(:);
+
+  cfgr         = [];
+  cfgr.length  = 2;
+  cfgr.overlap = 0.5;
+  
+  cfgf = [];
+  cfgf.output = 'fourier';
+  cfgf.method = 'mtmfft';
+  cfgf.taper = 'hanning';
+  cfgf.foilim    = [0 40];
+  
+  cfgt = [];
+  cfgt.vartrllength = 2;
+  cfgt.covariance   = 'yes';
+  
+  cfgs             = [];
+  cfgs.method      = 'lcmv';
+  cfgs.headmodel   = vol;
+  cfgs.lcmv.keepfilter = 'yes';
+  cfgs.lcmv.fixedori = 'no';
+  cfgs.lcmv.weightnorm= 'unitnoisegain';
+  cfgs.lcmv.projectnoise = 'yes';
+
+  if ~exist('freqs','var'),  
+    freqs = (1:0.5:30);
+  end
+  
+  for k = 1:numel(freqs)
+    [b,a]   = mous_iirpeak_coeffs(2.*freqs(k)./data.fsample, freqs(k)./(data.fsample.*2.5));
+    cfg.dss.denf.params.filter_filtfilt.A = a;
+    cfg.dss.denf.params.filter_filtfilt.B = b;
+    comp(k) = ft_componentanalysis(cfg, data2);
+    %tlck = ft_timelockanalysis(cfgt, comp);
+    
+%     tmp = leadfield;
+%     for kk = 1:size(tmp.pos,1)
+%       tmp.leadfield{kk} = comp.unmixing*leadfield.leadfield{kk};
+%     end
+%     tmp.label = comp.label;
+%     cfgs.grid = tmp;
+%     source = ft_sourceanalysis(cfgs, tlck);
+
+    freq(k) = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, comp(k)));
+  
+    
+  end
+  
+
+  % create the channel level covariance
+  
+  tlck = ft_timelockanalysis(cfg, data);
+  
+    
+  cfgs             = [];
+  cfgs.method      = 'lcmv';
+  cfgs.lcmv.keepfilter = 'yes';
+  cfgs.lcmv.fixedori = 'yes';
+  cfgs.lcmv.weightnorm= 'unitnoisegain';
+  cfgs.lcmv.projectnoise = 'yes';
+  source = ft_sourceanalysis(cfg, tlck);
+
+  
+  %   
 %   cfg.lcmv = rmfield(cfg.lcmv, 'subspace');
 %   source = ft_sourceanalysis(cfg, tlck);
 %   
@@ -711,4 +745,3 @@ if dodss_F
   F.powspctrmorig = forig;
   mous_db_putdata(subjectname, 'meg_restingstate_dssosc_F', 'F', '/project/3011020.09/jansch');
 end
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78

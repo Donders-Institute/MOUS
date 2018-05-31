@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-function [tlck, tlck_sent, tlck_seq] = mous_neuralspeechtimelocked_sensor(subjectname, ramp) %, varargin)
-=======
 function [tlck, tlck_sent, tlck_seq, tlck_seq2, freq] = mous_neuralspeechtimelocked_sensor(subjectname, ramp) %, varargin)
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 
 if nargin<2
   ramp = 'up';
@@ -70,42 +66,6 @@ elseif strcmp(ramp, 'down')
   end
 end
 
-<<<<<<< HEAD
-data = ft_appenddata([], data, speechorig);
-
-s.X        = 1;
-params.pre = 30;
-params.pst = 659;
-params.tr_inds = p;
-params.demean  = 'prezero';
-[~,~,avg,cnt] = denoise_avg2(params,data.trial,s);
-
-sel1  = find(ismember(data.trialinfo(:,2),[1 2 5 6]));
-data1 = ft_selectdata(data, 'rpt', sel1);
-params.tr_inds = p(sel1);
-params.time    = data1.time;
-[~,~,avg_sent,cnt_sent] = denoise_avg2(params,data1.trial,s);
-sel2  = find(ismember(data.trialinfo(:,2),[3 4 7 8]));
-data2 = ft_selectdata(data, 'rpt', sel2);
-params.tr_inds = p(sel2);
-params.time    = data2.time;
-[~,~,avg_seq,cnt_seq]  = denoise_avg2(params,data2.trial,s);
-
-tlck       = [];
-tlck.time  = (-30:659)./300;
-tlck.grad  = data.grad;
-tlck.label = data.label;
-tlck.dimord = 'chan_time';
-
-tlck.avg      = avg;
-tlck.dof      = cnt;
-tlck_sent     = tlck;
-tlck_sent.avg = avg_sent;
-tlck_sent.dof = cnt_sent;
-tlck_seq      = tlck;
-tlck_seq.avg  = avg_seq;
-tlck_seq.dof  = cnt_seq;
-=======
 for k = 1:numel(p)
   D{k} = [diff(p{k});min(size(data.trial{k},2)-p{k}(end),300)];
   Dindx{k} = ones(numel(D{k}),1).*k;
@@ -221,7 +181,6 @@ cfg.taper  = 'hanning';
 cfg.pad    = 4;
 cfg.foilim = [0 80];
 freq       = ft_freqanalysis(cfg, data);
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 
 %%%%%%%%%%%%%%%%%%%%
 %%% SUBFUNCTION %%%%
@@ -249,15 +208,9 @@ cfg.channel    = 'MEG';
 %cfg.bsfreq     = [49 51];
 %cfg.bsfilttype = 'firws'; % windowed sinc FIR filter
 cfg.bpfilter = 'yes';
-<<<<<<< HEAD
-cfg.bpfreq   = [0.1 40];
-cfg.bpfilttype = 'firws';
-%cfg.padding    = 10;
-=======
 cfg.bpfreq   = [1 30];
 cfg.bpfilttype = 'firws';
 cfg.padding    = 10;
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
 cfg.usefftfilt = 'yes'; 
 data           = ft_preprocessing(cfg);
 

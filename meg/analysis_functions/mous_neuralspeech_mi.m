@@ -53,7 +53,6 @@ cfg.method = 'sincos';
 cfg.neighbours = neighb;
 data = ft_megplanar(cfg, data);
 
-
 % get the sentence trials
 cfg = [];
 cfg.trials = find(ismember(data.trialinfo(:,2),[1 5]));
@@ -68,22 +67,15 @@ cfgc = [];
 cfgc.method = 'svd';
 
 cfgh = [];
-cfgh.hilbert = 'angle';
+cfgh.hilbert = 'complex';
 
 cfg = [];
 cfg.method = 'mi';
-<<<<<<< HEAD
-cfg.mi.lags = (-0.7:0.1:0.7);
-
-freqs = [linspace(0.5,16,20);linspace(1,20,20);linspace(1.5,24,20)];
-for k = 1:size(freqs,2)
-=======
 cfg.mi.lags = 0;(-0.7:0.1:0.7);
 cfg.mi.method = 'gcmi';
 
 freqs = [linspace(0.5,16,20);linspace(1,20,20);linspace(1.5,24,20)];
-for k = 2%1:size(freqs,2)
->>>>>>> dd6db585ccc06de5c71b1792da002f9a28c51a78
+for k = 1:size(freqs,2)
   cfgf.bpfreq = freqs([1 3],k)';
 
   tmp       = ft_preprocessing(cfgf, data);

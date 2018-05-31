@@ -1,4 +1,4 @@
-function data = mous_wav2mat(filename, method)
+function data = mous_wav2mat(filename, method, reverseflag)
 
 % MOUS_WAV2MAT does some processing on a named wav-file.
 % These processing steps consist of:
@@ -15,10 +15,14 @@ function data = mous_wav2mat(filename, method)
 % Output argument
 %   audio = structure, fieldtrip-style, containing the data
 
-if nargin<2,
+if nargin<3 || isempty(reverseflag)
+  reverseflag = 1;
+end
+
+if nargin<2 || isempty(method)
   method = 1;
 end
-[y,fs]         = wavread(filename);
+[y,fs]         = audioread(filename);
 
 % Do the envelope processing on the high temporal resolution data
 addpath('/home/language/jansch/matlab/toolboxes/ChimeraSoftware');
