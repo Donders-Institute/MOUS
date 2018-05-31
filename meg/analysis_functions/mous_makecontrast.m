@@ -322,6 +322,7 @@ switch contrast
           end
         end
     end
+    tmp =removefields(tmp, {'avg' 'var' 'dof'});
     
     % fit glm (for parametric contrasts)
     cfg                 = [];
@@ -344,8 +345,15 @@ switch contrast
     
     tmp.trial = nanmean(tmp.trial,3);
     tmp.time  = nanmean(tmp.time);
-    stat2     = ft_timelockstatistics(cfg, tmp);
     
+    try
+    tmp = removefields(tmp, {'trial2' 'time'});
+    tmp.dimord = 'rpt_chan';
+    
+    stat2     = ft_timelockstatistics(cfg, tmp);
+    catch
+      stat2 = []; % more recent version of FT (2018) crash due to more strict data checking
+    end
     varargout{1} = tlck;
     varargout{2} = stat;
     varargout{3} = stat2;

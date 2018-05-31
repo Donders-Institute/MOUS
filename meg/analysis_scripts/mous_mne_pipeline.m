@@ -9,6 +9,7 @@ if ~exist('dodspm',            'var'), dodspm            = 0; end
 if ~exist('domne_earlylate',   'var'), domne_earlylate   = 0; end
 if ~exist('domne_parametric_rc', 'var'), domne_parametric_rc = 0; end
 if ~exist('domne_conjunction', 'var'), domne_conjunction = 0; end
+if ~exist('domne_parametric_correctonly', 'var'),  domne_parametric_correctonly  = 0; end
 
 % specify the directory into which the results will be saved
 if ~exist('rootdir', 'var')
@@ -873,4 +874,79 @@ if domne_conjunction,
   mous_db_putdata(subjectname, 'meg_mne_conjunction_seq', 'sd_Seq', rootdir, 1);
   mous_db_putdata(subjectname, 'meg_mne_conjunction_bsl', 'sd_Bsl', rootdir, 1);
     
+end
+
+%--------------------------------------------------------------------------
+if domne_parametric_correctonly
+  % for ANNIKA's revision of NI, 06-2018
+  
+  % This section computes the source level representation of the 'parametric'
+  % effect, i.e. the slope fitted (for each time point in the ERF) as a function
+  % of ordinal word position. 
+  % This part assumes that it can use precomputed MNE filters, and that the
+  % filters have been computed on the same data as the one that will be
+  % projected
+  
+  if ~exist('suffix_rawdata', 'var')
+    suffix_rawdata = 'meg_erf_allwords_02-nextword';
+    % error('you need to specify the file suffix for the preprocessed data');
+  end
+  mous_db_getdata(subjectname, suffix_rawdata, rootdir);
+  
+  if ~exist('suffix_mne', 'var')
+    suffix_mne = strrep(suffix_rawdata, 'erf', 'mne');
+    suffix_mne = cat(2, suffix_mne, '_sent');
+    % error('you need to specify the file suffix for the mne data');
+  end
+  %IMPORTANT: always use the sent condition in the suffix, because this is
+  %assumed later on. Otherwise the conditions will be swapped, and because
+  %as of 2014-06-19 only the sentence condition file contains the spatial
+  %filters
+  mous_db_getdata(subjectname, suffix_mne, rootdir);
+  
+  % create the spatial filter matrix
+  inside         = source.inside;
+  if islogical(inside),
+    inside = find(inside);
+  end
+  F = zeros(8196, size(source.avg.filter{inside(1)},2));
+  for k = 1:numel(inside)
+    F(inside(k),:) = source.avg.ori{inside(k)}*source.avg.filter{inside(k)};
+  end
+ 
+  error_id = mous_artifact_errortrials(subjectname);
+  error_id(~isfinite(error_id)) = [];
+  
+  % make the number of trials per condition equal
+  sel1 = find(ismember(data.trialinfo(:,2),[1 2 5 6])&~ismember(data.trialinfo(:,end),error_id));
+  sel2 = find(ismember(data.trialinfo(:,2),[3 4 7 8])&~ismember(data.trialinfo(:,end),error_id));
+  
+  n1 = numel(sel1); sel1 = sel1(randperm(n1));
+  n2 = numel(sel2); sel2 = sel2(randperm(n2));
+  n  = min(n1,n2);
+  sel1 = sort(sel1(1:n));
+  sel2 = sort(sel2(1:n));
+  data = ft_selectdata(data, 'rpt', [sel1(:);sel2(:)]);
+  data = ft_selectdata(data, 'toilim', [-inf 0.6]);
+  
+  % move around the columns in the trialinfo field so that the condition
+  % trigger ends up in the third column and the word ordinal indicator in
+  % the second, this is hard coded!
+  data.trialinfo = data.trialinfo(:,[1 5 2 3 4]);
+  
+  [tlck_sent, stat_sent, stat2_sent, mu_sent] = mous_makecontrast(data, 'wordsent_parametric_blc', [], F);
+  [tlck_seq,  stat_seq,  stat2_seq,  mu_seq]  = mous_makecontrast(data, 'wordseq_parametric_blc',  [], F);
+  
+  tlck = ft_struct2single(tlck_sent);
+  stat = stat_sent;
+  stat = ft_struct2single(stat);
+  stat = rmfield(stat, {'prob', 'mask', 'cirange' 'grad'});
+  mu   = single(mu_sent);
+  mous_db_putdata(subjectname, [suffix_mne,'_parametric_blc_correctonly'], 'tlck', 'stat', 'mu', rootdir);
+  tlck = ft_struct2single(tlck_seq);
+  stat = stat_seq;
+  stat = ft_struct2single(stat);
+  stat = rmfield(stat, {'prob', 'mask', 'cirange' 'grad'});
+  mu   = single(mu_seq);
+  mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc_correctonly'], 'tlck', 'stat', 'mu', rootdir);
 end
