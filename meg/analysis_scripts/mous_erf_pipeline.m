@@ -35,6 +35,8 @@ if ~exist('condition',        'var'), condition        = '';                    
 if ~exist('wordtype',         'var'), wordtype         = 'all';                       end
 if ~exist('contrast',         'var'), contrast         = 'wordsent_parametric_blc';   end
 if ~exist('doerf_earlylate',  'var'), doerf_earlylate  = 0; end
+if ~exist('doerf_main_correctonly',       'var'), doerf_main       = 0;                           end
+
 
 if (strcmp(subjectname(1), 'V')||strcmp(subjectname(5), '1')) && ~exist('length', 'var'), length = '02-nextword';    end
 if (strcmp(subjectname(1), 'A')||strcmp(subjectname(5), '2')) && ~exist('length', 'var'), length = '02-10';          end
@@ -901,3 +903,60 @@ if doerf_earlylate
   
 end
 
+
+%--------------------------------------------------------------------------
+%2018 revision NI
+if doerf_main_correctonly
+  mous_db_getdata(subjectname,inputdata,inrootdir);
+    
+  if ~isempty(condition)
+    cfg = [];
+    switch condition
+      case 'mix'
+        sel = find(ismember(data.trialinfo(:,2),[5 6 7 8])); % prior to july 1 2014 this was wrong
+        cfg.trials = sel;
+      case 'rc'
+        sel = find(ismember(data.trialinfo(:,2),[1 2 3 4]));
+        cfg.trials = sel;
+    end
+    data = ft_selectdata(cfg,data);
+  end
+  
+  cfg2 = [];
+  switch wordtype
+    case 'first'
+      sel = find(mod(data.trialinfo(:,2),2)==1);        % 1st words=odd numbered (For auditory mainly)
+      cfg2.trials  = sel;
+      outname1 = strcat(inputdata,'-firstword',axial);
+      outname2 = strcat(inputdata,'-firstword',planar);
+    case 'tar'
+      sel = find(mod(data.trialinfo(:,2),2)==0);        % Target word = even numbered (for auditory mainly)
+      cfg2.trials  = sel;
+      outname1 = strcat(inputdata,'-target',axial);
+      outname2 = strcat(inputdata,'-target',planar);
+    case 'all'
+      outname1 = strcat(inputdata,'-allwords',axial);  % erf_allwords_02-10-allwords-pg
+      outname2 = strcat(inputdata,'-allwords',planar); % 1st allwords = word for preprocessing, 2nd = word for tlck.
+    otherwise
+      error('unknown wordtype specified');
+  end
+  data = ft_preprocessing(cfg2, data);
+  
+  error_id = mous_artifact_errortrials(subjectname);
+  error_id(~isfinite(error_id)) = [];
+  
+  tmpcfg = [];
+  tmpcfg.trials = setdiff(1:numel(data.trial),find(ismember(data.trialinfo(:,end),error_id)));
+  data = ft_selectdata(tmpcfg,data);
+  
+  [senWord_AG, seqWord_AG, senWord_PG, seqWord_PG, senWord_CPG, seqWord_CPG, stdev] = mous_erf_compute(subjectname, data, baseln);
+  
+  % update outputdata filename
+  if ~isempty(condition)
+    outname1 = strcat(outname1(1:end-2),condition,axial);
+    outname2 = strcat(outname2(1:end-2),condition,planar);
+  end
+  
+  mous_db_putdata(subjectname, [outname1 '_correctonly'], 'senWord_AG', 'seqWord_AG', outrootdir);
+  %mous_db_putdata(subjectname, outname2, 'senWord_PG', 'seqWord_PG', 'senWord_CPG', 'seqWord_CPG', 'stdev',outrootdir, 0);
+end  % end doerf_main
