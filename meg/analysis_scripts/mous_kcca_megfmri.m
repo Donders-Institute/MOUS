@@ -16,7 +16,7 @@ fprintf('Computing kcc for fmri and meg data\n')
 
 if ~exist('condition', 'var'),  condition  = 'sent';   end
 if ~exist('condition2', 'var'), condition2 = 'Zinnen'; end
-if ~exist('doParametric', 'var'), doParametric = 1;    end
+if ~exist('doParametric', 'var'), doParametric = 0;    end
 
 if doParametric
   %sentence progression vs baseline (only 100 subjects exist)

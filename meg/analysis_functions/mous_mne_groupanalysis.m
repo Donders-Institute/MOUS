@@ -22,6 +22,7 @@ param = ft_getopt(varargin, 'parameter', 'avg.pow');
 sent  = ft_getopt(varargin, 'sent');
 seq   = ft_getopt(varargin, 'seq');
 cfg   = ft_getopt(varargin, 'cfg', []);
+ds    = ft_getopt(varargin, 'ds', 4);
 
 if ~iscell(suffix)
   suffix = {suffix};
@@ -73,7 +74,7 @@ if isempty(sent) || isempty(seq)
       
       tmp.method  = 'average';
     end
-    tmptmp = ft_preproc_smooth(getsubfield(source, param), 4); % boxcar average time axis with 4 samples
+    tmptmp = ft_preproc_smooth(getsubfield(source, param), 1); % boxcar average time axis with 4 samples
     tmp    = setsubfield(tmp, param, tmptmp(:,1:4:endtim));
     sent{k} = tmp;
     clear source;

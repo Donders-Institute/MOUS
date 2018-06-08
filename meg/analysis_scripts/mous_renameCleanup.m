@@ -1,4 +1,26 @@
 %% renaming scripts/files
+
+clear all;
+subj    = mous_db_getfilename('allA','subjectname');
+[f1,s1] = mous_db_getfilename(subj, 'meg_mne_allwords_02-10-target_sent_currentdensity_weighted_parcellated'); 
+[f2,s2] = mous_db_getfilename(subj,  'meg_mne_allwords_02-10-target_seq_currentdensity_weighted_parcellated');
+subj    = subj(s1&s2);
+f1      = f1(s1&s2);
+f2      = f2(s1&s2);
+Nsubj   = numel(subj);
+
+
+for  k = 1:Nsubj
+        new = strrep(f1{k},'parcellated' , 'parcellated86');
+        str =['mv ' f1{k} ' ' new];
+        system(str);
+    
+        new = strrep(f2{k},'parcellated' , 'parcellated86');
+        str =['mv ' f2{k} ' ' new];
+        system(str);
+  
+end
+
 for  k = 1:100
     
 subjectname = ['V' int2str(k+1000)];    
@@ -43,6 +65,17 @@ for k = 1:100
         system(str);
     end 
 end
+
+subj = mous_db_getfilename('allV', 'subjectname');
+for k = 1:numel(subj)   
+   list = dir(['/project/3011020.09/MEG/' subj{k} '/mne/' subj{k}, '_mne_parcellated_wordsent_parametric_mix.mat']);
+    for t = 1:length(list)
+        delfile = ['/project/3011020.09/MEG/' subj{k} '/mne/' list(t).name];
+       str = ['rm ' delfile];
+        system(str);
+    end 
+end
+
 
 %% rename and move files
 if doHeadCheck

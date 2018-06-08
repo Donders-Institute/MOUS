@@ -8,8 +8,10 @@ function mous_crossmeasuredata(subjectname, param)
 % end
 
 % get the functional MRI data
-file = [param.ffxpath subjectname param.ffxinput]; 
-
+% Julias naming scheme
+ file = [param.ffxpath subjectname param.ffxinput]; 
+% Huberts naming scheme
+% file = [param.ffxpath  param.ffxinput subjectname '.img']; 
 
 mri  = ft_read_mri(file, 'format', 'analyze_img');
 mri.inside = isfinite(mri.anatomy); % ensure that voxels without data will not be used in the interpolation
@@ -30,7 +32,7 @@ T = mri1n.initial;
 %P = load(transfile);
 
 % Load meg data
-mous_db_getdata(subjectname,'meg_mne_allwords_01-10-sent_currentdensity_weighted'); %, rootdir);
+mous_db_getdata(subjectname,param.megsheet); %, rootdir);
 meg = ft_convert_units(source, 'mm'); clear source;
 
 % Load a 3D sourcemodel for a sanity check
@@ -54,12 +56,11 @@ meg.pos = pos2d_sn;
 % Interpolate the fMRI data onto the MEG cortical sheet, using inverse distance weighting
 outname = mous_db_getfilename(subjectname,param.fmrioutput,0,param.outdir);
 
-
-
 cfg              = [];
 cfg.parameter    = 'pow'; % yes indeed
 cfg.interpmethod = 'nearest';
 tmp              = ft_sourceinterpolate(cfg, mri, meg); % with the nearest interpolation, we get nans where no fMRI data is available
+
 outside          = ~isfinite(tmp.pow);
 
 cfg.interpmethod =  'sphere_weighteddistance';
