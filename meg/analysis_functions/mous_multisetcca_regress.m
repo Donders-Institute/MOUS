@@ -134,7 +134,16 @@ if ~ft_datatype(comp, 'timelock')
   for k = 1:numel(comp.trial)
     id         = comp.trialinfo(k,end);
     nword_here = stimuli(id).numwords;
+    
+    % very sporadically there's some discrepancy between the
+    % 'timinginfo_visual' field, and the expected number of words. In this
+    % case, let the smallest number prevail, to avoid crashes.
+    if nword_here>numel(xx{k})
+      nword_here = numel(xx{k});
+    end
+   
     words      = stimuli(id).words;
+    words      = words(1:nword_here);
     
     tmp = [words.perplexity];
     perpl(k,1:nword_here) = tmp;

@@ -62,6 +62,16 @@ end
 for k = 1:numel(data.trial)
   smpin  = timinginfo.smpin{k};
   smpout = timinginfo.smpout{k}; 
+  if ~isempty(shift)
+    % assume this to be in samples, a positive value effectively means
+    % shifting this response to the 'right' in time, i.e. pretend that it
+    % occurred later than in reality
+    smpin(:,1) = smpin(:,1) - shift;
+    
+    sel = sum(smpin-1<shift,2)>0;
+    smpin(sel,:) = [];
+    smpout(sel,:) = []; 
+  end
   datin  = data.trial{k};
   datout = nan(size(datin,1), numel(timinginfo.time{k}));
   timeout = timinginfo.time{k};
@@ -136,18 +146,18 @@ for k = 1:numel(trial)
   end
 end
 
-% if shift is different from 0, shift the data with the specified number of
-% samples: per definition if shift>0, the data shifts to the left, which
-% means that time is delayed (equivalently)
-if shift>0
-  for k = 1:numel(trial)
-    trial{k} = [trial{k}(:,(1+shift):end) nan(size(trial{k},1),shift)];
-  end
-elseif shift<0
-  for k = 1:numel(trial)
-    trial{k} = [nan(size(trial{k},1),abs(shift)) trial{k}(:,1:(end+shift))];
-  end
-end
+% % % % % % if shift is different from 0, shift the data with the specified number of
+% % % % % % samples: per definition if shift>0, the data shifts to the left, which
+% % % % % % means that time is delayed (equivalently)
+% % % % % if shift>0
+% % % % %   for k = 1:numel(trial)
+% % % % %     trial{k} = [trial{k}(:,(1+shift):end) nan(size(trial{k},1),shift)];
+% % % % %   end
+% % % % % elseif shift<0
+% % % % %   for k = 1:numel(trial)
+% % % % %     trial{k} = [nan(size(trial{k},1),abs(shift)) trial{k}(:,1:(end+shift))];
+% % % % %   end
+% % % % % end
 
 if hasstim
   stim = keepfields(data, {'label'});

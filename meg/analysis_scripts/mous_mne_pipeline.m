@@ -10,6 +10,7 @@ if ~exist('domne_earlylate',   'var'), domne_earlylate   = 0; end
 if ~exist('domne_parametric_rc', 'var'), domne_parametric_rc = 0; end
 if ~exist('domne_conjunction', 'var'), domne_conjunction = 0; end
 if ~exist('domne_parametric_correctonly', 'var'),  domne_parametric_correctonly  = 0; end
+if ~exist('domne_mne_correctonly', 'var'),  domne_mne_correctonly  = 0; end
 
 % specify the directory into which the results will be saved
 if ~exist('rootdir', 'var')
