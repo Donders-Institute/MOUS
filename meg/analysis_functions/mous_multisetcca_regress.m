@@ -1,16 +1,64 @@
-function stats = mous_multisetcca_regress(tlck, stimuli, folds)
+function stats = mous_multisetcca_regress(tlck, design, stimuli, folds, varargin)
 
-lambda = 1;
+lambda              = 1;
+ortho               = ft_getopt(varargin, 'orthogonalise', {});
+contentwords_only   = ft_getopt(varargin, 'contentwords_only', false);
+reduceto            = ft_getopt(varargin, 'modelcomparison', []);
 
 if nargin<2
-  folds = 1;
+  folds = [];
 end
+
+if iscellstr(ortho)
+    indx = find(ismember(tlck.trialinfo.Properties.VariableNames,ortho));
+    if length(indx) == length(ortho)
+        ortho = indx;
+    else
+        %FIXME:test if displays correctly
+        warning('variables for orthogonalising not present in design matrix')
+    end
+else 
+    if max(ortho) >= size(tlck.trialinfo,2)
+         warning('mismatch between design matrix and other parameters')
+    end
+end
+
+if iscellstr(reduceto)
+    indx = find(ismember(tlck.trialinfo.Properties.VariableNames,reduceto));
+    if length(indx) == length(reduceto)
+        reduceto = indx;
+    else
+        %FIXME:test if displays correctly
+        warning('variables for orthogonalising not present in design matrix')
+    end
+else 
+    if max(reduceto) >= size(tlck.trialinfo,2) && length(reduceto) < size(tlck.trialinfo,2)
+         warning('mismatch between design matrix and other parameters')
+    end
+end
+
+if contentwords_only
+  % identify the nouns, adjectives and verbs
+  sel =       double(strncmp(tlck.trialinfo.POS, 'N',   1))*1;
+  sel = sel + double(strncmp(tlck.trialinfo.POS, 'WW',  2))*2;
+  sel = sel + double(strncmp(tlck.trialinfo.POS, 'ADJ', 3))*3;
+  
+%   % select these from the data
+%   words.POS      = words.POS(sel>0);
+%   words.duration = words.duration(sel>0);
+%   words.word     = words.word(sel>0);
+%   
+  cfg        = [];
+  cfg.trials = find(sel);
+  tlck        = ft_selectdata(cfg, tlck);
+end
+
 
 if nargin > 2 && iscell(tlck)
   % cell input, assumes the data in the first argument, the V in the
   % second, and the X in the third
   for k = 1:numel(tlck)
-    [Y{k},X{k},V{k},ivar,stats(k)] = mous_multisetcca_regress(tlck{k}, stimuli{k}, folds{k});
+    stats(k) = mous_multisetcca_regress(tlck{k}, stimuli{k}, folds{k});
   end
   % accumulate the R's and the n's
   % for the different stat fields
@@ -40,127 +88,45 @@ if nargin > 2 && iscell(tlck)
   stats = S;
   
   return;
-end
 
-
-ivar = tlck.trialinfo.Properties.VariableNames; %FIXME: make sure only those 
-%variables are saved to stats, that are used by dat2F probably best if
-%dependent on input parameters
-if folds==1
+else
   
-  %% do the regressions
-  [F, R0, R, n, p1, p2, B] = dat2F(tlck.trial, tlck.trialinfo.w2v, [], 1);
-  stats.w2v.F  = F;
-  stats.w2v.R  = R;
-  stats.w2v.R0 = R0;
-  stats.w2v.p1 = p1;
-  stats.w2v.p2 = p2;
-  stats.w2v.n  = n;
-  stats.w2v.B  = B;
-  stats.w2v.ivar = {'w2v'};
-  
-  % regress out the first 4 columns of X
-  y   = tlck.trialinfo.w2v(:,2:end);
-  x   = table2array(tlck.trialinfo(:,1:4));
+  if ~isempty(ortho)
+  %FIXME: if columns used for ortho are not the last ones, appending them
+  %afterwards will change order and therefore reduceto might be wrongly
+  %mapped
+  %FIXME: also if constant present, it will be orthogonalized
+  y   = table2array(design(:,setdiff(1:size(design,2),ortho)));
+  x   = table2array(design(:,ortho));
   y   = y-x*((x'*x)\(x'*y));
-  Vnew = [x y];
-  [F, R0, R, n, p1, p2, B] = dat2F(tlck.trial, Vnew, [1 2 3 4], 1);
-  stats.w2v_orth.F  = F;
-  stats.w2v_orth.R  = R;
-  stats.w2v_orth.R0 = R0;
-  stats.w2v_orth.p1 = p1;
-  stats.w2v_orth.p2 = p2;
-  stats.w2v_orth.n  = n;
-  stats.w2v_orth.B  = B;
-  stats.w2v_orth.ivar = {'w2v'};
-  
-  clear F R0 R n p1 p2 B;
-  for k = 1:size(tlck.trialinfo(:,1:end-4),2)-1 %without POS and word, duration or w2v
-    [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(tlck.trial,table2array(tlck.trialinfo(:,[1 1+k])));
+  design = [x y];  
+  clear y x
   end
   
-  stats.x.F  = F;
-  stats.x.R  = R;
-  stats.x.R0 = R0;
-  stats.x.p1 = p1;
-  stats.x.p2 = p2;
-  stats.x.n  = n;
-  stats.x.B  = B;
-  stats.x.ivar = ivar(2:end);
-  
-  clear F R0 R n p1 p2 B;
+  %% do the regressions
+  [F, R0, R, n, p1, p2, B] = dat2F(tlck.trial, design, reduceto, folds);
+  stats.F  = F;
+  stats.R  = R;
+  stats.R0 = R0;
+  stats.p1 = p1;
+  stats.p2 = p2;
+  stats.n  = n;
+  stats.B  = B;
+  stats.ivar = tlck.trialinfo.Properties.VariableNames;
 
-%FIXME: add option 'orthogonalise' with two parameters given the columsn to
-%orthogonalise and the columns which to use for it
-%   % orthogonalise the design(:,5:end) with respect to the first 4 columns
-%   y   = X(:,5:end);
-%   x   = X(:,1:4);
-%   y   = y-x*((x'*x)\(x'*y));
-%   Xnew = [x y];
+%FIXME: maybe we want an option for iteratively doing the model comparison?
+%adding one predictor at a time as seems to have been done before?
 %   for k = 1:size(Xnew,2)-4
 %     %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
 %     tmpX = Xnew(:,[1 2 3 4 4+k]);
 %     [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(tlck.trial,tmpX,[1 2 3 4]);
 %   end
-%   stats.xorth.F  = F;
-%   stats.xorth.R  = R;
-%   stats.xorth.R0 = R0;
-%   stats.xorth.p1 = p1;
-%   stats.xorth.p2 = p2;
-%   stats.xorth.n  = n;
-%   stats.xorth.B  = B;
-%   stats.xorth.ivar = ivar(5:end);
-else
-  V = normc(tlck.trialinfo.w2v);
-  X = normc(table2array(tlck.trialinfo(:,1:11)));
-  
-  
-  %% do the regressions
-  [F,R0,R] = dat2F(tlck.trial, V, [], lambda, folds);
-  stats.w2v.dR = F;
-  stats.w2v.R0  = R0;
-  stats.w2v.R   = R;
-  stats.w2v.ivar = {'w2v'};
-  
-  % regress out the first 4 columns of X
-  y   = V(:,2:end);
-  x   = X(:,1:4);
-  y   = y-x*((x'*x)\(x'*y));
-  Vnew = [x y];
-  [F,R0,R] = dat2F(tlck.trial, Vnew, [1 2 3 4], lambda, folds);
-  stats.w2v_orth.dR  = F;
-  stats.w2v_orth.R0  = R0;
-  stats.w2v_orth.R   = R;
-  stats.w2v_orth.ivar = {'w2v'};
-  
-  clear F R0 R;
-  for k = 1:size(X,2)-1
-    [F(:,:,k),R0(:,:,k),R(:,:,k)] = dat2F(tlck.trial,X(:,[1 1+k]), 1, lambda, folds);
-  end
-  
-  stats.x.dR = F;
-  stats.x.R0  = R0;
-  stats.x.R   = R;
-  stats.x.ivar = ivar(2:end);
-  
-  clear F R0 R;
-  
-  % orthogonalise the design(:,5:end) with respect to the first 4 columns
-  y   = X(:,5:end);
-  x   = X(:,1:4);
-  y   = y-x*((x'*x)\(x'*y));
-  Xnew = [x y];
-  for k = 1:size(Xnew,2)-4
-    %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
-    tmpX = Xnew(:,[1 2 3 4 4+k]);
-    [F(:,:,k),R0(:,:,k),R(:,:,k)] = dat2F(tlck.trial,tmpX,[1 2 3 4], lambda, folds);
-  end
-  stats.xorth.dR = F;
-  stats.xorth.R0  = R0;
-  stats.xorth.R   = R;
-  stats.xorth.ivar = ivar(5:end);
-  
+
+%FIXME:when is the normalisation needed??
+%   V = normc(tlck.trialinfo.w2v);
+%   X = normc(table2array(tlck.trialinfo(:,1:11)));
 end
+
 function [F, R0, R, n, p1, p2, B] = dat2F(alldat, design, col0, lambda, B)
 
 if nargin<3 || isempty(col0)

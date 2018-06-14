@@ -693,15 +693,20 @@ if makemodels
   load(filename, 'comp');
   
   tlck = mous_multisetcca_extractwords(comp, stimuli);
-  %FIXME: the following line might go after selection line 729 (only one call)
-  statsall = mous_multisetcca_regress(tlck, stimuli);
+  
+  %compare model with word embeddings to model with only constant
+  design    = tlck.trialinfo(:,{'const','w2v'});
+  stats.w2v = mous_multisetcca_regress(tlck, design, stimuli);
+  %FIXME:change regress function to be able to do orthogonalising inspite
+  %of constant
+  stats.w2v_ortho = mous_multisetcca_regress(tlck, design, stimuli,[],'ortho',[]);
   
   % identify the nouns, adjectives and verbs
-  sel =          double(strncmp([tlck.trialinfo.POS], 'N', 1))*1;
+  sel =       double(strncmp([tlck.trialinfo.POS], 'N', 1))*1;
   sel = sel + double(strncmp([tlck.trialinfo.POS], 'WW',  2))*2;
   sel = sel + double(strncmp([tlck.trialinfo.POS], 'ADJ', 3))*3;
   
-  % select these from the data
+  % select these from the data %FIXME: not used later, so not needed?
   words.POS      = tlck.trialinfo.POS(sel>0);
   words.duration = tlck.trialinfo.duration(sel>0); %same duration as in stimulus file words.duration?
   words.word     = tlck.trialinfo.word(sel>0);
@@ -749,7 +754,7 @@ if makemodels
     folds = mous_makefolds(size(tlck.trial,1), 5);
     
     stats_rand(j) = mous_multisetcca_regress(tlck,tmpdesign,folds);
-      
+    stats_rand    = mous_multisetcca_regress(tlck, design, stimuli, folds, ortho)
   end
   
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
