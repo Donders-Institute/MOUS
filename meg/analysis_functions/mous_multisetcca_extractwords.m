@@ -174,7 +174,7 @@ V = zeros(0,320);
 for k = 1:size(w2v,3)
   V = cat(1, V, w2v(sel(:,k),:,k));
 end
-V = [ones(size(V,1),1) V-mean(V)]; % add constant regressor
+V = [ones(size(V,1),1) V-mean(V)]; % add constant regressor %FIXME:constant added but not outputed, can be deleted probably
 
 tlck.trialinfo = table(X(:,1), X(:,2), X(:,3), X(:,4),...
   X(:,5), X(:,6), X(:,7), X(:,8),...
