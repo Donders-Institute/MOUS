@@ -729,7 +729,7 @@ if makemodels
   
   folds = mous_makefolds(size(tlck.trial,1), 5);
 
-  stats = mous_multisetcca_regress(tlck,design,folds,true);
+  stats = mous_multisetcca_regress(tlck,design,folds);
   
   
   nrand = 500;
@@ -748,7 +748,7 @@ if makemodels
    
     folds = mous_makefolds(size(tlck.trial,1), 5);
     
-    stats_rand(j) = mous_multisetcca_regress(tlck,tmpdesign,folds,true);
+    stats_rand(j) = mous_multisetcca_regress(tlck,tmpdesign,folds);
       
   end
   

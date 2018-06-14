@@ -1,9 +1,9 @@
-function stats = mous_multisetcca_regress(tlck, stimuli, folds, cvflag)
+function stats = mous_multisetcca_regress(tlck, stimuli, folds)
 
 lambda = 1;
 
-if nargin<3
-  cvflag = false;
+if nargin<2
+  folds = 1;
 end
 
 if nargin > 2 && iscell(tlck)
@@ -43,8 +43,10 @@ if nargin > 2 && iscell(tlck)
 end
 
 
-ivar = tlck.trialinfo.Properties.VariableNames;
-if ~cvflag
+ivar = tlck.trialinfo.Properties.VariableNames; %FIXME: make sure only those 
+%variables are saved to stats, that are used by dat2F probably best if
+%dependent on input parameters
+if folds==1
   
   %% do the regressions
   [F, R0, R, n, p1, p2, B] = dat2F(tlck.trial, tlck.trialinfo.w2v, [], 1);
