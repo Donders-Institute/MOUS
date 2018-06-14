@@ -1,4 +1,19 @@
-function trc = mous_multisetcca_trc(data, stimuli)
+function [trc, tlck] = mous_multisetcca_trc(data, stimuli, varargin)
+
+output            = ft_getopt(varargin, 'output', 'rho');
+contentwords_only = ft_getopt(varargin, 'contentwords_only', false);
+dosmooth          = ft_getopt(varargin, 'dosmooth', 0);
+partialize_avg    = ft_getopt(varargin, 'partialize_avg', 0);
+
+switch output
+  case 'rho'
+    outputflag = 0;
+  case 'Z'
+    outputflag = 1;
+  case 'Z_scaled'
+    outputflag = 2;
+end
+
 
 if iscell(data)
   data = ft_appenddata([], data{:});
@@ -20,45 +35,109 @@ else
   selaudio{1} = find(contains(data.label, 'sub-2'));
   selvis{1}   = find(contains(data.label, 'sub-1'));
 end
-[tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(data, stimuli);
 
-% % identify the nouns, adjectives and verbs
-% sel =       double(strncmp([words.POS], 'N',   1))*1;
-% sel = sel + double(strncmp([words.POS], 'WW',  2))*2;
-% sel = sel + double(strncmp([words.POS], 'ADJ', 3))*3;
-% 
-% % select these from the data
-% words.POS      = words.POS(sel>0);
-% words.duration = words.duration(sel>0);
-% words.word     = words.word(sel>0);
+if ft_datatype(data, 'raw')
+  tlck = mous_multisetcca_regress(data, stimuli);  
+else
+  tlck = data;
+  if ~exist('selaudio', 'var')
+    selaudio{1} = find(contains(tlck.label, 'sub-2'));
+    selvis{1}   = find(contains(tlck.label, 'sub-1'));
+  end  
+    % poor man's heuristic to adjust the indices, under the assumption that
+    % if the requirement is met, the first 3 channels are to be neglected
+    % (as per the hard-coded selection [4:end] downstairs
+    if numel(selaudio{1})+numel(selvis{1})<numel(tlck.label)
+      selaudio{1} = selaudio{1}-3;
+      selvis{1} = selvis{1}-3;
+    end
+  end
 
-% don't do a subselection on words, otherwise the randomization cca does
-% not make sense too much
-%cfg        = [];
-%cfg.trials = find(sel);
-%tlck        = ft_selectdata(cfg, tlck);
-
-tlck_smooth = tlck;
-for m = 1:size(tlck.trial,1)
-  tlck_smooth.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5); % use a smoothing kernel of odd number of samples
+if contentwords_only
+  % identify the nouns, adjectives and verbs
+  sel =       double(strncmp(tlck.trialinfo.POS, 'N',   1))*1;
+  sel = sel + double(strncmp(tlck.trialinfo.POS, 'WW',  2))*2;
+  sel = sel + double(strncmp(tlck.trialinfo.POS, 'ADJ', 3))*3;
+  
+%   % select these from the data
+%   words.POS      = words.POS(sel>0);
+%   words.duration = words.duration(sel>0);
+%   words.word     = words.word(sel>0);
+%   
+  cfg        = [];
+  cfg.trials = find(sel);
+  tlck        = ft_selectdata(cfg, tlck);
 end
 
+if outputflag>0
+  % temporarily replace 0 with their original nans, in order to properly
+  % compute a d.f.
+  tlck.trial(tlck.trial==0) = nan;
+end
 
-tmp = permute(tlck_smooth.trial(:,4:end,:),[2 1 3]); % channel 1-3 contain averages
+if dosmooth>0
+  % do a boxcar smoothing of the time series
+  for m = 1:size(tlck.trial,1)
+    tlck.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5); % use a smoothing kernel of odd number of samples
+  end
+end
+
+% permute and reshape the data into a nchan x nobs x ntime
+tmp = permute(tlck.trial(:,4:end,:),[2 1 3]); % channel 1-3 contain averages
 tmp = tmp-nanmean(tmp,2); % subtract the mean across trials.
 
+if outputflag>0
+  % convert back to 0
+  dof = squeeze(sum(isfinite(tmp),2));
+  tmp(~isfinite(tmp)) = 0;
+end
+
+c = nan+zeros(size(tmp,1),size(tmp,1),size(tmp,3));
 for k = 1:numel(tlck.time)
-  tmpx=tmp(:,:,k);
-  tmpc=tmpx*tmpx';
+  if partialize_avg
+    for m = 1:numel(tlck.time)
+      tmp1 = tmp(:,:,k);
+      tmp2 = tmp(:,:,m);
+      if m==1
+        tmpc = [tmp1;tmp2]*[tmp1;tmp2]';
+      else
+        tmpc = tmpc+[tmp1;tmp2]*[tmp1;tmp2]';
+      end
+    end
+    tmpc = tmpc./numel(tlck.time);
+    
+    ix1 = 1:size(tmp,1);
+    ix2 = ix1+size(tmp,1);
+    tmpc = tmpc(ix1,ix1)-tmpc(ix1,ix2)*inv(tmpc(ix2,ix2))*tmpc(ix2,ix1);
+  else
+    tmpx=tmp(:,:,k);
+    tmpc=tmpx*tmpx';
+  end
   c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
+  if outputflag>0
+    % Fisher Z transform with standardization
+    n = min(dof(:,k),dof(:,k)');
+    c(:,:,k) = atanh(c(:,:,k))./sqrt(1./(n-3));
+  end
 end
 
 for k = 1:numel(selaudio)
   for m = 1:numel(selaudio)
     if k==m
       % correction term assumes identity
-      trc.rho(:,1,k,m) = squeeze(mean(mean(c(selvis{k},selvis{m},:))))-1./numel(selvis{m});
-      trc.rho(:,2,k,m) = squeeze(mean(mean(c(selaudio{k},selaudio{m},:))))-1./numel(selaudio{m});
+      if outputflag<2
+        trc.rho(:,1,k,m) = squeeze(mean(mean(c(selvis{k},selvis{m},:))))-1./numel(selvis{m});
+        trc.rho(:,2,k,m) = squeeze(mean(mean(c(selaudio{k},selaudio{m},:))))-1./numel(selaudio{m});
+      else
+        tmp = c(selvis{k},selvis{m},:)+repmat(diag(nan(numel(selvis{k}),1)),[1 1 size(tmp,3)]);
+        tmp = reshape(tmp,[],size(tmp,3));
+        %tmp(~isfinite(tmp)) = [];
+        trc.rho(:,1,k,m) = nanmean(tmp,1)./nanstd(tmp,[],1);
+        tmp = c(selaudio{k},selaudio{m},:)+repmat(diag(nan(numel(selaudio{k}),1)),[1 1 size(tmp,3)]);
+        tmp = reshape(tmp,[], size(tmp,3));
+        %tmp(~isfinite(tmp)) = [];
+        trc.rho(:,2,k,m) = nanmean(tmp,1)./nanstd(tmp,[],1);
+      end
     else
       % correction term is diagonal of across parcel correlations, but
       % assumes the matrices to be square
@@ -71,10 +150,17 @@ for k = 1:numel(selaudio)
       for j = 1:size(tmp,3), tmp(:,:,j) = tmp(:,:,j)-diag(diag(tmp(:,:,j))); end
       trc.rho(:,2,k,m) = squeeze(sum(sum(tmp)))./(tmpn.*(tmpn-1));
     end
-    trc.rho(:,3,k,m) = squeeze(mean(mean(c(selvis{k},selaudio{m},:))));
+    
+    if outputflag<2
+      trc.rho(:,3,k,m) = squeeze(mean(mean(c(selvis{k},selaudio{m},:))));
+    else
+      tmp = c(selvis{k},selaudio{m},:);
+      tmp = reshape(tmp,[],size(tmp,3));
+      trc.rho(:,3,k,m) = nanmean(tmp,1)./nanstd(tmp,[],1);
+    end
   end
 end
 trc.label    = {'visual';'audio';'both'};
 if exist('up', 'var'), trc.parcellabel = up(:); end
 trc.dimord   = 'chan_time';
-trc.time     = tlck_smooth.time;
+trc.time     = tlck.time;

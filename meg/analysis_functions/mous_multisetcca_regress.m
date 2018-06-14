@@ -1,4 +1,6 @@
-function [Y,X,V,ivar,stats,words] = mous_multisetcca_regress(comp, stimuli, folds, cvflag, extra)
+function [Y,X,V,ivar,stats,words] = mous_multisetcca_regress(comp, stimuli, folds, cvflag)
+
+lambda = 1;
 
 if nargin<4
   cvflag = false;
@@ -250,9 +252,10 @@ if ~ft_datatype(comp, 'timelock')
   Y.trial(:,3,:) = Yav;
   Y.trial(:,3+(1:siz(2)),:) = permute(reshape(Yall,[size(Yall,1) siz(3) siz(2)]),[1 3 2]);
   Y.label  = {'visual';'audio';'both'};
-  for k = 1:siz(2)
-    Y.label{end+1} = sprintf('individual%03d',k);
-  end
+  %for k = 1:siz(2)
+  %  Y.label{end+1} = sprintf('individual%03d',k);
+  %end
+  Y.label = cat(1,Y.label,comp.label);
   Y.dimord = 'rpt_chan_time';
   
   V = zeros(0,320);
@@ -260,6 +263,14 @@ if ~ft_datatype(comp, 'timelock')
     V = cat(1, V, w2v(sel(:,k),:,k));
   end
   V = [ones(size(V,1),1) V-mean(V)]; % add constant regressor
+  
+  Y.trialinfo = table(X(:,1), X(:,2), X(:,3), X(:,4),...
+                      X(:,5), X(:,6), X(:,7), X(:,8),...
+                      X(:,9), X(:,10), X(:,11),...
+                      V(:,2:end), words.word, words.POS, ...
+                      'variablenames', {'const','nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS'});
+  
+  
 else
   Y = comp;
   V = stimuli.V;
@@ -270,8 +281,8 @@ else
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+ivar = {'const','nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch'};
 if ~cvflag
-  ivar = {'const','nchar','duration','log10(lexfreq)','index','log10(perplexity)','entropy','lefbranch','rightbranch','dleftbranch','drightbranch'};
   
   %% do the regressions
   [F, R0, R, n, p1, p2, B] = dat2F(Y.trial, V, [], 1);
@@ -340,11 +351,12 @@ else
   V = normc(V);
   X = normc(X);
   
-  ivar = {'const','nchar','duration','log10(lexfreq)','index','log10(perplexity)','entropy','lefbranch','rightbranch','dleftbranch','drightbranch'};
   
   %% do the regressions
-  [F] = dat2F(Y.trial, V, [], 1, folds);
+  [F,R0,R] = dat2F(Y.trial, V, [], lambda, folds);
   stats.w2v.dR = F;
+  stats.w2v.R0  = R0;
+  stats.w2v.R   = R;
   stats.w2v.ivar = {'w2v'};
   
   % regress out the first 4 columns of X
@@ -352,19 +364,23 @@ else
   x   = X(:,1:4);
   y   = y-x*((x'*x)\(x'*y));
   Vnew = [x y];
-  [F] = dat2F(Y.trial, Vnew, [1 2 3 4], 1, folds);
+  [F,R0,R] = dat2F(Y.trial, Vnew, [1 2 3 4], lambda, folds);
   stats.w2v_orth.dR  = F;
+  stats.w2v_orth.R0  = R0;
+  stats.w2v_orth.R   = R;
   stats.w2v_orth.ivar = {'w2v'};
   
-  clear F;
+  clear F R0 R;
   for k = 1:size(X,2)-1
-    [F(:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]), 1, 1, folds);
+    [F(:,:,k),R0(:,:,k),R(:,:,k)] = dat2F(Y.trial,X(:,[1 1+k]), 1, lambda, folds);
   end
   
   stats.x.dR = F;
+  stats.x.R0  = R0;
+  stats.x.R   = R;
   stats.x.ivar = ivar(2:end);
   
-  clear F;
+  clear F R0 R;
   
   % orthogonalise the design(:,5:end) with respect to the first 4 columns
   y   = X(:,5:end);
@@ -374,9 +390,11 @@ else
   for k = 1:size(Xnew,2)-4
     %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
     tmpX = Xnew(:,[1 2 3 4 4+k]);
-    [F(:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4], 1, folds);
+    [F(:,:,k),R0(:,:,k),R(:,:,k)] = dat2F(Y.trial,tmpX,[1 2 3 4], lambda, folds);
   end
   stats.xorth.dR = F;
+  stats.xorth.R0  = R0;
+  stats.xorth.R   = R;
   stats.xorth.ivar = ivar(5:end);
   
   V = single(V);

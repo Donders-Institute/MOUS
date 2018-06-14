@@ -593,7 +593,7 @@ if domscca_searchlight_shift
     subjecttiming{1,k} = timinginfo; % subject specific information about timing
     groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
   end
-  for k = 1:numel(subj)
+  for k = 1:numel(subj)trialfun_visual_sentence
     cfg = [];
     cfg.method = 'acrosschannel';
     groupdata{1,k} = ft_channelnormalise(cfg, groupdata{1,k});
@@ -612,7 +612,9 @@ if domscca_searchlight_shift
   selvis   = find(strncmp(subj, 'sub-1', 5));
   groupdatashift = groupdata;
   
-  shift_vals = 0:2:20;%[0.9:0.025:1.3];%1 1.05 1.10 1.15 1.20 1.25];
+  if ~exist('shift_vals', 'var')
+    shift_vals = 0:2:20;%[0.9:0.025:1.3];%1 1.05 1.10 1.15 1.20 1.25];
+  end
   nshift = numel(shift_vals);
   for m = 1:nshift
     shift(selaudio) = shift_vals(m);
@@ -690,45 +692,10 @@ if makemodels
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
   
-%   % this part gets the number of 'trials' that went into each fold. The
-%   % rationale is to fit the beta-weights for each fold separately, and to
-%   % combine the models to get an F statistic.
-%   nfold = 5;
-%   nobs  = numel(comp.trial);
-%   ix    = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
-%   testfold = cell(nfold,1);
-%   for k = 1:nfold
-%     testfold{k,1} = (ix(k)+1):ix(k+1);
-%   end
-%   [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli, testfold);
-%   
-%   % identify the nouns, adjectives and verbs
-%   sel = cell(1,5);
-%   for k = 1:5
-%     sel{k} =          double(strncmp([words{k}.POS], 'N',   1))*1;
-%     sel{k} = sel{k} + double(strncmp([words{k}.POS], 'WW',  2))*2;
-%     sel{k} = sel{k} + double(strncmp([words{k}.POS], 'ADJ', 3))*3;
-%   end
-%   
-%   % select these from the data
-%   for k = 1:5
-%     words{k}.POS      = words{k}.POS(sel{k}>0);
-%     words{k}.duration = words{k}.duration(sel{k}>0);
-%     words{k}.word     = words{k}.word(sel{k}>0);
-%     
-%     cfg        = [];
-%     cfg.trials = find(sel{k});
-%     tlck{k}    = ft_selectdata(cfg, tlck{k});
-%     
-%     X{k} = X{k}(sel{k}>0,:);
-%     V{k} = V{k}(sel{k}>0,:);
-%   end
-%   [~,~,~,~,stats] = mous_multisetcca_regress(tlck,V,X);
-
   [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli);
   
   % identify the nouns, adjectives and verbs
-  sel =          double(strncmp([words.POS], 'N',   1))*1;
+  sel =          double(strncmp([words.POS], 'N', 1))*1;
   sel = sel + double(strncmp([words.POS], 'WW',  2))*2;
   sel = sel + double(strncmp([words.POS], 'ADJ', 3))*3;
   
@@ -740,64 +707,47 @@ if makemodels
   cfg        = [];
   cfg.trials = find(sel);
   tlck       = ft_selectdata(cfg, tlck);
-    
-  X = X(sel>0,:);
-  V = V(sel>0,:);
+  
+  [u,s,v] = svd(V(:,2:end));
+  V= [V(:,1) V(:,2:end)*v(:,1:20)];
+  
+  
+  X = X(sel>0,:); X(:,2:end) = X(:,2:end) - mean(X(:,2:end));
+  V = V(sel>0,:); V(:,2:end) = V(:,2:end) - mean(V(:,2:end));
+  
+ 
   design = struct('V',V,'X',X);
-  [~,~,~,~,stats] = mous_multisetcca_regress(tlck,design);
-
-  tlck_smooth = tlck;
-  %for k = 1:numel(tlck)
-  %  tmp = tlck{k};
-  %  for m = 1:size(tmp.trial,1)
-  %    tmp.trial(m,:,:) = ft_preproc_smooth(squeeze(tmp.trial(m,:,:)),6);
-  %  end
-  %  tlck_smooth{k} = tmp;
-  %end
+  
   for m = 1:size(tlck.trial,1)
-    tlck_smooth.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),6);
+    tlck.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5);
   end
   
-  folds = mous_makefolds(size(tlck_smooth.trial,1), 5);
-  [~,~,~,~,stats_smooth] = mous_multisetcca_regress(tlck_smooth,design,folds,true);
+  folds = mous_makefolds(size(tlck.trial,1), 5);
+  [~,~,~,~,stats] = mous_multisetcca_regress(tlck,design,folds,true);
   
   
   nrand = 500;
   
-  tlck_smooth.trial = tlck_smooth.trial(:,1:3,:);
-  tlck_smooth.label = tlck_smooth.label(1:3);
+  rng('default');
   for j = 1:nrand
     % mean subtracted duration is in column 3, this shuffles the words
     % maintaining the distribution in binned duration
     fprintf('performing randomization %d/%d\n',j,nrand);
-    dur = X(:,3);
-    edges1 = eqspace(dur,5);
-    lf  = X(:,4);
-    edges2 = eqspace(lf,5);
-    [n1,bin1] = histc(dur,edges1);
-    [n2,bin2] = histc(lf, edges2);
     
-    r_idx = (1:numel(dur))';
-    for m = 1:numel(n1)-1
-      for mm = 1:numel(n2)-1
-        tmp = r_idx(bin1==m&bin2==mm);
-        r_idx(bin1==m&bin2==mm)=tmp(randperm(numel(tmp)));
-      end
-    end
-    tmpdesign.X = X(r_idx,:);
-    tmpdesign.V = V(r_idx,:);
+    tmpdesign = design;
     
-    folds = mous_makefolds(size(tlck_smooth.trial,1), 5);
-    [~,~,~,~,stats_rand(j)] = mous_multisetcca_regress(tlck_smooth,tmpdesign,folds,true);
-    stats_rand(j).w2v.dR      = stats_rand(j).w2v.dR(1:3,:);
-    stats_rand(j).w2v_orth.dR = stats_rand(j).w2v_orth.dR(1:3,:);
-    stats_rand(j).x.dR        = stats_rand(j).x.dR(1:3,:,:);
-    stats_rand(j).xorth.dR    = stats_rand(j).xorth.dR(1:3,:,:);
+    r_idx = randperm(size(X,1));
+    tmpdesign.X(:,4:end) = X(r_idx,4:end);
+    tmpdesign.V(:,2:end) = V(r_idx,2:end);
+   
+    folds = mous_makefolds(size(tlck.trial,1), 5);
     
+    [~,~,~,~,stats_rand(j)] = mous_multisetcca_regress(tlck,tmpdesign,folds,true);
+      
   end
   
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
-  save(filename, 'ivar', 'X', 'V', 'words', 'stats_smooth', 'stats_rand');
+  save(filename, 'ivar', 'X', 'V', 'words', 'stats', 'stats_rand');
 end
 
 if dotrc
@@ -813,174 +763,90 @@ if dotrc
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
   
-  [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli);
+  tlck = mous_multisetcca_extractwords(comp, stimuli);
   
   if ~exist('contentwords_only', 'var')
     contentwords_only = false;
   end
-  if contentwords_only
-    % identify the nouns, adjectives and verbs
-    sel =          double(strncmp([words.POS], 'N',   1))*1;
-    sel = sel + double(strncmp([words.POS], 'WW',  2))*2;
-    sel = sel + double(strncmp([words.POS], 'ADJ', 3))*3;
-    
-    % select these from the data
-    words.POS      = words.POS(sel>0);
-    words.duration = words.duration(sel>0);
-    words.word     = words.word(sel>0);
-    X = X(sel>0,:);
-    
-    cfg        = [];
-    cfg.trials = find(sel);
-    tlck        = ft_selectdata(cfg, tlck);
-  end
-  
-  tlck_smooth = tlck;
-  for m = 1:size(tlck.trial,1)
-    tlck_smooth.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5); % use a smoothing kernel of odd number of samples
-  end
-  
-  selaudio = find(contains(comp.label, 'sub-2'));
-  selvis   = find(contains(comp.label, 'sub-1'));
-  
-  
-  tmp = permute(tlck_smooth.trial(:,4:end,:),[2 1 3]);
-  tmp_orig = tmp;
-  tmp = tmp-nanmean(tmp,2); % remove the average across trials
-  
-  for k = 1:109
-    tmpx = tmp(:,:,k);
-    tmpc = tmpx*tmpx';
-    c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
-    
-  end
-  Cv(:,1) = squeeze(mean(mean(c(selvis,selvis,:))))-1./numel(selvis);
-  Ca(:,1) = squeeze(mean(mean(c(selaudio,selaudio,:))))-1./numel(selaudio);
-  C(:,1)  = squeeze(mean(mean(c(selvis,selaudio,:))));
+  [trc, tlck] = mous_multisetcca_trc(tlck, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only);
   
   nrand = 1000;
-  Cx = zeros(size(C,1),nrand,1);
-  
-  Y = X(:,2:4);
-  Y(:,1) = Y(:,1)-min(Y(:,1));
-  Y(:,2) = Y(:,2)-min(Y(:,2));
-  
-  edges1 = eqpop(Y(:,1),4); %otherwise the 'lengthy word bin' ends up almost empty
-  edges2 = eqpop(Y(:,2),5);
-  edges3 = eqpop(Y(:,3),5);
-  [n1,bin1] = histc(Y(:,1),edges1);
-  [n2,bin2] = histc(Y(:,2), edges2);
-  [n3,bin3] = histc(Y(:,3), edges3);
+  Cx = zeros(size(trc.rho,1),nrand,1);
   
   if ~exist('stratify_ivar', 'var')
     stratify_ivar = false;
   end
   
+  if stratify_ivar
+    if ~exist('covariates', 'var')
+      covariates = {'nchar' 'duration' 'loglexfreq'};
+      nbins      = [4 5 5];
+    end
+    bin = mous_multisetcca_stratifyivar(table2array(tlck.trialinfo(:,1:11)),tlck.trialinfo.Properties.VariableNames(1:11),covariates,nbins);  
+  else
+    bin = ones(size(tlck.trial,1),1);
+    covariates = {''};
+  end
+  
+  selaudio = find(contains(tlck.label, 'sub-2'));
+  selvis   = find(contains(tlck.label, 'sub-1'));
+   
   rng('default'); % ensure same 'random' behaviour for each parcel.
   for m = 1:nrand
     if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
     
-    if stratify_ivar
-      % reorder, but obey a binning for nchar and duration, as per the second
-      % and third columns of the X-matrix, now called Y
-      r_idx = (1:numel(Y(:,1)))';
-      for mm = 1:numel(n1)-1
-        for mmm = 1:numel(n2)-1
-          for mmmm = 1:numel(n3)-1
-            tmpB = r_idx(bin1==mm&bin2==mmm&bin3==mmmm);
-            r_idx(bin1==mm&bin2==mmm&bin3==mmmm)=tmpB(randperm(numel(tmpB)));
-          end
-        end
-      end
-    else
-      r_idx = randperm(size(Y,1));
+    r_idx = (1:numel(bin))';
+    ubin  = unique(bin);
+    for mm = 1:numel(ubin)
+      tmpB = r_idx(bin==ubin(mm));
+      r_idx(bin==ubin(mm)) = tmpB(randperm(numel(tmpB)));
     end
-    
-    tmp2 = tmp;
-    tmp2(selvis,:,:) = tmp(selvis,r_idx,:);
-    for k = 1:109
-      tmpx=tmp2(:,:,k);
-      %tmpx=tmpx-nanmean(tmp(:,:,1:(k-1)),3);
-      tmpc=tmpx*tmpx';
-      c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
-    end
-    
-    %Cx(:,1,m) = squeeze(mean(mean(c(selvis,selvis,:))))-1./numel(selvis);
-    %Cx(:,2,m) = squeeze(mean(mean(c(selaudio,selaudio,:))))-1./numel(selaudio);
-    Cx(:,m,1) = squeeze(mean(mean(c(selvis,selaudio,:))));
+    tmptlck = tlck;
+    tmptlck.trial(:,selvis,:) = tmptlck.trial(r_idx,selvis,:);
+    trcshuf(m) = mous_multisetcca_trc(tmptlck, stimuli);
   end
-  
-  rng('default'); % ensure same 'random' behaviour for each parcel.
-  nrand = 1000;
-  Cxv = zeros(size(C,1),nrand,1);
-  Cxa = zeros(size(C,1),nrand,1);
-  c = zeros(numel(selvis),numel(selvis),109);
-  ca = zeros(numel(selaudio),numel(selaudio),109);
+ 
+  rng('default'); % ensure same 'random' behaviour for each parcel
   for m = 1:nrand
     if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
-    tmp2 = tmp(selvis,:,:);
-    tmp2a = tmp(selaudio,:,:);
-    
-    if stratify_ivar
-      for mmv = 1:numel(selvis)
-        r_idx = (1:numel(Y(:,1)))';
-        for mm = 1:numel(n1)-1
-          for mmm = 1:numel(n2)-1
-            for mmmm = 1:numel(n3)-1
-              tmpB = r_idx(bin1==mm&bin2==mmm&bin3==mmmm);
-              r_idx(bin1==mm&bin2==mmm&bin3==mmmm)=tmpB(randperm(numel(tmpB)));
-            end
-          end
-        end
-        tmp2(mmv,:,:)  = tmp(selvis(mmv),r_idx,:);
+    tmptlck = tlck;
+    for mmv = 1:numel(selvis)
+      r_idx = (1:numel(bin))';
+      ubin  = unique(bin);
+      for mm = 1:numel(ubin)
+        tmpB = r_idx(bin==ubin(mm));
+        r_idx(bin==ubin(mm)) = tmpB(randperm(numel(tmpB)));
       end
-      for mma = 1:numel(selaudio)
-        r_idx = (1:numel(Y(:,1)))';
-        for mm = 1:numel(n1)-1
-          for mmm = 1:numel(n2)-1
-            tmpB = r_idx(bin1==mm&bin2==mmm);
-            r_idx(bin1==mm&bin2==mmm)=tmpB(randperm(numel(tmpB)));
-          end
-        end
-        tmp2a(mma,:,:)  = tmp(selaudio(mma),r_idx,:);
-      end
-    else
-      for mmv = 1:numel(selvis)
-        r_idx = randperm(size(Y,1));
-        tmp2(mmv,:,:) = tmp(selvis(mmv),r_idx,:);
-      end
-      for mma = 1:numel(selaudio)
-        r_idx = randperm(size(Y,1));
-        tmp2a(mma,:,:) = tmp(selaudio(mma),r_idx,:);
-      end
+      tmptlck.trial(:,selvis(mmv),:) = tmptlck.trial(r_idx,selvis(mmv),:);
     end
-    
-    for k = 1:109
-      tmpx = tmp2(:,:,k);
-      tmpc = tmpx*tmpx';
-      c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
-      %tmpx = tmp2b(:,:,k);
-      %tmpc = tmpx*tmpx';
-      %c2(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
-      tmpx = tmp2a(:,:,k);
-      tmpc = tmpx*tmpx';
-      ca(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
+    for mma = 1:numel(selaudio)
+      r_idx = (1:numel(bin))';
+      ubin  = unique(bin);
+      for mm = 1:numel(ubin)
+        tmpB = r_idx(bin==ubin(mm));
+        r_idx(bin==ubin(mm)) = tmpB(randperm(numel(tmpB)));
+      end
+      tmptlck.trial(:,selaudio(mma),:) = tmptlck.trial(r_idx,selaudio(mma),:);
     end
-    Cxv(:,m,1) = squeeze(mean(mean(c)))-1./numel(selvis);
-    Cxa(:,m,1) = squeeze(mean(mean(ca)))-1./numel(selaudio);
-    %Cxv(:,m,2) = squeeze(mean(mean(c2)))-1./numel(selvis);
+    trcshuf2(m) = mous_multisetcca_trc(tmptlck, stimuli);
   end
-  tim = tlck.time;
   
+  trcshuf(1).rho = cat(3,trcshuf.rho);
+  trcshuf = trcshuf(1);
+  
+  trcshuf2(1).rho = cat(3,trcshuf2.rho);
+  trcshuf2 = trcshuf2(1);
+  
+    
   suffix2 = '';
   if contentwords_only
     suffix2 = [suffix2 '_contentwords'];
   end
   if stratify_ivar
-    suffix2 = [suffix2 '_stratified'];
+    suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
   end
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_trc%s',scenario,parcel_indx,suffix,suffix2));
-  save(filename, 'C', 'Cx', 'Cv', 'Ca', 'Cxv', 'Cxa', 'tim');
+  save(filename, 'trcshuf', 'trcshuf2', 'trc');
 
 end
 
