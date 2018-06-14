@@ -139,7 +139,7 @@ k                = 5; % number of folds for Lambda
 % 1. find divisor without remainder
 range            = 1:numobs;
 div              = range(rem(numobs,range) == 0);
-leaveout         = div(nearest(div,6));
+leaveout         = div(nearest(div,2));
 cross            = crossvalind('Kfold',numobs,numobs/leaveout);
 % 2. Get rid of repetitions (each examplar only exists once)
 [C,IA,IC] = unique(featv,'rows');
@@ -180,10 +180,13 @@ for t = 1:length(timesteps)-1 %FIX: does not take last timewindow for now
         %sanity check: permute labels
         %y_train = y_train(randperm(size(y_train,1)),:);
         
-        [y_hat,beta_hat,lambda_hat]     = ridgeregression_sa(x_train,x_test,y_train,5,10);
+        [stat.model{fold},stat.result{fold},lambda_hat]     = ridgeregression_sa(cfg,x_train,x_test,y_train);
         %y_hat = randn(leaveout,320);y_hat = y_hat*0.05;%create random vector as
         %prediction
-        success = eval_euclideandistance(y_hat,y_test);
+
+        stat.design{fold}                                = y_test;
+    end
+        success = eval_euclideandistance(cfg,stat);
         
         %success = eval_corr(y_hat,y_test,featv,1);
         correct = correct + success;
@@ -200,7 +203,6 @@ for t = 1:length(timesteps)-1 %FIX: does not take last timewindow for now
 %              misswords(t,fold,:) = indices;
 %          end
 %          fprintf('\n');
-    end
     accuracy(t,:) = correct/max(cross);
 end
 %save('/project/3011020.09/sopara/betas/all_betas','all_betas','-v7.3')
