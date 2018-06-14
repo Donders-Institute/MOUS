@@ -692,28 +692,33 @@ if makemodels
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
   
-  [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli);
+  tlck = mous_multisetcca_extractwords(comp, stimuli);
+  %FIXME: the following line might go after selection line 729 (only one call)
+  statsall = mous_multisetcca_regress(tlck, stimuli);
   
   % identify the nouns, adjectives and verbs
-  sel =          double(strncmp([words.POS], 'N', 1))*1;
-  sel = sel + double(strncmp([words.POS], 'WW',  2))*2;
-  sel = sel + double(strncmp([words.POS], 'ADJ', 3))*3;
+  sel =          double(strncmp([tlck.trialinfo.POS], 'N', 1))*1;
+  sel = sel + double(strncmp([tlck.trialinfo.POS], 'WW',  2))*2;
+  sel = sel + double(strncmp([tlck.trialinfo.POS], 'ADJ', 3))*3;
   
   % select these from the data
-  words.POS      = words.POS(sel>0);
-  words.duration = words.duration(sel>0);
-  words.word     = words.word(sel>0);
+  words.POS      = tlck.trialinfo.POS(sel>0);
+  words.duration = tlck.trialinfo.duration(sel>0); %same duration as in stimulus file words.duration?
+  words.word     = tlck.trialinfo.word(sel>0);
     
   cfg        = [];
   cfg.trials = find(sel);
   tlck       = ft_selectdata(cfg, tlck);
   
-  [u,s,v] = svd(V(:,2:end));
-  V= [V(:,1) V(:,2:end)*v(:,1:20)];
+  V = tlck.trialinfo.w2v;
+  X = table2array(tlck.trialinfo(:,1:11));
+  
+  [u,s,v] = svd(V);
+  V= [ones(size(V,1),1) V*v(:,1:20)];
   
   
-  X = X(sel>0,:); X(:,2:end) = X(:,2:end) - mean(X(:,2:end));
-  V = V(sel>0,:); V(:,2:end) = V(:,2:end) - mean(V(:,2:end));
+  X(:,2:end) = X(:,2:end) - mean(X(:,2:end));
+  V(:,2:end) = V(:,2:end) - mean(V(:,2:end));
   
  
   design = struct('V',V,'X',X);
@@ -723,7 +728,8 @@ if makemodels
   end
   
   folds = mous_makefolds(size(tlck.trial,1), 5);
-  [~,~,~,~,stats] = mous_multisetcca_regress(tlck,design,folds,true);
+
+  stats = mous_multisetcca_regress(tlck,design,folds,true);
   
   
   nrand = 500;
@@ -742,7 +748,7 @@ if makemodels
    
     folds = mous_makefolds(size(tlck.trial,1), 5);
     
-    [~,~,~,~,stats_rand(j)] = mous_multisetcca_regress(tlck,tmpdesign,folds,true);
+    stats_rand(j) = mous_multisetcca_regress(tlck,tmpdesign,folds,true);
       
   end
   
@@ -1029,8 +1035,8 @@ if dotrc_pairwise
   tmp=load(filename2, 'comp');
   comp2 = tmp.comp;
   
-  [tlck1, X1, V, ivar, statsall, words] = mous_multisetcca_regress(comp1, stimuli);
-  [tlck2, X2, V, ivar, statsall, words] = mous_multisetcca_regress(comp2, stimuli);
+  tlck1 = mous_multisetcca_extractwords(comp1, stimuli);
+  tlck2 = mous_multisetcca_extractwords(comp2, stimuli);
   
 %   % identify the nouns, adjectives and verbs
 %   sel =          double(strncmp([words.POS], 'N',   1))*1;
@@ -1231,10 +1237,9 @@ if compare2simple
     data.trial = cellrowassign(data.trial, cellrowselect(data.trial,k).*tmp(k), k);
   end
   
-  
-  [tlck1, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli);
-  [tlck2, X, V, ivar, statsall, words] = mous_multisetcca_regress(data, stimuli);
-  
+  tlck1 = mous_multisetcca_extractwords(comp, stimuli);
+  tlck2 = mous_multisetcca_extractwords(data, stimuli);
+
   tlck1_smooth = tlck1;
   tlck2_smooth = tlck2;
   for m = 1:size(tlck1.trial,1)
