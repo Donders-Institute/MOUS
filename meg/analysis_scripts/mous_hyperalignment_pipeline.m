@@ -16,9 +16,11 @@ if ~exist('cleandata',        'var'), cleandata        = false;                 
 if ~exist('cleandata_seq',    'var'), cleandata_seq    = false;                       end
 if ~exist('dolcmv',           'var'), dolcmv           = false;                       end
 if ~exist('dolcmv_seq',       'var'), dolcmv_seq       = false;                       end
+if ~exist('dotrc',           'var'), dotrc             = false;                       end
 if ~exist('computealignment', 'var'), computealignment = false;                       end
 if ~exist('computealignment_seq', 'var'), computealignment_seq = false;       end
 if ~exist('dohyperalignment',     'var'), dohyperalignment     = false;       end
+if ~exist('skipmultisetcca',     'var'), skipmultisetcca       = false;       end
 if ~exist('dohyperalignment_seq', 'var'), dohyperalignment_seq = false;       end
 if ~exist('create_shuffle_indx', 'var'), create_shuffle_indx = false; end
 if ~exist('create_shuffle_indx_seq', 'var'), create_shuffle_indx_seq = false; end
@@ -210,6 +212,122 @@ if dohyperalignment || dohyperalignment_seq
   end
 end
 
+if skipmultisetcca
+  shift   = zeros(1,numel(subj));  
+  stretch = ones(1,numel(subj));
+  
+  groupdata   = cell(1,numel(subj));
+  subjectdata = cell(1,numel(subj));
+  subjecttiming = cell(1,numel(subj));
+  for k = 1:numel(subj)
+    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_data%s',suffix));
+    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc%s',suffix));
+    source_parc.filterlabel = filterlabel; % for checking channel order
+    subjectdata{1,k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
+    
+    for kk = 1:numel(subjectdata{1,k}.trial)
+      tmp = subjectdata{1,k}.trial{kk};
+      tmp = tmp - nanmean(tmp,2)*ones(1,size(tmp,2));
+      subjectdata{1,k}.trial{kk} = tmp;
+    end
+    
+    
+    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_timinginfo%s',suffix));
+    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_groupinfo%s',suffix));
+    subjecttiming{1,k} = timinginfo; % subject specific information about timing
+    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
+  
+    cfg = [];
+    cfg.method = 'acrosschannel';
+    groupdata{1,k} = ft_channelnormalise(cfg, groupdata{1,k});
+    for kk = 1:numel(groupdata{1,k}.trial)
+      sel = nearest(groupdata{1,k}.time{kk},-0.1);
+      groupdata{1,k}.trial{kk} = groupdata{1,k}.trial{kk}(:,sel:end);
+      groupdata{1,k}.time{kk}  = groupdata{1,k}.time{kk}(sel:end);
+    end
+  end
+  
+    tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
+    
+    cfg           = [];
+    cfg.channel   = tmpdata.label(contains(tmpdata.label, 'chan001'));
+    tmpdata       = ft_selectdata(cfg,tmpdata);
+    
+end
+
+if dotrc
+  % do time resolved correlation
+  if ~exist('parcel_indx', 'var')
+    error('please supply parcel_indx');
+  end
+  if ~exist('stimuli', 'var')
+    load mous_stimuli;
+  end
+  suffix = ''; % for now
+  
+  if ~skipmultisetcca
+      loaddir = sprintf('/project/3011020.09/jansch/hyperalignment/');
+      filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
+      load(filename, 'comp');
+  else
+      comp = tmpdata;
+  end
+  
+  
+  tlck = mous_hyperalignment_tlck(comp,stimuli);
+  
+
+  tlck_smooth = tlck;
+  
+  for m = 1:size(tlck(1).trial,1)
+    tlck_smooth.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5); % use a smoothing kernel of odd number of samples
+  end
+  
+  selaudio = find(contains(comp.label, 'sub-2'));
+  selvis   = find(contains(comp.label, 'sub-1'));
+  
+  
+  tmp = permute(tlck_smooth.trial(:,2:end,:),[2 1 3]);
+  tmp = tmp-nanmean(tmp,2);
+  
+  for k = 1:109
+    tmpx=tmp(:,:,k);
+    %tmpx=tmpx-nanmean(tmp(:,:,1:(k-1)),3);
+    tmpc=tmpx*tmpx';
+    c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
+  end
+  C(:,1) = squeeze(mean(mean(c(selvis,selvis,:))))-1./numel(selvis);
+  %C(:,2) = squeeze(mean(mean(c(selaudio,selaudio,:))))-1./numel(selaudio);
+  %C(:,1) = squeeze(mean(mean(c(selvis,selaudio,:))));
+  
+  rng('default'); % ensure same 'random' behaviour for each parcel.
+  nrand = 5000;
+  Cx = zeros(size(C,1),nrand);
+  for m = 1:nrand
+    if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
+    tmp2 = tmp;
+    for sub = 1:length(selvis)        
+      tmp2(sub,:,:) = tmp(sub,randperm(size(tmp,2)),:);
+    end
+    for k = 1:109
+      tmpx=tmp2(:,:,k);
+      %tmpx=tmpx-nanmean(tmp(:,:,1:(k-1)),3);
+      tmpc=tmpx*tmpx';
+      c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
+    end
+    Cx(:,m) = squeeze(mean(mean(c(selvis,selvis,:))))-1./numel(selvis);
+    %Cx(:,2,m) = squeeze(mean(mean(c(selaudio,selaudio,:))))-1./numel(selaudio);
+    %Cx(:,m) = squeeze(mean(mean(c(selvis,selaudio,:))));
+  end
+  tim = tlck.time;
+  
+  if ~skipmultisetcca
+      filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_trc',scenario,parcel_indx,suffix));
+      save(filename, 'C', 'Cx', 'tim');
+  end
+end
+
+
 %%%%%%%%%%%%%%%%%%%%%%
 % TO BE CHECKED
 if makemodels
@@ -220,8 +338,8 @@ if makemodels
     load mous_stimuli;
   end
   suffix = ''; % for now
-  loaddir = '/project/3011020.09/jansch/mscca_group';
-  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
+  loaddir = '/project/3011020.09/jansch/hyperalignment';
+  filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
   
 %   % this part gets the number of 'trials' that went into each fold. The
