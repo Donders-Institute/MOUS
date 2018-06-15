@@ -1,5 +1,8 @@
 function stats = mous_multisetcca_regress(tlck, design, stimuli, folds, varargin)
-
+%This function models timelocked data with a GLM given some predictors in variable
+%design, and does a model comparison against a reduced model where the
+%reduced model can be defined with the key 'modelcomparison' (default is to
+%compare only first predictor against rest)
 lambda              = 1;
 ortho               = ft_getopt(varargin, 'orthogonalise', {});
 contentwords_only   = ft_getopt(varargin, 'contentwords_only', false);
@@ -42,12 +45,7 @@ if contentwords_only
   sel =       double(strncmp(tlck.trialinfo.POS, 'N',   1))*1;
   sel = sel + double(strncmp(tlck.trialinfo.POS, 'WW',  2))*2;
   sel = sel + double(strncmp(tlck.trialinfo.POS, 'ADJ', 3))*3;
-  
-%   % select these from the data
-%   words.POS      = words.POS(sel>0);
-%   words.duration = words.duration(sel>0);
-%   words.word     = words.word(sel>0);
-%   
+    
   cfg        = [];
   cfg.trials = find(sel);
   tlck        = ft_selectdata(cfg, tlck);
@@ -95,7 +93,8 @@ else
   %FIXME: if columns used for ortho are not the last ones, appending them
   %afterwards will change order and therefore reduceto might be wrongly
   %mapped
-  %FIXME: also if constant present, it will be orthogonalized
+  %FIXME: also if constant present, it will be orthogonalized better to
+  %have optional flag for addign constant or not
   y   = table2array(design(:,setdiff(1:size(design,2),ortho)));
   x   = table2array(design(:,ortho));
   y   = y-x*((x'*x)\(x'*y));
