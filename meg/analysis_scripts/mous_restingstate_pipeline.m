@@ -162,10 +162,10 @@ if dogranger1
   cfg      = [];
   cfg.vol  = headmodel;
   cfg.grad = tlck.grad;
-  cfg.grid = sourcemodel;
+  cfg.grid = sourcemodelorig;
   cfg.channel = 'MEG';
   sourcemodel = ft_prepare_leadfield(cfg);
-  sourcemodel = mous_parcellate_leadfield(sourcemodel, sourcemodelorig);
+  %sourcemodel = mous_parcellate_leadfield(sourcemodel, sourcemodelorig);
   
   
   % compute the lcmv spatial filters
@@ -173,7 +173,7 @@ if dogranger1
   cfg.method          = 'lcmv';
   cfg.lcmv.keepfilter = 'yes';
   cfg.lcmv.fixedori   = 'yes';%'no';
-  cfg.lcmv.lambda     = '5%';
+  cfg.lcmv.lambda     = '100%';
   cfg.lcmv.projectnoise = 'yes';
   cfg.grid            = sourcemodel;
   cfg.vol             = headmodel;

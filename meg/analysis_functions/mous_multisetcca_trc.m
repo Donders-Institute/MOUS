@@ -4,6 +4,7 @@ output            = ft_getopt(varargin, 'output', 'rho');
 contentwords_only = ft_getopt(varargin, 'contentwords_only', false);
 dosmooth          = ft_getopt(varargin, 'dosmooth', 0);
 partialize_avg    = ft_getopt(varargin, 'partialize_avg', 0);
+shift             = ft_getopt(varargin, 'shift', []);
 
 switch output
   case 'rho'
@@ -78,13 +79,24 @@ end
 if dosmooth>0
   % do a boxcar smoothing of the time series
   for m = 1:size(tlck.trial,1)
-    tlck.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5); % use a smoothing kernel of odd number of samples
+    tlck.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),dosmooth); % use a smoothing kernel of odd number of samples
   end
 end
 
 % permute and reshape the data into a nchan x nobs x ntime
 tmp = permute(tlck.trial(:,4:end,:),[2 1 3]); % channel 1-3 contain averages
 tmp = tmp-nanmean(tmp,2); % subtract the mean across trials.
+
+if ~isempty(shift) && numel(shift)==size(tmp,1)
+  maxshift = max(shift);
+  n = size(tmp,3);
+  tmpnew = nan(size(tmp,1),size(tmp,2),n-maxshift);
+  for m = 1:numel(shift)
+    tmpnew(m,:,:) = tmp(m,:,(shift(m)+1):(n+shift(m)-maxshift));
+  end
+  tmp = tmpnew;
+  tlck.time = tlck.time(1:size(tmpnew,3));
+end
 
 if outputflag>0
   % convert back to 0

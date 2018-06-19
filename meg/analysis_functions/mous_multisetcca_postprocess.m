@@ -1,4 +1,4 @@
-function [compout, rhoout] = mous_multisetcca_postprocess(comp, rho, label)
+function [compout, rhoout] = mous_multisetcca_postprocess(comp, rho, label, comp_id)
 
 % reorganize the comp cell-array from a nfold x nsubj array into a single
 % structure, where the individual channels reflect the per subject
@@ -6,6 +6,10 @@ function [compout, rhoout] = mous_multisetcca_postprocess(comp, rho, label)
 
 % reorganize the rho matrix such that it contains correlation values, and
 % only keep the on-diagonal blocks
+
+if nargin<4 
+  comp_id = 1;
+end
 
 if iscell(comp) && size(comp,2)>1
   [nfold, nset] = size(comp);
@@ -26,7 +30,7 @@ if iscell(comp) && size(comp,2)>1
   end
   cfg = [];
   for k = 1:nset
-    sel = strncmp(compout{k}.label,'mscca001',8);
+    sel = strncmp(compout{k}.label,sprintf('mscca%03d',comp_id),8);
     cfg.channel = compout{k}.label(sel);
     compout{k}  = ft_selectdata(cfg, compout{k});
     compout{k}.label = strrep(compout{k}.label,'mscca001',label);
@@ -51,7 +55,7 @@ elseif iscell(comp)
   compout = ft_appenddata([], comp{:});
   
   cfg = [];
-  cfg.channel = compout.label(1:ncomp:end);
+  cfg.channel = compout.label(comp_id:ncomp:end);
   compout = ft_selectdata(cfg, compout);
   
 else

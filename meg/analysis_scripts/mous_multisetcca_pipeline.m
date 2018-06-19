@@ -593,19 +593,13 @@ if domscca_searchlight_shift
     subjecttiming{1,k} = timinginfo; % subject specific information about timing
     groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
   end
-  for k = 1:numel(subj)trialfun_visual_sentence
+  for k = 1:numel(subj)
     cfg = [];
     cfg.method = 'acrosschannel';
     groupdata{1,k} = ft_channelnormalise(cfg, groupdata{1,k});
   end
   
-  tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
-  
-  rng('default'); % reset the number generator, in order to be able to compare across parcels
-  [W, A, rho, C, comp, nfold] = mous_multisetcca(tmpdata, nfold, 4, [],false); % returns a deterministic folding for this parcel
-  [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
-% trc                  = mous_multisetcca_trc(comp, stimuli);
-  
+    
   % unfold the audio data to maintain word onsets across modalities,
   % but after 'shifting' of the audio time scale
   selaudio = find(strncmp(subj, 'sub-2', 5));
@@ -615,23 +609,41 @@ if domscca_searchlight_shift
   if ~exist('shift_vals', 'var')
     shift_vals = 0:2:20;%[0.9:0.025:1.3];%1 1.05 1.10 1.15 1.20 1.25];
   end
+  
+  for k = selvis(:)'
+    for kk = 1:numel(groupdatashift{1,k}.trial)
+      sel = nearest(groupdatashift{1,k}.time{kk},-0.1);
+      groupdatashift{1,k}.trial{kk} = groupdatashift{1,k}.trial{kk}(:,sel:end);
+      groupdatashift{1,k}.time{kk}  = groupdatashift{1,k}.time{kk}(sel:end);
+    end
+    cfg = [];
+    cfg.method = 'acrosschannel';
+    groupdatashift{1,k} = ft_channelnormalise(cfg, groupdatashift{1,k});
+  end
+  
   nshift = numel(shift_vals);
   for m = 1:nshift
     shift(selaudio) = shift_vals(m);
     for k = selaudio(:)'
       groupdatashift{1,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift_vals(m), stretch(k));
     
+      for kk = 1:numel(groupdatashift{1,k}.trial)
+        sel = nearest(groupdatashift{1,k}.time{kk},-0.1);
+        groupdatashift{1,k}.trial{kk} = groupdatashift{1,k}.trial{kk}(:,sel:end);
+        groupdatashift{1,k}.time{kk}  = groupdatashift{1,k}.time{kk}(sel:end);
+      end
       cfg = [];
       cfg.method = 'acrosschannel';
       groupdatashift{1,k} = ft_channelnormalise(cfg, groupdatashift{1,k});
     end
   
     % perform the cca
+    rng('default'); % reset the number generator, in order to be able to compare across parcels
     tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdatashift, subj);
     [Wshift, Ashift, rhoshift, ~, compshift] = mous_multisetcca(tmpdata, nfold, 4, [], false);
     [compshift, rhoshift] = mous_multisetcca_postprocess(compshift, rhoshift, source_parc.label{parcel_indx});
-    
-    trctmp                 = mous_multisetcca_trc(compshift, stimuli);
+    tlcktmp               = mous_multisetcca_extractwords(compshift, stimuli);
+    trctmp                = mous_multisetcca_trc(tlcktmp, stimuli, 'dosmooth',5);
     if m==1
       trcshift = trctmp;
     else
@@ -659,10 +671,12 @@ if domscca_searchlight_shift
           end
         end
         % perform the cca
+        rng('default'); % reset the number generator, in order to be able to compare across parcels
         tmpdata                              = mous_multisetcca_groupdata2singlestruct(groupdatashuf, subj);
         [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(tmpdata, nfold, 4, [], false);
         [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
-        trctmp                 = mous_multisetcca_trc(compshuf, stimuli);
+        tlcktmp               = mous_multisetcca_extractwords(compshuf, stimuli);
+        trctmp                = mous_multisetcca_trc(tlcktmp, stimuli, 'dosmooth',5);
         if m==1 && ~exist('trcshiftshuf', 'var')
           trcshiftshuf = trctmp;
         else

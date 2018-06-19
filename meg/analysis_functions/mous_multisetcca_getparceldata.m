@@ -68,9 +68,15 @@ for k = 1:numel(data.trial)
     % occurred later than in reality
     smpin(:,1) = smpin(:,1) - shift;
     
-    sel = sum(smpin-1<shift,2)>0;
-    smpin(sel,:) = [];
-    smpout(sel,:) = []; 
+%     sel = sum(smpin-1<shift,2)>0;
+%     smpin(sel,:) = [];
+%     smpout(sel,:) = [];
+    sel = smpin(:,1) < 1;
+    if sum(sel)
+      val = smpin(sel,1);
+      smpin(sel,1) = smpin(sel,1)-val+1;
+      smpout(sel,1) = smpout(sel,1)-val+1;
+    end
   end
   datin  = data.trial{k};
   datout = nan(size(datin,1), numel(timinginfo.time{k}));

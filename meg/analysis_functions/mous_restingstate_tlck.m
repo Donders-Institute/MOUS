@@ -16,7 +16,7 @@ if isfield(options, 'comp') && isfield(options, 'avgcomp')
   
   % dummy trial to fool ft_rejectcomponent
   comp.time  = data.time;
-  comp.trial = comp.time;
+  comp.trial = cellrowselect(data.trial,1:numel(comp.label));
   
   % NOTE: this avoids a crash later on, but not sure which grad structure is
   % used in ft_rejectcomponent.
