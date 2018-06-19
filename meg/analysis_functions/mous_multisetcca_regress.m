@@ -15,30 +15,32 @@ if nargin<4
 end
 
 if iscellstr(ortho)
-    indx = find(ismember(tlck.trialinfo.Properties.VariableNames,ortho));
+    indx = find(ismember(design.Properties.VariableNames,ortho));
     if length(indx) == length(ortho)
         ortho = indx;
     else
         %FIXME:test if displays correctly
-        warning('variables for orthogonalising not present in design matrix')
+        ft_warning('variables for orthogonalising not present in design matrix')
+        return
     end
 else
-    if max(ortho) >= size(tlck.trialinfo,2)
-        warning('mismatch between design matrix and other parameters')
+    if max(ortho) >= size(design,2)
+        ft_warning('mismatch between design matrix and ortho parameters')
+        return
     end
 end
 
 if iscellstr(reduceto)
-    indx = find(ismember(tlck.trialinfo.Properties.VariableNames,reduceto));
+    indx = find(ismember(design.Properties.VariableNames,reduceto));
     if length(indx) == length(reduceto)
         reduceto = indx;
     else
         %FIXME:test if displays correctly
-        warning('variables for orthogonalising not present in design matrix')
+        warning('variables for model comparison not present in design matrix')
     end
 else
-    if max(reduceto) >= size(tlck.trialinfo,2) & length(reduceto) < size(tlck.trialinfo,2)
-        warning('mismatch between design matrix and other parameters')
+    if max(reduceto) >= size(design,2)
+        warning('mismatch between design matrix and model comparison parameters')
     end
 end
 
