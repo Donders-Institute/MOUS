@@ -60,45 +60,7 @@ if ~iscell(folds) && ~isempty(folds)
   %FIXME: folds can be either integer or cell array, but now folds will not
   %be interpreted as pre-supplied weights
 end
-
-if nargin > 2 && iscell(tlck)
-    % cell input, assumes the data in the first argument, the V in the
-    % second, and the X in the third
-    for k = 1:numel(tlck)
-        stats(k) = mous_multisetcca_regress(tlck{k}, stimuli{k}, folds{k});
-    end
-    % accumulate the R's and the n's
-    % for the different stat fields
-    fn = fieldnames(stats(1));
-    for m = 1:numel(fn)
-        tmp = stats(1).(fn{m});%   X = cat(1,X{:});
-        
-        R  = zeros(size(tmp.R));
-        R0 = zeros(size(tmp.R0));
-        n  = 0;
-        p1 = tmp.p1(1);
-        p2 = tmp.p2(1);
-        
-        for k = 1:numel(folds)
-            R  = R  + stats(k).(fn{m}).R;
-            R0 = R0 + stats(k).(fn{m}).R0;
-            n  = n  + stats(k).(fn{m}).n(1);
-        end
-        
-        F = ((R0-R)./(p2-p1))./(R./(n-p2));
-        %p = nan(size(F));%1-fcdf(F, p2-p1, n-p2);
-        
-        S.(fn{m}).F = F;
-        %S.(fn{m}).p = p;
-        S.(fn{m}).ivar = stats(1).(fn{m}).ivar;
-    end
-    stats = S;
     
-    return;
-    
-else
-    
-
     if ~isempty(ortho)
         [~, n] = size(ortho);
         y   = table2array(design(:,setdiff(1:size(design,2),ortho)));
@@ -142,7 +104,6 @@ else
     %FIXME:when is the normalisation needed??
     %   V = normc(tlck.trialinfo.w2v);
     %   X = normc(table2array(tlck.trialinfo(:,1:11)));
-end
 
 function [F, R0, R, n, p1, p2, B] = dat2F(alldat, design, col0, lambda, B)
 
