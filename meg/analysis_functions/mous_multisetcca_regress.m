@@ -19,7 +19,6 @@ if iscellstr(ortho)
     if length(indx) == length(ortho)
         ortho = indx;
     else
-        %FIXME:test if displays correctly
         ft_warning('variables for orthogonalising not present in design matrix')
         return
     end
@@ -35,7 +34,6 @@ if iscellstr(reduceto)
     if length(indx) == length(reduceto)
         reduceto = indx;
     else
-        %FIXME:test if displays correctly
         warning('variables for model comparison not present in design matrix')
     end
 else
@@ -102,13 +100,16 @@ else
     
 
     if ~isempty(ortho)
-        %FIXME: if columns used for ortho are not the last ones, appending them
-        %afterwards will change order and therefore reduceto might be wrongly
-        %mapped
+        [~, n] = size(ortho);
         y   = table2array(design(:,setdiff(1:size(design,2),ortho)));
         x   = table2array(design(:,ortho));
         y   = y-x*((x'*x)\(x'*y));
         design = [x y];
+        %permute design to ensure original order of predictors
+        order           = 1:size(design,2);
+        neworder(ortho) = order(1:n);
+        neworder(setdiff(order,ortho)) = order(n+1:end);
+        design = design(:,neworder);
         clear y x
     else
         design = cell2mat(table2cell(design));
