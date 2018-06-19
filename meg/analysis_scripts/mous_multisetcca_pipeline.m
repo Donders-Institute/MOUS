@@ -697,44 +697,23 @@ if makemodels
   %compare model with word embeddings to model with only constant
   design    = tlck.trialinfo(:,{'const','w2v'});
   stats.w2v = mous_multisetcca_regress(tlck, design, stimuli);
-  %FIXME:change regress function to be able to do orthogonalising inspite
-  %of constant
-  stats.w2v_ortho = mous_multisetcca_regress(tlck, design, stimuli,[],'ortho',[]);
-  
-  % identify the nouns, adjectives and verbs
-  sel =       double(strncmp([tlck.trialinfo.POS], 'N', 1))*1;
-  sel = sel + double(strncmp([tlck.trialinfo.POS], 'WW',  2))*2;
-  sel = sel + double(strncmp([tlck.trialinfo.POS], 'ADJ', 3))*3;
-  
-  % select these from the data %FIXME: not used later, so not needed?
-  words.POS      = tlck.trialinfo.POS(sel>0);
-  words.duration = tlck.trialinfo.duration(sel>0); %same duration as in stimulus file words.duration?
-  words.word     = tlck.trialinfo.word(sel>0);
-    
-  cfg        = [];
-  cfg.trials = find(sel);
-  tlck       = ft_selectdata(cfg, tlck);
-  
-  V = tlck.trialinfo.w2v;
-  X = table2array(tlck.trialinfo(:,1:11));
-  
-  [u,s,v] = svd(V);
-  V= [ones(size(V,1),1) V*v(:,1:20)];
-  
-  
-  X(:,2:end) = X(:,2:end) - mean(X(:,2:end));
-  V(:,2:end) = V(:,2:end) - mean(V(:,2:end));
-  
- 
-  design = struct('V',V,'X',X);
-  
-  for m = 1:size(tlck.trial,1)
-    tlck.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5);
-  end
-  
-  folds = mous_makefolds(size(tlck.trial,1), 5);
 
-  stats = mous_multisetcca_regress(tlck,design,folds);
+  design    = tlck.trialinfo(:,{'const','nchar','duration','loglexfreq','w2v'});
+  stats.w2v_ortho = mous_multisetcca_regress(tlck, design, stimuli,[],'ortho',1:4);
+  
+  V = table2array(tlck.trialinfo(:,'w2v'));
+  [u,s,v] = svd(V);
+  tlck.trialinfo.w2v =  num2cell(V*v(:,1:20),2);  
+  clear V
+  
+% FIXME:Can this happen outside the _regress or is it dependent on the trial
+% selection?
+%   for m = 1:size(tlck.trial,1)
+%     tlck.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5);
+%   end
+  
+  design    = tlck.trialinfo(:,1:12);
+  stats.w2v_content = mous_multisetcca_regress(tlck, design, stimuli, 5, 'contentwords_only',1);
   
   
   nrand = 500;
@@ -747,14 +726,11 @@ if makemodels
     
     tmpdesign = design;
     
-    r_idx = randperm(size(X,1));
-    tmpdesign.X(:,4:end) = X(r_idx,4:end);
-    tmpdesign.V(:,2:end) = V(r_idx,2:end);
-   
-    folds = mous_makefolds(size(tlck.trial,1), 5);
+    r_idx = randperm(size(design,1));
+    tmpdesign(:,4:end) = design(r_idx,4:end);
+    tmpdesign.w2v(:,2:end) = design.w2v(r_idx,2:end);
     
-    stats_rand(j) = mous_multisetcca_regress(tlck,tmpdesign,folds);
-    stats_rand    = mous_multisetcca_regress(tlck, design, stimuli, folds, ortho)
+    stats_rand(j) = mous_multisetcca_regress(tlck,tmpdesign,stimuli, 5);
   end
   
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
