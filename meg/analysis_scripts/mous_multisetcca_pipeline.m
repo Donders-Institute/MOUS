@@ -695,11 +695,11 @@ if makemodels
   tlck = mous_multisetcca_extractwords(comp, stimuli);
   
   %compare model with word embeddings to model with only constant
-  design    = tlck.trialinfo(:,{'const','w2v'});
-  stats.w2v = mous_multisetcca_regress(tlck, design);
+  design    = tlck.trialinfo(:,'w2v');
+  stats.w2v = mous_multisetcca_regress(tlck, design,'lambda',1,'constant',1);
 
-  design    = tlck.trialinfo(:,{'const','nchar','duration','loglexfreq','w2v'});
-  stats.w2v_ortho = mous_multisetcca_regress(tlck, design,[],'ortho',1:4);
+  design    = tlck.trialinfo(:,{'nchar','duration','loglexfreq','w2v'});
+  stats.w2v_ortho = mous_multisetcca_regress(tlck, design,'lambda',1,'ortho',1:4,'constant',1);
   
   V = table2array(tlck.trialinfo(:,'w2v'));
   [u,s,v] = svd(V);
@@ -712,8 +712,8 @@ if makemodels
 %     tlck.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5);
 %   end
   
-  design    = tlck.trialinfo(:,1:12);
-  stats.w2v_content = mous_multisetcca_regress(tlck, design, 5, 'contentwords_only',1);
+  design    = tlck.trialinfo(:,1:11);
+  stats.w2v_content = mous_multisetcca_regress(tlck, design, 'folds',5, 'lambda',1,'contentwords_only',1,'constant',1);
   
   
   nrand = 500;
@@ -730,7 +730,7 @@ if makemodels
     tmpdesign(:,4:end) = design(r_idx,4:end);
     tmpdesign.w2v(:,2:end) = design.w2v(r_idx,2:end);
     
-    stats_rand(j) = mous_multisetcca_regress(tlck,tmpdesign, 5);
+    stats_rand(j) = mous_multisetcca_regress(tlck,tmpdesign, 'folds', 5,'lambda',1);
   end
   
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));

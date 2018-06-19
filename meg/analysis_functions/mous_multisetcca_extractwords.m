@@ -154,10 +154,10 @@ Ya(~isfinite(Ya))   = 0;
 Yall(~isfinite(Yall)) = 0;
 
 % create design matrix
-X               = [ones(sum(sel(:)),1)./sum(sel(:)) nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:))];
-X(:,[4 6])      = log10(X(:,[4 6]));
+X               = [nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:))];
+X(:,[3 5])      = log10(X(:,[3 5]));
 X(~isfinite(X)) = 0;
-X(:,2:end)      = X(:,2:end) - nanmean(X(:,2:end));
+X      = X - nanmean(X);
 
 tlck = [];
 tlck.time         = tim;
@@ -174,11 +174,11 @@ V = zeros(0,320);
 for k = 1:size(w2v,3)
   V = cat(1, V, w2v(sel(:,k),:,k));
 end
-V = [ones(size(V,1),1) V-mean(V)]; % add constant regressor %FIXME:constant added but not outputed, can be deleted probably
+V = V-mean(V); 
 
 tlck.trialinfo = table(X(:,1), X(:,2), X(:,3), X(:,4),...
   X(:,5), X(:,6), X(:,7), X(:,8),...
-  X(:,9), X(:,10), X(:,11),...
-  V(:,2:end), words.word, words.POS, ...
-  'variablenames', {'const','nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS'});
+  X(:,9), X(:,10),...
+  V, words.word, words.POS, ...
+  'variablenames', {'nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS'});
 

@@ -1,18 +1,17 @@
-function stats = mous_multisetcca_regress(tlck, design, folds, varargin)
+function stats = mous_multisetcca_regress(tlck, design, varargin)
 %This function models timelocked data with a GLM given some predictors in variable
 %design, and does a model comparison against a reduced model where the
 %reduced model can be defined with the key 'modelcomparison' (default is to
 %compare only first predictor against rest). If specified, constant will be
 %added post orthogonalisation.
-lambda              = 1;
+folds               = ft_getopt(varargin, 'folds', []);
+lambda              = ft_getopt(varargin, 'lambda', 0);
 ortho               = ft_getopt(varargin, 'ortho', {});
 contentwords_only   = ft_getopt(varargin, 'contentwords_only', false);
 reduceto            = ft_getopt(varargin, 'modelcomparison', []);
 constant            = ft_getopt(varargin, 'constant', false);
+norm                = ft_getopt(varargin, 'normalise', false);
 
-if nargin<3
-    folds = [];
-end
 
 if iscellstr(ortho)
     indx = find(ismember(design.Properties.VariableNames,ortho));
@@ -78,10 +77,13 @@ else
 end
 
 if constant
-    design = [ones(size(design,1),1) design];
+    design = [ones(size(design,1),1)./size(design,1) design];
     fprintf('adding constant to design matrix')
 end
 
+if norm
+    design = normc(design);
+end
 %% do the regressions
 [F, R0, R, n, p1, p2, B] = dat2F(tlck.trial, design, reduceto, lambda, folds);
 stats.F  = F;
@@ -101,9 +103,6 @@ stats.ivar = tlck.trialinfo.Properties.VariableNames;
 %     [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(tlck.trial,tmpX,[1 2 3 4]);
 %   end
 
-%FIXME:when is the normalisation needed??
-%   V = normc(tlck.trialinfo.w2v);
-%   X = normc(table2array(tlck.trialinfo(:,1:11)));
 
 function [F, R0, R, n, p1, p2, B] = dat2F(alldat, design, col0, lambda, B)
 
