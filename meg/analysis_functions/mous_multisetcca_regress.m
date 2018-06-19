@@ -1,4 +1,4 @@
-function stats = mous_multisetcca_regress(tlck, design, stimuli, folds, varargin)
+function stats = mous_multisetcca_regress(tlck, design, folds, varargin)
 %This function models timelocked data with a GLM given some predictors in variable
 %design, and does a model comparison against a reduced model where the
 %reduced model can be defined with the key 'modelcomparison' (default is to
@@ -10,7 +10,7 @@ contentwords_only   = ft_getopt(varargin, 'contentwords_only', false);
 reduceto            = ft_getopt(varargin, 'modelcomparison', []);
 constant            = ft_getopt(varargin, 'constant', false);
 
-if nargin<4
+if nargin<3
     folds = [];
 end
 
@@ -56,54 +56,54 @@ if contentwords_only
 end
 
 if ~iscell(folds) && ~isempty(folds)
-    folds = mous_makefolds(size(tlck.trial,1), folds); 
-  %FIXME: folds can be either integer or cell array, but now folds will not
-  %be interpreted as pre-supplied weights
+    folds = mous_makefolds(size(tlck.trial,1), folds);
+    %FIXME: folds can be either integer or cell array, but now folds will not
+    %be interpreted as pre-supplied weights
 end
-    
-    if ~isempty(ortho)
-        [~, n] = size(ortho);
-        y   = table2array(design(:,setdiff(1:size(design,2),ortho)));
-        x   = table2array(design(:,ortho));
-        y   = y-x*((x'*x)\(x'*y));
-        design = [x y];
-        %permute design to ensure original order of predictors
-        order           = 1:size(design,2);
-        neworder(ortho) = order(1:n);
-        neworder(setdiff(order,ortho)) = order(n+1:end);
-        design = design(:,neworder);
-        clear y x
-    else
-        design = cell2mat(table2cell(design));
-    end
-    
-    if constant
-        design = [ones(size(design,1),1) design];
-        fprintf('adding constant to design matrix')
-    end
-    
-    %% do the regressions
-    [F, R0, R, n, p1, p2, B] = dat2F(tlck.trial, design, reduceto, lambda, folds);
-    stats.F  = F;
-    stats.R  = R;
-    stats.R0 = R0;
-    stats.p1 = p1;
-    stats.p2 = p2;
-    stats.n  = n;
-    stats.B  = B;
-    stats.ivar = tlck.trialinfo.Properties.VariableNames;
-    
-    %FIXME: maybe we want an option for iteratively doing the model comparison?
-    %adding one predictor at a time as seems to have been done before?
-    %   for k = 1:size(Xnew,2)-4
-    %     %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
-    %     tmpX = Xnew(:,[1 2 3 4 4+k]);
-    %     [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(tlck.trial,tmpX,[1 2 3 4]);
-    %   end
-    
-    %FIXME:when is the normalisation needed??
-    %   V = normc(tlck.trialinfo.w2v);
-    %   X = normc(table2array(tlck.trialinfo(:,1:11)));
+
+if ~isempty(ortho)
+    [~, n] = size(ortho);
+    y   = table2array(design(:,setdiff(1:size(design,2),ortho)));
+    x   = table2array(design(:,ortho));
+    y   = y-x*((x'*x)\(x'*y));
+    design = [x y];
+    %permute design to ensure original order of predictors
+    order           = 1:size(design,2);
+    neworder(ortho) = order(1:n);
+    neworder(setdiff(order,ortho)) = order(n+1:end);
+    design = design(:,neworder);
+    clear y x
+else
+    design = cell2mat(table2cell(design));
+end
+
+if constant
+    design = [ones(size(design,1),1) design];
+    fprintf('adding constant to design matrix')
+end
+
+%% do the regressions
+[F, R0, R, n, p1, p2, B] = dat2F(tlck.trial, design, reduceto, lambda, folds);
+stats.F  = F;
+stats.R  = R;
+stats.R0 = R0;
+stats.p1 = p1;
+stats.p2 = p2;
+stats.n  = n;
+stats.B  = B;
+stats.ivar = tlck.trialinfo.Properties.VariableNames;
+
+%FIXME: maybe we want an option for iteratively doing the model comparison?
+%adding one predictor at a time as seems to have been done before?
+%   for k = 1:size(Xnew,2)-4
+%     %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
+%     tmpX = Xnew(:,[1 2 3 4 4+k]);
+%     [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(tlck.trial,tmpX,[1 2 3 4]);
+%   end
+
+%FIXME:when is the normalisation needed??
+%   V = normc(tlck.trialinfo.w2v);
+%   X = normc(table2array(tlck.trialinfo(:,1:11)));
 
 function [F, R0, R, n, p1, p2, B] = dat2F(alldat, design, col0, lambda, B)
 
