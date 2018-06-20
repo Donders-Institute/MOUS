@@ -10,7 +10,7 @@ ortho               = ft_getopt(varargin, 'ortho', {});
 contentwords_only   = ft_getopt(varargin, 'contentwords_only', false);
 reduceto            = ft_getopt(varargin, 'modelcomparison', []);
 constant            = ft_getopt(varargin, 'constant', false);
-norm                = ft_getopt(varargin, 'normalise', false);
+normalise                = ft_getopt(varargin, 'normalise', false);
 
 
 if iscellstr(ortho)
@@ -81,7 +81,7 @@ if constant
     fprintf('adding constant to design matrix')
 end
 
-if norm
+if normalise
     design = normc(design);
 end
 %% do the regressions
