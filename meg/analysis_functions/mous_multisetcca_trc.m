@@ -38,7 +38,7 @@ else
 end
 
 if ft_datatype(data, 'raw')
-  tlck = mous_multisetcca_regress(data, stimuli);  
+  tlck = mous_multisetcca_extractwords(data, stimuli);  
 else
   tlck = data;
   if ~exist('selaudio', 'var')
@@ -60,11 +60,6 @@ if contentwords_only
   sel = sel + double(strncmp(tlck.trialinfo.POS, 'WW',  2))*2;
   sel = sel + double(strncmp(tlck.trialinfo.POS, 'ADJ', 3))*3;
   
-%   % select these from the data
-%   words.POS      = words.POS(sel>0);
-%   words.duration = words.duration(sel>0);
-%   words.word     = words.word(sel>0);
-%   
   cfg        = [];
   cfg.trials = find(sel);
   tlck        = ft_selectdata(cfg, tlck);
