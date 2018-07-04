@@ -1339,8 +1339,8 @@ source.brainordinate  = atlas;
 source.label          = atlas.parcellationlabel;
 source.time           = s.time;
 source.dimord         = 'chan_time';
-source.pow            = (T-mean(Tshuf,3)).*double(s.posclusterslabelmat==1);
-source.mask           = source.pow;
+source.pow            = (T-mean(Tshuf,3));
+source.mask           = double(s.posclusterslabelmat==1);
 
 %plot both hemispheres simultaneously
 pos = sourcemodel.pos;
@@ -1354,19 +1354,24 @@ cfgp                  = [];
 cfgp.funparameter     = 'pow';
 cfgp.maskparameter    = 'mask';
 cfgp.funcolormap      = cmap;
-ft_sourcemovie(cfgp, source);
+%ft_sourcemovie(cfgp, source);
 
-splot = source;
-splot = ft_checkdata(splot,'datatype','source');
+xs = source;
+xs = ft_checkdata(xs,'datatype','source');
 figure('position',[1 1 900 900]);
 
-for k = 36:4:100
-  splot.pow = splot.pow(:,k); splot.pow(~isfinite(splot.pow)) = 0;
-  splot.mask = splot.mask(:,k); splot.mask(~isfinite(splot.mask))=0;
+%find where first cluster begins and plot from there to end
+[~, firstcol] = find(s.posclusterslabelmat==1,1);
+[~, lastcol] = find(s.posclusterslabelmat==1,1,'last');
+
+splot = xs;
+for k = firstcol:4:lastcol
+  splot.pow = xs.pow(:,k); splot.pow(~isfinite(splot.pow)) = 0;
+  splot.mask = xs.mask(:,k); splot.mask(~isfinite(splot.mask))=0;
   ft_plot_mesh(splot,'edgecolor','none','vertexcolor',splot.pow,'facealpha', splot.mask, 'clim', [0 0.015], 'alphalim', [0 0.005], 'alphamap', 'rampup', 'colormap', cmap, 'maskstyle', 'colormix');lighting gouraud;material dull;view([90 0]);h=light('position',[10 0 0]);
   set(gcf,'color','w');
   title(sprintf('time = %d',round(1000.*s.time(k))),'position',[33 -104 100]);
-  fname = sprintf('crossmod_sce%d_timestamp%03d_trc',scenario,k);
+  fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_masked',scenario,k));
   export_fig(fname,'-png');
   clf;
 end
