@@ -125,6 +125,7 @@ for k = 1:numel(tlck.time)
     % Fisher Z transform with standardization
     n = min(dof(:,k),dof(:,k)');
     c(:,:,k) = atanh(c(:,:,k))./sqrt(1./(n-3));
+    c(~isfinite(c)) = 1; % replace the fisher z transformed infinity values with 1
   end
 end
 
