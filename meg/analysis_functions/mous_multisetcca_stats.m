@@ -1,0 +1,81 @@
+function [stats T Tshuf] = mous_multisetcca_stats(rootdir,scenario)
+
+load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+
+
+filenames = strcat(rootdir,sprintf('/mscca_sce%d*shuf2.mat',scenario));
+d = dir(filenames);
+
+
+switch scenario
+    case 1
+        iv = 1:17;
+        ia = 18:33;
+    case 2
+        iv = 1:17;
+        ia = 18:34;
+    case 3
+        iv = 1:17;
+        ia = 18:33;
+    case 4
+        iv = 1:16;
+        ia = 17:33;
+    case 5
+        iv = 1:17;
+        ia = 18:34;
+    case 6
+end
+
+
+pindx = 1:length(atlas.parcellationlabel);
+pindx([1 2 194 195]) = []; %ignore medial wall parcels
+for k = 1:numel(d)
+    k
+    
+    load(strcat(rootdir,'/',d(k).name),'trcshuf');
+    
+    load(strcat(rootdir,'/',strrep(d(k).name, 'shuf2', '')), 'trc');
+    n = 1:size(trcshuf.rho,3);
+    
+    indx = pindx(str2double(d(k).name(18:20)));
+    T(indx,:) = trc.rho(:,3);
+    Tshuf(indx,:,n) = squeeze(trcshuf.rho(:,3,:));
+    if k==1,
+        T(386,end)=0;
+        Tshuf(386,end,end)=0;
+    end
+    tim = trc.time;
+    
+    clear trc trcshuf
+end
+
+cfg     = [];
+cfg.connectivity = parcellation2connmat(atlas);
+cfg.tail = 1;
+cfg.clustertail = 1;
+cfg.clusterthreshold = 'nonparametric_individual';
+cfg.clusteralpha=0.01;
+cfg.feedback = 'text';
+cfg.clusterstatistic = 'maxsum';
+
+cfg.dim = size(Tshuf(:,:,1));
+cfg.numrandomization = size(Tshuf,3);
+
+T(T==0) = nan;
+Tshuf(Tshuf==0) = nan;
+statobs  = reshape(T,[],1);
+statrand = reshape(Tshuf,[],size(Tshuf,3));
+stats = clusterstat(cfg, statrand, statobs);
+fn = fieldnames(stats);
+for k = 1:numel(fn)
+    try
+        stats.(fn{k}) = reshape(stats.(fn{k}),cfg.dim);
+    end
+end
+stats.time = tim;
+stats.dimord = 'chan_time';
+stats.label  = atlas.parcellationlabel;
+stats.stat   = T;
+stats.stat(~isfinite(stats.stat)) = 0; stats.stat([1 2 194 195],:) = nan;
+stats.brainordinate = atlas;
+

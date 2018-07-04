@@ -19,6 +19,8 @@ if ~exist('makemodels', 'var'), makemodels = false; end
 if ~exist('dotrc', 'var'), dotrc = false; end
 if ~exist('dotrc_pairwise', 'var'), dotrc_pairwise = false; end
 if ~exist('compare2simple', 'var'), compare2simple = false; end
+if ~exist('do_clusterstats', 'var'), do_clusterstats = false; end
+if ~exist('do_plotting', 'var'), do_plotting = false; end
 
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
   error('at least a subjectname or a scenario number needs to be defined');
@@ -1301,4 +1303,86 @@ if compare2simple
   
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_comparison',scenario,parcel_indx,suffix));
   save(filename, 'C1', 'Cx1', 'C2', 'Cx2', 'tim');
+end
+%--------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+if do_clusterstats
+    if ~exist('scenario', 'var')
+      error('scenario number needs to be defined');
+    end
+    
+    datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
+    
+    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario);
+    save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
+end
+%--------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+if do_plotting
+    if ~exist('scenario', 'var')
+      error('scenario number needs to be defined');
+    end
+
+%load atlas, sourcemodel and colormap
+load atlas_conte69_8196reg_LR_brodmann_subparc.mat 
+load ~/MOUS/meg/templates/cortex_midthickness_8196reg.mat
+cmap = brewermap(63,'Reds');
+%load data
+datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
+outdir = sprintf('/project/3011020.09/jansch/mscca_group/figures')
+load(fullfile(datadir, sprintf('scenario%d_results',scenario)))
+
+%create source structure for plotting
+source                = [];
+source.brainordinate  = atlas;
+source.label          = atlas.parcellationlabel;
+source.time           = s.time;
+source.dimord         = 'chan_time';
+source.pow            = (T-mean(Tshuf,3));
+source.mask           = double(s.posclusterslabelmat==1);
+
+%plot both hemispheres simultaneously
+pos = sourcemodel.pos;
+%pos = pos(:,[2 1 3]);
+n = 4098;
+pos(1:n,2) = pos(1:n,2)+210;
+pos(1:n,1:2) = -pos(1:n,1:2);
+source.brainordinate.pos = pos;
+
+cfgp                  = [];
+cfgp.funparameter     = 'pow';
+cfgp.maskparameter    = 'mask';
+cfgp.funcolormap      = cmap;
+%ft_sourcemovie(cfgp, source);
+
+xs = source;
+xs = ft_checkdata(xs,'datatype','source');
+figure('position',[1 1 900 900]);
+
+%find where first cluster begins and plot from there to end
+[~, firstcol] = find(s.posclusterslabelmat==1,1);
+[~, lastcol] = find(s.posclusterslabelmat==1,1,'last');
+
+splot = xs;
+for k = firstcol:4:lastcol
+  splot.pow = xs.pow(:,k); splot.pow(~isfinite(splot.pow)) = 0;
+  splot.mask = xs.mask(:,k); splot.mask(~isfinite(splot.mask))=0;
+  ft_plot_mesh(splot,'edgecolor','none','vertexcolor',splot.pow,'facealpha', splot.mask, 'clim', [0 0.015], 'alphalim', [0 0.005], 'alphamap', 'rampup', 'colormap', cmap, 'maskstyle', 'colormix');lighting gouraud;material dull;view([90 0]);h=light('position',[10 0 0]);
+  set(gcf,'color','w');
+  title(sprintf('time = %d',round(1000.*s.time(k))),'position',[33 -104 100]);
+  fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_masked',scenario,k));
+  export_fig(fname,'-png');
+  clf;
+end
+
+%%get colorbar
+% cd /home/language/sopara/Matlab/fieldtrip/plotting/private
+% rgb=bg_rgba2rgb([199 194 169]/255,linspace(0,0.015,30),cmap,[0 0.015],[linspace(0,1,10) ones(1,20)],'rampup',[0 1]);;
+% figure;image(rgb);
+% set(gca,'tickdir','out');
+% set(gca,'xticklabel',(1:6).*(0.015./6));
+% cd /project/3011020.09/jansch/mscca_group/figures;
+% export_fig('colorbar_crossmod','-eps');
 end
