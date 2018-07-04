@@ -401,6 +401,7 @@ if domscca_searchlight || domscca_searchlight_seq
         Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
         trcshuf.rho = cat(3,tmp.trcshuf.rho, trcshuf.rho);
       end
+      trcshuf = ft_struct2single(trcshuf);
       save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim','trcshuf');
     
   end
