@@ -331,7 +331,10 @@ nset = numel(n);
 
 % this eigenvalue decomposition gives the unmixing in the columns, so to make
 % it a proper unmixing matrix, to-be-applied to each subject, it should be transposed 
-[tempW,~] = eigs(R,S,K);
+
+%[tempW,~] = eigs(R,S,K);
+[tempW,~] = eigs((R+R')./2,(S+S')./2,K);
+
 tempW     = normc(tempW);
 tempA     = R*tempW/(tempW'*R*tempW);
 
