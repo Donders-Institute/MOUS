@@ -1,4 +1,6 @@
-function [stats T Tshuf] = mous_multisetcca_stats(rootdir,scenario)
+function [stats T Tshuf] = mous_multisetcca_stats(rootdir,scenario,varargin)
+
+modality            = ft_getopt(varargin, 'modality', 'supramodal');
 
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat
 
@@ -26,6 +28,15 @@ switch scenario
     case 6
 end
 
+switch modality
+    case 'visual'
+        moda = 1;
+    case 'auditory'
+        moda = 2;
+    case 'supramodal'
+        moda = 3;
+end
+
 
 pindx = 1:length(atlas.parcellationlabel);
 pindx([1 2 194 195]) = []; %ignore medial wall parcels
@@ -38,8 +49,8 @@ for k = 1:numel(d)
     n = 1:size(trcshuf.rho,3);
     
     indx = pindx(str2double(d(k).name(18:20)));
-    T(indx,:) = trc.rho(:,3);
-    Tshuf(indx,:,n) = squeeze(trcshuf.rho(:,3,:));
+    T(indx,:) = trc.rho(:,moda);
+    Tshuf(indx,:,n) = squeeze(trcshuf.rho(:,moda,:));
     if k==1,
         T(386,end)=0;
         Tshuf(386,end,end)=0;
