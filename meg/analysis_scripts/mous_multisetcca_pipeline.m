@@ -1313,7 +1313,7 @@ if do_clusterstats
     
     datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
     
-    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario);
+    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario,'modality','visual');
     save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
 end
 %--------------------------------------------------------------------------
@@ -1323,7 +1323,7 @@ if do_plotting
     if ~exist('scenario', 'var')
       error('scenario number needs to be defined');
     end
-
+cluster = 2;
 %load atlas, sourcemodel and colormap
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat 
 load ~/MOUS/meg/templates/cortex_midthickness_8196reg.mat
@@ -1340,7 +1340,7 @@ source.label          = atlas.parcellationlabel;
 source.time           = s.time;
 source.dimord         = 'chan_time';
 source.pow            = (T-mean(Tshuf,3));
-source.mask           = double(s.posclusterslabelmat==1);
+source.mask           = double(s.posclusterslabelmat==cluster);
 
 %plot both hemispheres simultaneously
 pos = sourcemodel.pos;
@@ -1358,20 +1358,21 @@ cfgp.funcolormap      = cmap;
 
 xs = source;
 xs = ft_checkdata(xs,'datatype','source');
-figure('position',[1 1 900 900]);
+
 
 %find where first cluster begins and plot from there to end
-[~, firstcol] = find(s.posclusterslabelmat==1,1);
-[~, lastcol] = find(s.posclusterslabelmat==1,1,'last');
+[~, firstcol] = find(s.posclusterslabelmat==cluster,1);
+[~, lastcol] = find(s.posclusterslabelmat==cluster,1,'last');
 
 splot = xs;
+figure('position',[1 1 900 900]);
 for k = firstcol:4:lastcol
   splot.pow = xs.pow(:,k); splot.pow(~isfinite(splot.pow)) = 0;
   splot.mask = xs.mask(:,k); splot.mask(~isfinite(splot.mask))=0;
   ft_plot_mesh(splot,'edgecolor','none','vertexcolor',splot.pow,'facealpha', splot.mask, 'clim', [0 0.015], 'alphalim', [0 0.005], 'alphamap', 'rampup', 'colormap', cmap, 'maskstyle', 'colormix');lighting gouraud;material dull;view([90 0]);h=light('position',[10 0 0]);
   set(gcf,'color','w');
   title(sprintf('time = %d',round(1000.*s.time(k))),'position',[33 -104 100]);
-  fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_masked',scenario,k));
+  fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_masked_cluster%d',scenario,k,cluster));
   export_fig(fname,'-png');
   clf;
 end
