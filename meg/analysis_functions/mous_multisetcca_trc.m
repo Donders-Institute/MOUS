@@ -2,6 +2,7 @@ function [trc, tlck] = mous_multisetcca_trc(data, stimuli, varargin)
 
 output            = ft_getopt(varargin, 'output', 'rho');
 contentwords_only = ft_getopt(varargin, 'contentwords_only', false);
+longwords_only    = ft_getopt(varargin, 'longwords_only', false);
 dosmooth          = ft_getopt(varargin, 'dosmooth', 0);
 partialize_avg    = ft_getopt(varargin, 'partialize_avg', 0);
 shift             = ft_getopt(varargin, 'shift', []);
@@ -62,6 +63,19 @@ if contentwords_only
   
   cfg        = [];
   cfg.trials = find(sel);
+  tlck        = ft_selectdata(cfg, tlck);
+end
+
+
+if longwords_only
+  sel = [];
+  for i = 1:length(tlck.trialinfo.word) 
+      if length(tlck.trialinfo.word{i})>5
+      sel = [sel i];
+      end
+  end
+  cfg        = [];
+  cfg.trials = sel;
   tlck        = ft_selectdata(cfg, tlck);
 end
 
