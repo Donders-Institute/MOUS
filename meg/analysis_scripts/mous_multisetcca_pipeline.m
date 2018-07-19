@@ -772,7 +772,10 @@ if dotrc
   if ~exist('contentwords_only', 'var')
     contentwords_only = false;
   end
-  [trc, tlck] = mous_multisetcca_trc(tlck, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only);
+  if ~exist('longwords_only', 'var')
+    longwords_only = false;
+  end
+  [trc, tlck] = mous_multisetcca_trc(tlck, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only);
   
   nrand = 1000;
   Cx = zeros(size(trc.rho,1),nrand,1);
@@ -845,6 +848,9 @@ if dotrc
   suffix2 = '';
   if contentwords_only
     suffix2 = [suffix2 '_contentwords'];
+  end
+  if longwords_only
+    suffix2 = [suffix2 '_longwords'];
   end
   if stratify_ivar
     suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
@@ -1314,7 +1320,7 @@ if do_clusterstats
     
     datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
     
-    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario,'modality','visual');
+    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario);
     save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
 end
 %--------------------------------------------------------------------------
@@ -1324,7 +1330,7 @@ if do_plotting
     if ~exist('scenario', 'var')
       error('scenario number needs to be defined');
     end
-cluster = 2;
+cluster = 1;
 %load atlas, sourcemodel and colormap
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat 
 load ~/MOUS/meg/templates/cortex_midthickness_8196reg.mat
