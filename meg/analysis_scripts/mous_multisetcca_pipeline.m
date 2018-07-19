@@ -797,7 +797,8 @@ if dotrc
   
   selaudio = find(contains(tlck.label, 'sub-2'));
   selvis   = find(contains(tlck.label, 'sub-1'));
-   
+  
+  %permute trials in visual modality only, for all subjects equally
   rng('default'); % ensure same 'random' behaviour for each parcel.
   for m = 1:nrand
     if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
@@ -813,6 +814,8 @@ if dotrc
     trcshuf(m) = mous_multisetcca_trc(tmptlck, stimuli);
   end
  
+  %permute trials in both visual & auditory modality, for each subject
+  %respectively
   rng('default'); % ensure same 'random' behaviour for each parcel
   for m = 1:nrand
     if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
@@ -838,11 +841,26 @@ if dotrc
     trcshuf2(m) = mous_multisetcca_trc(tmptlck, stimuli);
   end
   
+  %misalign the time axes of the individual trials, maintaining the structure in the autocorrelation
+  rng('default'); % ensure same 'random' behaviour for each parcel
+  tlck.trial = tlck.trial-nanmean(tlck.trial,1);
+  for m = 1:nrand
+      if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
+      tmptlck = tlck;
+      for m = 1:size(tmptlck.trial,1)
+          tmptlck.trial(m,:,:)=circshift(squeeze(tlck.trial(m,:,:)),randperm(109,1),2);
+      end
+      trcshuf3(m) = mous_multisetcca_trc(tmptlck, stimuli);
+  end
+
   trcshuf(1).rho = cat(3,trcshuf.rho);
   trcshuf = trcshuf(1);
   
   trcshuf2(1).rho = cat(3,trcshuf2.rho);
   trcshuf2 = trcshuf2(1);
+  
+  trcshuf3(1).rho = cat(3,trcshuf3.rho);
+  trcshuf3 = trcshuf3(1);
   
     
   suffix2 = '';
@@ -856,7 +874,7 @@ if dotrc
     suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
   end
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_trc%s',scenario,parcel_indx,suffix,suffix2));
-  save(filename, 'trcshuf', 'trcshuf2', 'trc');
+  save(filename, 'trcshuf', 'trcshuf2', 'trcshuf3','trc');
 
 end
 
