@@ -1,11 +1,12 @@
 function [stats T Tshuf] = mous_multisetcca_stats(rootdir,scenario,varargin)
 
 modality            = ft_getopt(varargin, 'modality', 'supramodal');
+suffix              = ft_getopt(varargin, 'suffix', 'shuf2');
 
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat
 
 
-filenames = strcat(rootdir,sprintf('/mscca_sce%d*shuf2.mat',scenario));
+filenames = strcat(rootdir,sprintf('/mscca_sce%d*',scenario),suffix,'.mat');
 d = dir(filenames);
 
 
