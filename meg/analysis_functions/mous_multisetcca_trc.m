@@ -79,48 +79,50 @@ if dosmooth>0
 end
 
 % permute and reshape the data into a nchan x nobs x ntime
-tmp = permute(tlck.trial(:,4:end,:),[2 1 3]); % channel 1-3 contain averages
-tmp = tmp-nanmean(tmp,2); % subtract the mean across trials.
+dat = permute(tlck.trial(:,4:end,:),[2 1 3]); % channel 1-3 contain averages
 
-if ~isempty(shift) && numel(shift)==size(tmp,1)
+% subtract the mean across trials
+dat = dat-nanmean(dat,2);
+
+if ~isempty(shift) && numel(shift)==size(dat,1)
   maxshift = max(shift);
-  n = size(tmp,3);
-  tmpnew = nan(size(tmp,1),size(tmp,2),n-maxshift);
+  n = size(dat,3);
+  datnew = nan(size(dat,1),size(dat,2),n-maxshift);
   for m = 1:numel(shift)
-    tmpnew(m,:,:) = tmp(m,:,(shift(m)+1):(n+shift(m)-maxshift));
+    datnew(m,:,:) = dat(m,:,(shift(m)+1):(n+shift(m)-maxshift));
   end
-  tmp = tmpnew;
-  tlck.time = tlck.time(1:size(tmpnew,3));
+  dat = datnew;
+  tlck.time = tlck.time(1:size(datnew,3));
 end
 
 if outputflag>0
   % convert back to 0
-  dof = squeeze(sum(isfinite(tmp),2));
-  tmp(~isfinite(tmp)) = 0;
+  dof = squeeze(sum(isfinite(dat),2));
+  dat(~isfinite(dat)) = 0;
 end
 
-c = nan+zeros(size(tmp,1),size(tmp,1),size(tmp,3));
+c = nan+zeros(size(dat,1),size(dat,1),size(dat,3));
 for k = 1:numel(tlck.time)
   if partialize_avg
     for m = 1:numel(tlck.time)
-      tmp1 = tmp(:,:,k);
-      tmp2 = tmp(:,:,m);
+      dat1 = dat(:,:,k);
+      dat2 = dat(:,:,m);
       if m==1
-        tmpc = [tmp1;tmp2]*[tmp1;tmp2]';
+        datc = [dat1;dat2]*[dat1;dat2]';
       else
-        tmpc = tmpc+[tmp1;tmp2]*[tmp1;tmp2]';
+        datc = datc+[dat1;dat2]*[dat1;dat2]';
       end
     end
-    tmpc = tmpc./numel(tlck.time);
+    datc = datc./numel(tlck.time);
     
-    ix1 = 1:size(tmp,1);
-    ix2 = ix1+size(tmp,1);
-    tmpc = tmpc(ix1,ix1)-tmpc(ix1,ix2)*inv(tmpc(ix2,ix2))*tmpc(ix2,ix1);
+    ix1 = 1:size(dat,1);
+    ix2 = ix1+size(dat,1);
+    datc = datc(ix1,ix1)-datc(ix1,ix2)*inv(datc(ix2,ix2))*datc(ix2,ix1);
   else
-    tmpx=tmp(:,:,k);
-    tmpc=tmpx*tmpx';
+    datx=dat(:,:,k);
+    datc=datx*datx';
   end
-  c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
+  c(:,:,k) = datc./sqrt(diag(datc)*diag(datc)');
   if outputflag>0
     % Fisher Z transform with standardization
     n = min(dof(:,k),dof(:,k)');
@@ -137,34 +139,34 @@ for k = 1:numel(selaudio)
         trc.rho(:,1,k,m) = squeeze(mean(mean(c(selvis{k},selvis{m},:))))-1./numel(selvis{m});
         trc.rho(:,2,k,m) = squeeze(mean(mean(c(selaudio{k},selaudio{m},:))))-1./numel(selaudio{m});
       else
-        tmp = c(selvis{k},selvis{m},:)+repmat(diag(nan(numel(selvis{k}),1)),[1 1 size(tmp,3)]);
-        tmp = reshape(tmp,[],size(tmp,3));
-        %tmp(~isfinite(tmp)) = [];
-        trc.rho(:,1,k,m) = nanmean(tmp,1)./nanstd(tmp,[],1);
-        tmp = c(selaudio{k},selaudio{m},:)+repmat(diag(nan(numel(selaudio{k}),1)),[1 1 size(tmp,3)]);
-        tmp = reshape(tmp,[], size(tmp,3));
-        %tmp(~isfinite(tmp)) = [];
-        trc.rho(:,2,k,m) = nanmean(tmp,1)./nanstd(tmp,[],1);
+        dat = c(selvis{k},selvis{m},:)+repmat(diag(nan(numel(selvis{k}),1)),[1 1 size(dat,3)]);
+        dat = reshape(dat,[],size(dat,3));
+        %dat(~isfinite(dat)) = [];
+        trc.rho(:,1,k,m) = nanmean(dat,1)./nanstd(dat,[],1);
+        dat = c(selaudio{k},selaudio{m},:)+repmat(diag(nan(numel(selaudio{k}),1)),[1 1 size(dat,3)]);
+        dat = reshape(dat,[], size(dat,3));
+        %dat(~isfinite(dat)) = [];
+        trc.rho(:,2,k,m) = nanmean(dat,1)./nanstd(dat,[],1);
       end
     else
       % correction term is diagonal of across parcel correlations, but
       % assumes the matrices to be square
-      tmpn = numel(selvis{m});
-      tmp = c(selvis{k},selvis{m},:);
-      for j = 1:size(tmp,3), tmp(:,:,j) = tmp(:,:,j)-diag(diag(tmp(:,:,j))); end
-      trc.rho(:,1,k,m) = squeeze(sum(sum(tmp)))./(tmpn.*(tmpn-1));
-      tmpn = numel(selaudio{m});
-      tmp = c(selaudio{k},selaudio{m},:);
-      for j = 1:size(tmp,3), tmp(:,:,j) = tmp(:,:,j)-diag(diag(tmp(:,:,j))); end
-      trc.rho(:,2,k,m) = squeeze(sum(sum(tmp)))./(tmpn.*(tmpn-1));
+      datn = numel(selvis{m});
+      dat = c(selvis{k},selvis{m},:);
+      for j = 1:size(dat,3), dat(:,:,j) = dat(:,:,j)-diag(diag(dat(:,:,j))); end
+      trc.rho(:,1,k,m) = squeeze(sum(sum(dat)))./(datn.*(datn-1));
+      datn = numel(selaudio{m});
+      dat = c(selaudio{k},selaudio{m},:);
+      for j = 1:size(dat,3), dat(:,:,j) = dat(:,:,j)-diag(diag(dat(:,:,j))); end
+      trc.rho(:,2,k,m) = squeeze(sum(sum(dat)))./(datn.*(datn-1));
     end
     
     if outputflag<2
       trc.rho(:,3,k,m) = squeeze(mean(mean(c(selvis{k},selaudio{m},:))));
     else
-      tmp = c(selvis{k},selaudio{m},:);
-      tmp = reshape(tmp,[],size(tmp,3));
-      trc.rho(:,3,k,m) = nanmean(tmp,1)./nanstd(tmp,[],1);
+      dat = c(selvis{k},selaudio{m},:);
+      dat = reshape(dat,[],size(dat,3));
+      trc.rho(:,3,k,m) = nanmean(dat,1)./nanstd(dat,[],1);
     end
   end
 end
