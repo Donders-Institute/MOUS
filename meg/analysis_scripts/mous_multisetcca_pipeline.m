@@ -772,7 +772,10 @@ if dotrc
   if ~exist('contentwords_only', 'var')
     contentwords_only = false;
   end
-  [trc, tlck] = mous_multisetcca_trc(tlck, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only);
+  if ~exist('longwords_only', 'var')
+    longwords_only = false;
+  end
+  [trc, tlck] = mous_multisetcca_trc(tlck, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only);
   
   nrand = 1000;
   Cx = zeros(size(trc.rho,1),nrand,1);
@@ -794,7 +797,8 @@ if dotrc
   
   selaudio = find(contains(tlck.label, 'sub-2'));
   selvis   = find(contains(tlck.label, 'sub-1'));
-   
+  
+  %permute trials in visual modality only, for all subjects equally
   rng('default'); % ensure same 'random' behaviour for each parcel.
   for m = 1:nrand
     if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
@@ -810,6 +814,8 @@ if dotrc
     trcshuf(m) = mous_multisetcca_trc(tmptlck, stimuli);
   end
  
+  %permute trials in both visual & auditory modality, for each subject
+  %respectively
   rng('default'); % ensure same 'random' behaviour for each parcel
   for m = 1:nrand
     if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
@@ -835,22 +841,40 @@ if dotrc
     trcshuf2(m) = mous_multisetcca_trc(tmptlck, stimuli);
   end
   
+  %misalign the time axes of the individual trials, maintaining the structure in the autocorrelation
+  rng('default'); % ensure same 'random' behaviour for each parcel
+  tlck.trial = tlck.trial-nanmean(tlck.trial,1);
+  for m = 1:nrand
+      if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
+      tmptlck = tlck;
+      for m = 1:size(tmptlck.trial,1)
+          tmptlck.trial(m,:,:)=circshift(squeeze(tlck.trial(m,:,:)),randperm(109,1),2);
+      end
+      trcshuf3(m) = mous_multisetcca_trc(tmptlck, stimuli);
+  end
+
   trcshuf(1).rho = cat(3,trcshuf.rho);
   trcshuf = trcshuf(1);
   
   trcshuf2(1).rho = cat(3,trcshuf2.rho);
   trcshuf2 = trcshuf2(1);
   
+  trcshuf3(1).rho = cat(3,trcshuf3.rho);
+  trcshuf3 = trcshuf3(1);
+  
     
   suffix2 = '';
   if contentwords_only
     suffix2 = [suffix2 '_contentwords'];
   end
+  if longwords_only
+    suffix2 = [suffix2 '_longwords'];
+  end
   if stratify_ivar
     suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
   end
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_trc%s',scenario,parcel_indx,suffix,suffix2));
-  save(filename, 'trcshuf', 'trcshuf2', 'trc');
+  save(filename, 'trcshuf', 'trcshuf2', 'trcshuf3','trc');
 
 end
 
@@ -1314,7 +1338,7 @@ if do_clusterstats
     
     datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
     
-    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario,'modality','visual');
+    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario);
     save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
 end
 %--------------------------------------------------------------------------
@@ -1324,7 +1348,7 @@ if do_plotting
     if ~exist('scenario', 'var')
       error('scenario number needs to be defined');
     end
-cluster = 2;
+cluster = 1;
 %load atlas, sourcemodel and colormap
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat 
 load ~/MOUS/meg/templates/cortex_midthickness_8196reg.mat
