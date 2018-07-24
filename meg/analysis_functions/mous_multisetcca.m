@@ -1,4 +1,4 @@
-function [W, A, rho, Rtest, Xtest, testfold] = mous_multisetcca(X,nfold,K,lambda,shufflag)
+function [W, A, rho, Rtest, Xtest, testfold] = mous_multisetcca(X,nfold,K,lambda,shufflag,stratified)
 
 if nargin<4 || isempty(lambda)
   lambda = [];
@@ -6,6 +6,10 @@ end
 
 if nargin<5 || isempty(shufflag) 
   shufflag = 0; % can otherwise be 1 or a cell-array
+end
+
+if nargin<6 || isempty(stratified) 
+  stratified = 0;
 end
 
 if iscell(shufflag)
@@ -37,6 +41,19 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
     testfold = nfold;
     nfold    = numel(testfold);
   else
+    if stratified
+    % create the folds
+    nobs     = numel(X{1}.trial);
+    class1   = find(ismember(X{1}.trialinfo(:,end-1),[1 2 5 6]),1,'last');
+    obs_shuf1 = randperm(class1);
+    obs_shuf2 = randperm(nobs-class1)+class1;
+    ix1       = round(linspace(0,class1,nfold+1)); % indices of observations that go into the test sample
+    ix2       = round(linspace(0,nobs-class1,nfold+1));
+    testfold = cell(nfold,1);  
+    for k = 1:nfold
+      testfold{k,1} = [obs_shuf1((ix1(k)+1):ix1(k+1)) obs_shuf2((ix2(k)+1):ix2(k+1))];
+    end
+    else
     % create the folds
     nobs     = numel(X{1}.trial);
     obs_shuf = randperm(nobs);
@@ -44,6 +61,7 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
     testfold = cell(nfold,1);
     for k = 1:nfold
       testfold{k,1} = obs_shuf((ix(k)+1):ix(k+1));
+    end
     end
   end
   
