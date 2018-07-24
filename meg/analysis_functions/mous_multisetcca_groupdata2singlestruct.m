@@ -9,9 +9,10 @@ for k = 1:numel(groupdata)
   groupdata{k}.label=label;
   groupdata{k}.time = groupdata{1}.time;
   groupdata{k}.fsample = groupdata{1}.fsample;
-  T(:,k) = groupdata{k}.trialinfo(:,1);
+  T(:,k) = groupdata{k}.trialinfo(:,1); %adding IDs as presented to each subject
 end
-T = [T groupdata{k}.trialinfo(:,end)];
+T = [T groupdata{k}.trialinfo(:,2)]; %adding trigger number
+T = [T groupdata{k}.trialinfo(:,end)]; %adding IDs as aligned
 
 out = groupdata{1};
 label = out.label;
