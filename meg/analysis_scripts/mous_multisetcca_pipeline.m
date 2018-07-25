@@ -777,11 +777,29 @@ if dotrc
   if ~exist('stimuli', 'var')
     load mous_stimuli;
   end
-  suffix = ''; % for now
+  if dotrc_combined
+      suffix = '_combined';
+  else
+      suffix = '';
+  end
+  
   loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
   
+  %FIX for some sentences trigger number is NaN and will get lost in the
+  %following selection
+  if select_sent
+      cfg = [];
+      cfg.trials = ismember(comp.trialinfo(:,end-1),[1 2 5 6]);
+      comp = ft_selectdata(cfg,comp)
+      suffix2 = '_sent';
+  elseif select_seq
+      cfg = [];
+      cfg.trials = ismember(comp.trialinfo(:,end-1),[3 4 7 8]);
+      comp = ft_selectdata(cfg,comp)
+      suffix2 =  '_seq';
+  end  
   tlck = mous_multisetcca_extractwords(comp, stimuli);
   
   if ~exist('contentwords_only', 'var')
@@ -877,8 +895,10 @@ if dotrc
   trcshuf3(1).rho = cat(3,trcshuf3.rho);
   trcshuf3 = trcshuf3(1);
   
-    
-  suffix2 = '';
+  
+  if ~exist('suffix2', 'var')   
+    suffix2 = '';
+  end
   if contentwords_only
     suffix2 = [suffix2 '_contentwords'];
   end
@@ -1353,7 +1373,7 @@ if do_clusterstats
     
     datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
     
-    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario);
+    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario,'suffix','combined_trc_seq');
     save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
 end
 %--------------------------------------------------------------------------
