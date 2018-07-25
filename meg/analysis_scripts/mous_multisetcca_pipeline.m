@@ -771,12 +771,25 @@ end
 
 if dotrc
   % do time resolved correlation
+  
+  %% set default flags if necessary
   if ~exist('parcel_indx', 'var')
     error('please supply parcel_indx');
   end
   if ~exist('stimuli', 'var')
     load mous_stimuli;
+  end  
+   if ~exist('dotrc_combined', 'var')
+    dotrc_combined = false;
   end
+  if ~exist('select_sent', 'var')
+    select_sent = false;
+  end
+  if ~exist('select_seq', 'var')
+    select_seq = false;
+  end
+ %%
+  
   if dotrc_combined
       suffix = '_combined';
   else
