@@ -799,17 +799,15 @@ if dotrc
   loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
-  
-  %FIX for some sentences trigger number is NaN and will get lost in the
-  %following selection
+
   if select_sent
       cfg = [];
-      cfg.trials = ismember(comp.trialinfo(:,end-1),[1 2 5 6]);
+      cfg.trials = find(comp.trialinfo(:,end)<= 500);
       comp = ft_selectdata(cfg,comp)
       suffix2 = '_sent';
   elseif select_seq
       cfg = [];
-      cfg.trials = ismember(comp.trialinfo(:,end-1),[3 4 7 8]);
+      cfg.trials = find(comp.trialinfo(:,end)> 500);
       comp = ft_selectdata(cfg,comp)
       suffix2 =  '_seq';
   end  
@@ -893,8 +891,8 @@ if dotrc
   for m = 1:nrand
       if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
       tmptlck = tlck;
-      for m = 1:size(tmptlck.trial,1)
-          tmptlck.trial(m,:,:)=circshift(squeeze(tlck.trial(m,:,:)),randperm(109,1),2);
+      for mm = 1:size(tmptlck.trial,1)
+          tmptlck.trial(mm,:,:)=circshift(squeeze(tlck.trial(mm,:,:)),randperm(109,1),2);
       end
       trcshuf3(m) = mous_multisetcca_trc(tmptlck, stimuli);
   end
@@ -1404,7 +1402,7 @@ cmap = brewermap(63,'Reds');
 %load data
 datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
 outdir = sprintf('/project/3011020.09/jansch/mscca_group/figures')
-load(fullfile(datadir, sprintf('scenario%d_results',scenario)))
+load(fullfile(datadir, sprintf('scenario%d_results_combined_sent',scenario)))
 
 %create source structure for plotting
 source                = [];
