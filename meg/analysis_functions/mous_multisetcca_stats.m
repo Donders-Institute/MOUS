@@ -44,21 +44,21 @@ pindx([1 2 194 195]) = []; %ignore medial wall parcels
 for k = 1:numel(d)
     k
     
-    load(strcat(rootdir,'/',d(k).name),'trcshuf');
+    load(strcat(rootdir,'/',d(k).name),'trcshuf2','trc');
     
-    load(strcat(rootdir,'/',strrep(d(k).name, 'shuf2', '')), 'trc');
-    n = 1:size(trcshuf.rho,3);
+   % load(strcat(rootdir,'/',strrep(d(k).name, 'shuf2', '')), 'trc');
+    n = 1:size(trcshuf2.rho,3);
     
     indx = pindx(str2double(d(k).name(18:20)));
     T(indx,:) = trc.rho(:,moda);
-    Tshuf(indx,:,n) = squeeze(trcshuf.rho(:,moda,:));
+    Tshuf(indx,:,n) = squeeze(trcshuf2.rho(:,moda,:));
     if k==1,
         T(386,end)=0;
         Tshuf(386,end,end)=0;
     end
     tim = trc.time;
     
-    clear trc trcshuf
+    clear trc trcshuf2
 end
 
 cfg     = [];

@@ -201,10 +201,13 @@ if domscca_searchlight || domscca_searchlight_seq
   if domscca_searchlight &&  domscca_searchlight_seq
       suffix{1} = '';
       suffix{2} = '_seq';
+      suffix2 = '_combined';
   elseif domscca_searchlight
       suffix = {''}; % the filenames don't have a suffix
+      suffix2 = '';
   elseif domscca_searchlight_seq
       suffix = {'_seq'};
+      suffix2 = '_seq';
   end
   
   load mous_stimuli;
@@ -240,27 +243,27 @@ if domscca_searchlight || domscca_searchlight_seq
           mous_db_getdata(subj{k}, sprintf('meg_multisetcca_data%s',suffix{i}));
           mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc%s',suffix{i}));
           source_parc.filterlabel = filterlabel; % for checking channel order
-          subjectdata{1,k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
+          subjectdata{i,k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
           if strncmp(subj{k}, 'sub-2', 5)
               % align the trials' time axes to the onset of the first word, rather
               % than the onset of the audio file
-              tmp = subjectdata{1,k}.time;
-              stim_id = subjectdata{1,k}.trialinfo(:,end);
+              tmp = subjectdata{i,k}.time;
+              stim_id = subjectdata{i,k}.trialinfo(:,end);
               for kk = 1:numel(tmp)
                   tmp{kk} = tmp{kk}-stimuli(stim_id(kk)).timinginfo(1,2);
                   tmp{kk} = tmp{kk}-tmp{kk}(nearest(tmp{kk},0)); % include 0 explicitly
               end
-              subjectdata{1,k}.time = tmp;
+              subjectdata{i,k}.time = tmp;
           end
-          for kk = 1:numel(subjectdata{1,k}.trial)
-              tmp = subjectdata{1,k}.trial{kk};
+          for kk = 1:numel(subjectdata{i,k}.trial)
+              tmp = subjectdata{i,k}.trial{kk};
               tmp = tmp - nanmean(tmp,2)*ones(1,size(tmp,2));
-              subjectdata{1,k}.trial{kk} = tmp;
+              subjectdata{i,k}.trial{kk} = tmp;
           end
           mous_db_getdata(subj{k}, sprintf('meg_multisetcca_timinginfo%s',suffix{i}));
-          mous_db_getdata(subj{k}, sprintf('meg_multisetcca_groupinfo%s',suffix{i}));
-          subjecttiming{1,k} = timinginfo; % subject specific information about timing
-          groupdata{i,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
+          groupinfo{i} = mous_db_getdata(subj{k}, sprintf('meg_multisetcca_groupinfo%s',suffix{i}));
+          subjecttiming{i,k} = timinginfo; % subject specific information about timing
+          groupdata{i,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{i,k}, subjecttiming{i,k}, groupinfo{i}, shift(k), stretch(k));
       end
       if size(groupdata,1)>1
           cfg = [];
@@ -276,9 +279,10 @@ if domscca_searchlight || domscca_searchlight_seq
           groupdata{1,k}.time{kk}  = groupdata{1,k}.time{kk}(sel:end);
       end
   end
-  groupdata = groupdata(~cellfun('isempty',groupdata))';
-  if domscca_searchlight &&  domscca_searchlight_seq
-      suffix = {'_combined'};
+  groupdata = groupdata(~cellfun('isempty',groupdata));
+  [r, c] = size(groupdata);
+  if r > c
+      groupdata = groupdata';
   end
   
   rng('default'); % reset the number generator, in order to be able to compare across parcels
@@ -295,7 +299,7 @@ if domscca_searchlight || domscca_searchlight_seq
     comp                 = ft_struct2single(comp);
     savedir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d', scenario);
     system(sprintf('mkdir -p %s', savedir));
-    filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix{1}));
+    filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix2));
     %filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dpcoh',scenario,parcel_indx));
     save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim', 'trc');
   end
@@ -305,7 +309,7 @@ if domscca_searchlight || domscca_searchlight_seq
       % lenient shuffling, that maintins the timing within sensory
       % modality, but does not obey individual word onsets across
       % modalities
-      
+      %FIXME: not updated vor joint mscca over conditions yet
       selaudio = find(strncmp(subj, 'sub-2', 5));
       selvis   = find(strncmp(subj, 'sub-1', 5));
       for m = nrand(:)'
@@ -367,9 +371,21 @@ if domscca_searchlight || domscca_searchlight_seq
         fprintf('performing permutation %d/%d\n',find(m==nrand),numel(nrand));
         cnt = cnt + 1;
         paramdir = '/project/3011020.09/jansch/mscca_group/';
-        load(fullfile(paramdir,'params',sprintf('shuff_sce%d_indx%04d%s',scenario,m,suffix{i}))); % use precomputed ordering for consistency across parcels
         
-        groupdatashuf(selaudio) = mous_multisetcca_reorderaudio(subj(selaudio), subjectdata(selaudio), subjecttiming(selaudio), groupinfo, reorder, stimid, shift, stretch);
+        for i = 1:size(suffix,2)
+           load(fullfile(paramdir,'params',sprintf('shuff_sce%d_indx%04d%s',scenario,m,suffix{i}))); % use precomputed ordering for consistency across parcels
+        
+            groupdatashuf(i,selaudio) = mous_multisetcca_reorderaudio(subj(selaudio), subjectdata(i,selaudio), subjecttiming(i,selaudio), groupinfo{i}, reorder, stimid, shift, stretch);
+        end
+        %recombine the separately shuffled matrices
+        if size(groupdatashuf,1)>1
+          cfg = [];
+          for k = selaudio'
+          groupdatashuf{1,k} = ft_appenddata(cfg,groupdatashuf{1,k},groupdatashuf{2,k});
+          groupdatashuf{2,k} = [];
+          end
+          groupdatashuf = groupdatashuf(~cellfun('isempty',groupdatashuf))';
+        end
         
         for k = 1:numel(groupdatashuf)
           for kk = 1:numel(groupdatashuf{1,k}.trial)
@@ -410,7 +426,7 @@ if domscca_searchlight || domscca_searchlight_seq
       
       foi   = cohshuf(1).freq;
       savedir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
-      filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2%s',scenario,parcel_indx,suffix{1}));
+      filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2%s',scenario,parcel_indx,suffix2));
       if exist([filename,'.mat'], 'file')
         tmp = load(filename);
         Cshuf = cat(3,tmp.Cshuf,Cshuf);
@@ -799,17 +815,15 @@ if dotrc
   loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'comp');
-  
-  %FIX for some sentences trigger number is NaN and will get lost in the
-  %following selection
+
   if select_sent
       cfg = [];
-      cfg.trials = ismember(comp.trialinfo(:,end-1),[1 2 5 6]);
+      cfg.trials = find(comp.trialinfo(:,end)<= 500);
       comp = ft_selectdata(cfg,comp)
       suffix2 = '_sent';
   elseif select_seq
       cfg = [];
-      cfg.trials = ismember(comp.trialinfo(:,end-1),[3 4 7 8]);
+      cfg.trials = find(comp.trialinfo(:,end)> 500);
       comp = ft_selectdata(cfg,comp)
       suffix2 =  '_seq';
   end  
@@ -893,8 +907,8 @@ if dotrc
   for m = 1:nrand
       if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
       tmptlck = tlck;
-      for m = 1:size(tmptlck.trial,1)
-          tmptlck.trial(m,:,:)=circshift(squeeze(tlck.trial(m,:,:)),randperm(109,1),2);
+      for mm = 1:size(tmptlck.trial,1)
+          tmptlck.trial(mm,:,:)=circshift(squeeze(tlck.trial(mm,:,:)),randperm(109,1),2);
       end
       trcshuf3(m) = mous_multisetcca_trc(tmptlck, stimuli);
   end
@@ -1404,7 +1418,7 @@ cmap = brewermap(63,'Reds');
 %load data
 datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
 outdir = sprintf('/project/3011020.09/jansch/mscca_group/figures')
-load(fullfile(datadir, sprintf('scenario%d_results',scenario)))
+load(fullfile(datadir, sprintf('scenario%d_results_combined_sent',scenario)))
 
 %create source structure for plotting
 source                = [];
