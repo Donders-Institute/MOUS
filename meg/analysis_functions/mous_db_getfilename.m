@@ -109,7 +109,7 @@ badsubjects = {'V1014';'V1018';'V1021';'V1023';'V1041';'V1043';'V1047';'V1051';'
 % considered as a task dataset by the heuristic. Therefore they are hard coded 
 % A2052 is an exception, no crash happened, but the first recording was
 % very bad so we started again.
-cannotdetectdatasetsubjects = {'A052';'A062';'A063';'A115'};
+cannotdetectdatasetsubjects = {'A2052';'A2062';'A2063';'A2115'};
           
 if ischar(subject) && (strcmp(subject, 'allV') || strcmp(subject, 'all'))
   % 'all' is not consistent but kept for backward compatibility
@@ -291,8 +291,8 @@ switch type{2}
       end
     end
   case {'artifactdssblinks' 'artifactdsssaccades'}
-    D = [rootdir filesep subject filesep 'artifact' filesep];
-    d = dir([D subject type{2} '.mat']);
+    D = [rootdir filesep subject 'meg' filesep 'artifact' filesep];
+    d = fullfile(D, [subject type{2} '.mat']);
     if isempty(d)
       d(1).name = [subject type{2} '.mat'];
     end
@@ -311,23 +311,23 @@ switch type{2}
       d(1).name = ['cstr-' subject '-001.nii'];
     end
   case 'anatomy'
-    D = [rootdir filesep subject filesep 'anatomy' filesep];
+    D = fullfile(rootdir,'processed',subject,'meg','anatomy');
     switch type{3}
       case 'coregCTF'
-        d = dir([D subject 'coregCTF.nii']);
+        d = dir(fullfile(D, [subject 'coregCTF.nii']));
         if isempty(d)
           d(1).name = [subject 'coregCTF'];
         end
       case 'coregCTFresliced'
-        d = dir([D subject 'coregCTFresliced.*']);
+        d = dir(fullfile(D, [subject 'coregCTFresliced.*']));
         if isempty(d)
           d(1).name = [subject 'coregCTFresliced'];
         end
       case 'coreginfo'
         if numel(type)>3
-          d = dir([D subject 'coreginfo_',type{4},'.mat']);
+          d = dir(fullfile(D, [subject 'coreginfo_',type{4},'.mat']));
         else
-          d = dir([D subject 'coreginfo.mat']);
+          d = dir(fullfile(D, [subject 'coreginfo.mat']));
         end
         if isempty(d)
           if numel(type)>3
@@ -337,58 +337,58 @@ switch type{2}
           end
         end
       case 'coregMNI'
-        d = dir([D subject 'coregMNI.nii']);
+        d = dir(fullfile(D, [subject 'coregMNI.nii']));
         %d = dir([D 'cstr-' subject '-001.nii']);
         if isempty(d)
           d(1).name = [subject 'coregMNI'];
           %d(1).name = ['cstr-' subject '-001.nii'];
         end
       case 'coregMNIresliced'
-        d = dir([D subject 'coregMNIresliced.*']);
+        d = dir(fullfile(D, [subject 'coregMNIresliced.*']));
         if isempty(d)
           d(1).name = [subject 'coregMNIresliced'];
         end
       case 'coregMNIskullstrip'
-        d = dir([D subject 'coregMNIskullstrip.nii']);
+        d = dir(fullfile(D, [subject 'coregMNIskullstrip.nii']));
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstrip'];
         end
         case 'coregMNIskullstripmask'
-        d = dir([D subject 'coregMNIskullstripmask.nii']);
+        d = dir(fullfile(D, [subject 'coregMNIskullstripmask.nii']));
         if isempty(d)
           d(1).name = [subject 'coregMNIskullstripmask'];
         end
       case 'headmodel'
-        d = dir([D subject 'vol.mat']);
+        d = dir(fullfile(D, [subject 'vol.mat']));
         if isempty(d)
           d(1).name = [subject 'vol'];
         end
       case 'sourcemodelfif'
-        D = [D subject filesep 'bem' filesep];
-        d = dir([D '*src.fif']);
+        D = fullfile(D,subject,'bem');
+        d = dir(fullfile(D, '*src.fif'));
       case 'sourcemodelfifreg'
         D = [D subject filesep 'bem' filesep];
         d = dir([D '*src_reg.fif']);
       case 'sourcemodel2D'
         if numel(type)==3, type{4} = ''; end
-        d = dir([D subject 'sourcemodel2D' type{4} '.mat']);
+        d = dir(fullfile(D, [subject 'sourcemodel2D' type{4} '.mat']));
         if isempty(d)
           d(1).name = [subject 'sourcemodel2D' type{4} '.mat'];
         end
       case 'sourcemodel2Dsurfreg'
         if numel(type)==3, type{4} = ''; end
-        d = dir([D subject 'sourcemodel2Dsurfreg' type{4} '.mat']);
+        d = dir(fullfile(D, [subject 'sourcemodel2Dsurfreg' type{4} '.mat']));
         if isempty(d)
           d(1).name = [subject 'sourcemodel2Dsurfreg' type{4} '.mat'];
         end
       case 'sourcemodel3D'
         if numel(type)==3, type{4} = ''; end
-        d = dir([D subject 'sourcemodel3D' type{4} '.mat']);
+        d = dir(fullfile(D, [subject 'sourcemodel3D' type{4} '.mat']));
         if isempty(d)
           d(1).name = [subject 'sourcemodel3D' type{4},'.mat'];
         end
       case 'figure'
-        d = dir([D subject 'figure_' type{4} '.png']);
+        d = dir(fullfile(D, [subject 'figure_' type{4} '.png']));
         if isempty(d)
           d(1).name = [subject 'figure_' type{4}];
         end
@@ -399,7 +399,7 @@ switch type{2}
   %  D = [rootdir filesep subject filesep 'other' filesep];
   %  switch type{3}
   %    case 'figure'
-  %      d = dir([D subject 'figure_' type{4} '.png']);
+  %      d = dir(fullfile(D, [subject 'figure_' type{4} '.png']);
   %      if isempty(d)
   %        d(1).name = [subject 'figure_' type{4}];
   %      end
@@ -436,7 +436,7 @@ switch type{2}
     end
   %case {'bfica' 'artifact' 'corrmnebf' 'restingstate' 'qualitycheck' 'mne' 'preproc' 'other' 'erf'} %FIXME add the other ones also, so that the 'processed' can be removed
   otherwise
-    D = [rootdir filesep subject filesep type{2} filesep];
+    D = fullfile(rootdir,'processed',subject,'meg',type{2});
     switch [type{3}(1) type{end}(end)]
       case '{}'
         %use everything between the {} as a suffix for the filename and
