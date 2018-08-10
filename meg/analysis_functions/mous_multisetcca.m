@@ -44,11 +44,11 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
     if stratified
     % create the folds
     class1   = find(X{1}.trialinfo(:,end)<= 500);
-    nobs1    = lenght(class1);
+    nobs1    = length(class1);
     class2   = find(X{1}.trialinfo(:,end)> 500);
-    nobs2    = lenght(class1);
-    obs_shuf1 = permute(class1,randperm(1:nobs1));
-    obs_shuf2 = permute(class2,randperm(1:nobs2));
+    nobs2    = length(class2);
+    obs_shuf1 = class1(randperm(nobs1))';
+    obs_shuf2 = class2(randperm(nobs2))';
     ix1       = round(linspace(0,nobs1,nfold+1)); % indices of observations that go into the test sample
     ix2       = round(linspace(0,nobs2,nfold+1));
     testfold = cell(nfold,1);  
