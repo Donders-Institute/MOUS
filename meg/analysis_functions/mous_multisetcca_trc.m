@@ -30,12 +30,12 @@ if iscell(data)
   selaudio = cell(1,numel(up));
   selvis   = cell(1,numel(up));
   for m = 1:numel(up)
-    selaudio{m} = find(contains(data.label, 'sub-2') & contains(data.label, up{m}));
-    selvis{m}   = find(contains(data.label, 'sub-1') & contains(data.label, up{m}));
+    selaudio{m} = find(contains(data.label, 'A') & contains(data.label, up{m}));
+    selvis{m}   = find(contains(data.label, 'V') & contains(data.label, up{m}));
   end
 else
-  selaudio{1} = find(contains(data.label, 'sub-2'));
-  selvis{1}   = find(contains(data.label, 'sub-1'));
+  selaudio{1} = find(contains(data.label, 'A'));
+  selvis{1}   = find(contains(data.label, 'V'));
 end
 
 if ft_datatype(data, 'raw')
@@ -43,8 +43,8 @@ if ft_datatype(data, 'raw')
 else
   tlck = data;
   if ~exist('selaudio', 'var')
-    selaudio{1} = find(contains(tlck.label, 'sub-2'));
-    selvis{1}   = find(contains(tlck.label, 'sub-1'));
+    selaudio{1} = find(contains(tlck.label, 'A'));
+    selvis{1}   = find(contains(tlck.label, 'V'));
   end  
     % poor man's heuristic to adjust the indices, under the assumption that
     % if the requirement is met, the first 3 channels are to be neglected
@@ -61,8 +61,8 @@ if contentwords_only
   sel = sel + double(strncmp(tlck.trialinfo.POS, 'WW',  2))*2;
   sel = sel + double(strncmp(tlck.trialinfo.POS, 'ADJ', 3))*3;
   
-  cfg        = [];
-  cfg.trials = find(sel);
+  cfg         = [];
+  cfg.trials  = find(sel);
   tlck        = ft_selectdata(cfg, tlck);
 end
 
@@ -76,7 +76,7 @@ if longwords_only
   end
   cfg        = [];
   cfg.trials = sel;
-  tlck        = ft_selectdata(cfg, tlck);
+  tlck       = ft_selectdata(cfg, tlck);
 end
 
 if outputflag>0

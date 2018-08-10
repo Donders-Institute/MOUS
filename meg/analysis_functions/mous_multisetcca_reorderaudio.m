@@ -8,9 +8,9 @@ for k = 1:numel(subjectdata)
     if ~hasstim
       % create a stim channel that can be used for debugging, i.e. to check
       % whether the unfolding worked well
-      if strcmp(subj{k}(5),'2')
+      if strcmp(subj{k}(2),'2')
         stimdat = addstimchan(data,'aud');
-      elseif strcmp(subj{k}(5),'1')
+      elseif strcmp(subj{k}(2),'1')
         stimdat = addstimchan(data,'vis');
       else
         error('wrong subjectname');

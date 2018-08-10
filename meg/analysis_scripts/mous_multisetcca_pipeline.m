@@ -244,7 +244,7 @@ if domscca_searchlight || domscca_searchlight_seq
           mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc%s',suffix{i}));
           source_parc.filterlabel = filterlabel; % for checking channel order
           subjectdata{i,k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
-          if strncmp(subj{k}, 'sub-2', 5)
+          if strncmp(subj{k}, 'A', 1)
               % align the trials' time axes to the onset of the first word, rather
               % than the onset of the audio file
               tmp = subjectdata{i,k}.time;
@@ -288,7 +288,7 @@ if domscca_searchlight || domscca_searchlight_seq
   rng('default'); % reset the number generator, in order to be able to compare across parcels
   if ~skip_noshuffle
     tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
-    if strcmp(suffix{1},'_combined')
+    if strcmp(suffix2,'_combined')
     [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 4, [],false,true);
     else
     [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 4, [],false);
@@ -360,8 +360,8 @@ if domscca_searchlight || domscca_searchlight_seq
       % unfold the audio data to maintain word onsets across modalities,
       % but after swapping sentences
             
-      selaudio = find(strncmp(subj, 'sub-2', 5));
-      selvis   = find(strncmp(subj, 'sub-1', 5));
+      selaudio = find(strncmp(subj, 'A', 1));
+      selvis   = find(strncmp(subj, 'V', 1));
       groupdatashuf = groupdata;
       
       cnt = 0;

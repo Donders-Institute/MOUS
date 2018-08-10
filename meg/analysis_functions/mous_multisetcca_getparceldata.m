@@ -33,9 +33,9 @@ end
 if ~hasstim && nargout==2
   % create a stim channel that can be used for debugging, i.e. to check
   % whether the unfolding worked well
-  if strcmp(subjectname(5),'2')
+  if strcmp(subjectname(2),'2')
     stim = addstimchan(data,'aud');
-  elseif strcmp(subjectname(5),'1')
+  elseif strcmp(subjectname(2),'1')
     stim = addstimchan(data,'vis');
   else
     error('wrong subjectname');
