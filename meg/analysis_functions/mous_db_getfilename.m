@@ -460,6 +460,7 @@ switch type{2}
         d    = dir([D filesep subject suff '.mat']);
         if isempty(d)
           d(1).name = [subject suff];
+          d(1).folder = D;
         end
     end
   %otherwise
