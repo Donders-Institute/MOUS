@@ -310,6 +310,9 @@ if domscca_searchlight || domscca_searchlight_seq
       % modality, but does not obey individual word onsets across
       % modalities
       %FIXME: not updated vor joint mscca over conditions yet
+      if strcmp(suffix2,'_combined')
+          warning('lenient shuffling is not working yet for combined mscca')
+      end
       selaudio = find(strncmp(subj, 'sub-2', 5));
       selvis   = find(strncmp(subj, 'sub-1', 5));
       for m = nrand(:)'
@@ -380,8 +383,10 @@ if domscca_searchlight || domscca_searchlight_seq
         %recombine the separately shuffled matrices
         if size(groupdatashuf,1)>1
           cfg = [];
+          fsample = groupdatashuf{1}.fsample;
           for k = selaudio'
           groupdatashuf{1,k} = ft_appenddata(cfg,groupdatashuf{1,k},groupdatashuf{2,k});
+          groupdatashuf{1,k}.fsample = fsample;
           groupdatashuf{2,k} = [];
           end
           groupdatashuf = groupdatashuf(~cellfun('isempty',groupdatashuf))';
@@ -401,17 +406,27 @@ if domscca_searchlight || domscca_searchlight_seq
         
         % compute coherence etc
         [cohshufstim, cohshuf] = mous_multisetcca_coh(compshuf);
-        trctmp                 = mous_multisetcca_trc(compshuf, stimuli);
+        for i = 1:length(suffix)
+            if strcmp(suffix{i},'')
+              cfg = [];
+              cfg.trials = compshuf.trialinfo(:,end)<=500;
+              compshufsel = ft_selectdata(cfg,compshuf);
+            elseif strcmp(suffix{i},'_seq')
+               cfg = [];
+              cfg.trials = compshuf.trialinfo(:,end)>500;
+              compshufsel = ft_selectdata(cfg,compshuf);
+            end          
+           trctmp              = mous_multisetcca_trc(compshufsel, stimuli);
+           if cnt==1
+              trcshufc{i} = trctmp;
+           else
+              trcshufc{i}.rho(:,:,cnt) = trctmp.rho;
+           end
+        end
         Rshuf(1,1,cnt)         = single(mean(mean(rhoshuf(selvis,selvis,1))))-1./numel(selvis);
         Rshuf(1,2,cnt)         = single(mean(mean(rhoshuf(selvis,selaudio,1))));
         Rshuf(2,1,cnt)         = single(mean(mean(rhoshuf(selaudio,selvis,1))));
         Rshuf(2,2,cnt)         = single(mean(mean(rhoshuf(selaudio,selaudio,1))))-1./numel(selaudio);
-        
-        if cnt==1
-          trcshuf = trctmp;
-        else
-          trcshuf.rho(:,:,cnt) = trctmp.rho;
-        end
                 
         tmpCshuf       = cohshuf.cohspctrm;
         Cshuf(:,1,cnt) = mean(mean(tmpCshuf(selvis,selvis,:,:)))-1./numel(selvis);
@@ -426,17 +441,19 @@ if domscca_searchlight || domscca_searchlight_seq
       
       foi   = cohshuf(1).freq;
       savedir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
-      filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2%s',scenario,parcel_indx,suffix2));
-      if exist([filename,'.mat'], 'file')
-        tmp = load(filename);
-        Cshuf = cat(3,tmp.Cshuf,Cshuf);
-        Rshuf = cat(3,tmp.Rshuf,Rshuf);
-        Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
-        trcshuf.rho = cat(3,tmp.trcshuf.rho, trcshuf.rho);
+      for i = 1:length(suffix)
+          trcshuf = trcshufc{i};
+          filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2%s%s',scenario,parcel_indx,suffix2,suffix{i}));
+          if exist([filename,'.mat'], 'file')
+              tmp = load(filename);
+              Cshuf = cat(3,tmp.Cshuf,Cshuf);
+              Rshuf = cat(3,tmp.Rshuf,Rshuf);
+              Cshufstim = cat(3,tmp.Cshufstim,Cshufstim);
+              trcshuf.rho = cat(3,tmp.trcshuf.rho, trcshuf.rho);
+          end
+          trcshuf = ft_struct2single(trcshuf);
+          save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim','trcshuf');
       end
-      trcshuf = ft_struct2single(trcshuf);
-      save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim','trcshuf');
-    
   end
 end
 %--------------------------------------------------------------------------
@@ -855,8 +872,8 @@ if dotrc
     covariates = {''};
   end
   
-  selaudio = find(contains(tlck.label, 'sub-2'));
-  selvis   = find(contains(tlck.label, 'sub-1'));
+  selaudio = find(contains(tlck.label, 'A2'));
+  selvis   = find(contains(tlck.label, 'V1'));
   
   %permute trials in visual modality only, for all subjects equally
   rng('default'); % ensure same 'random' behaviour for each parcel.
@@ -1400,7 +1417,7 @@ if do_clusterstats
     
     datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
     
-    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario,'suffix','combined_trc_seq');
+    [s T Tshuf] = mous_multisetcca_stats(datadir,scenario,'suffix','combined_trc_sent');
     save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
 end
 %--------------------------------------------------------------------------
