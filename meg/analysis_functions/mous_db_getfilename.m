@@ -138,7 +138,7 @@ elseif ischar(subject) && strcmp(subject, 'allAV')
   % request all subjects -> convert into cell-array and call function
   % recursively
   if isempty(rootdir)
-    rootdir = '/project/3011020.09/processed'
+    rootdir = '/project/3011020.09/processed';
   end
   d = dir(fullfile(rootdir,'V*'));
   d = cat(1, d, dir(fullfile(rootdir,'A*')));
