@@ -6,6 +6,7 @@ longwords_only    = ft_getopt(varargin, 'longwords_only', false);
 dosmooth          = ft_getopt(varargin, 'dosmooth', 0);
 partialize_avg    = ft_getopt(varargin, 'partialize_avg', 0);
 shift             = ft_getopt(varargin, 'shift', []);
+condition         = ft_getopt(varargin, 'condition', 'all');
 
 switch output
   case 'rho'
@@ -34,26 +35,34 @@ if iscell(data)
     selvis{m}   = find(contains(data.label, 'V') & contains(data.label, up{m}));
   end
 else
-  selaudio{1} = find(contains(data.label, 'A'));
-  selvis{1}   = find(contains(data.label, 'V'));
+  selaudio{1} = find(contains(data.label, 'A') | contains(data.label, 'sub-2'));
+  selvis{1}   = find(contains(data.label, 'V') | contains(data.label, 'sub-1'));
 end
 
 if ft_datatype(data, 'raw')
-  tlck = mous_multisetcca_extractwords(data, stimuli);  
+  if ~strcmp(condition, 'all')
+    if strcmp(condition, 'sent')
+      tmpcfg.trials = find(data.trialinfo(:,end)<500); % assume the stimulus ID in the last column of trialinfo
+    elseif strcmp(condition, 'seq')
+      tmpcfg.trials = find(data.trialinfo(:,end)>500);
+    end
+    data = ft_selectdata(tmpcfg, data);
+  end
+  tlck = mous_multisetcca_extractwords(data, stimuli);
 else
   tlck = data;
   if ~exist('selaudio', 'var')
     selaudio{1} = find(contains(tlck.label, 'A'));
     selvis{1}   = find(contains(tlck.label, 'V'));
-  end  
-    % poor man's heuristic to adjust the indices, under the assumption that
-    % if the requirement is met, the first 3 channels are to be neglected
-    % (as per the hard-coded selection [4:end] downstairs
-    if numel(selaudio{1})+numel(selvis{1})<numel(tlck.label)
-      selaudio{1} = selaudio{1}-3;
-      selvis{1} = selvis{1}-3;
-    end
   end
+  % poor man's heuristic to adjust the indices, under the assumption that
+  % if the requirement is met, the first 3 channels are to be neglected
+  % (as per the hard-coded selection [4:end] downstairs
+  if numel(selaudio{1})+numel(selvis{1})<numel(tlck.label)
+    selaudio{1} = selaudio{1}-3;
+    selvis{1} = selvis{1}-3;
+  end
+end
 
 if contentwords_only
   % identify the nouns, adjectives and verbs

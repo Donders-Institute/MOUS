@@ -68,6 +68,7 @@ cfg.headmodel = headmodel;
 cfg.grid     = sourcemodel;
 cfg.channel  = 'MEG';
 cfg.feedback = 'textbar';
+cfg.singleshell.batchsize = 'all';
 sourcemodel  = ft_prepare_leadfield(cfg, tlck);
 
 cfg = [];

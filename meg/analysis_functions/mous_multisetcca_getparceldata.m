@@ -1,8 +1,12 @@
-function [dataout, stim] = mous_multisetcca_getparceldata(subjectname, data, timinginfo, groupinfo, shift, stretch)
+function [dataout, stim] = mous_multisetcca_getparceldata(subjectname, data, timinginfo, groupinfo, shift, stretch, weightrepeats)
 
 % this function reorganizes the parcel-based time seriessuch, that the trials align
 % across a set of subjects, according to the specified timinginfo and
 % groupinfo
+
+if nargin<7
+  weightrepeats = false;
+end
 
 hasstim = strncmp(data.label{end},'stim',4);
 
@@ -78,8 +82,17 @@ for k = 1:numel(data.trial)
       smpout(sel,1) = smpout(sel,1)-val+1;
     end
   end
-  datin  = data.trial{k};
-  datout = nan(size(datin,1), numel(timinginfo.time{k}));
+  datin   = data.trial{k};
+  countin = zeros(1,numel(data.time{k}));
+  
+  datout   = nan(size(datin,1), numel(timinginfo.time{k}));
+  countout = zeros(size(smpout,1),numel(timinginfo.time{k}));
+  
+  for m = 1:size(smpin,1)-1
+    countin(smpin(m,1):smpin(m+1,1)-1) = m;
+  end
+  countin(smpin(end,1):end) = m+1;
+  
   timeout = timinginfo.time{k};
   for m = 1:size(smpout,1)
     nsmp = smpout(m,2)-smpout(m,1)+1;
@@ -112,13 +125,40 @@ for k = 1:numel(data.trial)
       end
       
       datout(:,smpout_idx) = tmpdat;%-repmat(nanmean(tmpdat,2),[1 numel(smpin_idx)]);
+      countout(m,smpout_idx) = countin(smpin_idx);
       last_idx = smpout_idx(end);
     end
   end
   datout  = datout(:,1:last_idx);
   timeout = timeout(1:last_idx);
-
-  data.trial{k} = datout;
+  countout = countout(:,1:last_idx);
+  
+  overlap  = zeros(size(countout,1));
+  for kk = 1:size(countout,1)
+    overlap(:,kk) = sum(countout==kk,2);
+  end
+  
+  countout_bin = zeros(size(countout));
+  for kk = 1:size(countout,1)
+    nsmp = overlap(overlap(:,kk)>0,kk);
+    nmax = numel(nsmp);
+    for kk1 = 1:nmax
+      for kk2 = 1:nmax
+        rowindx = kk-kk2+1;
+        if rowindx<= size(countout,1)
+          tmpindx = find(countout(rowindx,:)==kk,nsmp(kk1));
+          countout_bin(rowindx,tmpindx) = countout_bin(rowindx,tmpindx)+1;
+        end
+      end
+    end
+  end
+  countout_bin = sum(countout_bin,1);  
+  
+  if weightrepeats
+    data.trial{k} = datout./repmat(countout_bin,[size(datout,1),1]);
+  else
+    data.trial{k} = datout;
+  end
   data.time{k}  = timeout;
 end
 
