@@ -34,6 +34,13 @@ for m = 1:nword
   cfg.trials = usetrials;
   if any(usetrials)
     tmptlck(m)=ft_timelockanalysis(cfg, comp);
+    duration = nan(size(tmptlck(m).trial,1),2);
+    for mm = 1:size(tmptlck(m).trial,1)
+      trl_idx = tmptlck(m).trialinfo(mm,end);
+      duration(mm,1) = stimuli(trl_idx).timinginfo(m+1,2)-stimuli(trl_idx).timinginfo(m,2);
+      try,duration(mm,2) = stimuli(trl_idx).timinginfo_visual(m+1,2)-stimuli(trl_idx).timinginfo_visual(m,2); end
+    end
+    tmptlck(m).trialinfo = duration;
   end
 end
 
@@ -179,6 +186,6 @@ V = V-mean(V);
 tlck.trialinfo = table(X(:,1), X(:,2), X(:,3), X(:,4),...
   X(:,5), X(:,6), X(:,7), X(:,8),...
   X(:,9), X(:,10),...
-  V, words.word, words.POS, ...
-  'variablenames', {'nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS'});
+  V, words.word, words.POS, cat(1,tmptlck.trialinfo), ...
+  'variablenames', {'nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS','duration2'});
 
