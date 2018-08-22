@@ -7,6 +7,8 @@ dosmooth          = ft_getopt(varargin, 'dosmooth', 0);
 partialize_avg    = ft_getopt(varargin, 'partialize_avg', 0);
 shift             = ft_getopt(varargin, 'shift', []);
 condition         = ft_getopt(varargin, 'condition', 'all');
+untilnextword     = ft_getopt(varargin, 'untilnextword', false);
+untilnextword_visual = ft_getopt(varargin, 'untilnextword_visual', false);
 
 switch output
   case 'rho'
@@ -45,6 +47,14 @@ if ft_datatype(data, 'raw')
       tmpcfg.trials = find(data.trialinfo(:,end)<500); % assume the stimulus ID in the last column of trialinfo
     elseif strcmp(condition, 'seq')
       tmpcfg.trials = find(data.trialinfo(:,end)>500);
+    elseif strcmp(condition, 'sent_rc')
+      tmpcfg.trials = find(data.trialinfo(:,end)<205);
+    elseif strcmp(condition, 'sent_mix')
+      tmpcfg.trials = find(data.trialinfo(:,end)<500&data.trialinfo(:,end)>204);
+    elseif strcmp(condition, 'seq_rc')
+      tmpcfg.trials = find(data.trialinfo(:,end)>500&data.trialinfo(:,end)<705);
+    elseif strcmp(condition, 'seq_mix')
+      tmpcfg.trials = find(data.trialinfo(:,end)>704);
     end
     data = ft_selectdata(tmpcfg, data);
   end
@@ -101,11 +111,39 @@ if dosmooth>0
   end
 end
 
+if untilnextword
+  % this effectively does not take the data into account that has a latency
+  % > the modality specific duration of the word.
+  selv = find(contains(tlck.label,'sub-1')|contains(tlck.label,'V1'));
+  sela = find(contains(tlck.label,'sub-2')|contains(tlck.label,'A2'));
+  for m = 1:size(tlck.trial,1)
+    ix1 = nearest(tlck.time,tlck.trialinfo.duration2(m,1));
+    ix2 = 1;
+    try ix2 = nearest(tlck.time,tlck.trialinfo.duration2(m,2)); end
+    tlck.trial(m,sela,ix1:end) = nan;
+    tlck.trial(m,selv,ix2:end) = nan;
+  end
+end
+if untilnextword_visual
+  % this effectively does not take the data into account that has a latency
+  % > the visual modality specific duration of the word (so no discontinuities in the auditory data, due to the remapping.
+  selv = find(contains(tlck.label,'sub-1')|contains(tlck.label,'V1'));
+  sela = find(contains(tlck.label,'sub-2')|contains(tlck.label,'A2'));
+  for m = 1:size(tlck.trial,1)
+    ix1 = nearest(tlck.time,tlck.trialinfo.duration2(m,1));
+    ix2 = 1;
+    try ix2 = nearest(tlck.time,tlck.trialinfo.duration2(m,2)); end
+    tlck.trial(m,sela,ix2:end) = nan;
+    tlck.trial(m,selv,ix2:end) = nan;
+  end
+end
+
 % permute and reshape the data into a nchan x nobs x ntime
 dat = permute(tlck.trial(:,4:end,:),[2 1 3]); % channel 1-3 contain averages
 
 % subtract the mean across trials
 dat = dat-nanmean(dat,2);
+dat(~isfinite(dat)) = 0;
 
 if ~isempty(shift) && numel(shift)==size(dat,1)
   maxshift = max(shift);
