@@ -846,20 +846,16 @@ if dotrc || dotrc_combined || dotrc_combined_cf
   % do time resolved correlation
   
   %% set default flags if necessary
-  if ~exist('parcel_indx', 'var')
-    error('please supply parcel_indx');
-  end
-  if ~exist('stimuli', 'var')
-    load mous_stimuli;
-  end
-  if ~exist('select_sent', 'var')
-    select_sent = true;
-  end
-  if ~exist('select_seq', 'var')
-    select_seq = false;
-  end
+  if ~exist('parcel_indx', 'var'),      error('please supply parcel_indx');             end
+  if ~exist('stimuli', 'var'),          load mous_stimuli;                              end
+  if ~exist('select_sent', 'var'),      select_sent = true;                             end
+  if ~exist('select_seq', 'var'),       select_seq = false;                             end
+  if ~exist('contentwords_only', 'var'),contentwords_only = false;                      end
+  if ~exist('longwords_only', 'var'),   longwords_only = false;                         end
+  if ~exist('stratify_ivar', 'var'),    stratify_ivar = false;                          end
   %%
   
+  nrand = 1000;
   if dotrc_combined
     suffix = '_combined';
   elseif dotrc_combined_cf
@@ -900,21 +896,9 @@ if dotrc || dotrc_combined || dotrc_combined_cf
   for k = 1:numel(comp)
     tlck(k) = mous_multisetcca_extractwords(comp(k), stimuli);
   end
-  
-  if ~exist('contentwords_only', 'var')
-    contentwords_only = false;
-  end
-  if ~exist('longwords_only', 'var')
-    longwords_only = false;
-  end
+ 
   for k = 1:numel(tlck)
     [trc(k), tlck(k)] = mous_multisetcca_trc(tlck(k), stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only);
-  end
-  
-  nrand = 1000;
-  
-  if ~exist('stratify_ivar', 'var')
-    stratify_ivar = false;
   end
   
   if stratify_ivar

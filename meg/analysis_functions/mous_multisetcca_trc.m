@@ -96,6 +96,7 @@ if longwords_only
   cfg        = [];
   cfg.trials = sel;
   tlck       = ft_selectdata(cfg, tlck);
+  tlck       = rmfield(tlck,'cfg'); %remove to match tlck in higher-order multisetcca_pipeline
 end
 
 if outputflag>0
