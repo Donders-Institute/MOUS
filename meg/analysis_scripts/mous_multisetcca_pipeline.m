@@ -24,6 +24,7 @@ if ~exist('dotrc',                   'var'), dotrc                    = false; e
 if ~exist('dotrc_pairwise',          'var'), dotrc_pairwise  = false; end
 if ~exist('dotrc_combined',          'var'), dotrc_combined  = false; end
 if ~exist('dotrc_combined_cf',       'var'), dotrc_combined_cf  = false; end
+if ~exist('dotrc_rcmix',             'var'), dotrc_rcmix = false; end
 if ~exist('compare2simple',          'var'), compare2simple  = false; end
 if ~exist('do_clusterstats',         'var'), do_clusterstats = false; end
 if ~exist('do_plotting',             'var'), do_plotting     = false; end
@@ -1007,6 +1008,59 @@ if dotrc || dotrc_combined || dotrc_combined_cf
   end
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_trc%s',scenario,parcel_indx,suffix,suffix2));
   save(filename, 'trcshuf', 'trcshuf2', 'trcshuf3','trc');
+  
+end
+
+if dotrc_rcmix
+  % do time resolved correlation for the sentences, split according to
+  % rc/mix
+  
+  %% set default flags if necessary
+  if ~exist('parcel_indx', 'var'),      error('please supply parcel_indx');             end
+  if ~exist('stimuli', 'var'),          load mous_stimuli;                              end
+  if ~exist('contentwords_only', 'var'),contentwords_only = false;                      end
+  if ~exist('longwords_only', 'var'),   longwords_only = false;                         end
+  if ~exist('stratify_ivar', 'var'),    stratify_ivar = false;                          end
+  %%
+  
+  nrand = 1000;
+  
+  loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
+  load(filename, 'comp');
+  
+  [trc_rc, tlck_rc]   = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc');
+  [trc_mix, tlck_mix] = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix');
+  
+  tlck_all = ft_appendtimelock([], tlck_rc, tlck_mix);
+  nrc = size(tlck_rc.trial,1);
+  nmix = size(tlck_mix.trial,1);
+  
+  tmp = tlck_all;
+  T_rc = zeros(109,3,nrand);
+  T_mix = T_rc;
+  for k = 1:nrand
+    tmp.trial = tmp.trial(randperm(nrc+nmix),:,:);
+    tmpcfg.trials = 1:nrc;
+    t1 = mous_multisetcca_trc(ft_selectdata(tmpcfg, tmp),stimuli);
+    tmpcfg.trials = nrc+(1:nmix);
+    t2 = mous_multisetcca_trc(ft_selectdata(tmpcfg, tmp),stimuli);
+    T_rc(:,:,k) = t1.rho;
+    T_mix(:,:,k) = t2.rho;
+  end
+  
+  suffix2 = '';
+  if contentwords_only
+    suffix2 = [suffix2 '_contentwords'];
+  end
+  if longwords_only
+    suffix2 = [suffix2 '_longwords'];
+  end
+  if stratify_ivar
+    suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
+  end
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d_trc_rcmix%s',scenario,parcel_indx,suffix2));
+  save(filename, 'trc_rc', 'trc_mix', 'T_rc','T_mix');
   
 end
 
