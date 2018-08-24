@@ -1037,14 +1037,25 @@ if dotrc_rcmix
   nmix = size(tlck_mix.trial,1);
   
   tmp = tlck_all;
+  tmp1 = tlck_rc;
+  tmp2 = tlck_mix;
+  
   T_rc = zeros(109,3,nrand);
   T_mix = T_rc;
+  rng('default');
   for k = 1:nrand
+    fprintf('computing randomisation %d of %d\n',k,nrand);
     tmp.trial = tmp.trial(randperm(nrc+nmix),:,:);
-    tmpcfg.trials = 1:nrc;
-    t1 = mous_multisetcca_trc(ft_selectdata(tmpcfg, tmp),stimuli);
-    tmpcfg.trials = nrc+(1:nmix);
-    t2 = mous_multisetcca_trc(ft_selectdata(tmpcfg, tmp),stimuli);
+    %tmpcfg.trials = 1:nrc;
+    tmp1.trial = tmp.trial(1:nrc,:,:);
+    tmp1.trialinfo = tmp.trialinfo(1:nrc,:);
+    %t1 = mous_multisetcca_trc(ft_selectdata(tmpcfg, tmp),stimuli);
+    t1 = mous_multisetcca_trc(tmp1,stimuli);
+    %tmpcfg.trials = nrc+(1:nmix);
+    tmp2.trial = tmp.trial(nrc+(1:nmix),:,:);
+    tmp2.trialinfo = tmp.trialinfo(nrc+(1:nmix),:);
+    %t2 = mous_multisetcca_trc(ft_selectdata(tmpcfg, tmp),stimuli);
+    t2 = mous_multisetcca_trc(tmp2,stimuli);
     T_rc(:,:,k) = t1.rho;
     T_mix(:,:,k) = t2.rho;
   end
