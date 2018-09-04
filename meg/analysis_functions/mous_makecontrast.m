@@ -358,5 +358,35 @@ switch contrast
     varargout{2} = stat;
     varargout{3} = stat2;
     varargout{4} = mu;
+  case 'glm_singletrial'
+    % in this case the trialinfo input argument is a design matrix.
+    ft_hastoolbox('cellfunction', 1);
+    
+    assert(ft_datatype(data, 'raw'));
+    assert(all(cellfun('size',data.time,2)==numel(data.time{1})));
+    assert(exist('M', 'var')==1);
+    
+    design = trialinfo;
+    beta = zeros(size(M,1),numel(data.time{1}),size(design,1));
+    avg  = zeros(size(M,1),numel(data.time{1}));
+    design_cov = design*design';
+    for k = 1:210
+      x = cellcolselect(data.trial,k);
+      x = cat(2,x{:});
+      %x = x-mean(x,2);
+      x = x(1:273,:);
+      x = M*x;
+      avg(:,k) = mean(x,2);
+      x = x-mean(x,2);
+      beta(:,k,:)=(x*design')/design_cov;
+    end
+    tlck.beta = beta;
+    tlck.dimord = 'pos_time_ivar';
+    tlck.design = design;
+    tlck.ivar   = {'param_sent' 'param_seq' 'loglexfreq' 'leftbranch' 'rightbranch' 'nchar'};
+    tlck.time   = data.time{1};
+    varargout{1} = tlck;
+    varargout{2} = avg;
+      
   otherwise 
 end

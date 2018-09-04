@@ -11,10 +11,11 @@ if ~exist('domne_parametric_rc', 'var'), domne_parametric_rc = 0; end
 if ~exist('domne_conjunction', 'var'), domne_conjunction = 0; end
 if ~exist('domne_parametric_correctonly', 'var'),  domne_parametric_correctonly  = 0; end
 if ~exist('domne_mne_correctonly', 'var'),  domne_mne_correctonly  = 0; end
+if ~exist('domne_glm_singletrial', 'var'), domne_glm_singletrial = 0; end
 
 % specify the directory into which the results will be saved
 if ~exist('rootdir', 'var')
-  rootdir = '/project/3011020.09/MEG';
+  rootdir = '/project/3011020.09';
 end
   
 if domne_main,
@@ -950,4 +951,43 @@ if domne_parametric_correctonly
   stat = rmfield(stat, {'prob', 'mask', 'cirange' 'grad'});
   mu   = single(mu_seq);
   mous_db_putdata(subjectname, [strrep(suffix_mne, 'sent', 'seq'),'_parametric_blc_correctonly'], 'tlck', 'stat', 'mu', rootdir);
+end
+
+if domne_glm_singletrial
+  suffix_rawdata = 'meg_erf_allwords_02-nextword';
+  mous_db_getdata(subjectname, suffix_rawdata, rootdir);
+  
+  cfg = [];
+  cfg.toilim = [-0.1 0.6-1./300];
+  data = ft_redefinetrial(cfg, data);
+  
+  nsmp = cellfun('size', data.trial, 2);
+  cfg = [];
+  cfg.channel = 'MEG';
+  cfg.trials  = find(nsmp==210);
+  data = ft_selectdata(cfg, data);
+  
+  design = makedesign(data.trialinfo);
+  design = design(2:end,:);
+    
+  suffix_mne = strrep(suffix_rawdata, 'erf', 'mne');
+  suffix_mne = cat(2, suffix_mne, '_sent');
+  mous_db_getdata(subjectname, suffix_mne, rootdir);
+  
+  % create the spatial filter matrix
+  inside         = source.inside;
+  if islogical(inside)
+    inside = find(inside);
+  end
+  F = zeros(8196, size(source.avg.filter{inside(1)},2));
+  for k = 1:numel(inside)
+    F(inside(k),:) = source.avg.ori{inside(k)}*source.avg.filter{inside(k)};
+  end
+  
+  [tlck, avg] = mous_makecontrast(data, 'glm_singletrial', design, F);
+  for k = 1:size(tlck.beta,3)
+    tlck.beta(:,:,k) = spdiags(1./sqrt(source.avg.noise),0,8196,8196)*tlck.beta(:,:,k);
+  end
+  mous_db_putdata(subjectname, 'meg_mne_glm_singletrial', 'tlck', 'avg');
+
 end
