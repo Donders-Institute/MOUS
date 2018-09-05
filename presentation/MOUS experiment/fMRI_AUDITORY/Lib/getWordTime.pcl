@@ -1,0 +1,43 @@
+#############calculate stimulus presentation time ##################
+ sub int getWordTime ( string inputWord, int soundtime, string row 
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: READFILE\n");                           #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+
+	string char;
+   int n = inputWord.count();
+
+   array <string> rad[1];
+   row.split(" ", rad);
+   loop 							# Present sentence one-by-one
+		int i = 4;				# Skip the first 4 columns with parameters
+		until 
+		i > (rad.count())
+		begin
+	   char.append(rad[i]);
+	   i = i+1;
+	end;
+	 
+	 
+   int k = ((soundtime+2000) - (rad.count()*150))/char.count();
+   int wordTime = n*k;
+ 
+  
+   
+
+   return wordTime;                                                  #|Return 
+   
+                                                                #|
+ end; 
+ 
+ 
+# For visual and auditory word sequences, the presentation time y will be 
+# determined by y = kx + m, where x is the number of letters in the word, 
+# m is an offset of 100 ms and k is a coefficient determined trial by trial, 
+# given by the auditory sentence presentation rate. 
+# The offset of 100 ms will result in a minimum presentation time of about 250 ms per word.

@@ -1,0 +1,90 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # GETSUBARRAY                                                  #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Get sub array                                              #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   array<string> Out = getsubarray (In,Row1,Row2,Col1,Col2);  #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   In   = Full array                                          #
+ #   Row1 = Sub array row start index                           #
+ #   Row2 = Sub array row end index                             #
+ #   Col1 = Sub array col start index                           #
+ #   Col2 = Sub array col end index                             #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   array<string> In[2][3] = {{"1","2","3"},{"4","5","6"}};    # Full array
+ #   int Row1 = 1;                                              # Sub array row start index
+ #   int Row2 = 2;                                              # Sub array row end index
+ #   int Col1 = 2;                                              # Sub array col start index
+ #   int Col2 = 3;                                              # Sub array col end index
+ #   array<string> Out[2][2] = getsubarray(Row1,Row2,Col1,Col2);#
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   No dependencies                                            #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   No objects                                                 #
+ #                                                              #
+ # Last version 07-Nov-2008 08:36:00, Christian Forkstam        #
+ #==============================================================#
+ sub array <string,2> getsubarray (                             # ---INPUT ARGUMENT(S)
+   array<string,2>& InF,                                        # Full array
+   int              Row1,                                       # Sub array row start index
+   int              Row2,                                       # Sub array row end index
+   int              Col1,                                       # Sub array col start index
+   int              Col2                                        # Sub array col end index
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: GETSUBARRAY\n");                        #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   array<string> OutF[Row2-Row1+1][Col2-Col1+1];                #|OUT STRING ARRAY TO HOLD OUTPUT SUBARRAY
+                                                                #|
+     loop                                                       #|
+       int InRowPos  = Row1;                                    #|
+       int OutRowPos = 1;                                       #|
+     until                                                      #|
+       OutRowPos > OutF.count()                                 #|
+     begin                                                      #|
+                                                                #|
+       loop                                                     #|
+         int InColPos  = Col1;                                  #|
+         int OutColPos = 1                                      #|
+       until                                                    #|
+         OutColPos > OutF[1].count()                            #|
+       begin                                                    #|
+                                                                #|
+         OutF[OutRowPos][OutColPos] = InF[InRowPos][InColPos];  #|
+                                                                #|
+         InColPos  = InColPos + 1;                              #|
+         OutColPos = OutColPos + 1;                             #|
+       end;                                                     #|
+                                                                #|
+       InRowPos  = InRowPos + 1;                                #|
+       OutRowPos = OutRowPos + 1;                               #|
+     end;                                                       #|
+                                                                #|
+   return OutF                                                  #|RETURN SUBARRAY
+                                                                #|
+ end;                                                           # ---

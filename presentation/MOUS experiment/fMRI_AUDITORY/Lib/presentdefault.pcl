@@ -1,0 +1,61 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # PRESENTDEFAULT                                               #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Present default trial screen                               #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   presentdefault (Duration);                                 #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   Duration = Duration (ms)                                   #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   int Duration = 1000;                                       # Duration (ms)
+ #   presentdefault (Duration);                                 #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   GETPICTURE                                                 #
+ #   GETTRIAL                                                   #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   Picture object default                                     #
+ #   Trial object Trial                                         #
+ #                                                              #
+ # Last version 23-Oct-2008 01:17:16, Christian Forkstam        #
+ #==============================================================#
+ sub presentdefault (                                           # ---INPUT ARGUMENT(S)
+     int DurationF                                              #|Duration (ms)
+ ) begin                                                        # ---ERROR CHECK: No error check
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: PRESENTDEFAULT\n");                     #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   trial TrialF = gettrial(Trial);                              #|Get trial Trial
+   picture PictureF = getpicture(default);                      #|Get picture object default
+   StimulusEvent.set_event_code(" ");                           #|Set PictureF as stimulus in StimulusEvent
+   StimulusEvent.set_stimulus(PictureF);                        #|Set PictureF as stimulus in StimulusEvent
+   StimulusEvent.set_delta_time(0);                             #|Set delta time
+   TrialF.set_duration(DurationF);                              #|Set duration to DurF ms
+   TrialF.set_type(fixed);                                      #|Ignore responses
+   TrialF.present();                                            #|Present trial
+                                                                #|
+ end;                                                           # ---

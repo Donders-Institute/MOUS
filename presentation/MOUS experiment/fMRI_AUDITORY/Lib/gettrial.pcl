@@ -1,0 +1,51 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # GETTRIAL                                                     #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Get Trial object                                           #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   trial Out = gettrial (Trial);                              #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   trial Trial = Trial object Trial                           #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   trial Out = gettrial (Trial);                              # Copy trial object Trial to Out
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   No dependencies                                            #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   Trial object Trial                                         #
+ #                                                              #
+ # Last version 23-Oct-2008 00:43:00, Christian Forkstam        #
+ #==============================================================#
+ sub trial gettrial (                                           # ---INPUT ARGUMENT(S)
+     trial TrialF                                               #|Trial object TrialF
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: GETTRIAL\n");                           #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   return TrialF;                                               #|Return Trial
+                                                                #|
+ end;                                                           # ---

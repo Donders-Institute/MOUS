@@ -1,0 +1,74 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # SHOWFILE                                                     #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Display instructions                                       #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   showfile (FileName,FontSize);                              #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   FileName = Text file to present on screen                  #
+ #   FontSize = Text font size                                  #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   string FileName = "PCP-Instruction-Template.txt";          #
+ #   int FontSize    = 15;                                      #
+ #   showfile (FileName,FontSize);                              #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   GETTEXT                                                    #
+ #   GETPICTURE                                                 #
+ #   GETTRIAL                                                   #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   Text object Text                                           #
+ #   Picture object Picture                                     #
+ #   Trial object Trial                                         #
+ #                                                              #
+ # Last version 23-Oct-2008 02:57:56, Christian Forkstam        #
+ #==============================================================#
+ sub showfile (                                                 # ---INPUT ARGUMENT(S)
+     string FileNameF,                                          #|File name
+     int    FontSizeF                                           #|Font size
+ ) begin                                                        # ---ERROR CHECK: No error check
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: SHOWFILE\n");                           #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   text TextF = gettext(Texts[1]);                              #|Get text object Texts[1]
+   TextF.set_caption(readfile(FileNameF));                      #|Set caption from file FileNameF
+   TextF.set_font_size(FontSizeF);                              #|Set font size to FontSizeF
+   TextF.set_font_color(255,0,0);                               #|Set red text colour
+   TextF.set_align(align_left);                                 #|Left align the text
+   TextF.redraw();                                              #|Redraw text
+                                                                #|
+   picture PictureF = getpicture(Picture);                      #|Get picture object Picture
+   PictureF.clear();                                            #|Clear picture parts
+   PictureF.add_part( TextF , 0 , 0 );                          #|Add picture part in center position
+                                                                #|
+   trial TrialF = gettrial(Trial);                              #|Get trial Trial
+   TrialF.set_type(first_response);                             #|Any key press will stop this trial
+   TrialF.set_duration(forever);                                #|Continuously wait for key press
+   StimulusEvent.set_stimulus(PictureF);                        #|Set PictureF as stimulus in StimulusEvent
+   TrialF.present();                                            #|Present trial
+                                                                #|
+ end;                                                           # ---

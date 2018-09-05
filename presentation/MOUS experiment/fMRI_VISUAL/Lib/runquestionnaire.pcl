@@ -1,0 +1,65 @@
+/* PCP-SPL: Pipeline Code Project
+ ________________________________________________________________
+   ____   ___  ____
+  (  _ \ / __)(  _ \ 
+   )___/( (__  )___/  Pipeline Code Project
+  (__)   \___)(__)    PCP - http://forkstam.se/PCP
+ ________________________________________________________________
+ Copyright (C) 2007-2009, Christian Forkstam
+*/
+ #==============================================================#
+ # RUNQUESTIONNAIRE                                             #
+ #==============================================================#
+ # DESCRIPTION:                                                 #
+ #                                                              #
+ #   Display multiple online questions                          #
+ #                                                              #
+ # SYNTAX:                                                      #
+ #                                                              #
+ #   runquestionnaire (FileName,Delay,ButtonCodes)              #
+ #                                                              #
+ # OPTION:                                                      #
+ #                                                              #
+ #   FileNames   = File name string array                       #
+ #   DelayF      = Delay time (ms) for questionnaire response   #
+ #   ButtonCodes = Button codes {Left,Right}                    #
+ #                                                              #
+ # EXAMPLE:                                                     #
+ #                                                              #
+ #   array<string> FileNames[3] = {"Q1.txt","Q2.txt","Q3.txt"}; # File name string array
+ #   int           Delay        = 1000;                         # Delay response time (ms)
+ #   array<int>    ButtonCodes[2] = {1,2};                      # Button codes {Left,Right}
+ #   runquestionnaire (FileNames,Delay,ButtonCodes);            #
+ #                                                              #
+ # DEPENDENCIES:                                                #
+ #                                                              #
+ #   PRESENTQUESTION                                            #
+ #                                                              #
+ # OBJECTS:                                                     #
+ #                                                              #
+ #   No objects                                                 #
+ #                                                              #
+ # Last version 23-Oct-2008 02:33:48, Christian Forkstam        #
+ #==============================================================#
+ sub runquestionnaire (                                         # ---INPUT ARGUMENT(S)
+     array<string,1>& FileNamesF,                               #|FileNamesF file name string array
+     int              DelayF,                                   #|Delay time (ms) for requested questionnaire response
+     array<int,1>&    ButtonCodesF                              #|Button codes
+ ) begin                                                        # ---
+ if                                                             #|
+   Debug                                                        #|
+ then                                                           #|
+   term.print("RUNNING: RUNQUESTIONNAIRE\n");                   #|
+ end;                                                           #|
+ #--------------------------------------------------------------#|
+                                                                #|
+   loop                                                         #|
+     int Pos = 1                                                #|
+   until                                                        #|
+     Pos > FileNamesF.count()                                   #|
+   begin                                                        #|
+     presentquestion(FileNamesF[Pos],DelayF,ButtonCodesF);      #|
+     Pos = Pos + 1;                                             #|
+   end;                                                         #|
+                                                                #|
+ end;                                                           # ---
