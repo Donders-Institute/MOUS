@@ -1,66 +1,74 @@
-function [stats T Tshuf] = mous_multisetcca_stats(rootdir,scenario,varargin)
+function [stats, T, Tshuf] = mous_multisetcca_stats(rootdir,scenario,varargin)
 
 modality            = ft_getopt(varargin, 'modality', 'supramodal');
-trcname             = ft_getopt(varargin, 'trcname', 'trc');       %filename of the trc on original order
+trcname             = ft_getopt(varargin, 'trcname', 'trc', 1);       %filename of the trc on original order
 shufflefname        = ft_getopt(varargin, 'shufflefname', 'shuf2');%filename of the trc on shuffled order (can be shuf2 before mscca or after mscca)
 shuffle             = ft_getopt(varargin, 'shuffle', 'trcshuf');   %variable name of the shuffled trc (post mscca can be trcshuf,trcshuf2,trcshuf3)
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat
 
+% files may not be unambiguous if trcname = '';
+trcfiles = fullfile(rootdir,sprintf('mscca_sce%d*%s.mat',scenario,trcname));
+trcd     = dir(trcfiles);
+if numel(trcd)>382
+  ok = false(numel(trcd),1);
+  for k = 1:numel(trcd)
+    ok(k) = ~isempty(regexp(trcd(k).name, sprintf('mscca_sce%d_parcel[0-9][0-9][0-9]%s.mat',scenario,trcname)));
+  end
+  trcd = trcd(ok);
+end
 
-trcfiles = strcat(rootdir,sprintf('/mscca_sce%d*',scenario),trcname,'.mat');
-trcd = dir(trcfiles);
-shufflefiles = strcat(rootdir,sprintf('/mscca_sce%d*',scenario),shufflefname,'.mat');
-shuffled = dir(shufflefiles);
+shufflefiles = fullfile(rootdir,sprintf('mscca_sce%d*%s.mat',scenario,shufflefname));
+shuffled     = dir(shufflefiles);
 
 switch scenario
-    case 1
-        iv = 1:17;
-        ia = 18:33;
-    case 2
-        iv = 1:17;
-        ia = 18:34;
-    case 3
-        iv = 1:17;
-        ia = 18:33;
-    case 4
-        iv = 1:16;
-        ia = 17:33;
-    case 5
-        iv = 1:17;
-        ia = 18:34;
-    case 6
+  case 1
+    iv = 1:17;
+    ia = 18:33;
+  case 2
+    iv = 1:17;
+    ia = 18:34;
+  case 3
+    iv = 1:17;
+    ia = 18:33;
+  case 4
+    iv = 1:16;
+    ia = 17:33;
+  case 5
+    iv = 1:17;
+    ia = 18:34;
+  case 6
 end
 
 switch modality
-    case 'visual'
-        moda = 1;
-    case 'auditory'
-        moda = 2;
-    case 'supramodal'
-        moda = 3;
+  case 'visual'
+    moda = 1;
+  case 'auditory'
+    moda = 2;
+  case 'supramodal'
+    moda = 3;
 end
 
 
 pindx = 1:length(atlas.parcellationlabel);
 pindx([1 2 194 195]) = []; %ignore medial wall parcels
 for k = 1:numel(trcd)
-    k
-    
-    load(strcat(rootdir,'/',trcd(k).name),'trc');
-    shuf = load(strcat(rootdir,'/',shuffled(k).name),shuffle);
-    shuf = shuf.(shuffle);
-    n = 1:size(shuf.rho,3);
-    
-    indx = pindx(str2double(trcd(k).name(18:20)));
-    T(indx,:) = trc.rho(:,moda);
-    Tshuf(indx,:,n) = squeeze(shuf.rho(:,moda,:));
-    if k==1,
-        T(386,end)=0;
-        Tshuf(386,end,end)=0;
-    end
-    tim = trc.time;
-    
-    clear trc shuf
+  k
+  
+  load(fullfile(rootdir,trcd(k).name),'trc');
+  shuf = load(fullfile(rootdir,shuffled(k).name),shuffle);
+  shuf = shuf.(shuffle);
+  n = 1:size(shuf.rho,3);
+  
+  indx = pindx(str2double(trcd(k).name(18:20)));
+  T(indx,:) = trc.rho(:,moda);
+  Tshuf(indx,:,n) = squeeze(shuf.rho(:,moda,:));
+  if k==1
+    T(386,end)=0;
+    Tshuf(386,end,end)=0;
+  end
+  tim = trc.time;
+  
+  clear trc shuf
 end
 
 cfg     = [];
@@ -82,9 +90,9 @@ statrand = reshape(Tshuf,[],size(Tshuf,3));
 stats = clusterstat(cfg, statrand, statobs);
 fn = fieldnames(stats);
 for k = 1:numel(fn)
-    try
-        stats.(fn{k}) = reshape(stats.(fn{k}),cfg.dim);
-    end
+  try
+    stats.(fn{k}) = reshape(stats.(fn{k}),cfg.dim);
+  end
 end
 stats.time = tim;
 stats.dimord = 'chan_time';

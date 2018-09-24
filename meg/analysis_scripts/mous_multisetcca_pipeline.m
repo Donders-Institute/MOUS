@@ -1537,11 +1537,15 @@ if do_clusterstats
   if ~exist('scenario', 'var')
     error('scenario number needs to be defined');
   end
-  
+  if ~exist('trcname', 'var')
+    trcname = '';
+  end
   datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
   
-  [s T Tshuf] = mous_multisetcca_stats(datadir,scenario,'suffix','combined_trc_sent');
-  save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
+  [s, T, Tshuf] = mous_multisetcca_stats(datadir,scenario,'trcname', trcname);
+  %save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
+  filename = fullfile(datadir, sprintf('scenario%d_results',scenario));
+  save(filename, 's', 'T', 'Tshuf');
 end
 %--------------------------------------------------------------------------
 
