@@ -1,4 +1,4 @@
-
+ 
 if ~exist('rootdir',          'var'), rootdir          = '/project/3011020.09';       end
 if ~exist('computedata',      'var'), computedata      = false;                       end % create sensor-level data structure
 if ~exist('computedata_seq',  'var'), computedata_seq  = false;                       end
@@ -233,7 +233,7 @@ if domscca_searchlight || domscca_searchlight_seq || domscca_searchlight_combine
   elseif domscca_searchlight
     suffix  = {''}; % the filenames don't have a suffix
     suffix2 = '';
-    suffix_lcmv = {'_combined'};
+    suffix_lcmv = {''};
   elseif domscca_searchlight_seq
     suffix  = {'_seq'};
     suffix2 = '_seq';
@@ -478,7 +478,7 @@ if domscca_searchlight || domscca_searchlight_seq || domscca_searchlight_combine
       foi   = cohshuf(1).freq;
       savedir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
       for i = 1:length(suffix)
-        trcshuf = trcshufc{i};
+        trcshuf = trcshuf(i);
         filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2%s%s',scenario,parcel_indx,suffix2,suffix{i}));
         if exist([filename,'.mat'], 'file')
           tmp = load(filename);
@@ -1562,7 +1562,7 @@ if do_plotting
   %load data
   datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
   outdir = sprintf('/project/3011020.09/jansch/mscca_group/figures')
-  load(fullfile(datadir, sprintf('scenario%d_results_combined_sent',scenario)))
+  load(fullfile(datadir, sprintf('scenario%d_results',scenario)))
   
   %create source structure for plotting
   source                = [];
@@ -1603,7 +1603,7 @@ if do_plotting
     ft_plot_mesh(splot,'edgecolor','none','vertexcolor',splot.pow,'facealpha', splot.mask, 'clim', [0 0.015], 'alphalim', [0 0.005], 'alphamap', 'rampup', 'colormap', cmap, 'maskstyle', 'colormix');lighting gouraud;material dull;view([90 0]);h=light('position',[10 0 0]);
     set(gcf,'color','w');
     title(sprintf('time = %d',round(1000.*s.time(k))),'position',[33 -104 100]);
-    fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_masked_cluster%d',scenario,k,cluster));
+    fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_cluster%d',scenario,k,cluster));
     export_fig(fname,'-png');
     clf;
   end
