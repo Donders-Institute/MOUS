@@ -1059,6 +1059,11 @@ if dotrc_rcmix
     T_rc(:,:,k) = t1.rho;
     T_mix(:,:,k) = t2.rho;
   end
+trcshuf_rc = t1;
+trcshuf_rc.rho = T_rc;
+trcshuf_mix = t2;
+trcshuf_mix.rho = T_mix;
+  
   
   suffix2 = '';
   if contentwords_only
@@ -1071,7 +1076,7 @@ if dotrc_rcmix
     suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
   end
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d_trc_rcmix%s',scenario,parcel_indx,suffix2));
-  save(filename, 'trc_rc', 'trc_mix', 'T_rc','T_mix');
+  save(filename, 'trc_rc', 'trc_mix', 'trcshuf_rc','trcshuf_mix');
   
 end
 
@@ -1540,10 +1545,14 @@ if do_clusterstats
   if ~exist('trcname', 'var')
     trcname = '';
   end
+ 
   datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
   
-  [s, T, Tshuf] = mous_multisetcca_stats(datadir,scenario,'trcname', trcname);
-  %save(fullfile(datadir, sprintf('scenario%d_results',scenario)),'s','T','Tshuf');
+  if strcmp(trcname,'_rcmix')
+      [s, T, Tshuf] = mous_multisetcca_stats(datadir,scenario,'trcname', trcname, 'shufflefname',trcname,'do_diff',1);
+  else
+      [s, T, Tshuf] = mous_multisetcca_stats(datadir,scenario,'trcname', trcname);
+  end
   filename = fullfile(datadir, sprintf('scenario%d_results',scenario));
   save(filename, 's', 'T', 'Tshuf');
 end

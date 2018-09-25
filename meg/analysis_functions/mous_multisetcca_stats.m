@@ -5,6 +5,8 @@ trcname             = ft_getopt(varargin, 'trcname', 'trc', 1);       %filename 
 shufflefname        = ft_getopt(varargin, 'shufflefname', 'shuf2');%filename of the trc on shuffled order (can be shuf2 before mscca or after mscca)
 shuffle             = ft_getopt(varargin, 'shuffle', 'trcshuf');   %variable name of the shuffled trc (post mscca can be trcshuf,trcshuf2,trcshuf3)
 onesided            = ft_getopt(varargin, 'onesided', 1);
+do_diff             = ft_getopt(varargin, 'do_diff', 0);
+
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat
 
 % files may not be unambiguous if trcname = '';
@@ -55,25 +57,27 @@ pindx([1 2 194 195]) = []; %ignore medial wall parcels
 for k = 1:numel(trcd)
     k
     
-    if contains(shuffle,'*')
+    if do_diff
+        shuffle   = [shuffle '_*'];       
         alltrc    = load(fullfile(rootdir,trcd(k).name),'trc_*');
         trcnames  = fieldnames(alltrc);
         trc       = alltrc.(trcnames{1});
         trc.rho   = alltrc.(trcnames{1}).rho - alltrc.(trcnames{2}).rho;
         allshuf   = load(fullfile(rootdir,shuffled(k).name),shuffle);
         shufnames = fieldnames(allshuf);
-        shuf      = allshuf.(shufnames{1}) - allshuf.(shufnames{2});
+        shuf      = allshuf.(shufnames{1});
+        shuf.rho  = allshuf.(shufnames{1}).rho - allshuf.(shufnames{2}).rho;
     else
         load(fullfile(rootdir,trcd(k).name),'trc');
         shuf = load(fullfile(rootdir,shuffled(k).name),shuffle);
-        shuf = shuf.(shuffle).rho;
+        shuf = shuf.(shuffle);
     end
     
-    n = 1:size(shuf,3);
+    n = 1:size(shuf.rho,3);
     
     indx = pindx(str2double(trcd(k).name(18:20)));
     T(indx,:) = trc.rho(:,moda);
-    Tshuf(indx,:,n) = squeeze(shuf(:,moda,:));
+    Tshuf(indx,:,n) = squeeze(shuf.rho(:,moda,:));
     if k==1,
         T(386,end)=0;
         Tshuf(386,end,end)=0;
