@@ -1,11 +1,12 @@
 function [stats, T, Tshuf] = mous_multisetcca_stats(rootdir,scenario,varargin)
 
 modality            = ft_getopt(varargin, 'modality', 'supramodal');
-trcname             = ft_getopt(varargin, 'trcname', 'trc', 1);       %filename of the trc on original order
+trcname             = ft_getopt(varargin, 'trcname', '');       %filename of the trc on original order
 shufflefname        = ft_getopt(varargin, 'shufflefname', 'shuf2');%filename of the trc on shuffled order (can be shuf2 before mscca or after mscca)
 shuffle             = ft_getopt(varargin, 'shuffle', 'trcshuf');   %variable name of the shuffled trc (post mscca can be trcshuf,trcshuf2,trcshuf3)
 onesided            = ft_getopt(varargin, 'onesided', 1);
 do_diff             = ft_getopt(varargin, 'do_diff', 0);
+if do_diff; shuffle   = [shuffle '_*'];  end
 
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat
 
@@ -57,8 +58,7 @@ pindx([1 2 194 195]) = []; %ignore medial wall parcels
 for k = 1:numel(trcd)
     k
     
-    if do_diff
-        shuffle   = [shuffle '_*'];       
+    if do_diff     
         alltrc    = load(fullfile(rootdir,trcd(k).name),'trc_*');
         trcnames  = fieldnames(alltrc);
         trc       = alltrc.(trcnames{1});
