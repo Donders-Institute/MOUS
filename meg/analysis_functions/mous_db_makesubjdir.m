@@ -30,7 +30,7 @@ end
 
 % create main level directory
 existdir = ~isempty(dir([rootdir,filesep,subjectname]));
-subjdir  = [rootdir,filesep,subjectname];
+subjdir  = [rootdir,filesep,subjectname,filesep,'meg'];
 if ~existdir
   fprintf(['creating subjectname specific directory: ', subjdir,'\n']);
   mkdir(subjdir);
@@ -41,7 +41,7 @@ end
 
 % create sub directories
 for k = 1:numel(subdir)
-  existdir = ~isempty(dir([rootdir,filesep,subjectname,filesep,subdir{k}]));
+  existdir = ~isempty(dir([rootdir,filesep,subjectname,filesep,'meg',subdir{k}]));
   if ~existdir
     fprintf(['creating subjectname specific subdirectory: ',subjdir,filesep,subdir{k},'\n']);
     mkdir([subjdir,filesep,subdir{k}]);

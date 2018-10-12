@@ -30,7 +30,7 @@ if ~exist('dosourcemodel3d',  'var'),  dosourcemodel3d   = 0;  end
 if ~exist('dosourcemodel2d4',  'var'), dosourcemodel2d4  = 0;  end
 if ~exist('dosourcemodel2d_reg', 'var'), dosourcemodel2d_reg = 0; end
 if ~exist('dosourcemodel2d_reg2017', 'var'), dosourcemodel2d_reg2017 = 0; end
-if ~exist('dosourcemodel2d_reg2017', 'var'), dosourcemodel2d_reg2018 = 0; end
+if ~exist('dosourcemodel2d_reg2018', 'var'), dosourcemodel2d_reg2018 = 0; end
 
 
 if ~exist('doqualitycheck',   'var'),  doqualitycheck    = 0;  end
@@ -328,8 +328,8 @@ if dosourcemodel2d_reg2018
   % this results in the nodes being 1-to-1 mapped.
   % subsequent downsampling to 8196 nodes keeps the nodes in register
   % this needs an installation of caret and some specific additional scripts
-  % note that this newer version also aims at getting the automatic
-  % parcellation information mapped onto the low-resolution grid
+  % -> the 8196 downsampling is not repeated here, however, the 164k meshes
+  % are explicitly also stored
 
   % create directory that will contain the results
   subjdirfs   = [rootdir,filesep,subjectname,'/anatomy/',subjectname];
@@ -341,61 +341,39 @@ if dosourcemodel2d_reg2018
   [p,f,e] = fileparts(str);
   str     = ([p,'/freesurfer_to_fs_LR.sh ',subjdirfs,' ',targetdir,' ',outputdir]);
   
-  % run the registration script, this is the same as before
+  % run the registration script 
   system(str);
   
-  % run part2, which also resamples the parcellation information 
-  str     = ([p,'/freesurfer_to_fs_LR_part2.sh ',subjdirfs,' ',outputdir]);
-  system(str);
-  
-  cur_dir = pwd;
-  cd(fullfile(outputdir, subjectname));
-  fname = sprintf('%s.L.midthickness_orig.164k_fs_LR.surf.gii',subjectname);
-  bnd   = ft_read_headshape({strrep(fname,'surf','coord') strrep(fname,'midthickness_orig.164k_fs_LR.surf','164k_fs_LR.topo')});
-  ft_write_headshape(fname,bnd,'format','gifti');
-  fname = strrep(fname,'.L.','.R.');
-  bnd   = ft_read_headshape({strrep(fname,'surf','coord') strrep(fname,'midthickness_orig.164k_fs_LR.surf','164k_fs_LR.topo')});
-  ft_write_headshape(fname,bnd,'format','gifti');
-  
-  
-  fname  = fullfile(outputdir, subjectname, 'label', 'lefthemi', 'lhlabels164.paint');
-  atlasl = ft_read_atlas(fname, 'format', 'caret_label');
-  fname  = fullfile(outputdir, subjectname, 'label', 'righthemi', 'rhlabels164.paint');
-  atlasr = ft_read_atlas(fname, 'format', 'caret_label');
- 
-  atlas = rmfield(atlasl, 'rgba');
-  atlas.parcellation      = cat(1, atlasl.parcellation,      atlasr.parcellation+max(atlasl.parcellation));
-  atlas.parcellationlabel = cat(1, atlasl.parcellationlabel, atlasr.parcellationlabel);
-  
-  mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
-  newatlas = bnd;
-  if isfield(newatlas, 'pnt'), newatlas.pos = newatlas.pnt; rmfield(newatlas, 'pnt'); end
-  newatlas.parcellationlabel = atlas.parcellationlabel;
-  newatlas.parcellation      = atlas.parcellation(newatlas.orig.inuse>0);
-  newatlas.orig.parcellation = atlas.parcellation;
-  
-  atlas = rmfield(newatlas, 'area');
-  save(fullfile('/project/3011020.09/MEG',subjectname,'anatomy',[subjectname,'_atlas_aparc_a2009s']), 'atlas');
-  
-  % while we're at it, also create the inflated mesh
+  % save some of the relevant surfaces in freesurfer format to allow Matti's code to work on them
   outputdirsurf = fullfile(outputdir,subjectname,'surf');  
   mkdir(outputdirsurf);
-  tmpname = fullfile(outputdir,subjectname,[subjectname,'.L.inflated.164k_fs_LR.coord.gii']);
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.L.midthickness_orig.164k_fs_LR.coord.gii']);
   triname = fullfile(outputdir,subjectname,[subjectname,'.L.164k_fs_LR.topo.gii']);
   bnd = ft_read_headshape({tmpname triname});
-  ft_write_headshape(fullfile(outputdirsurf,'lh.inflated'),bnd,'format','freesurfer');
-  tmpname = fullfile(outputdir,subjectname,[subjectname,'.R.inflated.164k_fs_LR.coord.gii']);
+  ft_write_headshape(fullfile(outputdirsurf,'lh.white'),bnd,'format','freesurfer');
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.L.sphere.164k_fs_LR.coord.gii']);
+  bnd = ft_read_headshape({tmpname triname});
+  ft_write_headshape(fullfile(outputdirsurf,'lh.sphere'),bnd,'format','freesurfer');
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.R.midthickness_orig.164k_fs_LR.coord.gii']);
   triname = fullfile(outputdir,subjectname,[subjectname,'.R.164k_fs_LR.topo.gii']);
   bnd = ft_read_headshape({tmpname triname});
-  ft_write_headshape(fullfile(outputdirsurf,'rh.inflated'),bnd,'format','freesurfer');
+  ft_write_headshape(fullfile(outputdirsurf,'rh.white'),bnd,'format','freesurfer');
+  tmpname = fullfile(outputdir,subjectname,[subjectname,'.R.sphere.164k_fs_LR.coord.gii']);
+  bnd = ft_read_headshape({tmpname triname});
+  ft_write_headshape(fullfile(outputdirsurf,'rh.sphere'),bnd,'format','freesurfer');
+ 
+  % mne call to create dipole grid
+  system([p,'/mnescript.sh ',outputdir,' ',subjectname]);
+
+  % copy the output into the database
+  system(['cp ',fullfile(outputdir,subjectname,'bem',[subjectname,'-oct-6-src.fif']),' ',fullfile(rootdir,subjectname,'anatomy',subjectname,'bem',[subjectname,'-oct-6-src_reg.fif'])]);
+
+  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF', rootdir);
+  mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI', rootdir);
   
-  bnd = ft_read_headshape({fullfile(outputdirsurf,'lh.inflated') fullfile(outputdirsurf,'rh.inflated')});
-  
-  newbnd = rmfield(atlas, {'parcellation' 'parcellationlabel'});
-  newbnd.orig = rmfield(newbnd.orig, 'parcellation');
-  newbnd.pos = bnd.pos(newbnd.orig.inuse>0,:);
-  
-  bnd = newbnd;
-  save(fullfile('/project/3011020.09/MEG',subjectname,'anatomy',[subjectname,'_inflated']), 'bnd');
-  
+  fifname = fullfile(rootdir,subjectname,'anatomy',subjectname,'bem',[subjectname,'-oct-6-src_reg.fif']);
+  bnd  = ft_read_headshape(fifname,'format','mne_source');
+  bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
+  mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', 'bnd', rootdir, 0);
+
 end

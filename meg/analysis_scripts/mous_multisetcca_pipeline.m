@@ -1059,10 +1059,10 @@ if dotrc_rcmix
     T_rc(:,:,k) = t1.rho;
     T_mix(:,:,k) = t2.rho;
   end
-trcshuf_rc = t1;
-trcshuf_rc.rho = T_rc;
-trcshuf_mix = t2;
-trcshuf_mix.rho = T_mix;
+  trcshuf_rc = t1;
+  trcshuf_rc.rho = T_rc;
+  trcshuf_mix = t2;
+  trcshuf_mix.rho = T_mix;
   
   
   suffix2 = '';

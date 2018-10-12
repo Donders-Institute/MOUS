@@ -1,4 +1,4 @@
-function [event] = mous_read_event_audio(dataset, bits)
+function [event, pulselength] = mous_read_event_audio(dataset, bits)
 
 % this function tries to deal with triggers recorded in level-mode. The
 % bitsi box can be configured to do so. This function behaves as
@@ -17,7 +17,11 @@ if numel(dataset)<9
   dataset = dataset{1};
 else
   [p,f,e] = fileparts(dataset);
-  if strncmp(f, 'sub-', 4);
+  if strncmp(f, 'sub-A', 5)
+    subjname = ['A' f(6:9)];
+  elseif strncmp(f, 'sub-V', 5)
+    subjname = ['V' f(6:9)];
+  elseif strncmp(f, 'sub-', 4)
     subjname = f(1:8);
   elseif any(strncmp(f,{'V' 'A'}))
     subjname = f(1:5);
