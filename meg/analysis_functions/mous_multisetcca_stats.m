@@ -6,6 +6,7 @@ shufflefname        = ft_getopt(varargin, 'shufflefname', 'shuf2');%filename of 
 shuffle             = ft_getopt(varargin, 'shuffle', 'trcshuf');   %variable name of the shuffled trc (post mscca can be trcshuf,trcshuf2,trcshuf3)
 onesided            = ft_getopt(varargin, 'onesided', 1);
 do_diff             = ft_getopt(varargin, 'do_diff', 0);
+correction          = ft_getopt(varargin, 'correction','cluster');
 if do_diff; shuffle   = [shuffle '_*'];  end
 
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat
@@ -87,28 +88,45 @@ for k = 1:numel(trcd)
     clear trc shuf
 end
 
-cfg     = [];
-cfg.connectivity = parcellation2connmat(atlas);
-cfg.tail = onesided;
-cfg.clustertail = onesided;
-cfg.clusterthreshold = 'nonparametric_individual';
-cfg.clusteralpha=0.01;
-cfg.feedback = 'text';
-cfg.clusterstatistic = 'maxsum';
-
-cfg.dim = size(Tshuf(:,:,1));
-cfg.numrandomization = size(Tshuf,3);
-
 T(T==0) = nan;
 Tshuf(Tshuf==0) = nan;
 statobs  = reshape(T,[],1);
 statrand = reshape(Tshuf,[],size(Tshuf,3));
-stats = clusterstat(cfg, statrand, statobs);
-fn = fieldnames(stats);
-for k = 1:numel(fn)
-  try
-    stats.(fn{k}) = reshape(stats.(fn{k}),cfg.dim);
-  end
+
+cfg     = [];
+cfg.dim = size(Tshuf(:,:,1));
+cfg.numrandomization = size(Tshuf,3);
+
+switch correction
+    case 'cluster'
+        cfg.connectivity = parcellation2connmat(atlas);
+        cfg.tail = onesided;
+        cfg.clustertail = onesided;
+        cfg.clusterthreshold = 'nonparametric_individual';
+        cfg.clusteralpha=0.01;
+        cfg.feedback = 'text';
+        cfg.clusterstatistic = 'maxsum';
+        
+        stats = clusterstat(cfg, statrand, statobs);
+        fn = fieldnames(stats);
+        for k = 1:numel(fn)
+            try
+                stats.(fn{k}) = reshape(stats.(fn{k}),cfg.dim);
+            end
+        end
+    case 'max'   
+        cfg.correctm = 'max';
+        
+        prb_pos   = zeros(size(statobs));
+        for i=1:size(Tshuf,3)
+                % compare each data element with the maximum statistic
+                prb_pos = prb_pos + (statobs<max(statrand(:,i)));
+                posdistribution(i) = max(statrand(:,i));
+        end
+        stats.prob = prb_pos./size(Tshuf,3);
+        stats.prob = reshape(stats.prob,cfg.dim);
+        stats.mask = stats.prob<=0.05;
+        stats.posdistribution = posdistribution;
 end
 stats.time = tim;
 stats.dimord = 'chan_time';
