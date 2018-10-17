@@ -12,6 +12,8 @@ if ~exist('domne_conjunction', 'var'), domne_conjunction = 0; end
 if ~exist('domne_parametric_correctonly', 'var'),  domne_parametric_correctonly  = 0; end
 if ~exist('domne_mne_correctonly', 'var'),  domne_mne_correctonly  = 0; end
 if ~exist('domne_glm_singletrial', 'var'), domne_glm_singletrial = 0; end
+if ~exist('domne_glm_singletrial_parc', 'var'), domne_glm_singletrial_parc = 0; end
+
 
 % specify the directory into which the results will be saved
 if ~exist('rootdir', 'var')
@@ -954,6 +956,8 @@ if domne_parametric_correctonly
 end
 
 if domne_glm_singletrial
+  if ~exist('doorth', 'var'), doorth = false; end
+  
   suffix_rawdata = 'meg_erf_allwords_02-nextword';
   mous_db_getdata(subjectname, suffix_rawdata, rootdir);
   
@@ -969,7 +973,13 @@ if domne_glm_singletrial
   
   design = makedesign(data.trialinfo);
   design = design(2:end,:);
-    
+  if doorth
+    x = design(3:end,:)';
+    y = design(1:2,:)';
+    y = y-x*((x'*x)\(x'*y));
+    design(1:2,:) = y';
+  end
+  
   suffix_mne = strrep(suffix_rawdata, 'erf', 'mne');
   suffix_mne = cat(2, suffix_mne, '_sent');
   mous_db_getdata(subjectname, suffix_mne, rootdir);
@@ -988,6 +998,43 @@ if domne_glm_singletrial
   for k = 1:size(tlck.beta,3)
     tlck.beta(:,:,k) = spdiags(1./sqrt(source.avg.noise),0,8196,8196)*tlck.beta(:,:,k);
   end
-  mous_db_putdata(subjectname, 'meg_mne_glm_singletrial', 'tlck', 'avg');
+  if ~doorth
+    mous_db_putdata(subjectname, 'meg_mne_glm_singletrial', 'tlck', 'avg');
+  else
+    mous_db_putdata(subjectname, 'meg_mne_glm_singletrial_orth', 'tlck', 'avg');    
+  end
+end
 
+if domne_glm_singletrial_parc
+  suffix_mne = 'meg_mne_allwords_02-nextword_sent';
+  mous_db_getdata(subjectname, suffix_mne, rootdir);
+  mous_db_getdata(subjectname, 'meg_mne_glm_singletrial');
+  
+  % noise normalise (just as the betas in the previous step, we forgot avg
+  avg = spdiags(1./sqrt(source.avg.noise),0,8196,8196)*avg;
+  
+  load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+  
+  for k = 1:numel(atlas.parcellationlabel)
+    indx    = atlas.parcellation==k;
+    tmp     = avg(indx,:);
+    if all(isfinite(tmp(:)))
+      [u,s,v] = svd(tmp, 'econ');
+      avg_parc(k,:) = 1./sqrt(s(1)).*(u(:,1)'*avg(indx,:)); % this is the same as v(:,1).*sqrt(s(1));
+      P{k} = u(:,1)./sqrt(s(1)); % take as a weighted combination the one that yields the first principal component in the average
+      
+      for m = 1:size(tlck.beta,3)
+        beta_parc(k,:,m) = P{k}(:)'*tlck.beta(indx,:,m);
+      end
+    end
+  end
+  
+  stat_parc      = keepfields(tlck, {'design', 'ivar', 'time'});
+  stat_parc.beta = beta_parc;
+  stat_parc.avg  = avg_parc;
+  stat_parc.label = atlas.parcellationlabel;
+  stat_parc.brainordinate = atlas;
+  stat_parc.betadimord = 'chan_time_ivar';
+  stat_parc.avgdimord  = 'chan_time';
+  mous_db_putdata(subjectname, 'meg_mne_glm_singletrial_parc', 'stat_parc');
 end

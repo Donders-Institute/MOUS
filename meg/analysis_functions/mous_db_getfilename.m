@@ -194,20 +194,226 @@ switch type{1}
     info     = struct([]);
     return;
   case 'scenario'
-    [filename, st, info] = mous_db_getfilename(subject, 'meg_raw_log');
-    for k = 1:numel(filename)
-      [~,filename{k},~] = fileparts(filename{k});
-      filename{k} = strrep(filename{k},'-MEG-MOUS-', '');
-      filename{k} = filename{k}(end-3:end);
-    end
-    if numel(filename)==1
-    elseif numel(filename)>1 && ~all(strcmp(filename,filename{1}))
-      filename = {'NA'};
-      st = true; % otherwise the function recurses into an error
-    else
-    
-    end
-      
+%     [filename, st, info] = mous_db_getfilename(subject, 'meg_raw_log');
+%     for k = 1:numel(filename)
+%       [~,filename{k},~] = fileparts(filename{k});
+%       filename{k} = strrep(filename{k},'-MEG-MOUS-', '');
+%       filename{k} = filename{k}(end-3:end);
+%     end
+%     if numel(filename)==1
+%     elseif numel(filename)>1 && ~all(strcmp(filename,filename{1}))
+%       filename = {'NA'};
+%       st = true; % otherwise the function recurses into an error
+%     else
+%     
+%     end
+      list = {'A2002' '2'
+        'A2003' '3'
+        'A2004' '4'
+        'A2005' '5'
+        'A2006' '1'
+        'A2007' '1'
+        'A2008' '2'
+        'A2009' '1'
+        'A2010' '4'
+        'A2011' '5'
+        'A2013' '1'
+        'A2014' '2'
+        'A2015' '3'
+        'A2016' '4'
+        'A2017' '5'
+        'A2019' '1'
+        'A2020' '2'
+        'A2021' '3'
+        'A2024' '6'
+        'A2025' '1'
+        'A2027' '3'
+        'A2028' '4'
+        'A2029' '5'
+        'A2030' '6'
+        'A2031' '3'
+        'A2032' '2'
+        'A2033' '3'
+        'A2034' '4'
+        'A2035' '5'
+        'A2036' 'nan'
+        'A2037' '1'
+        'A2038' '2'
+        'A2039' '3'
+        'A2040' '4'
+        'A2041' '5'
+        'A2042' '6'
+        'A2046' '4'
+        'A2047' '5'
+        'A2049' '1'
+        'A2050' '2'
+        'A2051' '5'
+        'A2052' '4'
+        'A2053' '5'
+        'A2055' '1'
+        'A2056' '2'
+        'A2057' '3'
+        'A2058' '4'
+        'A2059' '5'
+        'A2061' '1'
+        'A2062' '2'
+        'A2063' '3'
+        'A2064' '4'
+        'A2065' '1'
+        'A2066' '6'
+        'A2067' '1'
+        'A2068' '2'
+        'A2069' '3'
+        'A2070' '4'
+        'A2071' '3'
+        'A2072' '6'
+        'A2073' '5'
+        'A2075' '3'
+        'A2076' '4'
+        'A2077' '5'
+        'A2078' '6'
+        'A2079' '1'
+        'A2080' '2'
+        'A2083' '5'
+        'A2084' '6'
+        'A2085' '1'
+        'A2086' '2'
+        'A2088' '4'
+        'A2089' '5'
+        'A2090' '6'
+        'A2091' '1'
+        'A2092' '2'
+        'A2094' '4'
+        'A2095' '5'
+        'A2096' '6'
+        'A2097' '1'
+        'A2098' '2'
+        'A2099' '3'
+        'A2101' '6'
+        'A2102' '2'
+        'A2103' '4'
+        'A2104' '6'
+        'A2105' '3'
+        'A2106' '2'
+        'A2108' '6'
+        'A2109' '3'
+        'A2110' '4'
+        'A2111' '3'
+        'A2113' '4'
+        'A2114' '4'
+        'A2116' '6'
+        'A2117' '6'
+        'A2119' '2'
+        'A2120' '6'
+        'A2121' '5'
+        'A2122' '6'
+        'A2124' '3'
+        'A2125' '5'
+        'V1001' '1'
+        'V1002' '2'
+        'V1003' '3'
+        'V1004' '3'
+        'V1005' '5'
+        'V1006' '6'
+        'V1007' '2'
+        'V1008' '2'
+        'V1009' '4'
+        'V1010' '4'
+        'V1011' '5'
+        'V1012' '6'
+        'V1013' '1'
+        'V1015' '3'
+        'V1016' '4'
+        'V1017' '5'
+        'V1019' '1'
+        'V1020' '2'
+        'V1022' '4'
+        'V1024' '6'
+        'V1025' '1'
+        'V1026' '3'
+        'V1027' '3'
+        'V1028' '4'
+        'V1029' '5'
+        'V1030' '6'
+        'V1031' '1'
+        'V1032' '2'
+        'V1033' '3'
+        'V1034' '6'
+        'V1035' '5'
+        'V1036' '6'
+        'V1037' '3'
+        'V1038' '2'
+        'V1039' '3'
+        'V1040' '4'
+        'V1042' '6'
+        'V1044' '2'
+        'V1045' '3'
+        'V1046' '4'
+        'V1048' '6'
+        'V1049' '1'
+        'V1050' '2'
+        'V1052' '4'
+        'V1053' '5'
+        'V1054' '6'
+        'V1055' '1'
+        'V1057' '3'
+        'V1058' '4'
+        'V1059' '5'
+        'V1061' '1'
+        'V1062' '2'
+        'V1063' '3'
+        'V1064' '4'
+        'V1065' '5'
+        'V1066' '6'
+        'V1068' '2'
+        'V1069' '3'
+        'V1070' '4'
+        'V1071' '5'
+        'V1072' '6'
+        'V1073' '1'
+        'V1074' '2'
+        'V1075' '3'
+        'V1076' '4'
+        'V1077' '5'
+        'V1078' '6'
+        'V1079' '1'
+        'V1080' '2'
+        'V1081' '3'
+        'V1083' '5'
+        'V1084' '6'
+        'V1085' '1'
+        'V1086' '2'
+        'V1087' '3'
+        'V1088' '4'
+        'V1089' '5'
+        'V1090' '6'
+        'V1092' '2'
+        'V1093' '3'
+        'V1094' '4'
+        'V1095' '5'
+        'V1097' '1'
+        'V1098' '2'
+        'V1099' '4'
+        'V1100' '1'
+        'V1101' '5'
+        'V1102' '6'
+        'V1103' '1'
+        'V1104' '2'
+        'V1105' '1'
+        'V1106' '4'
+        'V1107' '5'
+        'V1108' '5'
+        'V1109' '1'
+        'V1110' '2'
+        'V1111' '6'
+        'V1113' '6'
+        'V1114' '5'
+        'V1115' '5'
+        'V1116' '1'
+        'V1117' '3'};
+    filename = list(strcmp(list(:,1),subject),2);
+    st = true;
+    info = [];
     return;  
   case 'meg'
     if isempty(rootdir)
@@ -252,7 +458,7 @@ switch type{2}
             d = d(ix);         
           end
         case 'rest'
-          % heuristic: totalbytes > .1e9 and <.7e9, doesnt work for 3 subjs
+          % heuristic: totalbytes > .1e9 and <.7e9, doesnt work for 4 subjs
           [m,ix] = find(totalbytes>0.1e9 & totalbytes<0.7e9);
           if strcmp(subject, 'V1012')
             ix = ix(2); % according to the notes, subject fell asleep during 1st resting
@@ -262,6 +468,9 @@ switch type{2}
           end
           if strcmp(subject, 'A2061')
             ix = ix(2);
+          end
+          if strcmp(subject, 'V1025')
+            ix = 1;
           end
           if ~isempty(ix)
             d = d(ix);
