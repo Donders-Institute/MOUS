@@ -145,7 +145,7 @@ end
 
 
 try
-  load('/project/3011020.09/MEG/misc/mous_stimuli');
+  load mous_stimuli;
 %  load('/home/language/nielam/MOUS/meg/trialfun/mous_stimuli');
 catch
   try
