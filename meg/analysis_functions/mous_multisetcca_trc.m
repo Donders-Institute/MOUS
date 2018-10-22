@@ -9,6 +9,7 @@ shift             = ft_getopt(varargin, 'shift', []);
 condition         = ft_getopt(varargin, 'condition', 'all');
 untilnextword     = ft_getopt(varargin, 'untilnextword', false);
 untilnextword_visual = ft_getopt(varargin, 'untilnextword_visual', false);
+output2           = ft_getopt(varargin, 'output2', 'average_mod');
 
 switch output
   case 'rho'
@@ -193,6 +194,8 @@ for k = 1:numel(tlck.time)
   end
 end
 
+switch output2
+  case 'average_mod'
 for k = 1:numel(selaudio)
   for m = 1:numel(selaudio)
     if k==m
@@ -231,8 +234,23 @@ for k = 1:numel(selaudio)
       trc.rho(:,3,k,m) = nanmean(dat,1)./nanstd(dat,[],1);
     end
   end
+  trc.label    = {'visual';'audio';'both'};
+  
 end
-trc.label    = {'visual';'audio';'both'};
+  case 'single_vis'
+    error('not yet implemented');
+  case 'single_aud'
+    error('not yet implemented');
+  case 'single_cross'
+    trc.rho = reshape(c(selvis{1},selaudio{1},:),[],numel(tlck.time));
+    for k = 1:numel(selvis{1})
+      for m = 1:numel(selaudio{1})
+        label{k,m} = sprintf('%s_%s',tlck.label{3+selvis{1}(k)}(10:end),tlck.label{3+selaudio{1}(m)});
+      end
+    end
+    trc.label = label(:);
+end
+
 if exist('up', 'var'), trc.parcellabel = up(:); end
 trc.dimord   = 'chan_time';
 trc.time     = tlck.time;

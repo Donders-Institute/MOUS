@@ -899,7 +899,7 @@ if dotrc || dotrc_combined || dotrc_combined_cf
   end
  
   for k = 1:numel(tlck)
-    [trc(k), tlck(k)] = mous_multisetcca_trc(tlck(k), stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only);
+    [trc(k), tlck(k)] = mous_multisetcca_trc(tlck(k), stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'output2', 'single_cross');
   end
   
   if stratify_ivar
@@ -936,7 +936,7 @@ if dotrc || dotrc_combined || dotrc_combined_cf
       end
       
       tmptlck(mm).trial(:,selvis,:) = tmptlck(mm).trial(r_idx,selvis,:);
-      trcshuf(m,mm) = mous_multisetcca_trc(tmptlck(mm), stimuli);
+      trcshuf(m,mm) = mous_multisetcca_trc(tmptlck(mm), stimuli, 'output2', 'single_cross');
     end
   end
   
@@ -965,7 +965,7 @@ if dotrc || dotrc_combined || dotrc_combined_cf
         end
         tmptlck(mmm).trial(:,selaudio(mma),:) = tmptlck(mmm).trial(r_idx,selaudio(mma),:);
       end
-      trcshuf2(m,mmm) = mous_multisetcca_trc(tmptlck(mmm), stimuli);
+      trcshuf2(m,mmm) = mous_multisetcca_trc(tmptlck(mmm), stimuli, 'output2', 'single_cross');
     end
   end
   
@@ -1077,6 +1077,43 @@ if dotrc_rcmix
   end
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d_trc_rcmix%s',scenario,parcel_indx,suffix2));
   save(filename, 'trc_rc', 'trc_mix', 'trcshuf_rc','trcshuf_mix');
+  
+end
+
+if dotrc_rcmix2
+  % do time resolved correlation for the sentences, split according to
+  % rc/mix, but now prepare the data to do statistics quantifying rc-mix
+  % as a T-statistic across subject-pairs
+  
+  %% set default flags if necessary
+  if ~exist('parcel_indx', 'var'),      error('please supply parcel_indx');             end
+  if ~exist('stimuli', 'var'),          load mous_stimuli;                              end
+  if ~exist('contentwords_only', 'var'),contentwords_only = false;                      end
+  if ~exist('longwords_only', 'var'),   longwords_only = false;                         end
+  if ~exist('stratify_ivar', 'var'),    stratify_ivar = false;                          end
+  %%
+  
+  loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
+  
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
+  load(filename, 'comp');
+    
+  trc_rc  = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc',  'output2', 'single_cross');
+  trc_mix = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix', 'output2', 'single_cross');
+  
+  suffix2 = '';
+  if contentwords_only
+    suffix2 = [suffix2 '_contentwords'];
+  end
+  if longwords_only
+    suffix2 = [suffix2 '_longwords'];
+  end
+  if stratify_ivar
+    suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
+  end
+ 
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d_trc_rcmix2%s',scenario,parcel_indx,suffix2));
+  save(filename, 'trc_rc', 'trc_mix');
   
 end
 
