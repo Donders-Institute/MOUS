@@ -25,25 +25,6 @@ end
 shufflefiles = fullfile(rootdir,sprintf('mscca_sce%d*%s.mat',scenario,shufflefname));
 shuffled     = dir(shufflefiles);
 
-switch scenario
-  case 1
-    iv = 1:17;
-    ia = 18:33;
-  case 2
-    iv = 1:17;
-    ia = 18:34;
-  case 3
-    iv = 1:17;
-    ia = 18:33;
-  case 4
-    iv = 1:16;
-    ia = 17:33;
-  case 5
-    iv = 1:17;
-    ia = 18:34;
-  case 6
-end
-
 switch modality
   case 'visual'
     moda = 1;
@@ -53,40 +34,52 @@ switch modality
     moda = 3;
 end
 
-
 pindx = 1:length(atlas.parcellationlabel);
 pindx([1 2 194 195]) = []; %ignore medial wall parcels
 for k = 1:numel(trcd)
-    k
-    
-    if do_diff     
-        alltrc    = load(fullfile(rootdir,trcd(k).name),'trc_*');
-        trcnames  = fieldnames(alltrc);
-        trc       = alltrc.(trcnames{1});
-        trc.rho   = alltrc.(trcnames{1}).rho - alltrc.(trcnames{2}).rho;
-        allshuf   = load(fullfile(rootdir,shuffled(k).name),shuffle);
-        shufnames = fieldnames(allshuf);
-        shuf      = allshuf.(shufnames{1});
-        shuf.rho  = allshuf.(shufnames{1}).rho - allshuf.(shufnames{2}).rho;
-    else
-        load(fullfile(rootdir,trcd(k).name),'trc');
-        shuf = load(fullfile(rootdir,shuffled(k).name),shuffle);
-        shuf = shuf.(shuffle);
-    end
-    
-    n = 1:size(shuf.rho,3);
-    
-    indx = pindx(str2double(trcd(k).name(18:20)));
-    T(indx,:) = trc.rho(:,moda);
-    Tshuf(indx,:,n) = squeeze(shuf.rho(:,moda,:));
-    if k==1,
-        T(386,end)=0;
-        Tshuf(386,end,end)=0;
-    end
-    tim = trc.time;
-    
-    clear trc shuf
+  k
+  
+  if do_diff
+    alltrc    = load(fullfile(rootdir,trcd(k).name),'trc_*');
+    trcnames  = fieldnames(alltrc);
+    trc       = alltrc.(trcnames{1});
+    trc.rho   = alltrc.(trcnames{1}).rho - alltrc.(trcnames{2}).rho;
+    allshuf   = load(fullfile(rootdir,shuffled(k).name),shuffle);
+    shufnames = fieldnames(allshuf);
+    shuf      = allshuf.(shufnames{1});
+    shuf.rho  = allshuf.(shufnames{1}).rho - allshuf.(shufnames{2}).rho;
+  else
+    load(fullfile(rootdir,trcd(k).name),'trc');
+    shuf = load(fullfile(rootdir,shuffled(k).name),shuffle);
+    shuf = shuf.(shuffle);
+  end
+  
+  n = 1:size(shuf.rho,3);
+  
+  indx = pindx(str2double(trcd(k).name(18:20)));
+  T(indx,:) = trc.rho(:,moda);
+  Tshuf(indx,:,n) = squeeze(shuf.rho(:,moda,:));
+  if k==1,
+    T(386,end)=0;
+    Tshuf(386,end,end)=0;
+  end
+  tim = trc.time;
+  
+  clear trc shuf
 end
+
+<<<<<<< HEAD
+cfg                  = [];
+cfg.connectivity     = parcellation2connmat(atlas);
+cfg.tail             = onesided;
+cfg.clustertail      = onesided;
+cfg.clusterthreshold = 'nonparametric_individual';
+cfg.clusteralpha     = 0.01;
+cfg.feedback         = 'text';
+cfg.clusterstatistic = 'maxsum';
+
+cfg.dim = size(Tshuf(:,:,1));
+cfg.numrandomization = size(Tshuf,3);
 
 T(T==0) = nan;
 Tshuf(Tshuf==0) = nan;
