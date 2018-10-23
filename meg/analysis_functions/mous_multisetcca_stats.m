@@ -68,7 +68,6 @@ for k = 1:numel(trcd)
   clear trc shuf
 end
 
-<<<<<<< HEAD
 cfg                  = [];
 cfg.connectivity     = parcellation2connmat(atlas);
 cfg.tail             = onesided;
