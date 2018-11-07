@@ -645,7 +645,11 @@ switch type{2}
     end
   %case {'bfica' 'artifact' 'corrmnebf' 'restingstate' 'qualitycheck' 'mne' 'preproc' 'other' 'erf'} %FIXME add the other ones also, so that the 'processed' can be removed
   otherwise
-    D = fullfile(rootdir,'processed',subject,'meg',type{2});
+    if endsWith(rootdir, '3011020.09') || endsWith(rootdir, '3011020.09/')
+      D = fullfile(rootdir,'processed',subject,'meg',type{2});
+    else
+      D = fullfile(rootdir,subject,type{2});
+    end
     switch [type{3}(1) type{end}(end)]
       case '{}'
         %use everything between the {} as a suffix for the filename and

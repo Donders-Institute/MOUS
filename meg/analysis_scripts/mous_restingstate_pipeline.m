@@ -517,7 +517,6 @@ end
 
 if dodss_osc_source 
   
-  
   mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
   mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdir);
   
@@ -539,15 +538,15 @@ if dodss_osc_source
   % get the leadfields
   % get the necessary geometric objects
   mous_db_getdata(subjectname,'meg_anatomy_headmodel');
-  mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2Dsurfreg');
+  mous_db_getdata(subjectname,'meg_anatomy_sourcemodel3D_nonlin8mm');
   
   % source reconstruction with beamformer
   cfg = [];
   cfg.headmodel   = vol;
-  cfg.grid        = bnd;
-  cfg.grid.inside = true(8196,1);
+  cfg.grid        = sourcemodel;
   cfg.channel     = 'MEG';
   cfg.backproject = 'no';
+  cfg.singleshell.batchsize = 2000;
   leadfield       = ft_prepare_leadfield(cfg, data);
 
   % prepare some cfgs
@@ -559,10 +558,20 @@ if dodss_osc_source
   data     = ft_selectdata(cfg, data);
   dataorig = ft_selectdata(cfg, dataorig);
   
+  cfgr         = [];
+  cfgr.length  = 2;
+  cfgr.overlap = 0.5;
+  data = ft_redefinetrial(cfgr, data);
+  
   cfg = [];
-  cfg.bpfilter = 'yes';
-  cfg.bpfreq   = [1 40];
-  cfg.bpfilttype = 'firws';
+  %cfg.bpfilter = 'yes';
+  %cfg.bpfreq   = [0.5 40];
+  %cfg.bpfilttype = 'firws';
+  %cfg.lpfilter = 'yes';
+  %cfg.lpfreq   = 40;
+  %cfg.lpfilttype = 'firws';
+  cfg.polyremoval = 'yes';
+  cfg.polyorder   = 2;
   data = ft_preprocessing(cfg, data);
   
   nsmp     = cellfun('size',data.trial,2);
@@ -571,7 +580,7 @@ if dodss_osc_source
   tr_end   = cumsum(nsmp);
    
   cfg               = [];
-  cfg.numcomponent  = 5;
+  cfg.numcomponent  = 25;
   cfg.cellmode      = 'yes';
   cfg.method        = 'dss';
   cfg.dss.algorithm = 'pca';
@@ -581,10 +590,7 @@ if dodss_osc_source
   cfg.dss.denf.params.tr_begin = tr_begin(:);
   cfg.dss.denf.params.tr_end   = tr_end(:);
 
-  cfgr         = [];
-  cfgr.length  = 2;
-  cfgr.overlap = 0.5;
-  
+   
   cfgf = [];
   cfgf.output = 'fourier';
   cfgf.method = 'mtmfft';
@@ -597,51 +603,59 @@ if dodss_osc_source
   
   cfgs             = [];
   cfgs.method      = 'lcmv';
+  cfgs.grid        = leadfield;
   cfgs.headmodel   = vol;
   cfgs.lcmv.keepfilter = 'yes';
   cfgs.lcmv.fixedori = 'no';
   cfgs.lcmv.weightnorm= 'unitnoisegain';
   cfgs.lcmv.projectnoise = 'yes';
-
+  %cfgs.lcmv.lambda = '10%';
   if ~exist('freqs','var'),  
     freqs = (1:0.5:30);
   end
   
+  tlckdata = ft_timelockanalysis(cfgt, data);
+  
+  pow  = zeros(sum(leadfield.inside),81,numel(freqs));
   for k = 1:numel(freqs)
     [b,a]   = mous_iirpeak_coeffs(2.*freqs(k)./data.fsample, freqs(k)./(data.fsample.*2.5));
     cfg.dss.denf.params.filter_filtfilt.A = a;
     cfg.dss.denf.params.filter_filtfilt.B = b;
-    comp(k) = ft_componentanalysis(cfg, data2);
-    %tlck = ft_timelockanalysis(cfgt, comp);
+    comp = ft_componentanalysis(cfg, data);
+    %freq = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, comp));
+    freq = ft_freqanalysis(cfgf, comp);
+    tlck = ft_timelockanalysis(cfgt, comp);
     
-%     tmp = leadfield;
-%     for kk = 1:size(tmp.pos,1)
-%       tmp.leadfield{kk} = comp.unmixing*leadfield.leadfield{kk};
-%     end
-%     tmp.label = comp.label;
-%     cfgs.grid = tmp;
-%     source = ft_sourceanalysis(cfgs, tlck);
-
-    freq(k) = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, comp(k)));
+    tlckdata.cov = comp.topo*tlck.cov*comp.topo';
+    
+    cfgs.lcmv.subspace = comp.unmixing;
+    source = ft_sourceanalysis(cfgs, tlckdata);
+    filt   = cat(1,source.avg.filter{:})*comp.topo;
+     
+    % projection matrix to collapse across dipole components
+    n = sum(source.inside);
+    x = repmat(1:n,[2,1]);
+    y = 1:(2*n);
+    z = ones(2*n,1)./2;
+    P = sparse(x(:),y(:),z(:),n,2*n);
+    
+    F = permute(freq.fourierspctrm, [2 1 3]);
+    tmp = zeros(2*n,numel(freq.freq));
+    for m = 1:numel(freq.freq)
+      tmp(:,m) = mean(abs(filt*F(:,:,m)).^2,2);
+    end
+    pow(:,:,k) = P*tmp;
+  end
   
-    
+  pow2 = pow;
+  pow2 = pow2./sum(pow2,2);
+  for k = 1:numel(freqs)
+    ix           = nearest(freq.freq,freqs(k));
+    pow2(:,ix,k) = mean(pow2(:,[ix-1 ix+1],k),2);
   end
   
 
-  % create the channel level covariance
-  
-  tlck = ft_timelockanalysis(cfg, data);
-  
-    
-  cfgs             = [];
-  cfgs.method      = 'lcmv';
-  cfgs.lcmv.keepfilter = 'yes';
-  cfgs.lcmv.fixedori = 'yes';
-  cfgs.lcmv.weightnorm= 'unitnoisegain';
-  cfgs.lcmv.projectnoise = 'yes';
-  source = ft_sourceanalysis(cfg, tlck);
-
-  
+  %
   %   
 %   cfg.lcmv = rmfield(cfg.lcmv, 'subspace');
 %   source = ft_sourceanalysis(cfg, tlck);
