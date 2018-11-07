@@ -1,7 +1,7 @@
 %This function takes the max-corrected statistical maps for a given
 %scenario and tests for each voxel whether the result replicates across all
 %other scenarios
-function [stats,combimask,confirmmask] = mous_multisetcca_confirmstats(numsce,varargin)
+function [stats,combimask,confirmmask,T,Tshuf] = mous_multisetcca_confirmstats(numsce,varargin)
 
 % load data from all scenarios
 load atlas_conte69_8196reg_LR_brodmann_subparc.mat
@@ -51,6 +51,7 @@ stats{sce}.stat   = T;
 stats{sce}.stat(~isfinite(stats{sce}.stat)) = 0; stats{sce}.stat([1 2 194 195],:) = nan;
 stats{sce}.brainordinate = atlas;
 
+allconfirm{sce} = stats{sce}.mask;
 end
 
 combimask   = any(cat(3,allmask{:}),3);
