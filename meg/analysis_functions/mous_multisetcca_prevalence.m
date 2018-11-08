@@ -32,3 +32,60 @@ results.gamma0c(nanind) = nan;
 results.pcMN(nanind)    = nan;
 results.pcGN(nanind)    = nan;
 
+%plot
+%1. mask parcels where global null is rejected
+%2. plot values of lower bound gamma
+%3. 2nd plot with median correlation?
+
+load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+load ~/MOUS/meg/templates/cortex_midthickness_8196reg.mat
+cmap = brewermap(6,'YlOrRd');
+load(fullfile(datadir, sprintf('scenario%d_results',sce)));
+
+%create source structure for plotting
+source1                = [];
+source1.brainordinate  = atlas;
+source1.label          = atlas.parcellationlabel;
+source1.time           = s.time;
+source1.dimord         = 'chan_time';
+source1.pow            = results.gamma0c;%mT;
+source1.mask           = results.pcGN < 0.05;
+source2 = source1;
+source2.pow            = mT;
+source2.mask           = results.pcMN < 0.05;
+
+%plot both hemispheres simultaneously
+pos = sourcemodel.pos;
+n = 4098;
+pos(1:n,2) = pos(1:n,2)+210;
+pos(1:n,1:2) = -pos(1:n,1:2);
+source1.brainordinate.pos = pos;
+source2.brainordinate.pos = pos;
+
+cfgp                  = [];
+cfgp.funparameter     = 'pow';
+cfgp.maskparameter    = 'mask';
+cfgp.funcolormap      = cmap;
+%ft_sourcemovie(cfgp, source);
+
+xs = source1;
+xs = ft_checkdata(xs,'datatype','source');
+
+%find where first cluster begins and plot from there to end
+[~, firstcol]   = find(source1.mask,1);
+[~, lastcol]    = find(source1.mask,1,'last');
+
+splot = xs;
+%figure('position',[1 1 900 900]);
+for k = firstcol:4:lastcol
+    splot.pow = xs.pow(:,k); splot.pow(~isfinite(splot.pow)) = 0;
+    splot.mask = xs.mask(:,k); splot.mask(~isfinite(splot.mask))=0;
+    figure;
+    ft_plot_mesh(splot,'edgecolor','none','vertexcolor',splot.pow,'facealpha', splot.mask, 'clim', [0 0.015], 'alphalim', [0 0.005], 'alphamap', 'rampup', 'colormap', cmap, 'maskstyle', 'colormix');lighting gouraud;material dull;view([90 0]);h=light('position',[10 0 0]);
+    set(gcf,'color','w');
+    title(sprintf('time = %d',round(1000.*s.time(k))),'position',[33 -104 100]);
+    colormap(brewermap([],'YlOrRd'))
+    %fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_cluster%d',scenario,k,cluster));
+    %export_fig(fname,'-png');
+    %clf;
+end
