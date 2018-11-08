@@ -31,6 +31,9 @@ results = structfun(@(x)reshape(x,[v t]),results,'UniformOutput',0);
 results.gamma0c(nanind) = nan;
 results.pcMN(nanind)    = nan;
 results.pcGN(nanind)    = nan;
+time = s.time;
+
+save(fullfile('/project/3011020.09/sopara/prevalence/',date), 'time', 'mT','results','params');
 
 %plot
 %1. mask parcels where global null is rejected
@@ -49,10 +52,10 @@ source1.label          = atlas.parcellationlabel;
 source1.time           = s.time;
 source1.dimord         = 'chan_time';
 source1.pow            = results.gamma0c;%mT;
-source1.mask           = results.pcGN < 0.05;
+source1.mask           = double(results.pcGN < 0.05);
 source2 = source1;
 source2.pow            = mT;
-source2.mask           = results.pcMN < 0.05;
+source2.mask           = double(results.pcMN < 0.05);
 
 %plot both hemispheres simultaneously
 pos = sourcemodel.pos;
@@ -66,7 +69,7 @@ cfgp                  = [];
 cfgp.funparameter     = 'pow';
 cfgp.maskparameter    = 'mask';
 cfgp.funcolormap      = cmap;
-%ft_sourcemovie(cfgp, source);
+%ft_sourcemovie(cfgp, source1);
 
 xs = source1;
 xs = ft_checkdata(xs,'datatype','source');
@@ -76,16 +79,15 @@ xs = ft_checkdata(xs,'datatype','source');
 [~, lastcol]    = find(source1.mask,1,'last');
 
 splot = xs;
-%figure('position',[1 1 900 900]);
-for k = firstcol:4:lastcol
+for k = firstcol:2:lastcol
     splot.pow = xs.pow(:,k); splot.pow(~isfinite(splot.pow)) = 0;
     splot.mask = xs.mask(:,k); splot.mask(~isfinite(splot.mask))=0;
     figure;
     ft_plot_mesh(splot,'edgecolor','none','vertexcolor',splot.pow,'facealpha', splot.mask, 'clim', [0 0.015], 'alphalim', [0 0.005], 'alphamap', 'rampup', 'colormap', cmap, 'maskstyle', 'colormix');lighting gouraud;material dull;view([90 0]);h=light('position',[10 0 0]);
     set(gcf,'color','w');
     title(sprintf('time = %d',round(1000.*s.time(k))),'position',[33 -104 100]);
-    colormap(brewermap([],'YlOrRd'))
-    %fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_cluster%d',scenario,k,cluster));
+    colorbar
+    %fname = strcat('/project/3011020.09/sopara/prevalence/',sprintf('/crossmod_timestamp%03d_lb_prevalenceGN',k));
     %export_fig(fname,'-png');
     %clf;
 end
