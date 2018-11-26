@@ -17,7 +17,7 @@ dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 
 %% define trials, remove artifacts, preprocess data
 if numel(dataset) == 1
-  mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09/MEG/');
+  mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09');
   artfctcfg      = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
   [data, speech] = computedata(dataset{1}, artfctcfg, triggers);
  

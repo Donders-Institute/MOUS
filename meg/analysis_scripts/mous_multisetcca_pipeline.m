@@ -25,6 +25,7 @@ if ~exist('dotrc_pairwise',          'var'), dotrc_pairwise  = false; end
 if ~exist('dotrc_combined',          'var'), dotrc_combined  = false; end
 if ~exist('dotrc_combined_cf',       'var'), dotrc_combined_cf  = false; end
 if ~exist('dotrc_rcmix',             'var'), dotrc_rcmix = false; end
+if ~exist('dotrc_rcmix2',            'var'), dotrc_rcmix2 = false; end
 if ~exist('compare2simple',          'var'), compare2simple  = false; end
 if ~exist('do_clusterstats',         'var'), do_clusterstats = false; end
 if ~exist('do_plotting',             'var'), do_plotting     = false; end
@@ -111,11 +112,12 @@ if computealignment || computealignment_seq
     suffix = '_seq';
   end
   
+  subj = subj(contains(subj,'V'));
   for k = 1:numel(subj)
     mous_db_getdata(subj{k}, sprintf('meg_multisetcca_data%s',suffix));
-    if strcmp(sce{k}(2:end), 'Vis')
+    if strcmp(subj{k}(1),'V')%strcmp(sce{k}(2:end), 'Vis')
       timinginfo = mous_multisetcca_adjusttiming_vis(subj{k}, data);
-    elseif strcmp(sce{k}(2:end), 'Aud')
+    elseif strcmp(subj{k}(1),'A')%strcmp(sce{k}(2:end), 'Aud')
       timinginfo = mous_multisetcca_adjusttiming_aud(subj{k}, data);
     end
     mous_db_putdata(subj{k}, sprintf('meg_multisetcca_timinginfo%s',suffix), 'timinginfo');
