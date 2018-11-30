@@ -64,7 +64,7 @@ function [data, speech] = computedata(dataset, artfctcfg, triggers)
 %% define trial
 cfg                   = [];
 cfg.dataset           = dataset;
-if ~isempty(strfind(dataset, 'sub-2'))
+if ~isempty(strfind(dataset, 'sub-2')) || ~isempty(strfind(dataset, 'A2'))
   cfg.trialfun          = 'trialfun_auditory_sentence';
   cfg.trialdef.prestim  = 'audioonset';
   cfg.trialdef.poststim = 0.05;
