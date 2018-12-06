@@ -20,7 +20,6 @@ data = ft_selectdata(cfg, data);
 
 cfg              = [];
 cfg.covariance   = 'yes';
-cfg.vartrllength = 2;
 cfg.channel      = 'MEG';
 tlck = ft_timelockanalysis(cfg, data);
 

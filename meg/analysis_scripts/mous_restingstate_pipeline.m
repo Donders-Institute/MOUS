@@ -10,6 +10,8 @@ if ~exist('dodss_osc', 'var'), dodss_osc = 0; end
 if ~exist('dodss_F', 'var'), dodss_F = 0; end
 if ~exist('dodss_osc_source', 'var'), dodss_osc_source = 0; end
 
+if ~exist('rootdir', 'var'), rootdir = '/project/3011020.09'; end
+
 global ft_default;
 ft_default.checksize = inf;
 
@@ -449,25 +451,29 @@ if dodss_osc
   data     = ft_selectdata(cfg, data);
   dataorig = ft_selectdata(cfg, dataorig);
   
-  cfg = [];
-  cfg.hpfilter = 'yes';
-  cfg.hpfreq   = 1;
-  cfg.hpfilttype = 'firws';
-  data = ft_preprocessing(cfg, data);
+  cfgr         = [];
+  cfgr.length  = 2;
+  cfgr.overlap = 0.5;
+  data         = ft_redefinetrial(cfgr, data);
+  
+  cfgpp             = [];
+  %cfg.polyremoval = 'yes';
+  %cfg.polyorder   = 2;
+  cfgpp.hpfilter   ='yes';
+  cfgpp.hpfreq     = 1;
+  cfgpp.hpfilttype = 'firws';
   
   nsmp     = cellfun('size',data.trial,2);
   nsmp     = nsmp(:)';
   tr_begin = cumsum([0 nsmp(1:end-1)])+1;
   tr_end   = cumsum(nsmp);
   
-   
   cfg               = [];
-  cfg.numcomponent  = 200;
+  cfg.channel       = 'MEG';
+  %cfg.numcomponent  = 40;
   cfg.cellmode      = 'yes';
   cfg.method        = 'dss';
-  %cfg.method        = 'icasso';
-  %cfg.icasso.method = 'dss';
-  %cfg.icasso.Niter  = 5;
+  %cfg.dss.algorithm = 'defl';
   cfg.dss.algorithm = 'pca';
   cfg.dss.denf.function = 'denoise_filter2';
   cfg.dss.denf.params.filter_filtfilt.A = [];
@@ -475,50 +481,47 @@ if dodss_osc
   cfg.dss.denf.params.tr_begin = tr_begin(:);
   cfg.dss.denf.params.tr_end   = tr_end(:);
   
-  cfgr         = [];
-  cfgr.length  = 2;
-  cfgr.overlap = 0.5;
-  
   cfgf = [];
   cfgf.output = 'pow';
   cfgf.method = 'mtmfft';
-  %cfgf.taper  = 'dpss';
-  %cfgf.tapsmofrq = 1;
-  cfgf.taper = 'hanning';
+  cfgf.taper  = 'dpss';
+  cfgf.tapsmofrq = 1;
   cfgf.foilim    = [0 40];
   
-  if ~exist('freqs','var'),  
-    freqs = (1:0.5:30);
+  if ~exist('freqs','var')  
+    freqs = (2:0.5:30);
   end
   
   for k = 1:numel(freqs)
-    [b,a]   = mous_iirpeak_coeffs(2.*freqs(k)./data.fsample, freqs(k)./(data.fsample.*2.5));
-    cfg.dss.denf.params.filter_filtfilt.A = a;
-    cfg.dss.denf.params.filter_filtfilt.B = b;
-    comp(k) = ft_componentanalysis(cfg, data);
-    freq(k) = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, comp(k)));
+    fprintf('processing frequency %d Hz\n',freqs(k));
+    [filt, B, A] = ft_preproc_bandpassfilter(data.trial{1},data.fsample,freqs(k)+[-1 1].*freqs(k)./8,[],'firws');
+    cfg.dss.denf.params.filter_filtfilt.A = A;
+    cfg.dss.denf.params.filter_filtfilt.B = B;
+    cfg.dss.denf.params.filter_filtfilt.function = 'fir_filterdcpadded';
+    %[b,a]   = mous_iirpeak_coeffs(2.*freqs(k)./data.fsample, freqs(k)./(data.fsample.*2.5));
+    %cfg.dss.denf.params.filter_filtfilt.A = a;
+    %cfg.dss.denf.params.filter_filtfilt.B = b;
+    cfgpp.hpfreq = freqs(k)./1.5;
+    comp = ft_componentanalysis(cfg, ft_preprocessing(cfgpp, data));
+    freq = ft_freqanalysis(cfgf, comp);
+    
+    if k==1
+      powspctrm = freq.powspctrm;
+      powspctrm(:,:,numel(freqs)) = 0;
+    end
+    powspctrm(:,:,k) = freq.powspctrm;
+    allcomp(k,1) = removefields(comp, {'trial','grad','time'});
+    
   end
   
-  for k = 1:59
-    f(:,k) = var(comp(k).topo(:,1:15)*cellrowselect(comp(k).trial,1:15),[],2)./var(data.trial);
-  end
-  F.label  = data.label;
-  F.dimord = 'chan_freq';
-  F.freq   = freqs;
-  F.powspctrm = f;
-  
-  if numel(freqs)==1
-    mous_db_putdata(subjectname, ['meg_restingstate_dssosc',num2str(freqs,'%03d')], 'comp', 'freq', 'F', '/project/3011020.09/jansch',0);
-  else
-    mous_db_putdata(subjectname, 'meg_restingstate_dssosc', 'comp', 'freq', 'F', '/project/3011020.09/jansch',1);
-  end
-  
+  mous_db_putdata(subjectname, 'meg_restingstate_dssosc', 'allcomp', 'freqs', 'powspctrm');
 end
 
 if dodss_osc_source 
   
   mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
   mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdir);
+  mous_db_getdata(subjectname, 'meg_restingstate_dssosc',  rootdir);
   
   v = var(avgcomp,[],2);
   v = v./v(1);
@@ -549,6 +552,35 @@ if dodss_osc_source
   cfg.singleshell.batchsize = 2000;
   leadfield       = ft_prepare_leadfield(cfg, data);
 
+  weightlim = 5;
+  weightexp = .8;%0.5;
+  
+  % this part computes the sum of squares of the leadfields, and uses the
+  % inverse of it for depth weighting.
+  Lss = zeros(prod(leadfield.dim),1)+nan;
+  if islogical(leadfield.inside)
+    inside = find(leadfield.inside);
+  else
+    inside = leadfield.inside;
+  end
+  for k = 1:numel(inside)
+    indx = inside(k);
+    lf   = leadfield.leadfield{indx};
+    Lss(indx,:) = sum(sum(lf.^2));
+  end
+  Lss    = (1./Lss)';
+  minLss = min(Lss(leadfield.inside));
+  Lss(Lss>minLss.*weightlim.^2) = minLss.*weightlim.^2;
+  
+  A = Lss(:).^weightexp;
+  A = repmat(A(inside),[1 2])';
+  
+  % create a source covariance matrix that is equivalent to the area(^2)
+  % times the 1./leadfield-sum-of-square to the power of weightexp
+  % weighting in bst_wmne
+  S = spdiags(A(:),0,speye(numel(A)));
+
+
   % prepare some cfgs
   nsmp     = cellfun('size',data.trial,2);
   nsmp     = nsmp(:)';
@@ -558,48 +590,36 @@ if dodss_osc_source
   data     = ft_selectdata(cfg, data);
   dataorig = ft_selectdata(cfg, dataorig);
   
+  cfgf = [];
+  cfgf.output = 'fourier';
+  cfgf.method = 'mtmfft';
+  cfgf.taper  = 'dpss';
+  cfgf.tapsmofrq = 1;
+  cfgf.foilim    = [0 40];
+  
   cfgr         = [];
   cfgr.length  = 2;
   cfgr.overlap = 0.5;
   data = ft_redefinetrial(cfgr, data);
   
   cfg = [];
-  %cfg.bpfilter = 'yes';
-  %cfg.bpfreq   = [0.5 40];
-  %cfg.bpfilttype = 'firws';
+  cfg.hpfilter = 'yes';
+  cfg.hpfreq   = 1;
+  cfg.hpfilttype = 'firws';
   %cfg.lpfilter = 'yes';
   %cfg.lpfreq   = 40;
   %cfg.lpfilttype = 'firws';
   cfg.polyremoval = 'yes';
   cfg.polyorder   = 2;
   data = ft_preprocessing(cfg, data);
+  freq = ft_freqanalysis(cfgf, data);
   
-  nsmp     = cellfun('size',data.trial,2);
-  nsmp     = nsmp(:)';
-  tr_begin = cumsum([0 nsmp(1:end-1)])+1;
-  tr_end   = cumsum(nsmp);
-   
-  cfg               = [];
-  cfg.numcomponent  = 25;
-  cfg.cellmode      = 'yes';
-  cfg.method        = 'dss';
-  cfg.dss.algorithm = 'pca';
-  cfg.dss.denf.function = 'denoise_filter2';
-  cfg.dss.denf.params.filter_filtfilt.A = [];
-  cfg.dss.denf.params.filter_filtfilt.B = [];
-  cfg.dss.denf.params.tr_begin = tr_begin(:);
-  cfg.dss.denf.params.tr_end   = tr_end(:);
-
-   
-  cfgf = [];
-  cfgf.output = 'fourier';
-  cfgf.method = 'mtmfft';
-  cfgf.taper = 'hanning';
-  cfgf.foilim    = [0 40];
-  
-  cfgt = [];
-  cfgt.vartrllength = 2;
-  cfgt.covariance   = 'yes';
+  cfgpp             = [];
+  %cfg.polyremoval = 'yes';
+  %cfg.polyorder   = 2;
+  cfgpp.hpfilter   ='yes';
+  cfgpp.hpfreq     = 1;
+  cfgpp.hpfilttype = 'firws';
   
   cfgs             = [];
   cfgs.method      = 'lcmv';
@@ -609,39 +629,68 @@ if dodss_osc_source
   cfgs.lcmv.fixedori = 'no';
   cfgs.lcmv.weightnorm= 'unitnoisegain';
   cfgs.lcmv.projectnoise = 'yes';
-  %cfgs.lcmv.lambda = '10%';
-  if ~exist('freqs','var'),  
-    freqs = (1:0.5:30);
+  
+%   cfgs                 = [];
+%   cfgs.method          = 'mne';
+%   cfgs.headmodel       = vol;
+%   cfgs.mne.prewhiten   = 'yes';
+%   cfgs.mne.snr         = 2; % used to be 2
+%   cfgs.mne.scalesourcecov  = 'yes';
+%   cfgs.mne.keepfilter  = 'yes';
+%   cfgs.mne.sourcecov   = S;
+  if ~exist('freqs','var')
+    freqs = (2:0.5:30);
   end
   
+  data.time(:) = data.time(1);
+  
+  cfgt = [];
+  cfgt.covariance = 'yes';
   tlckdata = ft_timelockanalysis(cfgt, data);
   
   pow  = zeros(sum(leadfield.inside),81,numel(freqs));
-  for k = 1:numel(freqs)
-    [b,a]   = mous_iirpeak_coeffs(2.*freqs(k)./data.fsample, freqs(k)./(data.fsample.*2.5));
-    cfg.dss.denf.params.filter_filtfilt.A = a;
-    cfg.dss.denf.params.filter_filtfilt.B = b;
-    comp = ft_componentanalysis(cfg, data);
-    %freq = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, comp));
-    freq = ft_freqanalysis(cfgf, comp);
-    tlck = ft_timelockanalysis(cfgt, comp);
+  
+  ncomp = 40;
+  for k = 1:numel(allcomp)
+    cfgpp.hpfreq = freqs(k)./1.5;
+    tmpdata      = ft_preprocessing(cfgpp, data);
+    tlckdata     = ft_timelockanalysis(cfgt, tmpdata);
+    tmpfreq      = ft_freqanalysis(cfgf, tmpdata);
+%     %tlck = ft_timelockanalysis(cfgt, comp);   
+%     
+%     %tlckdata.cov = comp.topo*tlck.cov*comp.topo';
+%     tlck       = tlckdata;
+%     tlck.cov   = eye(ncomp);
+%     tlck.label = allcomp(k).label(1:ncomp);
+%     
+%     tmpleadfield = leadfield;
+%     tmpleadfield.leadfield(inside) = allcomp(k).unmixing(1:ncomp,:)*tmpleadfield.leadfield(inside);
+%     tmpleadfield.label = allcomp(k).label(1:ncomp);
+%     
+%     % call the low level function directly, because the bookkeeping in
+%     % ft_sourceanalysis requires a consistent grad structure
+%     source = minimumnormestimate(leadfield,[],vol,allcomp(k).topo(:,1:ncomp),'noisecov',eye(size(allcomp(k).topo,1))./100,'snr',8,'prewhiten','yes','scalesourcecov','yes','keepfilter','yes','sourcecov',S);
+%     
+%     %cfgs.grid = tmpleadfield;
     
-    tlckdata.cov = comp.topo*tlck.cov*comp.topo';
-    
-    cfgs.lcmv.subspace = comp.unmixing;
+    cfgs.lcmv.subspace = allcomp(k).unmixing(1:ncomp,:);
     source = ft_sourceanalysis(cfgs, tlckdata);
-    filt   = cat(1,source.avg.filter{:})*comp.topo;
-     
-    % projection matrix to collapse across dipole components
-    n = sum(source.inside);
-    x = repmat(1:n,[2,1]);
-    y = 1:(2*n);
-    z = ones(2*n,1)./2;
-    P = sparse(x(:),y(:),z(:),n,2*n);
+    %filt   = cat(1,source.avg.filter{:});%*comp.topo;
+    filt = cat(1,source.avg.filter{:}); 
     
-    F = permute(freq.fourierspctrm, [2 1 3]);
+    if k==1
+      % projection matrix to collapse across dipole components
+      n = sum(source.inside);
+      x = repmat(1:n,[2,1]);
+      y = 1:(2*n);
+      z = ones(2*n,1)./2;
+      P = sparse(x(:),y(:),z(:),n,2*n);
+    end
+    
+    F = permute(tmpfreq.fourierspctrm, [2 1 3]);
     tmp = zeros(2*n,numel(freq.freq));
     for m = 1:numel(freq.freq)
+      %fprintf('computing power for frequency %f\n',freq.freq(m));
       tmp(:,m) = mean(abs(filt*F(:,:,m)).^2,2);
     end
     pow(:,:,k) = P*tmp;
@@ -655,107 +704,4 @@ if dodss_osc_source
   end
   
 
-  %
-  %   
-%   cfg.lcmv = rmfield(cfg.lcmv, 'subspace');
-%   source = ft_sourceanalysis(cfg, tlck);
-%   
-%   cfgr         = [];
-%   cfgr.length  = 2;
-%   cfgr.overlap = 0.5;
-%   
-%   cfgf = [];
-%   cfgf.output = 'pow';
-%   cfgf.method = 'mtmfft';
-%   %cfgf.taper  = 'dpss';
-%   %cfgf.tapsmofrq = 1;
-%   cfgf.taper = 'hanning';
-%   cfgf.foilim    = [0 40];
-%  
-%   tmp  = data;
-%   for m = 1:10
-%     if m==1
-%       P = zeros(0,81);
-%       P_sub = zeros(0,81);
-%     end
-%     
-%     selx = (m-1)*820+(1:820);
-%     selx(selx>8196) = [];
-%     F = cat(1,source.avg.filter{selx});
-%     F_sub = cat(1,source_sub.avg.filter{selx});
-%     
-%     tmp.label = {};
-%     for k = 1:numel(selx)
-%       tmp.label{k} = sprintf('chan%03d',k);
-%     end
-%     tmp.trial = F*data.trial;
-%     tmpfreq   = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, tmp));
-%     P = cat(1,P,tmpfreq.powspctrm);
-%     tmp.trial = F_sub*data.trial;
-%     tmpfreq   = ft_freqanalysis(cfgf, ft_redefinetrial(cfgr, tmp));
-%     P_sub = cat(1,P_sub,tmpfreq.powspctrm);
-%   end
-%     
-  
-end
-
-if dodss_F
-  mous_db_getdata(subjectname, 'meg_restingstate_data', rootdir);
-  mous_db_getdata(subjectname, 'meg_restingstate_dss',  rootdir);
-  
-  v = var(avgcomp,[],2);
-  v = v./v(1);
-
-  % NOTE: this avoids a crash later on, but not sure which grad structure is
-  % used in ft_rejectcomponent.
-  if isfield(comp,'grad')
-    comp = rmfield(comp, 'grad');
-  end 
-
-  cfg           = [];
-  cfg.component = find(v>0.1);
-  dataorig      = ft_rejectcomponent(cfg, comp, data);
-  clear comp;
-  
-  load('ctf275_neighb.mat');
-  cfg            = [];
-  cfg.neighbours = neighbours;
-  data           = ft_megplanar(cfg, dataorig);
-  
-  mous_db_getdata(subjectname, 'meg_restingstate_dssosc', '/project/3011020.09/jansch');
-  
-  % create the projection matrix from axial to planar for the component
-  % data
-  labelfrom = comp(1).topolabel;
-  labelto   = data.label;
-  
-  [i1,dummy] = match_str(labelto,   data.grad.balance.planar.labelnew);
-  [i2,dummy] = match_str(labelfrom, data.grad.balance.planar.labelorg);
-  T          = full(data.grad.balance.planar.tra(i1,i2));
-  
-  labelto   = labelto(i1);
-  labelfrom = labelfrom(i2);
-   
-  sel1 = 1:(numel(labelto)./2);
-  sel2 = sel1(end)+(1:(numel(labelto)./2));
-  for k = 1:59
-    k
-    %F(:,k) = var((T*comp(k).topo(:,1:5))*cellrowselect(comp(k).trial,1:5),[],2)./var(data.trial);
-    
-    num1 = var((T(sel1,:)*comp(k).topo(:,1:5))*cellrowselect(comp(k).trial,1:5),[],2);
-    num2 = var((T(sel2,:)*comp(k).topo(:,1:5))*cellrowselect(comp(k).trial,1:5),[],2);
-    denom1 = var(cellrowselect(data.trial,sel1),[],2);
-    denom2 = var(cellrowselect(data.trial,sel2),[],2);
-    f(:,k) = (num1+num2)./(denom1+denom2);
-    
-    %F(:,k) = var((T*comp(k).topo(:,1:5))*cellrowselect(comp(k).trial,1:5),[],2)./var(data.trial);
-
-    forig(:,k) = var(comp(k).topo(:,1:5)*cellrowselect(comp(k).trial,1:5),[],2)./var(dataorig.trial);
-  end
-  F.label  = dataorig.label;
-  F.dimord = 'chan_freq';
-  F.freq   = 1:0.5:30;
-  F.powspctrm = f;
-  F.powspctrmorig = forig;
-  mous_db_putdata(subjectname, 'meg_restingstate_dssosc_F', 'F', '/project/3011020.09/jansch');
 end

@@ -4,8 +4,14 @@ function [dataout, stim] = mous_multisetcca_getparceldata(subjectname, data, tim
 % across a set of subjects, according to the specified timinginfo and
 % groupinfo
 
-if nargin<7
+if nargin<7 || isempty(weightrepeats)
   weightrepeats = false;
+end
+if nargin<6 || isempty(stretch)
+  stretch = [];
+end
+if nargin<5 || isempty(shift)
+  shift = 0;
 end
 
 hasstim = strncmp(data.label{end},'stim',4);

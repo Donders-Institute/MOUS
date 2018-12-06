@@ -17,7 +17,7 @@ dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 
 %% define trials, remove artifacts, preprocess data
 if numel(dataset) == 1
-  mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09/MEG/');
+  mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09');
   artfctcfg      = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
   [data, speech] = computedata(dataset{1}, artfctcfg, triggers);
  
@@ -64,7 +64,7 @@ function [data, speech] = computedata(dataset, artfctcfg, triggers)
 %% define trial
 cfg                   = [];
 cfg.dataset           = dataset;
-if ~isempty(strfind(dataset, 'sub-2'))
+if ~isempty(strfind(dataset, 'sub-2')) || ~isempty(strfind(dataset, 'A2'))
   cfg.trialfun          = 'trialfun_auditory_sentence';
   cfg.trialdef.prestim  = 'audioonset';
   cfg.trialdef.poststim = 0.05;

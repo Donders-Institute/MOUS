@@ -145,8 +145,8 @@ end
 
 
 try
-%   load('/project/3011020.09/MEG/misc/mous_stimuli');
-  load('/home/language/nielam/MOUS/meg/trialfun/mous_stimuli');
+  load('/project/3011020.09/misc/stimuli/mous_stimuli');
+  %load('/home/language/nielam/MOUS/meg/trialfun/mous_stimuli');
 catch
   try
    warning('could not deal with the mous_simuli file, probably because you don''t have it: ask Jan-Mathijs');;

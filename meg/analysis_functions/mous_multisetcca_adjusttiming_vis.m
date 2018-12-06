@@ -30,11 +30,19 @@ ok = false(numel(data.trial),1);
 for m = 1:numel(data.trial)
   stim_id = data.trialinfo(m,end);
   
-  wordonset1 = trl(trl(:,9)==stim_id,6)./1200;
-  wordonset2 = stimuli(stim_id).timinginfo_visual(:,2);
+  % very occasionally, stim_id = nan (I suspect when a dsq crash occurred
+  % in the middle of a sentence, this requires the sentence to be discarded
+  
+  if isfinite(stim_id)
+    wordonset1 = trl(trl(:,9)==stim_id,6)./1200;
+    wordonset2 = stimuli(stim_id).timinginfo_visual(:,2);
+  else
+    wordonset1 = nan;
+    wordonset2 = nan;
+  end
   
   % discard instances where the number of words does not match
-  ok(m) = numel(wordonset1)==numel(wordonset2);
+  ok(m) = numel(wordonset1)==numel(wordonset2) && isfinite(stim_id);
   if ok(m)
     delta{m,1} = [wordonset2-wordonset1];
   else

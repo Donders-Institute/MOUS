@@ -1,4 +1,4 @@
-function tlck = mous_multisetcca_extractwords(comp, stimuli)
+function [tlck, Trl_idx] = mous_multisetcca_extractwords(comp, stimuli)
 
 isaudio = false(numel(comp.label),1);
 for k = 1:numel(comp.label)
@@ -15,7 +15,6 @@ end
 % set up cfg for ft_timelockanalysis to grab the word onset locked data
 cfg              = [];
 cfg.keeptrials   = 'yes';
-cfg.vartrllength = 2;
 
 % create the event-locked structure array (as a function of ordinal word)
 nword = 15;
@@ -25,7 +24,9 @@ for m = 1:nword
   usetrials = true(numel(comp.trial),1);
   for k = 1:numel(comp.trial)
     if numel(xx{k})>=m
-      time{k}=timeorig{k}-xx{k}(m);
+      offset = round(xx{k}(m)*comp.fsample)./comp.fsample; % this needs some rounding off in integer multiples of hte sampling interval
+      % to avoid a crash in the new implementation of timelockanalysis
+      time{k}=timeorig{k}-offset;
     else
       usetrials(k)=false;
     end
@@ -37,12 +38,15 @@ for m = 1:nword
     duration = nan(size(tmptlck(m).trial,1),2);
     for mm = 1:size(tmptlck(m).trial,1)
       trl_idx = tmptlck(m).trialinfo(mm,end);
+      Trl_idx{m}(mm,1) = trl_idx;
+      Trl_idx{m}(mm,2) = m;
       duration(mm,1) = stimuli(trl_idx).timinginfo(m+1,2)-stimuli(trl_idx).timinginfo(m,2);
       try,duration(mm,2) = stimuli(trl_idx).timinginfo_visual(m+1,2)-stimuli(trl_idx).timinginfo_visual(m,2); end
     end
     tmptlck(m).trialinfo = duration;
   end
 end
+Trl_idx = cat(1,Trl_idx{:});
 
 % create a set of matrices that hold potentially interesting independent variables
 perpl   = nan(numel(comp.trial),nword);

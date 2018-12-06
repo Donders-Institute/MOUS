@@ -23,7 +23,7 @@ else
     subjname = ['V' f(6:9)];
   elseif strncmp(f, 'sub-', 4)
     subjname = f(1:8);
-  elseif any(strncmp(f,{'V' 'A'}))
+  elseif any(strncmp(f,{'V' 'A'}, 1))
     subjname = f(1:5);
   end
 end

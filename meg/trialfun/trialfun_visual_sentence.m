@@ -58,7 +58,6 @@ end
 
 trl    = zeros(0,6);
 for k = 1:numel(selfix)-1
-  
   % keep track of the '20' trigger
   fixsmp = smp(selfix(k));
   
