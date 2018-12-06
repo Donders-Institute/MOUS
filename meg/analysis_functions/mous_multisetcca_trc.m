@@ -145,7 +145,6 @@ dat = permute(tlck.trial(:,4:end,:),[2 1 3]); % channel 1-3 contain averages
 
 % subtract the mean across trials
 dat = dat-nanmean(dat,2);
-dat(~isfinite(dat)) = 0;
 
 if ~isempty(shift) && numel(shift)==size(dat,1)
   maxshift = max(shift);
