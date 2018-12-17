@@ -659,7 +659,12 @@ if domscca_searchlight_cross
   
   % at this point the groupdata is aligned for subjects with the same
   % scenario, but the number of trials may mismatch across scenarii, and
-  % the order of the trials will be blockwise (condition) swapped
+  % the order of the trials will be blockwise (condition) swapped. The
+  % following section adjusts this order, but also artificially updates the
+  % trialid of the second block of trials of the first scenario to reflect
+  % a 'word list'. This is needed to later on exploit the stratification
+  % option in the mscca step, which can stratify for the number of sent/list
+  % trials in the test data.
   cnt1 = 0;
   cnt2 = 0;
   list1 = [];
@@ -682,19 +687,26 @@ if domscca_searchlight_cross
   for k = 1:numel(subj)
     switch str2num(sce{k})
       case scenario(1)
-        ix = i1;
+        ix  = i1;
+        tmp = groupdata{k}.trialinfo(:,end);
+        sel = (find(diff(tmp)<0)+1):size(tmp,1);
       case scenario(2)
-        ix = i2;
+        ix  = i2;
+        tmp = groupdata{k}.trialinfo(:,end);
+        sel = 1:find(diff(tmp)<0);
     end
+    groupdata{k}.trialinfo(sel,end) = groupdata{k}.trialinfo(sel,end)+500;
+    
     groupdata{k}.trial = groupdata{k}.trial(ix);
     groupdata{k}.time  = groupdata{k}.time(ix);
     groupdata{k}.trialinfo = groupdata{k}.trialinfo(ix,:);
   end
+   
   
   rng('default'); % reset the number generator, in order to be able to compare across parcels
   if ~skip_noshuffle
     tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj); % first row only
-    [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 4, [],false);
+    [W, A, rho, C, comp, testfold] = mous_multisetcca(tmpdata, nfold, 4, [],false, true);
     [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
     
     % rename the labels to create a pseudo-auditory condition, otherwise
@@ -703,6 +715,7 @@ if domscca_searchlight_cross
     subs2 = find(contains(sce, num2str(scenario(2))));
     
     comp.label(subs2) = strrep(comp.label(subs2),'V1','A2');
+    comp.trialinfo(comp.trialinfo(:,end)>500,end) = comp.trialinfo(comp.trialinfo(:,end)>500,end)-500;
     
     set1 = groupinfo_orig{subs1(1)}.trialid;
     set2 = groupinfo_orig{subs2(1)}.trialid;
@@ -713,10 +726,10 @@ if domscca_searchlight_cross
     tmpcfg = [];
     tmpcfg.trials = find(ismember(comp.trialinfo(:,end), set1));
     tlck1 = mous_multisetcca_extractwords(ft_selectdata(tmpcfg, comp), stimuli);
-    trc1  = mous_multisetcca_trc(tlck1, stimuli);
-    tmpcfg.trials = find(ismember(comp.trialinfo(:,end), set2));
+    trc1  = mous_multisetcca_trc(tlck1, stimuli, 'output', 'Z', 'output2', 'single_all');
+    tmpcfg.trials = find(ismember(comp.trialinfo(:,end), set2)); 
     tlck2 = mous_multisetcca_extractwords(ft_selectdata(tmpcfg, comp), stimuli);
-    trc2  = mous_multisetcca_trc(tlck2, stimuli);
+    trc2  = mous_multisetcca_trc(tlck2, stimuli, 'output', 'Z', 'output2', 'single_all');
     
     comp  = ft_struct2single(comp);
     tlck1 = ft_struct2single(tlck1);
