@@ -9,7 +9,7 @@
 % simultaneously allows for accommodating for differences in kernel
 % morphology (whatever that means) across subjects.
 
-if ~exist('rootdir',          'var'), rootdir          = '/project/3011020.09/MEG/';  end
+if ~exist('rootdir',          'var'), rootdir          = '/project/3011020.09/';  end
 if ~exist('computedata',      'var'), computedata      = false;                       end
 if ~exist('computedata_seq',  'var'), computedata_seq  = false;                       end
 if ~exist('cleandata',        'var'), cleandata        = false;                       end
@@ -20,7 +20,6 @@ if ~exist('dotrc',           'var'), dotrc             = false;                 
 if ~exist('computealignment', 'var'), computealignment = false;                       end
 if ~exist('computealignment_seq', 'var'), computealignment_seq = false;       end
 if ~exist('dohyperalignment',     'var'), dohyperalignment     = false;       end
-if ~exist('skipmultisetcca',     'var'), skipmultisetcca       = false;       end
 if ~exist('dohyperalignment_seq', 'var'), dohyperalignment_seq = false;       end
 if ~exist('create_shuffle_indx', 'var'), create_shuffle_indx = false; end
 if ~exist('create_shuffle_indx_seq', 'var'), create_shuffle_indx_seq = false; end
@@ -37,7 +36,7 @@ if exist('scenario', 'var')
   subj = subj(sel);
   sce  = sce(sel);
   
-  selvis   = find(strncmp(subj, 'sub-1', 5));
+  selvis   = find(contains(subj,'V'));
   subj     = subj(selvis);
 end
 
@@ -169,37 +168,89 @@ if dohyperalignment || dohyperalignment_seq
     mous_db_getdata(subj{k}, sprintf('meg_multisetcca_timinginfo%s',suffix));
     mous_db_getdata(subj{k}, sprintf('meg_multisetcca_groupinfo%s',suffix));
     subjecttiming{1,k} = timinginfo; % subject specific information about timing
-    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
-  
-    % shift, use only the first 2 components
-    lags = -50:2:50;
-    groupdata{k}.trial = cellshift(cellrowselect(groupdata{k}.trial, 1:2), lags, 2, [], 'overlap');
+    groupdata{1,k}  = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
+    groupdata1{1,k} = groupdata{k};
+    groupdata2{1,k} = groupdata{k};
+    
+    lags = -6:6;
+    groupdata{k}.trial = cellshift(groupdata{k}.trial, lags, 2, [], 'overlap');
     groupdata{k}.time  = cellshift(groupdata{k}.time, 0, 2, [abs(min(lags)) abs(max(lags))], 'overlap');
-    groupdata{k}.label = repmat(groupdata{k}.label(1:2),numel(lags),1);
-    for kk = 1:numel(groupdata{k}.label)/2
-      groupdata{k}.label{(kk-1)*2+1} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*2+1}, kk);
-      groupdata{k}.label{(kk-1)*2+2} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*2+2}, kk);
+    groupdata{k}.label = repmat(groupdata{k}.label(1:5),numel(lags),1);
+    
+    groupdata2{k}.trial = cellshift(cellrowselect(groupdata2{k}.trial,1), lags, 2, [], 'overlap');
+    groupdata2{k}.time  = cellshift(groupdata2{k}.time, 0, 2, [abs(min(lags)) abs(max(lags))], 'overlap');
+    groupdata2{k}.label = repmat(groupdata2{k}.label(1),numel(lags),1);
+    
+    for kk = 1:numel(groupdata{k}.label)/5
+      groupdata{k}.label{(kk-1)*5+1} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+1}, kk);
+      groupdata{k}.label{(kk-1)*5+2} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+2}, kk);
+      groupdata{k}.label{(kk-1)*5+3} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+3}, kk);
+      groupdata{k}.label{(kk-1)*5+4} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+4}, kk);
+      groupdata{k}.label{(kk-1)*5+5} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+5}, kk);
     end
-
+    for kk = 1:numel(groupdata2{k}.label)
+      groupdata2{k}.label{kk} = sprintf('%s_shift%03d',groupdata2{k}.label{kk}, kk);
+    end
+    
+    % groupdata contains the lag-shifted data for 5 components per parcel
+    % groupdata1 contains the 5 components per parcel
+    % groupdata2 contains the lag-shifted data for the first component per
+    % parcel
+    
     cfg = [];
     cfg.method = 'acrosschannel';
-    groupdata{1,k} = ft_channelnormalise(cfg, groupdata{1,k});
+    groupdata{1,k}  = ft_channelnormalise(cfg, groupdata{1,k});
+    groupdata1{1,k} = ft_channelnormalise(cfg, groupdata1{1,k});
+    groupdata2{1,k} = ft_channelnormalise(cfg, groupdata2{1,k});
     for kk = 1:numel(groupdata{1,k}.trial)
       sel = nearest(groupdata{1,k}.time{kk},-0.1);
       groupdata{1,k}.trial{kk} = groupdata{1,k}.trial{kk}(:,sel:end);
       groupdata{1,k}.time{kk}  = groupdata{1,k}.time{kk}(sel:end);
+      
+      sel = nearest(groupdata1{1,k}.time{kk},-0.1);
+      groupdata1{1,k}.trial{kk} = groupdata1{1,k}.trial{kk}(:,sel:end);
+      groupdata1{1,k}.time{kk}  = groupdata1{1,k}.time{kk}(sel:end);
+      
+      sel = nearest(groupdata2{1,k}.time{kk},-0.1);
+      groupdata2{1,k}.trial{kk} = groupdata2{1,k}.trial{kk}(:,sel:end);
+      groupdata2{1,k}.time{kk}  = groupdata2{1,k}.time{kk}(sel:end);
     end
   end
   
    if ~skip_noshuffle
+     rng('default'); 
+    
+    % hyperalignment, i.e. with lags 
     tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
     [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 1, 1,false);
     [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
-    [cohstim, coh]       = mous_multisetcca_coh(comp);
-    comp                 = ft_struct2single(comp);
+    [tlck]               = mous_multisetcca_extractwords(comp, stimuli);
+    [trc]                = mous_multisetcca_trc(tlck, stimuli, 'output2', 'single_all');
+    
+    % plain and simple mscca
+    tmpdata1             = mous_multisetcca_groupdata2singlestruct(groupdata1, subj);
+    [W1, A1, rho1, C1, comp1] = mous_multisetcca(tmpdata1, nfold, 1, 1,false);
+    [comp1, rho1]        = mous_multisetcca_postprocess(comp1, rho1, source_parc.label{parcel_indx});
+    [tlck1]              = mous_multisetcca_extractwords(comp1, stimuli);
+    [trc1]               = mous_multisetcca_trc(tlck1, stimuli, 'output2', 'single_all');
+    
+    % mscca on the time-shifted first component
+    tmpdata2             = mous_multisetcca_groupdata2singlestruct(groupdata2, subj);
+    [W2, A2, rho2, C2, comp2] = mous_multisetcca(tmpdata2, nfold, 1, 1,false);
+    [comp2, rho2]        = mous_multisetcca_postprocess(comp2, rho2, source_parc.label{parcel_indx});
+    [tlck2]              = mous_multisetcca_extractwords(comp2, stimuli);
+    [trc2]               = mous_multisetcca_trc(tlck2, stimuli, 'output2', 'single_all');
+    
+    % first principal component
+    tmpcfg = [];
+    tmpcfg.channel = tmpdata1.label(1:5:end);
+    tmpdata1 = ft_selectdata(tmpcfg, tmpdata1);
+    [tlck3, Trl_idx]     = mous_multisetcca_extractwords(tmpdata1, stimuli);
+    [trc3]               = mous_multisetcca_trc(tlck3, stimuli, 'output2', 'single_all');
+    
     
     filename = fullfile(savedir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
-    save(filename, 'rho', 'W', 'A', 'comp', 'coh', 'cohstim');
+    save(filename, 'rho', 'W', 'A', 'rho1', 'W1', 'A1', 'rho2', 'W2', 'A2', 'tlck', 'tlck1', 'tlck2', 'tlck3', 'trc', 'trc1', 'trc2', 'trc3');
   end
   
   switch shuftype
@@ -212,125 +263,11 @@ if dohyperalignment || dohyperalignment_seq
   end
 end
 
-if skipmultisetcca
-  shift   = zeros(1,numel(subj));  
-  stretch = ones(1,numel(subj));
-  
-  groupdata   = cell(1,numel(subj));
-  subjectdata = cell(1,numel(subj));
-  subjecttiming = cell(1,numel(subj));
-  for k = 1:numel(subj)
-    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_data%s',suffix));
-    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc%s',suffix));
-    source_parc.filterlabel = filterlabel; % for checking channel order
-    subjectdata{1,k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
-    
-    for kk = 1:numel(subjectdata{1,k}.trial)
-      tmp = subjectdata{1,k}.trial{kk};
-      tmp = tmp - nanmean(tmp,2)*ones(1,size(tmp,2));
-      subjectdata{1,k}.trial{kk} = tmp;
-    end
-    
-    
-    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_timinginfo%s',suffix));
-    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_groupinfo%s',suffix));
-    subjecttiming{1,k} = timinginfo; % subject specific information about timing
-    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
-  
-    cfg = [];
-    cfg.method = 'acrosschannel';
-    groupdata{1,k} = ft_channelnormalise(cfg, groupdata{1,k});
-    for kk = 1:numel(groupdata{1,k}.trial)
-      sel = nearest(groupdata{1,k}.time{kk},-0.1);
-      groupdata{1,k}.trial{kk} = groupdata{1,k}.trial{kk}(:,sel:end);
-      groupdata{1,k}.time{kk}  = groupdata{1,k}.time{kk}(sel:end);
-    end
-  end
-  
-    tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj);
-    
-    cfg           = [];
-    cfg.channel   = tmpdata.label(contains(tmpdata.label, 'chan001'));
-    tmpdata       = ft_selectdata(cfg,tmpdata);
-    
-end
-
-if dotrc
-  % do time resolved correlation
-  if ~exist('parcel_indx', 'var')
-    error('please supply parcel_indx');
-  end
-  if ~exist('stimuli', 'var')
-    load mous_stimuli;
-  end
-  suffix = ''; % for now
-  
-  if ~skipmultisetcca
-      loaddir = sprintf('/project/3011020.09/jansch/hyperalignment/');
-      filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
-      load(filename, 'comp');
-  else
-      comp = tmpdata;
-  end
-  
-  
-  tlck = mous_hyperalignment_tlck(comp,stimuli);
-  
-
-  tlck_smooth = tlck;
-  
-  for m = 1:size(tlck(1).trial,1)
-    tlck_smooth.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),5); % use a smoothing kernel of odd number of samples
-  end
-  
-  selaudio = find(contains(comp.label, 'sub-2'));
-  selvis   = find(contains(comp.label, 'sub-1'));
-  
-  
-  tmp = permute(tlck_smooth.trial(:,2:end,:),[2 1 3]);
-  tmp = tmp-nanmean(tmp,2);
-  
-  for k = 1:109
-    tmpx=tmp(:,:,k);
-    %tmpx=tmpx-nanmean(tmp(:,:,1:(k-1)),3);
-    tmpc=tmpx*tmpx';
-    c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
-  end
-  C(:,1) = squeeze(mean(mean(c(selvis,selvis,:))))-1./numel(selvis);
-  %C(:,2) = squeeze(mean(mean(c(selaudio,selaudio,:))))-1./numel(selaudio);
-  %C(:,1) = squeeze(mean(mean(c(selvis,selaudio,:))));
-  
-  rng('default'); % ensure same 'random' behaviour for each parcel.
-  nrand = 5000;
-  Cx = zeros(size(C,1),nrand);
-  for m = 1:nrand
-    if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
-    tmp2 = tmp;
-    for sub = 1:length(selvis)        
-      tmp2(sub,:,:) = tmp(sub,randperm(size(tmp,2)),:);
-    end
-    for k = 1:109
-      tmpx=tmp2(:,:,k);
-      %tmpx=tmpx-nanmean(tmp(:,:,1:(k-1)),3);
-      tmpc=tmpx*tmpx';
-      c(:,:,k) = tmpc./sqrt(diag(tmpc)*diag(tmpc)');
-    end
-    Cx(:,m) = squeeze(mean(mean(c(selvis,selvis,:))))-1./numel(selvis);
-    %Cx(:,2,m) = squeeze(mean(mean(c(selaudio,selaudio,:))))-1./numel(selaudio);
-    %Cx(:,m) = squeeze(mean(mean(c(selvis,selaudio,:))));
-  end
-  tim = tlck.time;
-  
-  if ~skipmultisetcca
-      filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_trc',scenario,parcel_indx,suffix));
-      save(filename, 'C', 'Cx', 'tim');
-  end
-end
-
-
-%%%%%%%%%%%%%%%%%%%%%%
-% TO BE CHECKED
 if makemodels
+  nrand = 500;
+  
+  addpath('/home/language/jansch/matlab/toolboxes/prevalence-permutation');
+  
   if ~exist('parcel_indx', 'var')
     error('please supply parcel_indx');
   end
@@ -340,114 +277,123 @@ if makemodels
   suffix = ''; % for now
   loaddir = '/project/3011020.09/jansch/hyperalignment';
   filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
-  load(filename, 'comp');
+  load(filename, 'tlck', 'tlck1', 'tlck2', 'tlck3');
   
-%   % this part gets the number of 'trials' that went into each fold. The
-%   % rationale is to fit the beta-weights for each fold separately, and to
-%   % combine the models to get an F statistic.
-%   nfold = 5;
-%   nobs  = numel(comp.trial);
-%   ix    = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
-%   testfold = cell(nfold,1);
-%   for k = 1:nfold
-%     testfold{k,1} = (ix(k)+1):ix(k+1);
-%   end
-%   [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli, testfold);
-%   
-%   % identify the nouns, adjectives and verbs
-%   sel = cell(1,5);
-%   for k = 1:5
-%     sel{k} =          double(strncmp([words{k}.POS], 'N',   1))*1;
-%     sel{k} = sel{k} + double(strncmp([words{k}.POS], 'WW',  2))*2;
-%     sel{k} = sel{k} + double(strncmp([words{k}.POS], 'ADJ', 3))*3;
-%   end
-%   
-%   % select these from the data
-%   for k = 1:5
-%     words{k}.POS      = words{k}.POS(sel{k}>0);
-%     words{k}.duration = words{k}.duration(sel{k}>0);
-%     words{k}.word     = words{k}.word(sel{k}>0);
-%     
-%     cfg        = [];
-%     cfg.trials = find(sel{k});
-%     tlck{k}    = ft_selectdata(cfg, tlck{k});
-%     
-%     X{k} = X{k}(sel{k}>0,:);
-%     V{k} = V{k}(sel{k}>0,:);
-%   end
-%   [~,~,~,~,stats] = mous_multisetcca_regress(tlck,V,X);
+  sel =       double(strncmp([tlck.trialinfo.POS], 'N',   1))*1;
+  sel = sel + double(strncmp([tlck.trialinfo.POS], 'WW',  2))*2;
+  sel = sel + double(strncmp([tlck.trialinfo.POS], 'ADJ', 3))*3;
 
-  [tlck, X, V, ivar, statsall, words] = mous_multisetcca_regress(comp, stimuli);
-  
-  % identify the nouns, adjectives and verbs
-  sel =          double(strncmp([words.POS], 'N',   1))*1;
-  sel = sel + double(strncmp([words.POS], 'WW',  2))*2;
-  sel = sel + double(strncmp([words.POS], 'ADJ', 3))*3;
-  
   % select these from the data
-  words.POS      = words.POS(sel>0);
-  words.duration = words.duration(sel>0);
-  words.word     = words.word(sel>0);
+  tmpcfg = [];
+  tmpcfg.trials = find(sel>0);
+  tlck  = ft_selectdata(tmpcfg, tlck );
+  tlck1 = ft_selectdata(tmpcfg, tlck1);
+  tlck2 = ft_selectdata(tmpcfg, tlck2);
+  tlck3 = ft_selectdata(tmpcfg, tlck3);
+  
+  ivar = tlck.trialinfo.Properties.VariableNames;
+  test_ivars = {'w2v'};%{'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+    %'leftbranch' 'rightbranch' ...
+    %'dleftbranch' 'drightbranch' 'w2v'};
+  
+  sel_ivars = match_str(ivar, test_ivars);
+  cnt = 0;
+  for m = sel_ivars(:)'
+    fprintf('modelling the data with %s\n',ivar{m});
+    cnt = cnt+1;
+    design = tlck.trialinfo(:,m); 
+    design.(ivar{m}) = design.(ivar{m}) - nanmean(design.(ivar{m}));
     
-  cfg        = [];
-  cfg.trials = find(sel);
-  tlck       = ft_selectdata(cfg, tlck);
+    stat   = mous_multisetcca_regress(tlck, design,'constant',1,'lambda',1, 'folds', 5); % with folding, the 'F' is actually a measure of R^2, i.e. the extent to which the predictor predicts... (in analogy to the metric used in scikit learn, which happens indeed to adopt negative values occasionally). 
+    stat1  = mous_multisetcca_regress(tlck1,design,'constant',1,'lambda',1, 'folds', 5);
+    stat2  = mous_multisetcca_regress(tlck2,design,'constant',1,'lambda',1, 'folds', 5);
+    stat3  = mous_multisetcca_regress(tlck3,design,'constant',1,'lambda',1, 'folds', 5);
     
-  X = X(sel>0,:);
-  V = V(sel>0,:);
-  design = struct('V',V,'X',X);
-  [~,~,~,~,stats] = mous_multisetcca_regress(tlck,design);
-
-  tlck_smooth = tlck;
-  %for k = 1:numel(tlck)
-  %  tmp = tlck{k};
-  %  for m = 1:size(tmp.trial,1)
-  %    tmp.trial(m,:,:) = ft_preproc_smooth(squeeze(tmp.trial(m,:,:)),6);
-  %  end
-  %  tlck_smooth{k} = tmp;
-  %end
-  for m = 1:size(tlck.trial,1)
-    tlck_smooth.trial(m,:,:) = ft_preproc_smooth(squeeze(tlck.trial(m,:,:)),6);
-  end
-  
-  folds = mous_makefolds(size(tlck_smooth.trial,1), 5);
-  [~,~,~,~,stats_smooth] = mous_multisetcca_regress(tlck_smooth,design,folds,true);
-  
-  
-  nrand = 500;
-  
-  tlck_smooth.trial = tlck_smooth.trial(:,1:3,:);
-  tlck_smooth.label = tlck_smooth.label(1:3);
-  for j = 1:nrand
-    % mean subtracted duration is in column 3, this shuffles the words
-    % maintaining the distribution in binned duration
-    fprintf('performing randomization %d/%d\n',j,nrand);
-    dur = X(:,3);
-    edges1 = eqspace(dur,5);
-    lf  = X(:,4);
-    edges2 = eqspace(lf,5);
-    [n1,bin1] = histc(dur,edges1);
-    [n2,bin2] = histc(lf, edges2);
-    
-    r_idx = (1:numel(dur))';
-    for m = 1:numel(n1)-1
-      for mm = 1:numel(n2)-1
-        tmp = r_idx(bin1==m&bin2==mm);
-        r_idx(bin1==m&bin2==mm)=tmp(randperm(numel(tmp)));
+    rng('default');
+    p = zeros(size(stat.F));
+    p1 = p;
+    p2 = p;
+    p3 = p;
+    Frand  = zeros([size(stat.F) nrand]);
+    Frand1 = zeros([size(stat.F) nrand]);
+    Frand2 = zeros([size(stat.F) nrand]);
+    Frand3 = zeros([size(stat.F) nrand]);
+    for k = 1:nrand
+      if mod(k,100)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
+      if ~isequal(ivar{m},'w2v')
+        tmpdesign = design;
+        tmpdesign.(ivar{m}) = tmpdesign.(ivar{m})(randperm(size(tlck.trial,1)));
+      else
+        tmpdesign = design;
+        tmpX = table2array(tmpdesign);
+        tmpX = tmpX(randperm(size(tmpX,1)),:);
+        tmpdesign.(ivar{m}) = tmpX;
       end
+            
+      tmp   = mous_multisetcca_regress(tlck, tmpdesign,'constant',1,'lambda',1, 'folds', 5);
+      tmp1  = mous_multisetcca_regress(tlck1,tmpdesign,'constant',1,'lambda',1, 'folds', 5);
+      tmp2  = mous_multisetcca_regress(tlck2,tmpdesign,'constant',1,'lambda',1, 'folds', 5);
+      tmp3  = mous_multisetcca_regress(tlck3,tmpdesign,'constant',1,'lambda',1, 'folds', 5);
+      
+      p  = p  + double(tmp.F  > stat.F );
+      p1 = p1 + double(tmp1.F > stat1.F);
+      p2 = p2 + double(tmp2.F > stat2.F);
+      p3 = p3 + double(tmp3.F > stat3.F);
+      
+      Frand(:,:,k)  = tmp.F;
+      Frand1(:,:,k) = tmp1.F;
+      Frand2(:,:,k) = tmp2.F;
+      Frand3(:,:,k) = tmp3.F;
+      
     end
-    tmpdesign.X = X(r_idx,:);
-    tmpdesign.V = V(r_idx,:);
+    S(cnt).stat  = stat;
+    S(cnt).p     = (p+1)./nrand; % uncorrected p-value of the permutations
+    %S(cnt).Frand = Frand;
+    S(cnt).ivar  = ivar{m};
+    S(cnt).ref   = nanmean(Frand,3);
     
-    folds = mous_makefolds(size(tlck_smooth.trial,1), 5);
-    [~,~,~,~,stats_rand(j)] = mous_multisetcca_regress(tlck_smooth,tmpdesign,folds,true);
-    stats_rand(j).w2v.dR      = stats_rand(j).w2v.dR(1:3,:);
-    stats_rand(j).w2v_orth.dR = stats_rand(j).w2v_orth.dR(1:3,:);
-    stats_rand(j).x.dR        = stats_rand(j).x.dR(1:3,:,:);
-    stats_rand(j).xorth.dR    = stats_rand(j).xorth.dR(1:3,:,:);
+    S1(cnt).stat  = stat1;
+    S1(cnt).p     = (p1+1)./nrand;
+    %S1(cnt).Frand = Frand1;
+    S1(cnt).ivar  = ivar{m};
+    S1(cnt).ref   = nanmean(Frand1,3);
     
+    S2(cnt).stat  = stat2;
+    S2(cnt).p     = (p2+1)./nrand;
+    %S2(cnt).Frand = Frand2;
+    S2(cnt).ivar  = ivar{m};
+    S2(cnt).ref   = nanmean(Frand2,3);
+    
+    S3(cnt).stat  = stat3;
+    S3(cnt).p     = (p3+1)./nrand;
+    %S3(cnt).Frand = Frand3;
+    S3(cnt).ivar  = ivar{m};
+    S3(cnt).ref   = nanmean(Frand3,3);
+    
+%     tmpdat = permute(Frand(4:end,:,:),[2 1 3]);
+%     %tmpdat = cat(3,1-stat.R(4:end,:)'./stat.R0(4:end,:)',tmpdat);
+%     tmpdat = cat(3,stat.F(4:20,:)',tmpdat);
+%     [S(cnt).prev.results, S(cnt).prev.params] = prevalenceCore(tmpdat,250000);
+%     
+%     tmpdat = permute(Frand1(4:end,:,:),[2 1 3]);
+%     %tmpdat = cat(3,1-stat1.R(4:end,:)'./stat1.R0(4:end,:)',tmpdat);
+%     tmpdat = cat(3,stat1.F(4:20,:)',tmpdat);
+%     [S1(cnt).prev.results, S1(cnt).prev.params] = prevalenceCore(tmpdat,250000);
+%     
+%     tmpdat = permute(Frand2(4:end,:,:),[2 1 3]);
+%     %tmpdat = cat(3,1-stat2.R(4:end,:)'./stat2.R0(4:end,:)',tmpdat);
+%     tmpdat = cat(3,stat2.F(4:20,:)',tmpdat);
+%     [S2(cnt).prev.results, S2(cnt).prev.params] = prevalenceCore(tmpdat,250000);
+%     
+%     tmpdat = permute(Frand3(4:end,:,:),[2 1 3]);
+%     %tmpdat = cat(3,1-stat3.R(4:end,:)'./stat3.R0(4:end,:)',tmpdat);
+%     tmpdat = cat(3,stat3.F(4:20,:)',tmpdat);
+%     [S3(cnt).prev.results, S3(cnt).prev.params] = prevalenceCore(tmpdat,250000);
+    close all;
   end
   
-  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
-  save(filename, 'ivar', 'X', 'V', 'words', 'stats_smooth', 'stats_rand');
+  %filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
+  filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models_w2v',scenario,parcel_indx,suffix));
+  
+  save(filename, 'S', 'S1', 'S2', 'S3');
 end

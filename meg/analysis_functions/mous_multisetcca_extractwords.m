@@ -115,10 +115,10 @@ drb = rb - [zeros(size(rb,1),1) rb(:,1:end-1)];
 
 begtim = -0.1;
 endtim = 0.8;
-begs = nearest(tmptlck(1).time,begtim);
-ends = nearest(tmptlck(1).time,endtim);
+begs = nearest(tmptlck(2).time,begtim);
+ends = nearest(tmptlck(2).time,endtim);
 N    = ends-begs+1;
-tim  = tmptlck(1).time(begs:ends);
+tim  = tmptlck(2).time(begs:ends);
 
 Yav = zeros(0,N); % hard coded
 Ya  = zeros(0,N);
@@ -131,17 +131,22 @@ sel = false(numel(comp.trial),nword);
 for k = 1:numel(tmptlck)
   sel(:,k) = isfinite(lb(:,k)); % indicates the existing words for this position
   
-  tmp  = reshape(nanmean(tmptlck(k).trial(:,iv,:),2), [], numel(tmptlck(k).time));
   begs = nearest(tmptlck(k).time,begtim);
   ends = nearest(tmptlck(k).time,endtim);
   nsmp = ends-begs+1;
+  
+  if any(iv)
+  tmp  = reshape(nanmean(tmptlck(k).trial(:,iv,:),2), [], numel(tmptlck(k).time));
   tmpY = tmp(:,begs:ends);
   
   tmpY(:,end+1:N) = nan;
   Yv   = cat(1,Yv,tmpY);
+  end
   
+  if any(ia)
   tmp  = reshape(nanmean(tmptlck(k).trial(:,ia,:),2), [], numel(tmptlck(k).time));
   tmpY = tmp(:,begs:ends);
+  end
   
   tmpY(:,end+1:N) = nan;
   Ya   = cat(1,Ya,tmpY);
@@ -160,8 +165,16 @@ for k = 1:numel(tmptlck)
 end
 
 Yav(~isfinite(Yav)) = 0;
-Yv(~isfinite(Yv))   = 0;
-Ya(~isfinite(Ya))   = 0;
+if any(iv)
+  Yv(~isfinite(Yv))   = 0;
+else
+  Yv = nan(size(Ya));
+end
+if any(ia)
+  Ya(~isfinite(Ya))   = 0;
+else
+  Ya = nan(size(Yv));
+end
 Yall(~isfinite(Yall)) = 0;
 
 % create design matrix
