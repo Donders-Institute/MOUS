@@ -1,7 +1,7 @@
 function [W, A, rho, Rtest, Xtest, testfold] = mous_multisetcca(X,nfold,K,lambda,shufflag,stratified)
 
 if nargin<4 || isempty(lambda)
-  lambda = [];
+  lambda = 0;
 end
 
 if nargin<5 || isempty(shufflag) 
@@ -42,38 +42,60 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
     nfold    = numel(testfold);
   else
     if stratified
-    % create the folds
-    class1   = find(X{1}.trialinfo(:,end)<= 500);
-    nobs1    = length(class1);
-    class2   = find(X{1}.trialinfo(:,end)> 500);
-    nobs2    = length(class2);
-    obs_shuf1 = class1(randperm(nobs1))';
-    obs_shuf2 = class2(randperm(nobs2))';
-    ix1       = round(linspace(0,nobs1,nfold+1)); % indices of observations that go into the test sample
-    ix2       = round(linspace(0,nobs2,nfold+1));
-    testfold = cell(nfold,1);  
-    for k = 1:nfold
-      testfold{k,1} = [obs_shuf1((ix1(k)+1):ix1(k+1)) obs_shuf2((ix2(k)+1):ix2(k+1))];
-    end
+      % create the folds
+      class1   = find(X{1}.trialinfo(:,end)<= 500);
+      nobs1    = length(class1);
+      class2   = find(X{1}.trialinfo(:,end)> 500);
+      nobs2    = length(class2);
+      obs_shuf1 = class1(randperm(nobs1))';
+      obs_shuf2 = class2(randperm(nobs2))';
+      ix1       = round(linspace(0,nobs1,nfold+1)); % indices of observations that go into the test sample
+      ix2       = round(linspace(0,nobs2,nfold+1));
+      testfold = cell(nfold,1);
+      for k = 1:nfold
+        testfold{k,1} = [obs_shuf1((ix1(k)+1):ix1(k+1)) obs_shuf2((ix2(k)+1):ix2(k+1))];
+      end
     else
-    % create the folds
-    nobs     = numel(X{1}.trial);
-    obs_shuf = randperm(nobs);
-    ix       = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
-    testfold = cell(nfold,1);
-    for k = 1:nfold
-      testfold{k,1} = obs_shuf((ix(k)+1):ix(k+1));
-    end
+      % create the folds
+      nobs     = numel(X{1}.trial);
+      testfold = makefolds(nobs, nfold);
     end
   end
   
-  % loop over the folds
+  % loop over the outer folds
   for k = 1:nfold
     fprintf('Computing fold %d/%d\n',k,nfold);
     if exist('blocks', 'var')
       shufflag = blocks;
     end
-    [W(:,:,:,k), A(:,:,:,k), rho(:,:,k), Rtest(:,:,k), Xtest(k,:)] = mous_multisetcca(X,testfold{k},K,lambda,shufflag);
+    if numel(lambda)>1
+      keyboard
+      % FIXME THIS PART IS STILL UNFINISHED
+      for j = 1:nfold
+        % create sample indices for the inner folding, to be consistent
+        % across the different values of the hyperparameter to be tested
+        innerfold{j} = makefolds(numel(X{1}.trial)-numel(testfold{k}), nfold);
+      end
+      
+      for m = 1:numel(lambda)
+        [W(:,:,:,k,m), A(:,:,:,k,m), rho(:,:,k,m), Rtest(:,:,k,m), Xtest(k,:,m)] = mous_multisetcca(X,testfold{k},K,lambda(m),shufflag);
+        
+        % also loop over the inner folds, use the same number of folds for
+        % the inner folding, to evaluate the effect of the hyperparameter
+        for j = 1:nfold
+          Xinner = X{1};
+          indx   = setdiff(1:numel(Xinner.trial), testfold{k});
+          Xinner.trial = Xinner.trial(indx);
+          Xinner.time  = Xinner.time(indx);
+          Xinner.trialinfo = Xinner.trialinfo(indx,:);
+          [~, ~, rho_inner(:,:,j,m,k)] = mous_multisetcca({Xinner},innerfold{k}{j},K,lambda(m),shufflag);
+        end
+      end
+        
+      keyboard
+    else
+      [W(:,:,:,k), A(:,:,:,k), rho(:,:,k), Rtest(:,:,k), Xtest(k,:)] = mous_multisetcca(X,testfold{k},K,lambda,shufflag);
+    end
   end
   
   % do a polarity check on the weights and get a majority vote: Note that
@@ -341,10 +363,12 @@ end
 % subfunctions
 function [W,A] = getAW(R,S,K,n,lambda)
 
-if ~isempty(lambda)
-  R = R + eye(size(R,1)).*lambda;
-  S = S + eye(size(S,1)).*lambda;
+if isempty(lambda)
+  lambda = 0;
 end
+
+R = R + eye(size(R,1)).*lambda;
+S = S + eye(size(S,1)).*lambda;
   
 nset = numel(n);
 %assert(all(n==n(1)));
@@ -385,3 +409,13 @@ for k = 1:nset
 end
 rho = tmp*R*tmp';
 %rho = rho./sqrt(diag(rho)*diag(rho)');
+
+function testfold = makefolds(nobs, nfold)
+
+testfold = cell(nfold,1);
+obs_shuf = randperm(nobs);
+ix       = round(linspace(0,nobs,nfold+1)); % indices of observations that go into the test sample
+testfold = cell(nfold,1);
+for k = 1:nfold
+  testfold{k,1} = obs_shuf((ix(k)+1):ix(k+1));
+end
