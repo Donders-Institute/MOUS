@@ -4,13 +4,15 @@ function stats = mous_multisetcca_regress(tlck, design, varargin)
 %reduced model can be defined with the key 'modelcomparison' (default is to
 %compare only first predictor against rest). If specified, constant will be
 %added post orthogonalisation.
-folds               = ft_getopt(varargin, 'folds', []);
+folds               = ft_getopt(varargin, 'folds',      []);
+outerfolds          = ft_getopt(varargin, 'outerfolds', folds);
+innerfolds          = ft_getopt(varargin, 'innerfolds', folds);
 lambda              = ft_getopt(varargin, 'lambda', 0);
 ortho               = ft_getopt(varargin, 'ortho', {});
 contentwords_only   = ft_getopt(varargin, 'contentwords_only', false);
 reduceto            = ft_getopt(varargin, 'modelcomparison', []);
 constant            = ft_getopt(varargin, 'constant', false);
-normalise                = ft_getopt(varargin, 'normalise', false);
+normalise           = ft_getopt(varargin, 'normalise', false);
 
 
 if iscellstr(ortho)
@@ -37,7 +39,7 @@ if iscellstr(reduceto)
   end
 else
   if max(reduceto) >= size(design,2)
-    warning('mismatch between design matrix and model comparison parameters')
+    %warning('mismatch between design matrix and model comparison parameters')
   end
 end
 
@@ -54,10 +56,23 @@ if contentwords_only
   design     = design(sel>0,:);
 end
 
-if ~iscell(folds) && ~isempty(folds)
-  folds = mous_makefolds(size(tlck.trial,1), folds);
-  %FIXME: folds can be either integer or cell array, but now folds will not
-  %be interpreted as pre-supplied weights
+if ~iscell(outerfolds) && ~isempty(outerfolds)
+  outerfolds = mous_makefolds(size(tlck.trial,1), outerfolds);
+end
+if iscell(outerfolds) && numel(lambda)>1 && ~iscell(innerfolds) && ~isempty(innerfolds)
+  fprintf('creating partitioning of data for nested cross-validation\n');
+  
+  for m = 1:numel(outerfolds)
+    tmpfolds{m} = mous_makefolds(size(tlck.trial,1)-numel(outerfolds{m}), innerfolds);
+  end
+  innerfolds = tmpfolds;
+elseif iscell(outerfolds) && numel(lambda)==1
+  if ~iscell(innerfolds)
+    innerfolds = cell(size(outerfolds));
+  end
+  for k = 1:numel(outerfolds)
+    innerfolds{k} = [];
+  end
 end
 
 if ~isempty(ortho)
@@ -84,85 +99,171 @@ end
 if normalise
   design = normc(design);
 end
+
 %% do the regressions
-[F, R0, R, n, p1, p2, B] = dat2F(tlck.trial, design, reduceto, lambda, folds);
-stats.F  = F;
-stats.R  = R;
-stats.R0 = R0;
-stats.p1 = p1;
-stats.p2 = p2;
-stats.n  = n;
-stats.B  = B;
-stats.ivar = tlck.trialinfo.Properties.VariableNames;
+output = doregression(tlck.trial, design, 'col0', reduceto, 'lambda', lambda, 'outerfolds', outerfolds, 'innerfolds', innerfolds, 'output', {'Rsq', 'B'});
+
+if numel(output)>1
+  stats.Rsq = mean(cat(3,output.Rsq),3);
+  stats.B   = cat(4,output.B);
+  stats.ivar = tlck.trialinfo.Properties.VariableNames;
+else
+  stats.Rsq = output.Rsq;
+  stats.B   = output.B;
+  stats.ivar = tlck.trialinfo.Properties.VariableNames;
+end
+if isfield(output, 'lambda')
+  stats.lambda = output(1).lambda;
+end
 
 %FIXME: maybe we want an option for iteratively doing the model comparison?
 %adding one predictor at a time as seems to have been done before?
 %   for k = 1:size(Xnew,2)-4
 %     %tmpX = orthogonalise(X(:,[1 2 3 4 5 5+k]));
 %     tmpX = Xnew(:,[1 2 3 4 4+k]);
-%     [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = dat2F(tlck.trial,tmpX,[1 2 3 4]);
+%     [F(:,:,k), R0(:,:,k), R(:,:,k), n(k), p1(k), p2(k), B(:,:,:,k)] = doregression(tlck.trial,tmpX,[1 2 3 4]);
 %   end
 
 
-function [F, R0, R, n, p1, p2, B] = dat2F(alldat, design, col0, lambda, B)
+function output = doregression(alldat, design, varargin)
 
-if nargin<3 || isempty(col0)
-  col0 = 1;
-end
+col0   = ft_getopt(varargin, 'col0', 1); % assume the first column in the design to be a constant
+lambda = ft_getopt(varargin, 'lambda', []);
+B      = ft_getopt(varargin, 'B', []);
+innerfolds = ft_getopt(varargin, 'innerfolds', []);
+outerfolds = ft_getopt(varargin, 'outerfolds', []);
+outputargs = ft_getopt(varargin, 'outputargs', {'Rsq' 'B' 'R' 'R0'});
 
-if nargin<4 || isempty(lambda)
-  lambda = 0;
-end
-
-if nargin<5
-  B = [];
+computeweights = isempty(B) && any(ismember(outputargs, 'B'));
+computeRsq     = any(ismember(outputargs, 'Rsq'));
+computeR       = any(ismember(outputargs, 'R'));
+computeR0      = any(ismember(outputargs, 'R0'));
+if computeR || computeR0
+  computeweights = true;
 end
 
 n  = size(design,1);
 p2 = size(design,2);
 p1 = numel(col0);
 
+% assume data and design to be properly scaled in order to avoid numerical
+% issues, also the mean should be dealt with by means of an explicit
+% regressor in the design (or the data should be demeaned)
+
 siz = size(alldat);
-%dat = reshape(permute(alldat,[1 3 2]),[siz(1) siz(2)*siz(3)]);
 dat = reshape(alldat,[siz(1) siz(2)*siz(3)]);
-%dat = dat - nanmean(dat,1);
-%dat = normc(dat);
-if isempty(B)
-  if ~lambda
-    B   = design\dat;
-  else
-    B   = ((design'*design+lambda.*eye(size(design,2)))\design')*dat;
-    %B   = (design'*design+lambda.*eye(size(design,2)))\(design'*dat);
+if ~isempty(outerfolds)
+  % do an outer fold cross validation
+  if isempty(innerfolds)
+    innerfolds = cell(size(outerfolds));
   end
-elseif iscell(B)
-  % assume that B is a cell-array containing the indices of the test-folds.
-  for k = 1:numel(B)
-    ix = B{k};
+  for k = 1:numel(outerfolds)
+    if numel(lambda)==1 && ~isempty(innerfolds{k})
+      error('nested cross-validation is not possible with just a single value for the hyperparameter');
+    end
+    
+    ix = outerfolds{k};
     iy = setdiff(1:size(alldat,1),ix);
-    [~,  ~, ~, ~, ~, ~, Btmp] = dat2F(alldat(iy,:,:), design(iy,:), col0, lambda);
-    [~, tmpR0, tmpR]          = dat2F(alldat(ix,:,:), design(ix,:), col0, lambda, Btmp);
-    if k==1
-      R0 = tmpR0.*numel(ix);
-      R  =  tmpR.*numel(ix);
-      n  =        numel(ix);
+    
+    % for the given outer fold, compute the performance statistic, which
+    % can be computed across several values of the hyperparameter
+    if numel(lambda)==1
+      % speed things up a bit by not computing a lot of unnecessary junk
+      tmp       = doregression(alldat(iy,:,:), design(iy,:), 'col0', col0, 'lambda', lambda, 'innerfolds', innerfolds{k});
+      output(k) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda, 'B', tmp.B);
     else
-      R0 = tmpR0.*numel(ix) + R0;
-      R  = tmpR .*numel(ix) + R;
-      n  =        numel(ix) + n;
+      
+      for m = 1:numel(lambda)
+        tmp         = doregression(alldat(iy,:,:), design(iy,:), 'col0', col0, 'lambda', lambda(m), 'innerfolds', innerfolds{k});
+        output(k,m) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda(m), 'B',      tmp.B);
+      end
     end
   end
-  F = (R0-R)./R;
-  return;
-else
-  % use the pre-supplied weights
-  %B = reshape(permute(B, [1 3 2]), [size(B,1) size(B,2)*size(B,3)]);
-  B = reshape(B, [size(B,1) size(B,2)*size(B,3)]);
   
+  if numel(lambda)>1
+    % select the values that optimise the Rsq in the inner
+    % cross-validation loop
+    Rsq = squeeze(mean(reshape(cat(3, output.Rsq), [size(output(1).Rsq) size(output)]),3));
+    
+    Lout = zeros(size(output(1).Rsq))-inf;
+    [mR, ixR] = max(Rsq,[],3);
+    newoutput = output(:,1);
+    for k = 1:numel(newoutput)
+      newoutput(k).B(:)   = nan;
+      newoutput(k).Rsq(:) = nan;
+      for m = unique(ixR(:))'
+        Lout(ixR==m) = lambda(m);
+        newoutput(k).B(:,ixR==m) = output(k,m).B(:,ixR==m);
+        newoutput(k).Rsq(ixR==m) = output(k,m).Rsq(ixR==m);
+      end
+      newoutput(k).lambda = Lout;
+    end
+    output = newoutput; 
+    
+  end
+  return;
+  
+elseif isempty(B)
+  % compute the regression weights
+  if (~iscell(lambda) && numel(lambda)==1 && lambda==0) || isempty(lambda)
+    % do an unregularized regression
+    B   = design\dat;
+  elseif ~isempty(innerfolds)
+    % do a nested cross-validation keeping the performance metric as an aggregate across
+    % inner folds for each value of the hyperparameter lambda, recursing
+    % into doregression
+    for m = 1:numel(innerfolds)
+      ix = innerfolds{m};
+      iy = setdiff(1:size(alldat,1),ix);
+      tmp       = doregression(alldat(iy,:,:), design(iy,:), 'col0', col0, 'lambda', lambda);
+      output(m) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda, 'B', tmp.B);  
+    end
+    R  = cat(3,output.R);
+    R0 = cat(3,output.R0);
+    n  = cat(3,output.n);
+    Rsq = 1-sum(R.*n,3)./sum(R0.*n,3);
+    
+    % compute the weights across all observations for the current lambda
+    output = doregression(alldat, design, 'col0', col0, 'lambda', lambda);    
+    output.Rsq = Rsq; % keep the aggregated quality metric.
+    
+    return;
+  elseif isempty(innerfolds)
+    B = ((design'*design+lambda.*eye(size(design,2)))\design')*dat;
+  elseif iscell(lambda)
+    % this is the case when each of the samples has its own lambda
+    lambda = lambda{1}(:);
+    B = nan(size(design,2),size(dat,2));
+    U = unique(lambda);
+   
+    for m = 1:numel(U)
+      
+      B(:,lambda==U(m)) = ((design'*design+U(m).*eye(size(design,2)))\design')*dat(:,lambda==U(m));
+    end
+  else
+    % compute the regression weights given a fixed value of lambda
+    B   = ((design'*design+lambda.*eye(size(design,2)))\design')*dat;
+  end
+else
+  B = reshape(B, [size(B,1) siz(2)*siz(3)]);
 end
 
-R0 = reshape(sum((dat-design(:,col0)*B(col0,:)).^2),[siz(2) siz(3)]);
-R  = reshape(sum((dat-design*B).^2),[siz(2) siz(3)]);
+output.n = siz(1);
+output.lambda = lambda;
+if computeR0
+  output.R0 = reshape(sum((dat-design(:,col0)*B(col0,:)).^2),[siz(2) siz(3)]);
+end
+if computeR
+  output.R  = reshape(sum((dat-design*B).^2),[siz(2) siz(3)]);
+end
+if computeweights
+  output.B = reshape(B,[size(B,1) siz(2) siz(3)]);
+end
+if computeRsq
+  if exist('F', 'var')
+    output.Rsq = F;
+  else
+    output.Rsq = (output.R0-output.R)./output.R0;
+  end
+end
 
-F  = ((R0-R)./(p2-p1))./(R./(n-p2));
-%B  = permute(reshape(B,[size(B,1) siz(3) siz(2)]),[1 3 2]);
-B  = reshape(B,[size(B,1) siz(2) siz(3)]);

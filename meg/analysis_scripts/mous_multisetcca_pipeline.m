@@ -637,6 +637,24 @@ if domscca_searchlight_cross
     % in terms of timing and trial-order
     groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo{k});%,true);
     
+    lags = -6:6;
+    groupdata{k}.trial = cellshift(groupdata{k}.trial, lags, 2, [], 'overlap');
+    groupdata{k}.time  = cellshift(groupdata{k}.time, 0, 2, [abs(min(lags)) abs(max(lags))], 'overlap');
+    norig = numel(groupdata{k}.label);
+    groupdata{k}.label = repmat(groupdata{k}.label,numel(lags),1);
+    
+    for kk = 1:numel(lags)
+      for m = 1:norig
+        groupdata{k}.label{(kk-1)*norig+m} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*norig+m}, kk);
+      end
+    end
+  end
+  
+  for k = 1:numel(subj)
+    
+    
+    
+    
 %     %FIXME: THERE'S A STRANGE MISMATCH IN THE LENGTH OF THE TIME AXES AND
 %     %THE LENGTH OF THE TRIALS, WHICH I DON'T UNDERSTAND, YET. FOR NOW,
 %     %ADJUST MANUALLY, BECAUSE I HAVE NO REASON TO SUSPECT THE TIME AXIS TO
@@ -706,7 +724,7 @@ if domscca_searchlight_cross
   rng('default'); % reset the number generator, in order to be able to compare across parcels
   if ~skip_noshuffle
     tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata, subj); % first row only
-    [W, A, rho, C, comp, testfold] = mous_multisetcca(tmpdata, nfold, 4, [],false, true);
+    [W, A, rho, C, comp, testfold] = mous_multisetcca(tmpdata, nfold, 4, 0.1,false, true);
     [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
     
     % rename the labels to create a pseudo-auditory condition, otherwise
