@@ -24,7 +24,8 @@ if ~exist('dohyperalignment_seq', 'var'), dohyperalignment_seq = false;       en
 if ~exist('create_shuffle_indx', 'var'), create_shuffle_indx = false; end
 if ~exist('create_shuffle_indx_seq', 'var'), create_shuffle_indx_seq = false; end
 if ~exist('makemodels', 'var'), makemodels = false; end
-
+if ~exist('combinemodels', 'var'), combinemodels = false; end
+  
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var') && ~exist('subj', 'var')
   error('at least a subjectname, a scenario number, or a list of subjects needs to be defined');
 end
@@ -502,3 +503,66 @@ if makemodels2
   
   save(filename, 'S');
 end
+
+if combinemodels
+  % collapse the parcel specific data into a (hopefully smaller) variable,
+  % so that the original '*models.mat' files can be discarded
+  datadir = '/project/3011020.09/jansch/hyperalignment'; %HARDCODED
+   
+  d = dir(fullfile(datadir,sprintf('*sce%d*models.mat',scenario)));
+  if numel(d)~=378
+    % some parcels failed to compute because too few vertices per parcel
+    error('expected number is less than 378 parcels');
+  end
+  
+  for k = 1:numel(d)
+    fprintf('processing file %s\n', d(k).name);
+    if exist('fn', 'var') && numel(fn)==1
+      dat = load(fullfile(d(k).folder,d(k).name),fn{1});
+    else
+      dat = load(fullfile(d(k).folder,d(k).name));
+      fn = fieldnames(dat);
+      fn = fn(1); % keep RAM use within bounds, repeat for the other variables
+      fprintf('using variable %s\n',fn{1});
+    end
+    
+    if k==1
+      fprintf('using variable %s\n',fn{1});
+    end
+    
+    for m = 1:numel(fn)
+      tmp = dat.(fn{m});
+      for p = 1:numel(tmp)
+        tmp2 = tmp(p);
+        tmp2.Rsq = tmp2.stat.Rsq;
+        tmp2.B   = nanmean(tmp2.stat.B,4);
+        tmp2.lambda = tmp2.stat.lambda;
+        tmp2     = rmfield(tmp2, 'stat');
+        
+        if k==1   
+          tmp2.Rsq(:,:,378) = 0;
+          tmp2.B(:,:,:,378) = 0;
+          tmp2.ref(:,:,378) = 0;
+          tmp2.p(:,:,378)   = 0;
+        
+          data.(fn{m})(p) = tmp2;
+        else
+          data.(fn{m})(p).p(:,:,k) = tmp2.p;
+          data.(fn{m})(p).Rsq(:,:,k) = tmp2.Rsq;
+          data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
+          data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
+        end
+      end
+    end
+    clear dat;
+  end
+  
+  data = ft_struct2single(data);
+  filename = fullfile(datadir, sprintf('hyperalignment_models_sce%d_%s', scenario, fn{1}));
+  save(filename,'-struct', 'data');
+  
+end
+
+      
+      
+ 
