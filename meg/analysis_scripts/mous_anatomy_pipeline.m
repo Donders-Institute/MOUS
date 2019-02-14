@@ -9,7 +9,7 @@ ft_default.checksize = inf;
 %% Set subject, input & output dirs
 %mous_db_makesubjdir(subjectname);
 
-if ~exist('rootdir', 'var'), rootdir = '/project/3011020.09/MEG'; end
+if ~exist('rootdir', 'var'), rootdir = '/project/3011020.09/processed'; end
 
 % these parts rely on a correct MNI coregistration
 if ~exist('docoregistration1', 'var'), docoregistration1 = 0; end
@@ -324,6 +324,8 @@ if doqualitycheck
 end
 
 if dosourcemodel2d_reg2018
+  % FIXME this part seems to never have been run
+  
   % do the surface-based registration to th fs_average_164k mesh
   % this results in the nodes being 1-to-1 mapped.
   % subsequent downsampling to 8196 nodes keeps the nodes in register
@@ -375,5 +377,40 @@ if dosourcemodel2d_reg2018
   bnd  = ft_read_headshape(fifname,'format','mne_source');
   bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
   mous_db_putdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg', 'bnd', rootdir, 0);
+
+end
+
+if dosourcemodel2d_reg2019
+  % do the surface-based registration to th fs_average_164k mesh
+  % this results in the nodes being 1-to-1 mapped.
+  % subsequent downsampling to 8196 nodes keeps the nodes in register
+  % this needs an installation of caret and some specific additional scripts
+  
+  % what's done here, is that the 
+  
+  % create directory that will contain the results
+  rootdir     = '/project/3011020.09/processed';
+  subjdirfs   = [rootdir,filesep,subjectname,'/meg/anatomy/',subjectname];
+  outputdir   = tempname;%['/project/3011020.09/jansch/dummydir' subjectname];
+  mkdir(outputdir);
+  targetdir   = '/home/language/jansch/projects/mous/meg/templates/sourcemodel/fsaverage_LR_164k/';  
+
+  str     = which('freesurfer_to_fs_LR.sh');
+  [p,f,e] = fileparts(str);
+  str     = ([p,'/freesurfer_to_fs_LR.sh ',subjdirfs,' ',targetdir,' ',outputdir]);
+  
+  % run the registration script 
+  system(str);
+  
+  % read in the data, using the spec-file
+  specfile = fullfile(outputdir, subjectname, sprintf('%s.L.orig.164k_fs_LR.spec', subjectname));
+  bnd      = ft_read_headshape({specfile strrep(specfile,'.L.','.R.')},'surface','midthickness');
+
+  mri1 = mous_db_getdata(subjectname, 'meg_anatomy_coregCTF');
+  mri2 = mous_db_getdata(subjectname, 'meg_anatomy_coregMNI');
+  
+  bnd  = mous_anatomy_sourcemodel2D(bnd, mri1, mri2);
+  bnd  = ft_struct2single(bnd);
+  save([subjdirfs 'sourcemodel2Dsurfreg328k.mat'], 'bnd');
 
 end

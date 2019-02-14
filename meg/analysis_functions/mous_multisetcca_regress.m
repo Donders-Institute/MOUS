@@ -13,6 +13,7 @@ contentwords_only   = ft_getopt(varargin, 'contentwords_only', false);
 reduceto            = ft_getopt(varargin, 'modelcomparison', []);
 constant            = ft_getopt(varargin, 'constant', false);
 normalise           = ft_getopt(varargin, 'normalise', false);
+balancefolds        = ft_getopt(varargin, 'balancefolds', false);
 
 
 if iscellstr(ortho)
@@ -57,7 +58,7 @@ if contentwords_only
 end
 
 if ~iscell(outerfolds) && ~isempty(outerfolds)
-  outerfolds = mous_makefolds(size(tlck.trial,1), outerfolds);
+  outerfolds = mous_makefolds(size(tlck.trial,1), outerfolds, balancefolds,design);
 end
 if iscell(outerfolds) && numel(lambda)>1 && ~iscell(innerfolds) && ~isempty(innerfolds)
   fprintf('creating partitioning of data for nested cross-validation\n');

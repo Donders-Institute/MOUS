@@ -38,6 +38,7 @@ if exist('scenario', 'var')
   
   selvis   = find(contains(subj,'V'));
   subj     = subj(selvis);
+  subj     = setdiff(subj, {'V1017'});
 end
 
 if ~exist('savedir', 'var')
@@ -159,6 +160,14 @@ if dohyperalignment || dohyperalignment_seq
   for k = 1:numel(subj)
     mous_db_getdata(subj{k}, sprintf('meg_multisetcca_data%s',suffix));
     mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc%s',suffix));
+    
+    % THIS IS A HARD CODED STEP THAT AIMS AT REMOVING A STRONG REMAINING
+    % ARTIFACT
+    if strcmp(subj{k},'V1077')
+      sel = find(data.trialinfo(:,end)==393);
+      data.trial{sel}(:) = nan;
+    end
+    
     source_parc.filterlabel = filterlabel; % for checking channel order
     subjectdata{1,k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
     
@@ -305,8 +314,10 @@ if makemodels
   ivar = tlck.trialinfo.Properties.VariableNames;
   test_ivars = {'loglexfreq' 'index' 'logperplexity' 'entropy' ...
     'leftbranch' 'rightbranch' ...
-    'dleftbranch' 'drightbranch'};% 'w2v'};
+    'dleftbranch' 'drightbranch' 'w2v'};
   
+  categorical = ismember(ivar, {'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index'});
+    
   sel_ivars = match_str(ivar, test_ivars);
   cnt = 0;
   for m = sel_ivars(:)'
@@ -315,10 +326,10 @@ if makemodels
     design = tlck.trialinfo(:,m); 
     design.(ivar{m}) = design.(ivar{m}) - nanmean(design.(ivar{m}));
     
-    stat   = mous_multisetcca_regress(tlck, design,'constant',1,'lambda',lambda, 'outerfolds', 5);%, 'innerfolds', 5); % with folding, the 'F' is actually a measure of R^2, i.e. the extent to which the predictor predicts... (in analogy to the metric used in scikit learn, which happens indeed to adopt negative values occasionally). 
-    stat1  = mous_multisetcca_regress(tlck1,design,'constant',1,'lambda',lambda, 'outerfolds', 5);%, 'innerfolds', 5);
-    stat2  = mous_multisetcca_regress(tlck2,design,'constant',1,'lambda',lambda, 'outerfolds', 5);%, 'innerfolds', 5);
-    stat3  = mous_multisetcca_regress(tlck3,design,'constant',1,'lambda',lambda, 'outerfolds', 5);%, 'innerfolds', 5);
+    stat   = mous_multisetcca_regress(tlck, design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m));%, 'innerfolds', 5); % with folding, the 'F' is actually a measure of R^2, i.e. the extent to which the predictor predicts... (in analogy to the metric used in scikit learn, which happens indeed to adopt negative values occasionally). 
+    stat1  = mous_multisetcca_regress(tlck1,design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m));%, 'innerfolds', 5);
+    stat2  = mous_multisetcca_regress(tlck2,design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m));%, 'innerfolds', 5);
+    stat3  = mous_multisetcca_regress(tlck3,design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m));%, 'innerfolds', 5);
     
     rng('default');
     p = zeros(size(stat.Rsq));
