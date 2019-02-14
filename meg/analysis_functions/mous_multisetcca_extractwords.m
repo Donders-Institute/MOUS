@@ -104,6 +104,7 @@ for k = 1:numel(comp.trial)
   allwords(1:nword_here,k) = keepfields(words,{'POS' 'word' 'duration'})';
 end
 % reorganize the words
+allwords = allwords'; %to order according to ordinal word position not trials
 words          = [];
 words.word     = [allwords(:).word]';
 words.POS      = [allwords(:).POS]';
