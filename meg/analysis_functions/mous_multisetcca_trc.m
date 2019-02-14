@@ -10,6 +10,7 @@ condition         = ft_getopt(varargin, 'condition', 'all');
 untilnextword     = ft_getopt(varargin, 'untilnextword', false);
 untilnextword_visual = ft_getopt(varargin, 'untilnextword_visual', false);
 output2           = ft_getopt(varargin, 'output2', 'average_mod');
+subselection      = ft_getopt(varargin, 'subselection', '');
 
 switch output
   case 'rho'
@@ -61,7 +62,7 @@ if ft_datatype(data, 'raw')
   end
   tlck = mous_multisetcca_extractwords(data, stimuli);
 else
-  tlck = data;
+    tlck = data;
   if ~exist('selaudio', 'var')
     selaudio{1} = find(contains(tlck.label, 'A'));
     selvis{1}   = find(contains(tlck.label, 'V'));
@@ -75,6 +76,74 @@ else
   end
 end
 
+if ~isempty(subselection)
+    %For each sentence, how many words can be selected per clause
+    stimuli_rc = stimuli(1:204);
+    idsall = vertcat(stimuli_rc.id);
+    MCcont = vertcat(stimuli_rc.MCcontinuationword);
+    MCcont(isnan(MCcont)) = vertcat(stimuli_rc(idsall(isnan(MCcont))).numwords)+1;
+    
+    pre = vertcat(stimuli_rc.RConsetword)-1;
+    in  = MCcont-vertcat(stimuli_rc.RConsetword);
+    post= vertcat(stimuli_rc.numwords)-(MCcont-1);
+    post(post==0) = NaN;
+    nsel = min([pre in post],[],2);
+        
+    if strcmp(subselection,'pre')
+        ids = unique(tlck.trialinfo.id);
+        onsets = vertcat(stimuli(ids).RConsetword);
+        
+        sel = [];
+        for i = 1:length(ids)
+            id = ids(i);
+            ord = onsets(i)-nsel(idsall==id):onsets(i)-1;
+            sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
+        end         
+    elseif strcmp(subselection,'rc')
+        ids = unique(tlck.trialinfo.id);
+        offsets = MCcont(ismember(idsall,ids));
+        
+        sel = [];
+        for i = 1:length(ids)
+            id = ids(i);
+            ord = offsets(i)-nsel(idsall==id):offsets(i)-1;
+            sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];         
+        end 
+    elseif strcmp(subselection,'post')
+        ids = unique(tlck.trialinfo.id);
+        offsets = MCcont(ismember(idsall,ids));
+        
+        sel = [];
+        for i = 1:length(ids)
+            id = ids(i);
+            if ~isnan(post(idsall==id))%only do for center-embedded clauses)
+                ord = offsets(i):offsets(i) + nsel(idsall==id)-1;
+                sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
+            end  
+        end 
+    else
+        lenrc = vertcat(stimuli(unique(subselection.id)).numwords);
+        lentlck = vertcat(stimuli(unique(tlck.trialinfo.id)).numwords) ;
+        [~, isortrc] = sort(lenrc); 
+        [~, isorttlck] = sort(lentlck);
+        
+        ids = unique(tlck.trialinfo.id);
+        idrc = unique(subselection.id);
+        sel = [];
+        for l = 1:length(idrc)
+           id = idrc(l);
+           idmatch = ids(isorttlck(isortrc==l));
+           ord = subselection.ordinal(subselection.id==id);
+           sel = [sel; find(tlck.trialinfo.id==idmatch & ismember(tlck.trialinfo.ordinal,ord))];
+        end
+        % add here to select according ordinal position per id, for mix
+        % condition.
+    end
+  cfg         = [];
+  cfg.trials  = sel;
+  tlck        = ft_selectdata(cfg, tlck);
+end
+
 if contentwords_only
   % identify the nouns, adjectives and verbs
   sel =       double(strncmp(tlck.trialinfo.POS, 'N',   1))*1;
@@ -85,7 +154,6 @@ if contentwords_only
   cfg.trials  = find(sel);
   tlck        = ft_selectdata(cfg, tlck);
 end
-
 
 if longwords_only
   sel = [];

@@ -1537,6 +1537,55 @@ if dotrc_rcmix2
   
 end
 
+if dotrc_rcmix3
+  % do time resolved correlation for the sentences, split according to
+  % rc/mix and prerc rc and postrc, but now prepare the data to do statistics quantifying rc-mix
+  % as a T-statistic across subject-pairs
+  
+  %% set default flags if necessary
+  if ~exist('parcel_indx', 'var'),      error('please supply parcel_indx');             end
+  if ~exist('stimuli', 'var'),          load mous_stimuli;                              end
+  if ~exist('contentwords_only', 'var'),contentwords_only = false;                      end
+  if ~exist('longwords_only', 'var'),   longwords_only = false;                         end
+  if ~exist('stratify_ivar', 'var'),    stratify_ivar = false;                          end
+  %%
+  
+  loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
+  
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
+  load(filename, 'comp');
+
+  subselection = 'pre';
+  [trc_rc_pre, tlck]= mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc','subselection', subselection,  'output2', 'single_cross');
+  subselection = tlck.trialinfo;
+  trc_mix_pre = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix', 'subselection',subselection,'output2', 'single_cross');
+  
+  subselection = 'rc';
+  [trc_rc_rc, tlck]= mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc','subselection', subselection,  'output2', 'single_cross');
+  subselection = tlck.trialinfo;
+  trc_mix_rc = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix', 'subselection',subselection,'output2', 'single_cross');
+
+  subselection = 'post';
+  [trc_rc_post, tlck]= mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc','subselection', subselection,  'output2', 'single_cross');
+  subselection = tlck.trialinfo;
+  trc_mix_post = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix', 'subselection',subselection,'output2', 'single_cross');
+
+  suffix2 = '';
+  if contentwords_only
+      suffix2 = [suffix2 '_contentwords'];
+  end
+  if longwords_only
+    suffix2 = [suffix2 '_longwords'];
+  end
+  if stratify_ivar
+    suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
+  end
+ 
+  filename = fullfile('/project/3011020.09/sopara', sprintf('mscca_sce%d_parcel%03d_trc_rcmix3%s',scenario,parcel_indx,suffix2));
+  save(filename, 'trc_rc_pre', 'trc_mix_pre','trc_rc_rc', 'trc_mix_rc','trc_rc_post', 'trc_mix_post');
+  
+end
+
 %--------------------------------------------------------------------------
 %This chunk of code is based on a full copy of the domscca_searchlight
 %chunk, trimmed to get rid of unused stuff (e.g. lenient shuffling, and seq
@@ -2028,7 +2077,7 @@ if do_plotting
   %load data
   datadir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
   outdir = sprintf('/project/3011020.09/jansch/mscca_group/figures')
-  load(fullfile(datadir, sprintf('scenario%d_results',scenario)))
+  load(fullfile(datadir, sprintf('scenario%d_results_rcmix',scenario)))
   
   %create source structure for plotting
   source                = [];
@@ -2063,15 +2112,16 @@ if do_plotting
   
   splot = xs;
   figure('position',[1 1 900 900]);
-  for k = firstcol:4:lastcol
+  for k = firstcol:2:lastcol
+      figure
     splot.pow = xs.pow(:,k); splot.pow(~isfinite(splot.pow)) = 0;
     splot.mask = xs.mask(:,k); splot.mask(~isfinite(splot.mask))=0;
     ft_plot_mesh(splot,'edgecolor','none','vertexcolor',splot.pow,'facealpha', splot.mask, 'clim', [0 0.015], 'alphalim', [0 0.005], 'alphamap', 'rampup', 'colormap', cmap, 'maskstyle', 'colormix');lighting gouraud;material dull;view([90 0]);h=light('position',[10 0 0]);
     set(gcf,'color','w');
     title(sprintf('time = %d',round(1000.*s.time(k))),'position',[33 -104 100]);
-    fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_cluster%d',scenario,k,cluster));
-    export_fig(fname,'-png');
-    clf;
+    %fname = strcat(outdir,sprintf('/crossmod_sce%d_timestamp%03d_trc_cluster%d',scenario,k,cluster));
+    %export_fig(fname,'-png');
+    %clf;
   end
   
   %%get colorbar
