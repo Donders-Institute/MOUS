@@ -7,7 +7,7 @@ bnd = ft_convert_units(bnd, 'mm');
 bnd = ft_transform_geometry(T, bnd);
 bnd = ft_convert_units(bnd, 'cm');
 
-bnd.pos = bnd.pnt;
-bnd     = rmfield(bnd, 'pnt');
-
-
+if isfield(bnd,'pnt')
+  bnd.pos = bnd.pnt;
+  bnd     = rmfield(bnd, 'pnt');
+end
