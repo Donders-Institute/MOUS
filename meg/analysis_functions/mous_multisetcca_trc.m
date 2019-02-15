@@ -88,9 +88,9 @@ if ~isempty(subselection)
     post= vertcat(stimuli_rc.numwords)-(MCcont-1);
     post(post==0) = NaN;
     nsel = min([pre in post],[],2);
-        
-    if strcmp(subselection,'pre')
-        ids = unique(tlck.trialinfo.id);
+    ids = unique(tlck.trialinfo.id);
+    
+    if strcmp(subselection,'pre')  
         onsets = vertcat(stimuli(ids).RConsetword);
         
         sel = [];
@@ -100,7 +100,6 @@ if ~isempty(subselection)
             sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
         end         
     elseif strcmp(subselection,'rc')
-        ids = unique(tlck.trialinfo.id);
         offsets = MCcont(ismember(idsall,ids));
         
         sel = [];
@@ -110,7 +109,6 @@ if ~isempty(subselection)
             sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];         
         end 
     elseif strcmp(subselection,'post')
-        ids = unique(tlck.trialinfo.id);
         offsets = MCcont(ismember(idsall,ids));
         
         sel = [];
@@ -127,13 +125,13 @@ if ~isempty(subselection)
         [~, isortrc] = sort(lenrc); 
         [~, isorttlck] = sort(lentlck);
         
-        ids = unique(tlck.trialinfo.id);
         idrc = unique(subselection.id);
         sel = [];
         for l = 1:length(idrc)
            id = idrc(l);
            idmatch = ids(isorttlck(isortrc==l));
            ord = subselection.ordinal(subselection.id==id);
+           while max(ord) > stimuli(idmatch).numwords; ord = ord-1; end
            sel = [sel; find(tlck.trialinfo.id==idmatch & ismember(tlck.trialinfo.ordinal,ord))];
         end
         % add here to select according ordinal position per id, for mix
