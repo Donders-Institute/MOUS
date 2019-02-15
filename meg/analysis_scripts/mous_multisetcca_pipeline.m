@@ -27,6 +27,7 @@ if ~exist('dotrc_combined',          'var'), dotrc_combined  = false; end
 if ~exist('dotrc_combined_cf',       'var'), dotrc_combined_cf  = false; end
 if ~exist('dotrc_rcmix',             'var'), dotrc_rcmix = false; end
 if ~exist('dotrc_rcmix2',            'var'), dotrc_rcmix2 = false; end
+if ~exist('dotrc_rcmix3',            'var'), dotrc_rcmix3 = false; end
 if ~exist('compare2simple',          'var'), compare2simple  = false; end
 if ~exist('do_clusterstats',         'var'), do_clusterstats = false; end
 if ~exist('do_plotting',             'var'), do_plotting     = false; end
@@ -1581,7 +1582,7 @@ if dotrc_rcmix3
     suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
   end
  
-  filename = fullfile('/project/3011020.09/sopara', sprintf('mscca_sce%d_parcel%03d_trc_rcmix3%s',scenario,parcel_indx,suffix2));
+  filename = fullfile('/project/3011020.09/sopara/rcmix3', sprintf('mscca_sce%d_parcel%03d_trc_rcmix3%s',scenario,parcel_indx,suffix2));
   save(filename, 'trc_rc_pre', 'trc_mix_pre','trc_rc_rc', 'trc_mix_rc','trc_rc_post', 'trc_mix_post');
   
 end
