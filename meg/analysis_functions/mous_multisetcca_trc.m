@@ -21,7 +21,6 @@ switch output
     outputflag = 2;
 end
 
-
 if iscell(data)
   data = ft_appenddata([], data{:});
   
@@ -77,7 +76,7 @@ else
 end
 
 if ~isempty(subselection)
-    %For each sentence, how many words can be selected per clause
+    %For each sentence, how many words can be selected per (parital) clause
     stimuli_rc = stimuli(1:204);
     idsall = vertcat(stimuli_rc.id);
     MCcont = vertcat(stimuli_rc.MCcontinuationword);
@@ -90,7 +89,7 @@ if ~isempty(subselection)
     nsel = min([pre in post],[],2);
     ids = unique(tlck.trialinfo.id);
     
-    if strcmp(subselection,'pre')  
+    if strcmp(subselection,'pre')  %select words before relative clause onset
         onsets = vertcat(stimuli(ids).RConsetword);
         
         sel = [];
@@ -99,7 +98,7 @@ if ~isempty(subselection)
             ord = onsets(i)-nsel(idsall==id):onsets(i)-1;
             sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
         end         
-    elseif strcmp(subselection,'rc')
+    elseif strcmp(subselection,'rc') % select words within relative clause
         offsets = MCcont(ismember(idsall,ids));
         
         sel = [];
@@ -108,7 +107,7 @@ if ~isempty(subselection)
             ord = offsets(i)-nsel(idsall==id):offsets(i)-1;
             sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];         
         end 
-    elseif strcmp(subselection,'post')
+    elseif strcmp(subselection,'post') % select words after relative clause offset
         offsets = MCcont(ismember(idsall,ids));
         
         sel = [];
@@ -119,7 +118,15 @@ if ~isempty(subselection)
                 sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
             end  
         end 
-    else
+    elseif strcmp(subselection,'rconly') % select all words after relative clause onset (pronoun) til end of sentence
+        sel = [];
+        for i = 1:length(ids)
+            id = ids(i);
+            ord = (stimuli(id).RConsetword+1):stimuli(id).numwords;
+            sel = [sel; find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
+        end
+    else % assumes tlck.trialinfo as input. Match sentences length with provided sentence id 
+        % & selects same ordinal word position.        
         lenrc = vertcat(stimuli(unique(subselection.id)).numwords);
         lentlck = vertcat(stimuli(unique(tlck.trialinfo.id)).numwords) ;
         [~, isortrc] = sort(lenrc); 

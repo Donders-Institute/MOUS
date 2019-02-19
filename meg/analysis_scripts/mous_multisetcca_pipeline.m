@@ -1556,20 +1556,10 @@ if dotrc_rcmix3
   filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
   load(filename, 'comp');
 
-  subselection = 'pre';
-  [trc_rc_pre, tlck]= mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc','subselection', subselection,  'output2', 'single_cross');
-  subselection = tlck.trialinfo;
-  trc_mix_pre = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix', 'subselection',subselection,'output2', 'single_cross');
-  
-  subselection = 'rc';
-  [trc_rc_rc, tlck]= mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc','subselection', subselection,  'output2', 'single_cross');
-  subselection = tlck.trialinfo;
-  trc_mix_rc = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix', 'subselection',subselection,'output2', 'single_cross');
-
-  subselection = 'post';
-  [trc_rc_post, tlck]= mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc','subselection', subselection,  'output2', 'single_cross');
-  subselection = tlck.trialinfo;
-  trc_mix_post = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix', 'subselection',subselection,'output2', 'single_cross');
+  subselection = 'rconly';
+  [trc_rc, tlck]= mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_rc','subselection', subselection,  'output2', 'single_cross');
+  subselection = tlck.trialinfo;   
+  trc_mix = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'condition', 'sent_mix', 'subselection',subselection,'output2', 'single_cross');
 
   suffix2 = '';
   if contentwords_only
@@ -1582,8 +1572,8 @@ if dotrc_rcmix3
     suffix2 = [suffix2 '_stratified' '_' cat(2,covariates{:})];
   end
  
-  filename = fullfile('/project/3011020.09/sopara/rcmix3', sprintf('mscca_sce%d_parcel%03d_trc_rcmix3%s',scenario,parcel_indx,suffix2));
-  save(filename, 'trc_rc_pre', 'trc_mix_pre','trc_rc_rc', 'trc_mix_rc','trc_rc_post', 'trc_mix_post');
+  filename = fullfile('/project/3011020.09/sopara/rcmix3/', sprintf('mscca_sce%d_parcel%03d_trc_rcmix3%s',scenario,parcel_indx,suffix2));
+  save(filename, 'trc_rc', 'trc_mix');
   
 end
 
