@@ -293,8 +293,17 @@ if makemodels
     lambda=1;
   end
   
-  suffix = ''; % for now
-  loaddir = '/project/3011020.09/jansch/hyperalignment';
+  if ~exist('test_ivars', 'var')
+    % test a bunch at once: this does not allow for ivar specific lambdas
+    test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+                  'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'w2v'};
+  end
+  if ~iscell(test_ivars)
+    test_ivars = {test_ivars};
+  end
+  
+  suffix   = ''; % for now
+  loaddir  = '/project/3011020.09/jansch/hyperalignment';
   filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
   load(filename, 'tlck', 'tlck1', 'tlck2', 'tlck3');
   
@@ -312,25 +321,30 @@ if makemodels
   tmpcfg.channel = tlck3.label(4:end);
   tlck3 = ft_selectdata(tmpcfg, tlck3);
   
-  ivar = tlck.trialinfo.Properties.VariableNames;
-  test_ivars = {'loglexfreq' 'index' 'logperplexity' 'entropy' ...
-    'leftbranch' 'rightbranch' ...
-    'dleftbranch' 'drightbranch' 'w2v'};
+  % add a constant regressor to the design
+  tlck.trialinfo  = cat(2, array2table(ones(size(tlck.trial,1),1), 'VariableNames', {'constant'}),  tlck.trialinfo);
+  tlck1.trialinfo = cat(2, array2table(ones(size(tlck1.trial,1),1),'VariableNames', {'constant'}), tlck1.trialinfo);
+  tlck2.trialinfo = cat(2, array2table(ones(size(tlck2.trial,1),1),'VariableNames', {'constant'}), tlck2.trialinfo);
+  tlck3.trialinfo = cat(2, array2table(ones(size(tlck3.trial,1),1),'VariableNames', {'constant'}), tlck3.trialinfo);
+    
+  ivar       = tlck.trialinfo.Properties.VariableNames;
   
-  categorical = ismember(ivar, {'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index'});
+  categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index'});
     
   sel_ivars = match_str(ivar, test_ivars);
   cnt = 0;
   for m = sel_ivars(:)'
     fprintf('modelling the data with %s\n',ivar{m});
     cnt = cnt+1;
-    design = tlck.trialinfo(:,m); 
+    sel = ismember(ivar, {'constant' ivar{m}});
+    
+    design = tlck.trialinfo(:,sel); 
     design.(ivar{m}) = design.(ivar{m}) - nanmean(design.(ivar{m}));
     
-    stat   = mous_multisetcca_regress(tlck, design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m));%, 'innerfolds', 5); % with folding, the 'F' is actually a measure of R^2, i.e. the extent to which the predictor predicts... (in analogy to the metric used in scikit learn, which happens indeed to adopt negative values occasionally). 
-    stat1  = mous_multisetcca_regress(tlck1,design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m));%, 'innerfolds', 5);
-    stat2  = mous_multisetcca_regress(tlck2,design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m));%, 'innerfolds', 5);
-    stat3  = mous_multisetcca_regress(tlck3,design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m));%, 'innerfolds', 5);
+    stat   = mous_multisetcca_regress(tlck, design,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m), 'normalise', true, 'modelcomparison', {'constant'});%, 'innerfolds', 5); % with folding, the 'F' is actually a measure of R^2, i.e. the extent to which the predictor predicts... (in analogy to the metric used in scikit learn, which happens indeed to adopt negative values occasionally). 
+    stat1  = mous_multisetcca_regress(tlck1,design,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m), 'normalise', true, 'modelcomparison', {'constant'});%, 'innerfolds', 5);
+    stat2  = mous_multisetcca_regress(tlck2,design,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m), 'normalise', true, 'modelcomparison', {'constant'});%, 'innerfolds', 5);
+    stat3  = mous_multisetcca_regress(tlck3,design,'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(m), 'normalise', true, 'modelcomparison', {'constant'});%, 'innerfolds', 5);
     
     rng('default');
     p = zeros(size(stat.Rsq));
@@ -358,10 +372,10 @@ if makemodels
 %       tmp2  = mous_multisetcca_regress(tlck2,tmpdesign,'constant',1,'lambda',{stat2.L}, 'outerfolds', 5);
 %       tmp3  = mous_multisetcca_regress(tlck3,tmpdesign,'constant',1,'lambda',{stat3.L}, 'outerfolds', 5);
 %             
-      tmp   = mous_multisetcca_regress(tlck, tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5);
-      tmp1  = mous_multisetcca_regress(tlck1,tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5);
-      tmp2  = mous_multisetcca_regress(tlck2,tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5);
-      tmp3  = mous_multisetcca_regress(tlck3,tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5);
+      tmp   = mous_multisetcca_regress(tlck, tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant'});
+      tmp1  = mous_multisetcca_regress(tlck1,tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant'});
+      tmp2  = mous_multisetcca_regress(tlck2,tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant'});
+      tmp3  = mous_multisetcca_regress(tlck3,tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant'});
       
       p  = p  + double(tmp.Rsq  > stat.Rsq );
       p1 = p1 + double(tmp1.Rsq > stat1.Rsq);
@@ -376,34 +390,32 @@ if makemodels
     end
     S(cnt).stat  = stat;
     S(cnt).p     = (p+1)./nrand; % uncorrected p-value of the permutations
-    %S(cnt).Frand = Frand;
     S(cnt).ivar  = ivar{m};
     S(cnt).ref   = nanmean(Frand,3);
     
     S1(cnt).stat  = stat1;
     S1(cnt).p     = (p1+1)./nrand;
-    %S1(cnt).Frand = Frand1;
     S1(cnt).ivar  = ivar{m};
     S1(cnt).ref   = nanmean(Frand1,3);
     
     S2(cnt).stat  = stat2;
     S2(cnt).p     = (p2+1)./nrand;
-    %S2(cnt).Frand = Frand2;
     S2(cnt).ivar  = ivar{m};
     S2(cnt).ref   = nanmean(Frand2,3);
     
     S3(cnt).stat  = stat3;
     S3(cnt).p     = (p3+1)./nrand;
-    %S3(cnt).Frand = Frand3;
     S3(cnt).ivar  = ivar{m};
     S3(cnt).ref   = nanmean(Frand3,3);
     
     close all;
   end
   
-  filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
-  %filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models_w2v',scenario,parcel_indx,suffix));
-  
+  if numel(test_ivars)>1
+    filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
+  else
+    filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_model_%s',scenario,parcel_indx,suffix,test_ivars{1}));
+  end  
   save(filename, 'S', 'S1', 'S2', 'S3');
 end
 
@@ -504,12 +516,120 @@ if makemodels2
   save(filename, 'S');
 end
 
+if ~exist('makemodels3', 'var')
+  makemodels3 = false;
+end
+if makemodels3
+  addpath('/home/language/jansch/matlab/toolboxes/prevalence-permutation');
+
+  if ~exist('nrand', 'var')
+    nrand = 500;
+  end
+  if ~exist('parcel_indx', 'var')
+    error('please supply parcel_indx');
+  end
+  if ~exist('stimuli', 'var')
+    load mous_stimuli;
+  end
+  if ~exist('lambda', 'var')
+    lambda=1;
+  end
+  
+  suffix = ''; % for now
+  loaddir = '/project/3011020.09/jansch/hyperalignment';
+  filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
+  load(filename, 'tlck', 'tlck1', 'tlck2', 'tlck3');
+  
+  sel =       double(strncmp([tlck.trialinfo.POS], 'N',   1))*1;
+  sel = sel + double(strncmp([tlck.trialinfo.POS], 'WW',  2))*2;
+  sel = sel + double(strncmp([tlck.trialinfo.POS], 'ADJ', 3))*3;
+
+  % select these from the data
+  tmpcfg = [];
+  tmpcfg.trials = find(sel>0);
+  tmpcfg.channel = tlck.label(4:end);
+  tlck  = ft_selectdata(tmpcfg, tlck );
+  tlck1 = ft_selectdata(tmpcfg, tlck1);
+  tlck2 = ft_selectdata(tmpcfg, tlck2);
+  tmpcfg.channel = tlck3.label(4:end);
+  tlck3 = ft_selectdata(tmpcfg, tlck3);
+  
+  ivar = tlck.trialinfo.Properties.VariableNames;
+  test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+    'leftbranch' 'rightbranch' ...
+    'dleftbranch' 'drightbranch' 'w2v'};
+  
+  sel_ivars = match_str(ivar, test_ivars);
+  
+  % here the design contains all independent variables of interest
+  design = tlck.trialinfo(:,sel_ivars(:)');
+  for m = sel_ivars(:)'
+    design.(ivar{m}) = design.(ivar{m}) - nanmean(design.(ivar{m}));
+  end
+  
+  cnt = 0;
+  for m = 1:size(design,2)
+    fprintf('modelling the data with %s\n',ivar{m});
+    cnt = cnt+1;
+     
+    % compare the model with the model that includes nchar duration and
+    % loglexfreq + a constant.
+    stat   = mous_multisetcca_regress(tlck, design,'constant',1,'lambda',lambda, 'outerfolds', 5, 'modelcomparison', [1 setdiff(1:size(design,2),m)+1]);
+    
+    rng('default');
+    p = zeros(size(stat.Rsq));
+    Frand  = zeros([size(stat.Rsq) nrand]);
+    for k = 1:nrand
+      if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
+      tmpdesign = design;
+      
+      randvec = randperm(size(tlck.trial,1));
+      vars    = design.Properties.VariableNames;
+      for j = 1:numel(vars)
+        if strcmp(vars{j},ivar{m})
+        tmpX = tmpdesign.(vars{j});
+        tmpX = tmpX(randvec,:);
+        tmpdesign.(vars{j}) = tmpX;
+        end
+      end
+            
+%       tmp   = mous_multisetcca_regress(tlck, tmpdesign,'constant',1,'lambda',{stat.L}, 'outerfolds', 5);
+%       tmp1  = mous_multisetcca_regress(tlck1,tmpdesign,'constant',1,'lambda',{stat1.L}, 'outerfolds', 5);
+%       tmp2  = mous_multisetcca_regress(tlck2,tmpdesign,'constant',1,'lambda',{stat2.L}, 'outerfolds', 5);
+%       tmp3  = mous_multisetcca_regress(tlck3,tmpdesign,'constant',1,'lambda',{stat3.L}, 'outerfolds', 5);
+%             
+      tmp   = mous_multisetcca_regress(tlck, tmpdesign,'constant',1,'lambda',lambda, 'outerfolds', 5,'modelcomparison', [1 2 3 4]);
+      
+      p  = p  + double(tmp.Rsq  > stat.Rsq );
+      
+      Frand(:,:,k)  = tmp.Rsq;
+    end
+    S(cnt).stat  = stat;
+    S(cnt).p     = (p+1)./nrand; % uncorrected p-value of the permutations
+    %S(cnt).Frand = Frand;
+    S(cnt).ivar  = ivar{m};
+    S(cnt).ref   = nanmean(Frand,3);
+    
+  end
+  
+  filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models2',scenario,parcel_indx,suffix));
+  %filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models_w2v',scenario,parcel_indx,suffix));
+  
+  save(filename, 'S');
+end
+
 if combinemodels
+  if ~exist('modeltype', 'var')
+    modeltype = 'models';
+  end
+  
   % collapse the parcel specific data into a (hopefully smaller) variable,
   % so that the original '*models.mat' files can be discarded
   datadir = '/project/3011020.09/jansch/hyperalignment'; %HARDCODED
    
-  d = dir(fullfile(datadir,sprintf('*sce%d*models.mat',scenario)));
+  d = dir(fullfile(datadir,sprintf('*sce%d*%s.mat',scenario,modeltype)));
+  %d = dir(fullfile(datadir,sprintf('*sce%d*models2.mat',scenario)));
+  
   if numel(d)~=378
     % some parcels failed to compute because too few vertices per parcel
     error('expected number is less than 378 parcels');
@@ -558,7 +678,8 @@ if combinemodels
   end
   
   data = ft_struct2single(data);
-  filename = fullfile(datadir, sprintf('hyperalignment_models_sce%d_%s', scenario, fn{1}));
+  filename = fullfile(datadir, sprintf('hyperalignment_%s_sce%d_%s', modeltype, scenario, fn{1}));
+  %filename = fullfile(datadir, sprintf('hyperalignment_models2_sce%d_%s', scenario, fn{1}));
   save(filename,'-struct', 'data');
   
 end

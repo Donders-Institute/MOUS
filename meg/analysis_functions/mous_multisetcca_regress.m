@@ -10,11 +10,19 @@ innerfolds          = ft_getopt(varargin, 'innerfolds', folds);
 lambda              = ft_getopt(varargin, 'lambda', 0);
 ortho               = ft_getopt(varargin, 'ortho', {});
 contentwords_only   = ft_getopt(varargin, 'contentwords_only', false);
-reduceto            = ft_getopt(varargin, 'modelcomparison', []);
+reduceto            = ft_getopt(varargin, 'modelcomparison', 'constant');
 constant            = ft_getopt(varargin, 'constant', false);
 normalise           = ft_getopt(varargin, 'normalise', false);
 balancefolds        = ft_getopt(varargin, 'balancefolds', false);
 
+ivarnames = design.Properties.VariableNames;
+if constant
+  % check whether the design table contains a constant. If not, add it
+  if ~any(ismember(ivarnames, 'constant'))
+    design = cat(2,array2table(ones(757,1),'VariableNames', {'constant'}),design);
+    ivarnames = design.Properties.VariableNames;
+  end
+end
 
 if iscellstr(ortho)
   indx = find(ismember(design.Properties.VariableNames,ortho));
@@ -31,17 +39,26 @@ else
   end
 end
 
-if iscellstr(reduceto)
-  indx = find(ismember(design.Properties.VariableNames,reduceto));
-  if length(indx) == length(reduceto)
-    reduceto = indx;
-  else
-    warning('variables for model comparison not present in design matrix')
+if ~iscellstr(reduceto)
+  if isnumeric(reduceto)
+    error('numeric indices for regressors to do modelcomparison are not supported anymore');
   end
+  reduceto = {reduceto};
+end
+
+indxvec = cell(1,numel(ivarnames));
+cnt = 0;
+for k = 1:numel(ivarnames)
+  indxvec{k} = cnt+(1:size(design.(ivarnames{k}),2));
+  cnt = indxvec{k}(end);
+end
+
+ivarnames0 = reduceto;
+indx = find(ismember(design.Properties.VariableNames,reduceto));
+if length(indx) == length(reduceto)
+  reduceto = cell2mat(indxvec(indx));
 else
-  if max(reduceto) >= size(design,2)
-    %warning('mismatch between design matrix and model comparison parameters')
-  end
+  warning('one or more variables for model comparison not present in design matrix')
 end
 
 if contentwords_only
@@ -89,12 +106,8 @@ if ~isempty(ortho)
   design = design(:,neworder);
   clear y x
 else
+  
   design = cell2mat(table2cell(design));
-end
-
-if constant
-  design = [ones(size(design,1),1)./size(design,1) design];
-  %fprintf('adding constant to design matrix\n')
 end
 
 if normalise
@@ -107,11 +120,15 @@ output = doregression(tlck.trial, design, 'col0', reduceto, 'lambda', lambda, 'o
 if numel(output)>1
   stats.Rsq = mean(cat(3,output.Rsq),3);
   stats.B   = cat(4,output.B);
-  stats.ivar = tlck.trialinfo.Properties.VariableNames;
+  stats.B0  = cat(4,output.B0);
+  stats.ivar = ivarnames;
+  stats.ivar0 = ivarnames0;
 else
   stats.Rsq = output.Rsq;
   stats.B   = output.B;
-  stats.ivar = tlck.trialinfo.Properties.VariableNames;
+  stats.B0  = output.B0;
+  stats.ivar = ivarnames;
+  stats.ivar0 = ivarnames0;
 end
 if isfield(output, 'lambda')
   stats.lambda = output(1).lambda;
@@ -130,10 +147,11 @@ function output = doregression(alldat, design, varargin)
 
 col0   = ft_getopt(varargin, 'col0', 1); % assume the first column in the design to be a constant
 lambda = ft_getopt(varargin, 'lambda', []);
-B      = ft_getopt(varargin, 'B', []);
+B      = ft_getopt(varargin, 'B',  []);
+B0     = ft_getopt(varargin, 'B0', []);
 innerfolds = ft_getopt(varargin, 'innerfolds', []);
 outerfolds = ft_getopt(varargin, 'outerfolds', []);
-outputargs = ft_getopt(varargin, 'outputargs', {'Rsq' 'B' 'R' 'R0'});
+outputargs = ft_getopt(varargin, 'outputargs', {'Rsq' 'B' 'B0' 'R' 'R0'});
 
 computeweights = isempty(B) && any(ismember(outputargs, 'B'));
 computeRsq     = any(ismember(outputargs, 'Rsq'));
@@ -171,12 +189,12 @@ if ~isempty(outerfolds)
     if numel(lambda)==1
       % speed things up a bit by not computing a lot of unnecessary junk
       tmp       = doregression(alldat(iy,:,:), design(iy,:), 'col0', col0, 'lambda', lambda, 'innerfolds', innerfolds{k});
-      output(k) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda, 'B', tmp.B);
+      output(k) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda, 'B', tmp.B, 'B0', tmp.B0);
     else
       
       for m = 1:numel(lambda)
         tmp         = doregression(alldat(iy,:,:), design(iy,:), 'col0', col0, 'lambda', lambda(m), 'innerfolds', innerfolds{k});
-        output(k,m) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda(m), 'B',      tmp.B);
+        output(k,m) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda(m), 'B', tmp.B, 'B0', tmp.B0);
       end
     end
   end
@@ -191,10 +209,12 @@ if ~isempty(outerfolds)
     newoutput = output(:,1);
     for k = 1:numel(newoutput)
       newoutput(k).B(:)   = nan;
+      newoutput(k).B0(:)  = nan;
       newoutput(k).Rsq(:) = nan;
       for m = unique(ixR(:))'
         Lout(ixR==m) = lambda(m);
         newoutput(k).B(:,ixR==m) = output(k,m).B(:,ixR==m);
+        newoutput(k).B0(:,ixR==m) = output(k,m).B0(:,ixR==m);
         newoutput(k).Rsq(ixR==m) = output(k,m).Rsq(ixR==m);
       end
       newoutput(k).lambda = Lout;
@@ -209,6 +229,7 @@ elseif isempty(B)
   if (~iscell(lambda) && numel(lambda)==1 && lambda==0) || isempty(lambda)
     % do an unregularized regression
     B   = design\dat;
+    B0  = design(:,col0)\dat;
   elseif ~isempty(innerfolds)
     % do a nested cross-validation keeping the performance metric as an aggregate across
     % inner folds for each value of the hyperparameter lambda, recursing
@@ -217,7 +238,7 @@ elseif isempty(B)
       ix = innerfolds{m};
       iy = setdiff(1:size(alldat,1),ix);
       tmp       = doregression(alldat(iy,:,:), design(iy,:), 'col0', col0, 'lambda', lambda);
-      output(m) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda, 'B', tmp.B);  
+      output(m) = doregression(alldat(ix,:,:), design(ix,:), 'col0', col0, 'lambda', lambda, 'B', tmp.B, 'B0', tmp.B0);  
     end
     R  = cat(3,output.R);
     R0 = cat(3,output.R0);
@@ -230,35 +251,42 @@ elseif isempty(B)
     
     return;
   elseif isempty(innerfolds)
-    B = ((design'*design+lambda.*eye(size(design,2)))\design')*dat;
+    B  = ((design'*design+lambda.*eye(size(design,2)))\design')*dat;
+    B0 = ((design(:,col0)'*design(:,col0)+lambda.*eye(numel(col0)))\design(:,col0)')*dat; 
   elseif iscell(lambda)
     % this is the case when each of the samples has its own lambda
     lambda = lambda{1}(:);
-    B = nan(size(design,2),size(dat,2));
+    B  = nan(size(design,2),size(dat,2));
+    B0 = nan(numel(col0), size(dat,2));
     U = unique(lambda);
    
     for m = 1:numel(U)
       
-      B(:,lambda==U(m)) = ((design'*design+U(m).*eye(size(design,2)))\design')*dat(:,lambda==U(m));
+      B(:,lambda==U(m))  = ((design'*design+U(m).*eye(size(design,2)))\design')*dat(:,lambda==U(m));
+      B0(:,lambda==U(m)) = ((design(:,col0)'*design(:,col0)+U(m).*eye(numel(col0)))\design(:,col0)')*dat(:,lambda==U(m));
+      
     end
   else
     % compute the regression weights given a fixed value of lambda
     B   = ((design'*design+lambda.*eye(size(design,2)))\design')*dat;
+    B0  = ((design(:,col0)'*design(:,col0)+lambda.*eye(numel(col0)))\design(:,col0)')*dat;
   end
 else
-  B = reshape(B, [size(B,1) siz(2)*siz(3)]);
+  B  = reshape(B,  [size(B,1)  siz(2)*siz(3)]);
+  B0 = reshape(B0, [size(B0,1) siz(2)*siz(3)]);
 end
 
 output.n = siz(1);
 output.lambda = lambda;
 if computeR0
-  output.R0 = reshape(sum((dat-design(:,col0)*B(col0,:)).^2),[siz(2) siz(3)]);
+  output.R0 = reshape(sum((dat-design(:,col0)*B0).^2),[siz(2) siz(3)]);
 end
 if computeR
   output.R  = reshape(sum((dat-design*B).^2),[siz(2) siz(3)]);
 end
 if computeweights
-  output.B = reshape(B,[size(B,1) siz(2) siz(3)]);
+  output.B  = reshape(B,[size(B,1) siz(2) siz(3)]);
+  output.B0 = reshape(B0, [size(B0,1) siz(2) siz(3)]);
 end
 if computeRsq
   if exist('F', 'var')
