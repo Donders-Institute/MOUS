@@ -388,35 +388,38 @@ if makemodels
       Frand3(:,:,k) = tmp3.Rsq;
       
     end
-    S(cnt).stat  = stat;
-    S(cnt).p     = (p+1)./nrand; % uncorrected p-value of the permutations
-    S(cnt).ivar  = ivar{m};
-    S(cnt).ref   = nanmean(Frand,3);
+    S.stat  = stat;
+    S.p     = (p+1)./nrand; % uncorrected p-value of the permutations
+    S.ivar  = ivar{m};
+    S.ref   = nanmean(Frand,3);
     
-    S1(cnt).stat  = stat1;
-    S1(cnt).p     = (p1+1)./nrand;
-    S1(cnt).ivar  = ivar{m};
-    S1(cnt).ref   = nanmean(Frand1,3);
+    S1.stat  = stat1;
+    S1.p     = (p1+1)./nrand;
+    S1.ivar  = ivar{m};
+    S1.ref   = nanmean(Frand1,3);
     
-    S2(cnt).stat  = stat2;
-    S2(cnt).p     = (p2+1)./nrand;
-    S2(cnt).ivar  = ivar{m};
-    S2(cnt).ref   = nanmean(Frand2,3);
+    S2.stat  = stat2;
+    S2.p     = (p2+1)./nrand;
+    S2.ivar  = ivar{m};
+    S2.ref   = nanmean(Frand2,3);
     
-    S3(cnt).stat  = stat3;
-    S3(cnt).p     = (p3+1)./nrand;
-    S3(cnt).ivar  = ivar{m};
-    S3(cnt).ref   = nanmean(Frand3,3);
+    S3.stat  = stat3;
+    S3.p     = (p3+1)./nrand;
+    S3.ivar  = ivar{m};
+    S3.ref   = nanmean(Frand3,3);
     
+    filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_model_%s',scenario,parcel_indx,suffix,ivar{m}));
+    save(filename, 'S', 'S1', 'S2', 'S3');
     close all;
+    
   end
   
-  if numel(test_ivars)>1
-    filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
-  else
-    filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_model_%s',scenario,parcel_indx,suffix,test_ivars{1}));
-  end  
-  save(filename, 'S', 'S1', 'S2', 'S3');
+%   if numel(test_ivars)>1
+%     filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_models',scenario,parcel_indx,suffix));
+%   else
+%     filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_model_%s',scenario,parcel_indx,suffix,test_ivars{1}));
+%   end  
+%  save(filename, 'S', 'S1', 'S2', 'S3');
 end
 
 if ~exist('makemodels2', 'var')
