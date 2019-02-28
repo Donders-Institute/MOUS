@@ -81,7 +81,9 @@ if iscell(outerfolds) && numel(lambda)>1 && ~iscell(innerfolds) && ~isempty(inne
   fprintf('creating partitioning of data for nested cross-validation\n');
   
   for m = 1:numel(outerfolds)
-    tmpfolds{m} = mous_makefolds(size(tlck.trial,1)-numel(outerfolds{m}), innerfolds);
+    ix = outerfolds{m};
+    iy = setdiff(1:size(tlck.trial,1),ix);
+    tmpfolds{m} = mous_makefolds(size(tlck.trial,1)-numel(outerfolds{m}), innerfolds, balancefolds, design(iy,:));
   end
   innerfolds = tmpfolds;
 elseif iscell(outerfolds) && numel(lambda)==1
@@ -179,6 +181,8 @@ if ~isempty(outerfolds)
   for k = 1:numel(outerfolds)
     if numel(lambda)==1 && ~isempty(innerfolds{k})
       error('nested cross-validation is not possible with just a single value for the hyperparameter');
+    elseif numel(lambda)>1 && isempty(innerfolds{k})
+      error('nested cross-validation is not possible when the inner folds are not defined');
     end
     
     ix = outerfolds{k};
@@ -215,7 +219,10 @@ if ~isempty(outerfolds)
         Lout(ixR==m) = lambda(m);
         newoutput(k).B(:,ixR==m) = output(k,m).B(:,ixR==m);
         newoutput(k).B0(:,ixR==m) = output(k,m).B0(:,ixR==m);
-        newoutput(k).Rsq(ixR==m) = output(k,m).Rsq(ixR==m);
+        %newoutput(k).Rsq(ixR==m) = output(k,m).Rsq(ixR==m);
+        newoutput(k).R(ixR==m)   = output(k,m).R(ixR==m);
+        newoutput(k).R0(ixR==m)  = output(k,m).R0(ixR==m);
+        newoutput(k).Rsq(ixR==m) = 1 - output(k,m).R(ixR==m)./output(k,m).R0(ixR==m);
       end
       newoutput(k).lambda = Lout;
     end

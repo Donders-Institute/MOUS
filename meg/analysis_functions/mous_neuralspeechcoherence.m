@@ -14,7 +14,7 @@ cfgfreq     = ft_getopt(varargin, 'cfgfreq',     []);
 cfgpreproc  = ft_getopt(varargin, 'cfgpreproc',  []);
 
 %% get the filename of the dataset
-subjedataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
+dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 
 %% define trials, remove artifacts,mxUnshareArray(const_cast<mxarray *>(prhs[0]), true); preprocess data
 if numel(dataset) == 1

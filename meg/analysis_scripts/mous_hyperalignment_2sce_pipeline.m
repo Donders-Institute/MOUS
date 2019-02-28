@@ -257,8 +257,8 @@ if domscca_searchlight_cross
     trc2  = mous_multisetcca_trc(tlck2, stimuli, 'output', 'Z', 'output2', 'single_all');
     
     comp  = ft_struct2single(comp);
-    tlck1 = ft_struct2single(tlck1);
-    tlck2 = ft_struct2single(tlck2);
+    tlck1 = ft_struct2single(tlck1); % contains the set of words corresponding to 'sentences' in the first scenario
+    tlck2 = ft_struct2single(tlck2); % contains the set of words corresponding to 'sentences' in the second sceanario
     
     savedir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d', scenario(1), scenario(2));
     system(sprintf('mkdir -p %s', savedir));

@@ -12,7 +12,7 @@ dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
 
 %% define trials, remove artifacts, preprocess data
 if numel(dataset) == 1
-  mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09/MEG/');
+  mous_db_getdata(subjectname,'meg_artifact_cfg','/project/3011020.09');
   artfctcfg      = {cfgeog1 cfgeog2 cfgjump cfgmuscle};
   [data, speech] = computedata(dataset{1}, artfctcfg);
  
@@ -214,7 +214,7 @@ previous_sentid = 0;
 for k = 1:numel(data.trial)
   sentid = num2str(data.trialinfo(k,5),'%03d');
   if ~strcmp(previous_sentid,sentid)
-    load(fullfile('/project/3011020.09/MEG/misc/audiostimuli',['audiodata_envelope',sentid]));
+    load(fullfile('/project/3011020.09/misc/audiostimuli',['audiodata_envelope',sentid]));
   end
   i1 = nearest(audio.time{1},data.time{k}(1));
   i2 = nearest(audio.time{1},data.time{k}(end));
