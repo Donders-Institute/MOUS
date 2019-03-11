@@ -14,12 +14,27 @@ reduceto            = ft_getopt(varargin, 'modelcomparison', 'constant');
 constant            = ft_getopt(varargin, 'constant', false);
 normalise           = ft_getopt(varargin, 'normalise', false);
 balancefolds        = ft_getopt(varargin, 'balancefolds', false);
+nrepeat             = ft_getopt(varargin, 'nrepeat', 1);
+
+if nrepeat>1
+  sel = find(strcmp(varargin, 'nrepeat'));
+  varargin{sel+1} = 1;
+  for k = 1:nrepeat
+    tmp(k) = mous_multisetcca_regress(tlck, design, varargin{:});
+  end
+  stats = tmp(1);
+  stats.Rsq = mean(cat(3,tmp.Rsq),3);
+  if isfield(stats, 'lambda')
+    stats.lambda = mean(cat(3,tmp.lambda),3);
+  end
+  return;
+end
 
 ivarnames = design.Properties.VariableNames;
 if constant
   % check whether the design table contains a constant. If not, add it
   if ~any(ismember(ivarnames, 'constant'))
-    design = cat(2,array2table(ones(757,1),'VariableNames', {'constant'}),design);
+    design = cat(2,array2table(ones(size(design,1),1),'VariableNames', {'constant'}),design);
     ivarnames = design.Properties.VariableNames;
   end
 end
@@ -122,17 +137,26 @@ dat = reshape(tlck.trial,[siz(1) siz(2)*siz(3)]);
 % the training data and the model fits for the inner loop test data
 Rin   = zeros(siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
 R0in  = zeros(siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
-Rout  = zeros(siz(2)*siz(3),numel(outerfolds));
-R0out = zeros(siz(2)*siz(3),numel(outerfolds));
 nin   = zeros(numel(innerfolds{1}),1);
+
+N  = size(design,2);
+N0 = numel(reduceto);
+
+% outer fold loop
 for i_out = 1:numel(outerfolds)
   out_test     = outerfolds{i_out};
   dat_test     = dat(out_test,:);
   design_test  = design(out_test,:);
   
-  out_train    = setdiff(1:siz(1),out_test);
+  if numel(out_test)==size(dat,1)
+    out_train = out_test; % test and train are the same, ordinary GLM
+  else
+    out_train    = setdiff(1:siz(1),out_test);
+  end
   dat_train    = dat(out_train,:);
   design_train = design(out_train,:);
+  
+  % inner fold loop
   for i_in = 1:numel(innerfolds{i_out})
     
     if ~isfinite(innerfolds{i_out}{i_in})
@@ -154,37 +178,52 @@ for i_out = 1:numel(outerfolds)
       
       nin(i_in,1) = numel(innerfolds{i_out}{i_in});
     end
-    design_cov     = design_train_in'*design_train_in;
-    design_reduced = design_train_in(:,reduceto)'; % transpose and select columns only once
+    
+    design_cov           = design_train_in'*design_train_in;
+    design_cov_reduced   = design_cov(reduceto,reduceto);
+    design_train_reduced = design_train_in(:,reduceto)'; % transpose and select columns only once
+    design_test_reduced  = design_test_in(:,reduceto);
+    
+    
     for i_lambda = 1:numel(lambda)
-      design_cov_reg = design_cov + lambda(i_lambda).*eye(size(design_train_in,2));
+      design_cov_reg         = design_cov +         lambda(i_lambda).*eye(N);
+      design_cov_reg_reduced = design_cov_reduced + lambda(i_lambda).*eye(N0);
       
       % compute the regression weights given a fixed value of lambda
-      B   = (design_cov_reg\design_train_in')*dat_train_in;
-      B0  = (design_cov_reg(reduceto,reduceto)\design_reduced)*dat_train_in;
+      B   = (design_cov_reg\design_train_in');
+      B0  = (design_cov_reg_reduced\design_train_reduced);
+      
+      Ball = [B0;B]*dat_train_in; % just a single multiplication goes faster
+      %B   = B*dat_train_in;
+      %B0  = B0*dat_train_in;
       
       % compute the model fit for the test data
-      Rin(: , i_out, i_in, i_lambda) = sum((dat_test_in - design_test_in            * B ).^2);
-      R0in(:, i_out, i_in, i_lambda) = sum((dat_test_in - design_test_in(:,reduceto)* B0).^2);
+      Rin(: , i_out, i_in, i_lambda) = sum((dat_test_in - design_test_in     * Ball(N0+(1:N),:) ).^2);
+      R0in(:, i_out, i_in, i_lambda) = sum((dat_test_in - design_test_reduced* Ball(1:N0,:)     ).^2);
     end
   end
 end
 Rsq_this = squeeze(mean(mean(1-Rin./R0in,3),2));
 
 if numel(lambda)>1
+  Rout  = zeros(siz(2)*siz(3),numel(outerfolds));
+  R0out = zeros(siz(2)*siz(3),numel(outerfolds));
+
   % for each sample in this fold take the lambda value that optimizes
   % Rsq: this requires recomputation of the model
   [~, idx] = max(Rsq_this, [], 2);
   
+  L     = nan+zeros(siz(2)*siz(3),1);
   B(:)  = nan;
   B0(:) = nan;
   for i_out = 1:numel(outerfolds)
     for i_lambda = 1:numel(lambda)
-      design_cov_reg = design_train'*design_train + lambda(i_lambda).*eye(size(design_train,2));
+      design_cov_reg = design_train'*design_train + lambda(i_lambda).*eye(N);
       
       % compute the regression weights given a fixed value of lambda
       B(:,idx==i_lambda)  = (design_cov_reg\design_train')*dat_train(:,idx==i_lambda);
       B0(:,idx==i_lambda) = (design_cov_reg(reduceto,reduceto)\design_train(:,reduceto)')*dat_train(:,idx==i_lambda);
+      L(idx==i_lambda) = lambda(i_lambda);
     end
     
     % compute the model fit for the test data
@@ -192,11 +231,17 @@ if numel(lambda)>1
     R0out(:, i_out) = sum((dat_test - design_test(:,reduceto)* B0).^2);
   end
 else
-  Rout  = squeeze(sum(R_this, 3));
-  R0out = squeeze(sum(R0_this, 3));
+  Rout  = squeeze(mean(Rin, 3));
+  R0out = squeeze(mean(R0in, 3));
 end
 Rsq = mean(1 - Rout./R0out,2);
 
+stats       = keepfields(tlck, {'time', 'label'});
 stats.Rsq   = reshape(Rsq, [siz(2) siz(3)]);
 stats.ivar  = ivarnames;
 stats.ivar0 = ivarnames0;
+stats.dimord = 'chan_time';
+if exist('L','var')
+  stats.lambda = reshape(L, [siz(2) siz(3)]);
+end
+

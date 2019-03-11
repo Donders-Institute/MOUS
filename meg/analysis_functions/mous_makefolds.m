@@ -1,5 +1,16 @@
 function folds = mous_makefolds(nobs,nfold,balancefolds,design)
 
+% FOLDS = MOUS_MAKEFOLDS(NOBS,NFOLD,BALANCEFOLDS,DESIGN);
+% create a cell array of nfold folds based on nobs observations.
+% If balancefolds is true, the last column in the design is used to balance
+% the folding. This makes sense only in discrete regressors with not too
+% many different values.
+
+
+if isempty(balancefolds)
+  balancefolds = false;
+end
+
 if ~balancefolds
   
   reorder = randperm(nobs);
@@ -10,6 +21,7 @@ if ~balancefolds
   end
   
 else
+  
   if istable(design)
     design = table2array(design);
   end
@@ -18,7 +30,7 @@ else
     % assume the last column to be of relevance
   end
   udesign = unique(design);
-  if numel(udesign)>15,
+  if numel(udesign)>15
     % 10 is arbitrary
     error('the number of unique values in the design is too large for a balanced folding');
   end
@@ -31,7 +43,7 @@ else
     n(k,1) = sum(design==udesign(k));
   end
   while any(n<nfold)
-    sel = find(n<nfold)
+    sel = find(n<nfold);
     for m = sel(:)'
       if m==1
         m_alt = 2;
@@ -40,7 +52,7 @@ else
       end
       design(design==udesign(m)) = udesign(m_alt);
     end
-    udesign = unique(design)
+    udesign = unique(design);
     n = [];
     for m = 1:numel(udesign)
       n(m,1) = sum(design==udesign(m));
@@ -55,4 +67,5 @@ else
       folds{m} = cat(2,folds{m},indx((ix(m)+1):ix(m+1))');   
     end
   end
+  
 end

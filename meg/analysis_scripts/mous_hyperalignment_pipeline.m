@@ -500,7 +500,7 @@ if makemodels2
       
       fprintf('modelling the data with %s\n',ivar{indx});
       
-      stat   = mous_multisetcca_regress(tlck, design(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5);
+      stat   = mous_multisetcca_regress(tlck, design(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5, 'nrepeat', 5);
       
       rng('default');
       p = zeros(size(stat.Rsq));
@@ -509,24 +509,25 @@ if makemodels2
         if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
         tmpdesign = design;
         
-        randvec = randperm(size(tlck.trial,1));
+        randvec = randperm(size(design,1));
         vars    = design.Properties.VariableNames;
         for j = 1:numel(vars)
-          if strcmp(vars{j},ivar{indx})
+          %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
+          %whole design to be randomised, not commenting this out causes
+          %only the ivar of interest to be randomized
             tmpX = tmpdesign.(vars{j});
             tmpX = tmpX(randvec,:);
             tmpdesign.(vars{j}) = tmpX;
-          end
+          %end
         end
         
-        tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5);
+        tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5, 'nrepeat', 5);
         p   = p  + double(tmp.Rsq  > stat.Rsq );
         
         Frand(:,:,k)  = tmp.Rsq;
       end
       S(mm).stat  = stat;
-      S(mm).p     = (p+1)./nrand; % uncorrected p-value of the permutations
-      %S(cnt).Frand = Frand;
+      S(mm).p     = (p)./nrand; % uncorrected p-value of the permutations
       S(mm).ivar  = ivar{indx};
       S(mm).ref   = nanmean(Frand,3);
       S(mm).perms = Frand;
@@ -551,8 +552,8 @@ if makemodels2
       S(1).p = cat(1,S(1).p,S(mm).p);
       S(1).ref = cat(1,S(1).ref,S(mm).ref);
       S(1).stat.Rsq = cat(1,S(1).stat.Rsq,S(mm).stat.Rsq);
-      S(1).stat.B   = cat(2,S(1).stat.B,S(mm).stat.B);
-      S(1).stat.B0  = cat(2,S(1).stat.B0,S(mm).stat.B0);
+      %S(1).stat.B   = cat(2,S(1).stat.B,S(mm).stat.B);
+      %S(1).stat.B0  = cat(2,S(1).stat.B0,S(mm).stat.B0);
       S(1).stat.lambda = cat(1,S(1).stat.lambda,S(mm).stat.lambda);
     end
   end
