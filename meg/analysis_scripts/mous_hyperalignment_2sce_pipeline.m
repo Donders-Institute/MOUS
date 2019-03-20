@@ -6,6 +6,7 @@ if ~exist('rootdir',                      'var'), rootdir                   = '/
 if ~exist('domscca_searchlight_cross',    'var'), domscca_searchlight_cross = false;      end
 if ~exist('makemodels2',                  'var'), makemodels2               = false;      end
 if ~exist('dostats',                      'var'), dostats                   = false;      end
+if ~exist('combinemodels',                'var'), combinemodels             = false;      end
 
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
   error('at least a subjectname or a scenario number needs to be defined');
