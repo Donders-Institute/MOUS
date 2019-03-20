@@ -4,7 +4,7 @@
 
 if ~exist('rootdir',                      'var'), rootdir                   = '/project/3011020.09';       end
 if ~exist('domscca_searchlight_cross',    'var'), domscca_searchlight_cross = false;      end
-if ~exist('makemodels',                   'var'), makemodels                = false;      end
+if ~exist('makemodels2',                   'var'), makemodels2                = false;      end
 
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
   error('at least a subjectname or a scenario number needs to be defined');
@@ -528,83 +528,209 @@ if makemodels2
   ivar        = ivar(sel_ivars);
   categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index' 'main'});
     
-    for m = 1:numel(test_ivars)
-      indx = find(ismember(ivar, test_ivars{m}));
+  for m = 1:numel(test_ivars)
+    indx = find(ismember(ivar, test_ivars{m}));
+    
+    const = find(ismember(ivar, 'constant'));
+    main  = find(ismember(ivar, 'main'));
+    
+    fprintf('modelling the data with a constant regressor, the main effect, %s, and its interaction term\n',ivar{indx});
+     
+    % add the interaction term
+    tmp = design.('main').*design.(test_ivars{m});
+    tmp = tmp - nanmean(tmp);
+    newdesign = cat(2, design(:, [const main indx]), array2table(tmp, 'VariableNames', {sprintf('mainX%s',test_ivars{m})}));
+    
+    stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
       
-      fprintf('modelling the data with %s\n',ivar{indx});
+    rng('default');
+    p = zeros(size(stat.Rsq));
+    Frand  = zeros([size(stat.Rsq) nrand]);
+    for k = 1:nrand
+      if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
+      tmpdesign = newdesign;
       
-      stat   = mous_multisetcca_regress(tlck, design(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5, 'nrepeat', 5);
-      
-      rng('default');
-      p = zeros(size(stat.Rsq));
-      Frand  = zeros([size(stat.Rsq) nrand]);
-      for k = 1:nrand
-        if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
-        tmpdesign = design;
-        
-        randvec = randperm(size(design,1));
-        vars    = design.Properties.VariableNames;
-        for j = 1:numel(vars)
-          %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
-          %whole design to be randomised, not commenting this out causes
-          %only the ivar of interest to be randomized
-            tmpX = tmpdesign.(vars{j});
-            tmpX = tmpX(randvec,:);
-            tmpdesign.(vars{j}) = tmpX;
-          %end
-        end
-        
-        tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5, 'nrepeat', 5);
-        p   = p  + double(tmp.Rsq  > stat.Rsq );
-        
-        Frand(:,:,k)  = tmp.Rsq;
+      randvec = randperm(size(newdesign,1));
+      vars    = newdesign.Properties.VariableNames;
+      for j = 1:numel(vars)
+        %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
+        %whole design to be randomised, not commenting this out causes
+        %only the ivar of interest to be randomized
+        tmpX = tmpdesign.(vars{j});
+        tmpX = tmpX(randvec,:);
+        tmpdesign.(vars{j}) = tmpX;
+        %end
       end
-      S(mm).stat  = stat;
-      S(mm).p     = (p)./nrand; % uncorrected p-value of the permutations
-      S(mm).ivar  = ivar{indx};
-      S(mm).ref   = nanmean(Frand,3);
-      S(mm).perms = Frand;
+      
+      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
+      p   = p  + double(tmp.Rsq  > stat.Rsq );
+      
+      Frand(:,:,k)  = tmp.Rsq;
     end
-  
-  for mm = 1:numel(S)
-    if mm==1
-      obs = S(mm).stat.Rsq;
-      perms = S(mm).perms;
-    else
-      obs = cat(1,obs,S(mm).stat.Rsq);
-      perms = cat(1,perms,S(mm).perms);
-    end
+    S.stat  = stat;
+    S.p     = (p)./nrand; % uncorrected p-value of the permutations
+    S.ivar  = ivar{indx};
+    S.ref   = nanmean(Frand,3);
+    S.perms = Frand;
   end
+  
+  obs   = S.stat.Rsq;
+  perms = S.perms;
   
   a = cat(3,obs',permute(perms,[2 1 3]));
   rng('default');
   [results, params] = prevalenceCore(a);
   
-  if numel(S)>1
-    for mm = 2:numel(S)
-      S(1).p = cat(1,S(1).p,S(mm).p);
-      S(1).ref = cat(1,S(1).ref,S(mm).ref);
-      S(1).stat.Rsq = cat(1,S(1).stat.Rsq,S(mm).stat.Rsq);
-      %S(1).stat.B   = cat(2,S(1).stat.B,S(mm).stat.B);
-      %S(1).stat.B0  = cat(2,S(1).stat.B0,S(mm).stat.B0);
-      S(1).stat.lambda = cat(1,S(1).stat.lambda,S(mm).stat.lambda);
-    end
-  end
   S = rmfield(S(1), 'perms');
   
   
   S.prevalence.results = results;
   S.prevalence.params  = params;
-  if numel(scenario)==1
-    filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_model2_%s',scenario,parcel_indx,suffix,ivar{indx}));
-  else
-    str = '';
-    for mm = 1:numel(scenario)
-      str = [str num2str(scenario(mm))];
-    end
-    filename = fullfile(loaddir, sprintf('hyperalignment_sce%s_parcel%03d%s_model2_%s',str,parcel_indx,suffix,ivar{indx}));
-  end
+  
+  filename = fullfile(loaddir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
   save(filename, 'S');
+  
+end
+
+if combinemodels
+  if ~exist('modeltype', 'var')
+    modeltype = 'model2';
+  end
+  if ~exist('ivar', 'var')
+    error('ivar needs to be defined');
+  end
+  
+  % collapse the parcel specific data into a (hopefully smaller) variable,
+  % so that the original '*models.mat' files can be discarded
+  datadir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1), scenario(2)); %HARDCODED
+   
+  d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
+  %d = dir(fullfile(datadir,sprintf('*sce%d*models2.mat',scenario)));
+  
+  if numel(d)~=378
+    % some parcels failed to compute because too few vertices per parcel
+    error('expected number is less than 378 parcels');
+  end
+  
+  for k = 1:numel(d)
+    fprintf('processing file %s\n', d(k).name);
+    if exist('fn', 'var') && numel(fn)==1
+      dat = load(fullfile(d(k).folder,d(k).name),fn{1});
+    else
+      dat = load(fullfile(d(k).folder,d(k).name));
+      fn = fieldnames(dat);
+      fn = fn(1); % keep RAM use within bounds, repeat for the other variables
+      fprintf('using variable %s\n',fn{1});
+    end
+    
+    if k==1
+      fprintf('using variable %s\n',fn{1});
+    end
+    
+    for m = 1:numel(fn)
+      tmp = dat.(fn{m});
+      for p = 1:numel(tmp)
+        tmp2 = tmp(p);
+        tmp2.Rsq = tmp2.stat.Rsq;
+        %tmp2.B   = nanmean(tmp2.stat.B,4);
+        %tmp2.lambda = tmp2.stat.lambda;
+        tmp2     = rmfield(tmp2, 'stat');
+        
+        if k==1   
+          tmp2.Rsq(:,:,378) = 0;
+          %tmp2.B(:,:,:,378) = 0;
+          tmp2.ref(:,:,378) = 0;
+          tmp2.p(:,:,378)   = 0;
+          %tmp2.lambda(:,:,378) = 0;
+        
+          fnprev = fieldnames(tmp2.prevalence.results);
+          for kk = 1:numel(fnprev)
+            if ~strcmp(fnprev{kk},'refDistr')
+              tmp2.prevalence.results.(fnprev{kk})(:,378) = 0;
+            end
+          end
+          
+          if isfield(tmp.stat, 'time')
+            tmp2.time = tmp.stat.time;
+          end
+          
+          data.(fn{m})(p) = tmp2;
+        else
+          data.(fn{m})(p).p(:,:,k)   = tmp2.p;
+          data.(fn{m})(p).Rsq(:,:,k) = tmp2.Rsq;
+          data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
+          %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
+          %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
+          for kk = 1:numel(fnprev)
+            if ~strcmp(fnprev{kk},'refDistr')
+              data.(fn{m})(p).prevalence.results.(fnprev{kk})(:,k) = tmp2.prevalence.results.(fnprev{kk});
+            else
+              data.(fn{m})(p).prevalence.results.(fnprev{kk}) = max(data.(fn{m})(p).prevalence.results.(fnprev{kk}), tmp2.prevalence.results.(fnprev{kk}));
+            end
+          end
+        end
+      end
+    end
+    clear dat;
+  end
+  
+  
+  data = ft_struct2single(data);
+  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar, fn{1}));
+  %filename = fullfile(datadir, sprintf('hyperalignment_models2_sce%d_%s', scenario, fn{1}));
+  save(filename,'-struct', 'data');
+end
+
+if dostats
+  if ~exist('modeltype', 'var')
+    modeltype = 'model2';
+  end
+  if ~exist('ivar', 'var')
+    error('ivar needs to be defined');
+  end
+  
+  % collapse the parcel specific data into a (hopefully smaller) variable,
+  % so that the original '*models.mat' files can be discarded
+  datadir  = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1), scenario(2)); %HARDCODED
+  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S', scenario(1),scenario(2), modeltype, ivar));
+  load(filename);
+  
+  n = 33;
+  
+  load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+  
+  label = atlas.parcellationlabel;
+  label([1 2 194 195 190 191 381 382]) = [];
+  [a,b] = match_str(atlas.parcellationlabel, label);
+  s.pow = zeros(n*2,386,73); % hard coded, can be different for different scenario pairs
+  s.pow(1:n,a,:) = permute(S.Rsq,[1 3 2]);
+  s.pow(n+(1:n),a,:) = permute(S.ref, [1 3 2]);
+  s.dimord = 'rpt_chan_time';
+  s.time   = S.time;
+  s.label  = atlas.parcellationlabel;
+  s.brainordinate = atlas;
+  
+  cfg                  = [];
+  cfg.connectivity     = parcellation2connmat(atlas);
+  cfg.tail             = 1;
+  cfg.clustertail      = 1;
+  cfg.clusterthreshold = 'nonparametric_individual';
+  cfg.clusteralpha     = 0.01;
+  cfg.feedback         = 'text';
+  cfg.clusterstatistic = 'maxsum';
+  cfg.statistic        = 'ft_statfun_wilcoxon';
+  cfg.numrandomization = 1000;
+  cfg.method = 'montecarlo';
+  cfg.ivar   = 1;
+  cfg.uvar   = 2;
+  cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
+  cfg.parameter = 'pow';
+  cfg.correctm = 'cluster';
+  cfg.neighbours = []; % to get past ft_checkconfig
+  
+  stat = ft_timelockstatistics(cfg, s);
+  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_stat', scenario(1),scenario(2), modeltype, ivar));
+  save(filename, 'stat');
   
 end
 
