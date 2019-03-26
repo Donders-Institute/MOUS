@@ -557,6 +557,7 @@ if makemodels2
     
     stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
       
+
     rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
     p = zeros(size(stat.Rsq));
     Frand  = zeros([size(stat.Rsq) nrand]);
@@ -601,6 +602,7 @@ if makemodels2
   S.prevalence.results = results;
   S.prevalence.params  = params;
   
+
   filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
   save(filename, 'S');
   

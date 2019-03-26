@@ -616,16 +616,16 @@ if combinemodels
       for p = 1:numel(tmp)
         tmp2 = tmp(p);
         tmp2.Rsq = tmp2.stat.Rsq;
-        tmp2.B   = nanmean(tmp2.stat.B,4);
-        tmp2.lambda = tmp2.stat.lambda;
+        %tmp2.B   = nanmean(tmp2.stat.B,4);
+        %tmp2.lambda = tmp2.stat.lambda;
         tmp2     = rmfield(tmp2, 'stat');
         
         if k==1   
           tmp2.Rsq(:,:,378) = 0;
-          tmp2.B(:,:,:,378) = 0;
+          %tmp2.B(:,:,:,378) = 0;
           tmp2.ref(:,:,378) = 0;
           tmp2.p(:,:,378)   = 0;
-          tmp2.lambda(:,:,378) = 0;
+          %tmp2.lambda(:,:,378) = 0;
         
           fnprev = fieldnames(tmp2.prevalence.results);
           for kk = 1:numel(fnprev)
@@ -634,13 +634,17 @@ if combinemodels
             end
           end
           
+          if isfield(tmp.stat, 'time')
+            tmp2.time = tmp.stat.time;
+          end
+          
           data.(fn{m})(p) = tmp2;
         else
           data.(fn{m})(p).p(:,:,k)   = tmp2.p;
           data.(fn{m})(p).Rsq(:,:,k) = tmp2.Rsq;
           data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
-          data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
-          data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
+          %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
+          %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
           for kk = 1:numel(fnprev)
             if ~strcmp(fnprev{kk},'refDistr')
               data.(fn{m})(p).prevalence.results.(fnprev{kk})(:,k) = tmp2.prevalence.results.(fnprev{kk});
@@ -654,12 +658,68 @@ if combinemodels
     clear dat;
   end
   
+  
   data = ft_struct2single(data);
   filename = fullfile(datadir, sprintf('hyperalignment_sce%d_%s_%s_%s', scenario, modeltype, ivar, fn{1}));
   %filename = fullfile(datadir, sprintf('hyperalignment_models2_sce%d_%s', scenario, fn{1}));
   save(filename,'-struct', 'data');
   
 end
+
+if dostats
+  if ~exist('modeltype', 'var')
+    modeltype = 'model2';
+  end
+  if ~exist('ivar', 'var')
+    error('ivar needs to be defined');
+  end
+  
+  % collapse the parcel specific data into a (hopefully smaller) variable,
+  % so that the original '*models.mat' files can be discarded
+  datadir  = '/project/3011020.09/jansch/hyperalignment';%HARDCODED
+  filename = fullfile(datadir, sprintf('hyperalignment_sce%d_%s_%s_S', scenario, modeltype, ivar));
+  load(filename);
+  
+  n = size(S.Rsq,1);
+  
+  
+  load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+  
+  label = atlas.parcellationlabel;
+  label([1 2 194 195 190 191 381 382]) = [];
+  [a,b] = match_str(atlas.parcellationlabel, label);
+  s.pow = zeros(n*2,386,size(S.Rsq,2)); % hard coded, can be different for different scenario pairs
+  s.pow(1:n,a,:) = permute(double(S.Rsq),[1 3 2]);
+  s.pow(n+(1:n),a,:) = permute(double(S.ref), [1 3 2]);
+  s.dimord = 'rpt_chan_time';
+  s.time   = S.time;
+  s.label  = atlas.parcellationlabel;
+  s.brainordinate = atlas;
+  
+  cfg                  = [];
+  cfg.connectivity     = parcellation2connmat(atlas);
+  cfg.tail             = 1;
+  cfg.clustertail      = 1;
+  cfg.clusterthreshold = 'nonparametric_individual';
+  cfg.clusteralpha     = 0.05;
+  cfg.feedback         = 'text';
+  cfg.clusterstatistic = 'maxsum';
+  cfg.statistic        = 'ft_statfun_wilcoxon';
+  cfg.numrandomization = 1000;
+  cfg.method = 'montecarlo';
+  cfg.ivar   = 1;
+  cfg.uvar   = 2;
+  cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
+  cfg.parameter = 'pow';
+  cfg.correctm = 'cluster';
+  cfg.neighbours = []; % to get past ft_checkconfig
+  
+  stat = ft_timelockstatistics(cfg, s);
+  filename = fullfile(datadir, sprintf('hyperalignment_sce%d_%s_%s_stat', scenario, modeltype, ivar));
+  save(filename, 'stat');
+  
+end
+
 
       
       
