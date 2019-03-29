@@ -8,6 +8,18 @@ if ~exist('makemodels2',                  'var'), makemodels2               = fa
 if ~exist('dostats',                      'var'), dostats                   = false;      end
 if ~exist('combinemodels',                'var'), combinemodels             = false;      end
 
+if makemodels2 == 1
+    if ~exist('savdir', 'var') 
+        error('define savdir');      
+    end
+end
+
+if combinemodels == 1 || dostats == 1
+    if ~exist('datadir',  'var') 
+        error('define datadir');      
+    end
+end
+
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
   error('at least a subjectname or a scenario number needs to be defined');
 end
@@ -545,7 +557,8 @@ if makemodels2
     
     stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
       
-    rng('default');
+
+    rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
     p = zeros(size(stat.Rsq));
     Frand  = zeros([size(stat.Rsq) nrand]);
     for k = 1:nrand
@@ -589,7 +602,8 @@ if makemodels2
   S.prevalence.results = results;
   S.prevalence.params  = params;
   
-  filename = fullfile(loaddir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
+
+  filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
   save(filename, 'S');
   
 end
@@ -604,7 +618,7 @@ if combinemodels
   
   % collapse the parcel specific data into a (hopefully smaller) variable,
   % so that the original '*models.mat' files can be discarded
-  datadir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1), scenario(2)); %HARDCODED
+%   datadir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1), scenario(2)); %HARDCODED
    
   d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
   %d = dir(fullfile(datadir,sprintf('*sce%d*models2.mat',scenario)));
@@ -693,7 +707,7 @@ if dostats
   
   % collapse the parcel specific data into a (hopefully smaller) variable,
   % so that the original '*models.mat' files can be discarded
-  datadir  = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1), scenario(2)); %HARDCODED
+%   datadir  = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1), scenario(2)); %HARDCODED
   filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S', scenario(1),scenario(2), modeltype, ivar));
   load(filename);
   
@@ -735,6 +749,3 @@ if dostats
   save(filename, 'stat');
   
 end
-
-
-
