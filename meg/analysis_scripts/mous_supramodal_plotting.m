@@ -114,7 +114,7 @@ for k = 1:numel(indx1)
     end
 end
 % this function is in fieldtrip/plotting/private
-atlas.pos = posAll; 
+atlas.pos = posAll;
 %lateral view
 figure('position',[1 1 900 900]);
 ft_plot_mesh(atlas,'facecolor', 'cortex','edgecolor','none','vertexcolor',P*cdat);
@@ -127,7 +127,7 @@ title(sprintf('time = %d-%d',round(1000.*s.time(i1)),round(1000.*s.time(i2))),'p
 fname = strcat('/project/3011020.09/sopara/figures/final/fig0/',sprintf('sensory_time%d2',i1));
 export_fig(fname,'-png','-transparent','-m5');
 %medial view
-atlas.pos = posmedial; 
+atlas.pos = posmedial;
 mask = zeros(1,386);
 mask(175) = 1;
 figure('position',[1 1 900 900]);
@@ -148,56 +148,57 @@ load('/project/3011020.09/sopara/figures/final/colorbar_sensory','map2D')
 scenario = 1;
 parcel_indx = 95; % run this part for each parcel (175 BA17 visual, 95 BA43 auditory)
 filename = sprintf('/project/3011020.09/sopara/figures/final/fig0/trcdata_parcel%03d',parcel_indx);
-load(strcat(filename,'_trc'),'trc','trcshuf2')
+load(strcat(filename),'trc','trcshuf2')
 
 if isfile(filename)
     load(filename);
 else
-if exist('scenario', 'var')
-  subj = mous_db_getfilename('allAV', 'subjectname');
-  sce  = mous_db_getfilename(subj,    'scenario');
-  sel  = false(numel(subj,1));
-  for m = 1:numel(scenario)
-    sel = strncmp(sce, num2str(scenario(m)), 1) | sel;
-  end
-  subj = subj(sel);
-  sce  = sce(sel);
-end
-shift   = zeros(1,numel(subj));
-stretch = ones(1,numel(subj));
-for k = 1:numel(subj)
-    % load in the data
-    load mous_stimuli
-    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_data%s', ''));
-    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_timinginfo%s',''));
-    mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc%s',  ''));
-    groupinfo = mous_db_getdata(subj{k}, sprintf('meg_multisetcca_groupinfo%s',''));
-    source_parc.filterlabel = filterlabel; % for checking channel order
-    subjectdata{k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
-    subjecttiming{k} = timinginfo; % subject specific information about timing
-    if strncmp(subj{k}, 'A', 1)
-        tmp = subjectdata{k}.time;
-        stim_id = subjectdata{k}.trialinfo(:,end);
-        for kk = 1:numel(tmp)
-            tmp{kk} = tmp{kk}-stimuli(stim_id(kk)).timinginfo(1,2);
-            tmp{kk} = tmp{kk}-tmp{kk}(nearest(tmp{kk},0)); % include 0 explicitly
+    if exist('scenario', 'var')
+        subj = mous_db_getfilename('allAV', 'subjectname');
+        sce  = mous_db_getfilename(subj,    'scenario');
+        sel  = false(numel(subj,1));
+        for m = 1:numel(scenario)
+            sel = strncmp(sce, num2str(scenario(m)), 1) | sel;
         end
-        subjectdata{k}.time = tmp;
+        subj = subj(sel);
+        sce  = sce(sel);
     end
-    for kk = 1:numel(subjectdata{k}.trial)
-        tmp = subjectdata{k}.trial{kk};
-        tmp = tmp - nanmean(tmp,2)*ones(1,size(tmp,2));
-        subjectdata{k}.trial{kk} = tmp;
-    end
-    groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));%,true);
-    
-    cfg            = [];
-    cfg.method     = 'acrosschannel';
-    groupdata{k} = ft_channelnormalise(cfg, groupdata{k});
-    for kk = 1:numel(groupdata{k}.trial)
-        sel = nearest(groupdata{k}.time{kk},-0.1);
-        groupdata{k}.trial{kk} = groupdata{k}.trial{kk}(:,sel:end);
-        groupdata{k}.time{kk}  = groupdata{k}.time{kk}(sel:end);
+    shift   = zeros(1,numel(subj));
+    stretch = ones(1,numel(subj));
+    for k = 1:numel(subj)
+        % load in the data
+        load mous_stimuli
+        mous_db_getdata(subj{k}, sprintf('meg_multisetcca_data%s', ''));
+        mous_db_getdata(subj{k}, sprintf('meg_multisetcca_timinginfo%s',''));
+        mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc%s',  ''));
+        groupinfo = mous_db_getdata(subj{k}, sprintf('meg_multisetcca_groupinfo%s',''));
+        source_parc.filterlabel = filterlabel; % for checking channel order
+        subjectdata{k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
+        subjecttiming{k} = timinginfo; % subject specific information about timing
+        if strncmp(subj{k}, 'A', 1)
+            tmp = subjectdata{k}.time;
+            stim_id = subjectdata{k}.trialinfo(:,end);
+            for kk = 1:numel(tmp)
+                tmp{kk} = tmp{kk}-stimuli(stim_id(kk)).timinginfo(1,2);
+                tmp{kk} = tmp{kk}-tmp{kk}(nearest(tmp{kk},0)); % include 0 explicitly
+            end
+            subjectdata{k}.time = tmp;
+        end
+        for kk = 1:numel(subjectdata{k}.trial)
+            tmp = subjectdata{k}.trial{kk};
+            tmp = tmp - nanmean(tmp,2)*ones(1,size(tmp,2));
+            subjectdata{k}.trial{kk} = tmp;
+        end
+        groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));%,true);
+        
+        cfg            = [];
+        cfg.method     = 'acrosschannel';
+        groupdata{k} = ft_channelnormalise(cfg, groupdata{k});
+        for kk = 1:numel(groupdata{k}.trial)
+            sel = nearest(groupdata{k}.time{kk},-0.1);
+            groupdata{k}.trial{kk} = groupdata{k}.trial{kk}(:,sel:end);
+            groupdata{k}.time{kk}  = groupdata{k}.time{kk}(sel:end);
+        end
     end
 end
 tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata(1,:), subj); % first row only
@@ -207,7 +208,7 @@ end
 tmpdata.label = tmpdata.label(1:5:165);
 trc_pre       = mous_multisetcca_trc(tmpdata, stimuli);
 save(sprintf('/project/3011020.09/sopara/figures/final/fig0/trcdata_parcel%03d',parcel_indx), 'trc_pre', 'trc', 'trcshuf2');
-end
+en d
 
 %Plot
 twin  = [0.15 0.2]; % time window for sensory maps average
@@ -295,7 +296,7 @@ for k = 43:1:68
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Figure 2
+%% Figure 2
 clearvars -except atlas posAll posright posleft posmedial;clc
 cmap = brewermap(63,'Reds');
 %load data
@@ -367,8 +368,156 @@ for k = firstcol:1:lastcol
     fname = strcat('/project/3011020.09/sopara/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_medial',k));
     export_fig(fname,'-png','-transparent','-m5');
     clf;
-end 
+end
 
+%alternative figure use mask based on prevalence stat, no boundaries
+splot = xs;
+figure('position',[1 1 900 900]);
+for k = firstcol:1:lastcol
+    splot.pow = xs.pow(:,k); splot.pow(~isfinite(splot.pow)) = 0;
+    splot.mask2 = xs.mask2(:,k); splot.mask2(~isfinite(splot.mask2))=0;
+    ft_plot_mesh(splot,'vertexcolor',splot.pow, ...
+        'clim', [0 0.015], ...
+        'facealpha', splot.mask2, ...
+        'colormap',cmap, ...
+        'maskstyle', 'colormix');
+    lighting gouraud;
+    material dull;
+    view([90 0]);
+    h=light('position',[10 0 0]);
+    title(sprintf('time = %d',round(1000.*time(k))),'position',[33 -204 100]);
+    set(gcf,'color','w');
+    fname = strcat('/project/3011020.09/sopara/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_2',k));
+    export_fig(fname,'-png','-transparent','-m5');
+    clf;
+end
+%% Figure 2B parcel time courses
+load(fullfile('/project/3011020.09/sopara/prevalence/12-Nov-2018.mat'), 'time', 'mT','results','params');
+load('/project/3011020.09/jansch/mscca_group/allscenarios_results_supra_Tclustermask.mat')
+c1 = brewermap(10,'Blues');
+c2 = brewermap(10, 'Oranges');
+%find parcels in frontal and temporal lobe at time 333ms
+tidx = nearest(time,0.333);
+pidx = find(results.pcMN(:,tidx)<0.05);
+pSTG = pidx(2);
+pIFG = pidx([1,3:end]);
+pATL = [129 144];%; %anterior temporal based on 392sms
+
+figure;
+hold on
+h1 = plot(time,squeeze(mean(allT(:,pSTG,:),2)),'LineWidth',4);
+h2 = plot(time,squeeze(mean(allT(:,pATL,:),2)),'LineWidth',4);
+%dummy line for legend
+hx = plot(nan(2,12));
+n = size(allT,1);
+for i = 1:n
+    set(h1(i),{'color'},{[c1(i+3,:) 0.6]});
+    set(hx(i),'color',c1(i+3,:));
+    set(h2(i),{'color'},{[c2(i+3,:) 0.6]});
+    set(hx(i),'color',c1(i+3,:));
+    set(hx(i+n),'color',c2(i+3,:));
+end
+[~, hobj, ~, ~] = legend(hx,'dataset 1','dataset 2','dataset 3','dataset 4','dataset 5','dataset 6',...
+    'dataset 1','dataset 2','dataset 3','dataset 4','dataset 5','dataset 6',...
+    'Location','bestoutside');
+h1 = findobj(hobj,'type','line');
+set(h1,'LineWidth',3);
+ax = gca(); % this Gets the Current Axis so we can set properties
+ax.YAxisLocation = 'origin';
+ax.TickDir = 'out';
+% Remove the box around the plot, while we're at it:
+box off;
+set(ax ,'Layer', 'Top')
+export_fig('/project/3011020.09/sopara/figures/final/parcel_timecourse_allsce_oneplot','-png','-transparent');
+
+figure;
+hold on
+h1 = plot(time,squeeze(mean(allT(:,pSTG,:),2)),'Color',[c1(4,:) 0.6],'LineWidth',5);
+h2 = plot(time,squeeze(mean(allT(:,pIFG,:),2)),'Color',[c2(4,:) 0.6],'LineWidth',5);
+h2(end+1) = plot(time,squeeze(mean(mean(allT(:,pIFG,:),2))),'Color',c2(end,:),'LineWidth',3)
+h1(end+1) = plot(time,squeeze(mean(mean(allT(:,pSTG,:),2))),'Color',c1(end,:),'LineWidth',3)
+hx = plot(nan(2,4));
+set(hx(1),'color',[c1(4,:) 0.7]);
+set(hx(2),'color',[c2(4,:) 0.7]);
+set(hx(3),'color',c1(end,:));
+set(hx(4),'color',c2(end,:));
+[~, hobj, ~, ~] = legend(hx,'subgroups STG','subgroups ATL','average STG','averageATL','Location','bestoutside')
+h1 = findobj(hobj,'type','line');
+set(h1(1:4),'LineWidth',5);
+set(h1(5:7),'LineWidth',3);
+ax = gca(); % this Gets the Current Axis so we can set properties
+ax.YAxisLocation = 'origin';
+ax.TickDir = 'out';
+% Remove the box around the plot, while we're at it:
+box off;
+set(ax ,'Layer', 'Top')
+export_fig('/project/3011020.09/sopara/figures/final/parcel_timecourse_allsce1_oneplot2','-png','-transparent');
+
+figure;
+subplot(2,1,1);
+hold on
+h1 = plot(time,squeeze(mean(allT(:,pSTG,:),2)),'LineWidth',5);
+h1(end+1) = plot(time,squeeze(mean(mean(allT(:,pSTG,:),2))),'Color',c1(end,:),'LineWidth',3)
+
+subplot(2,1,2);
+hold on
+h2 = plot(time,squeeze(mean(allT(:,pIFG,:),2)),'LineWidth',5);
+h2(end+1) = plot(time,squeeze(mean(mean(allT(:,pIFG,:),2))),'Color',c2(end,:),'LineWidth',3)
+
+for i = 1:n
+    set(h1(i),{'color'},{c1(i+3,:)});
+    h1(i).Color(4) = 0.6;
+    
+    set(h2(i),{'color'},{c2(i+3,:)});
+    h2(i).Color(4) = 0.6;
+    
+end
+legend(h1,'dataset 1','dataset 2','dataset 3','dataset 4','dataset 5','dataset 6','average')
+legend(h2,'dataset 1','dataset 2','dataset 3','dataset 4','dataset 5','dataset 6','average')
+export_fig('/project/3011020.09/sopara/figures/final/parcel_timecourse_allsce_subplot','-png','-transparent');
+
+%alternative figure: plotting only means for prevalence significant areas,
+%then drawing boundary around previously assumed areas (STG IFG 44/45 ATL 38)
+c3 = brewermap(10, 'Greens');
+pSTG = [116:125];
+pIFG = [79:84];
+pATL = [133:136]; %anterior temporal pole brodmann area 38
+f1 = figure;
+h1 = plot(time,squeeze(mean(allT(:,pSTG,:),2)),'LineWidth',5);
+hold on
+h1(end+1) = plot(time,squeeze(mean(mean(allT(:,pSTG,:),2))),'Color',c1(end,:),'LineWidth',3)
+
+f2 = figure;
+h2 = plot(time,squeeze(mean(allT(:,pIFG,:),2)),'LineWidth',5);
+hold on
+h2(end+1) = plot(time,squeeze(mean(mean(allT(:,pIFG,:),2))),'Color',c2(end,:),'LineWidth',3)
+
+f3 = figure;
+h3 = plot(time,squeeze(mean(allT(:,pATL,:),2)),'LineWidth',5);
+hold on
+h3(end+1) = plot(time,squeeze(mean(mean(allT(:,pATL,:),2))),'Color',c3(end,:),'LineWidth',3)
+for i = 1:n
+    set(h1(i),{'color'},{c1(i+3,:)});
+    h1(i).Color(4) = 0.6;
+    
+    set(h2(i),{'color'},{c2(i+3,:)});
+    h2(i).Color(4) = 0.6;
+    
+    set(h3(i),{'color'},{c3(i+3,:)});
+    h3(i).Color(4) = 0.6;
+end
+get(f1,'Renderer')
+legend(h1,'dataset 1','dataset 2','dataset 3','dataset 4','dataset 5','dataset 6')
+title('mean correlation across parcels in superior temporal gyrus')
+export_fig('/project/3011020.09/sopara/figures/final/parcel_timecourse_allsce_STG','-png','-transparent');
+get(f2,'Renderer')
+legend(h2,'dataset 1','dataset 2','dataset 3','dataset 4','dataset 5','dataset 6')
+title('mean correlation across parcels BA 44/45')
+export_fig('/project/3011020.09/sopara/figures/final/parcel_timecourse_allsce_IFG','-png','-transparent');
+get(f3,'Renderer')
+legend(h3,'dataset 1','dataset 2','dataset 3','dataset 4','dataset 5','dataset 6')
+title('mean correlation across parcels in BA 38')
+export_fig('/project/3011020.09/sopara/figures/final/parcel_timecourse_allsce_STG','-png','-transparent');
 %% Fig 3.
 cmap = brewermap(63,'Blues');
 
@@ -424,7 +573,7 @@ for k = firstcol:1:lastcol
     fname = strcat('/project/3011020.09/sopara/prevalence/',sprintf('/crossmod_timestamp%03d_gamma0_medialview',k));
     export_fig(fname,'-png','-transparent','-m5');
     clf;
-end 
+end
 % Plot average Figure
 source.pow            = nanmean(results.gamma0c,2);
 [rows,~] = find(results.pcGN < 0.05);
