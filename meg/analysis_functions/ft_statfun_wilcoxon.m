@@ -83,10 +83,13 @@ for k = 1:numel(urows)
 end
 
 % Broadcast the ranks back out, including NaN where required.
-for k = 1:size(ranks,1)
-  ranks(k,srtidx(k,:)) = ranks(k,:);
-end
+%for k = 1:size(ranks,1)
+%  ranks(k,srtidx(k,:)) = ranks(k,:);
+%end
 
+[nrow,ncol] = size(srtidx);
+srtidx = (srtidx-1).*nrow + (1:nrow)'*ones(1,ncol);
+ranks(srtidx) = ranks;
 
 
 %This file execute the non parametric Wilcoxon test to evaluate the difference between paired (dependent) samples. 

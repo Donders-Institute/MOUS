@@ -25,7 +25,8 @@ if ~exist('create_shuffle_indx', 'var'), create_shuffle_indx = false; end
 if ~exist('create_shuffle_indx_seq', 'var'), create_shuffle_indx_seq = false; end
 if ~exist('makemodels', 'var'), makemodels = false; end
 if ~exist('combinemodels', 'var'), combinemodels = false; end
-  
+if ~exist('dostats', 'var'), dostats = false; end
+
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var') && ~exist('subj', 'var')
   error('at least a subjectname, a scenario number, or a list of subjects needs to be defined');
 end
@@ -118,20 +119,20 @@ if create_shuffle_indx_seq
 end
 
 if dohyperalignment || dohyperalignment_seq
+  load mous_stimuli; 
+  
+  if ~exist('nfold', 'var')
+    nfold = 5;
+  end
+  if ~exist('lambda', 'var')
+    lambda = 1;
+  end
   if dohyperalignment &&  dohyperalignment_seq
     error('not both can be true at the same time');
   elseif dohyperalignment
     suffix = ''; % the filenames don't have a suffix
   elseif dohyperalignment_seq
     suffix = '_seq';
-  end
-  
-  load mous_stimuli; 
-  if ~exist('nfold', 'var')
-    nfold = 5;
-  end
-  if ~exist('lambda', 'var')
-    lambda = 1;
   end
   
   shift   = zeros(1,numel(subj));
@@ -262,8 +263,11 @@ if dohyperalignment || dohyperalignment_seq
     [tlck3, Trl_idx]     = mous_multisetcca_extractwords(tmpdata1, stimuli);
     [trc3]               = mous_multisetcca_trc(tlck3, stimuli, 'output2', 'single_all');
     
-    
+    if numel(nfold)==1 && nfold<=1
+      suffix = [suffix '_nocv'];
+    end
     filename = fullfile(savedir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
+    
     save(filename, 'rho', 'W', 'A', 'rho1', 'W1', 'A1', 'rho2', 'W2', 'A2', 'tlck', 'tlck1', 'tlck2', 'tlck3', 'trc', 'trc1', 'trc2', 'trc3');
   end
   
@@ -317,6 +321,7 @@ if makemodels
   tmpcfg = [];
   tmpcfg.trials = find(sel>0);
   tmpcfg.channel = tlck.label(4:end);
+  tmpcfg.latency = [0 0.6];  
   tlck  = ft_selectdata(tmpcfg, tlck );
   tlck1 = ft_selectdata(tmpcfg, tlck1);
   tlck2 = ft_selectdata(tmpcfg, tlck2);
@@ -455,6 +460,7 @@ if makemodels2
   suffix = ''; % for now
   loaddir = '/project/3011020.09/jansch/hyperalignment';
   
+  clear S;
   for mm = 1:numel(scenario)
     filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario(mm),parcel_indx,suffix));
     load(filename, 'tlck', 'tlck1', 'tlck2', 'tlck3');
@@ -467,7 +473,7 @@ if makemodels2
     tmpcfg = [];
     tmpcfg.trials = find(sel>0);
     tmpcfg.channel = tlck.label(4:end);
-    tmpcfg.latency = [-inf 0.6];
+    tmpcfg.latency = [0 0.6];
     tlck  = ft_selectdata(tmpcfg, tlck );
     tlck1 = ft_selectdata(tmpcfg, tlck1);
     tlck2 = ft_selectdata(tmpcfg, tlck2);
@@ -512,13 +518,13 @@ if makemodels2
         randvec = randperm(size(design,1));
         vars    = design.Properties.VariableNames;
         for j = 1:numel(vars)
-          %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
+          if strcmp(vars{j},ivar{indx}) % commenting this out causes the
           %whole design to be randomised, not commenting this out causes
           %only the ivar of interest to be randomized
             tmpX = tmpdesign.(vars{j});
             tmpX = tmpX(randvec,:);
             tmpdesign.(vars{j}) = tmpX;
-          %end
+          end
         end
         
         tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5, 'nrepeat', 5);
@@ -530,22 +536,22 @@ if makemodels2
       S(mm).p     = (p)./nrand; % uncorrected p-value of the permutations
       S(mm).ivar  = ivar{indx};
       S(mm).ref   = nanmean(Frand,3);
-      S(mm).perms = Frand;
+      %S(mm).perms = Frand;
     end
   end
-  for mm = 1:numel(S)
-    if mm==1
-      obs = S(mm).stat.Rsq;
-      perms = S(mm).perms;
-    else
-      obs = cat(1,obs,S(mm).stat.Rsq);
-      perms = cat(1,perms,S(mm).perms);
-    end
-  end
-  
-  a = cat(3,obs',permute(perms,[2 1 3]));
-  rng('default');
-  [results, params] = prevalenceCore(a);
+%   for mm = 1:numel(S)
+%     if mm==1
+%       obs = S(mm).stat.Rsq;
+%       perms = S(mm).perms;
+%     else
+%       obs = cat(1,obs,S(mm).stat.Rsq);
+%       perms = cat(1,perms,S(mm).perms);
+%     end
+%   end
+%   
+%   a = cat(3,obs',permute(perms,[2 1 3]));
+%   rng('default');
+%   [results, params] = prevalenceCore(a);
   
   if numel(S)>1
     for mm = 2:numel(S)
@@ -557,11 +563,11 @@ if makemodels2
       S(1).stat.lambda = cat(1,S(1).stat.lambda,S(mm).stat.lambda);
     end
   end
-  S = rmfield(S(1), 'perms');
+  %S = rmfield(S(1), 'perms');
   
   
-  S.prevalence.results = results;
-  S.prevalence.params  = params;
+  %S.prevalence.results = results;
+  %S.prevalence.params  = params;
   if numel(scenario)==1
     filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_model2_%s',scenario,parcel_indx,suffix,ivar{indx}));
   else
@@ -572,7 +578,159 @@ if makemodels2
     filename = fullfile(loaddir, sprintf('hyperalignment_sce%s_parcel%03d%s_model2_%s',str,parcel_indx,suffix,ivar{indx}));
   end
   save(filename, 'S');
+end
+
+if ~exist('makemodels3', 'var')
+  makemodels3 = false;
+end
+if makemodels3
+  % this section does a leave-one-subject-out model
   
+  if ~exist('nrand', 'var')
+    nrand = 500;
+  end
+  if ~exist('parcel_indx', 'var')
+    error('please supply parcel_indx');
+  end
+  if ~exist('stimuli', 'var')
+    load mous_stimuli;
+  end
+  if ~exist('lambda', 'var')
+    lambda=1;
+  end
+  
+  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+                  'leftbranch' 'dleftbranch'};
+  if ~exist('test_ivars', 'var')
+    % test a bunch at once: this does not allow for ivar specific lambdas
+    %test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+    %              'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'w2v'};
+    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+                  'leftbranch' 'dleftbranch'};
+  end
+  if ~iscell(test_ivars)
+    test_ivars = {test_ivars};
+  end
+  
+  suffix = ''; % for now
+  loaddir = '/project/3011020.09/jansch/hyperalignment';
+  
+  clear S;
+  for mm = 1:numel(scenario)
+    filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s',scenario(mm),parcel_indx,suffix));
+    load(filename, 'tlck', 'tlck1', 'tlck2', 'tlck3');
+    
+    sel =       double(strncmp([tlck.trialinfo.POS], 'N',   1))*1;
+    sel = sel + double(strncmp([tlck.trialinfo.POS], 'WW',  2))*2;
+    sel = sel + double(strncmp([tlck.trialinfo.POS], 'ADJ', 3))*3;
+    
+    % select these from the data
+    tmpcfg = [];
+    tmpcfg.trials = find(sel>0);
+    tmpcfg.channel = tlck.label(4:end);
+    tmpcfg.latency = [0 0.6];
+    tlck  = ft_selectdata(tmpcfg, tlck );
+    tlck1 = ft_selectdata(tmpcfg, tlck1);
+    tlck2 = ft_selectdata(tmpcfg, tlck2);
+    tmpcfg.channel = tlck3.label(4:end);
+    tlck3 = ft_selectdata(tmpcfg, tlck3);
+    
+    % add a constant regressor to the design
+    tlck.trialinfo  = cat(2, array2table(ones(size(tlck.trial,1),1), 'VariableNames', {'constant'}),  tlck.trialinfo);
+    tlck1.trialinfo = cat(2, array2table(ones(size(tlck1.trial,1),1),'VariableNames', {'constant'}), tlck1.trialinfo);
+    tlck2.trialinfo = cat(2, array2table(ones(size(tlck2.trial,1),1),'VariableNames', {'constant'}), tlck2.trialinfo);
+    tlck3.trialinfo = cat(2, array2table(ones(size(tlck3.trial,1),1),'VariableNames', {'constant'}), tlck3.trialinfo);
+    
+    ivar = tlck.trialinfo.Properties.VariableNames;
+    sel_ivars = match_str(ivar, use_ivars);
+  
+    % here the design contains all independent variables of interest,
+    % demean apart from the constant
+    design = tlck.trialinfo(:,sel_ivars);
+    for m = sel_ivars(:)'
+      if ~strcmp(ivar{m},'constant')
+        design.(ivar{m}) = design.(ivar{m}) - nanmean(design.(ivar{m}));
+      end
+    end
+    
+    % reorganise the data, concatenate across subjects, and repmat the
+    % design, create folding indices
+    nrpt  = size(tlck.trial,1);
+    nsubj = size(tlck.trial,2);
+    ntim  = size(tlck.trial,3);
+    tlck.trial = reshape(tlck.trial,[nrpt*nsubj 1 ntim]);
+    tlck.trialinfo = repmat(tlck.trialinfo, [nsubj 1]);
+    tlck.label = {'concatenatedsubjects'};
+    design = repmat(design, [nsubj 1]);
+    for m = 1:nsubj
+      outerfolds{m} = (m-1)*nrpt + (1:nrpt);
+    end
+    
+    ivar        = ivar(sel_ivars);
+    categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index'});
+    
+    for m = 1:numel(test_ivars)
+      indx = find(ismember(ivar, test_ivars{m}));
+      
+      fprintf('modelling the data with %s\n',ivar{indx});
+      
+      stat   = mous_multisetcca_regress(tlck, design(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', outerfolds, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5, 'nrepeat', 1);
+      
+      rng('default');
+      p = zeros(size(stat.Rsq));
+      Frand  = zeros([size(stat.Rsq) nrand]);
+      for k = 1:nrand
+        if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
+        tmpdesign = design;
+        
+        randvec = reshape(repmat(randperm(nrpt)',[1 nsubj]) + nrpt.*repmat((1:nsubj)-1, [nrpt 1]),[],1);
+        
+        
+        vars    = design.Properties.VariableNames;
+        for j = 1:numel(vars)
+          if strcmp(vars{j},ivar{indx}) % commenting this out causes the
+          %whole design to be randomised, not commenting this out causes
+          %only the ivar of interest to be randomized
+            tmpX = tmpdesign.(vars{j});
+            tmpX = tmpX(randvec,:);
+            tmpdesign.(vars{j}) = tmpX;
+          end
+        end
+        
+        tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', outerfolds, 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5, 'nrepeat', 1);
+        p   = p  + double(tmp.Rsq  > stat.Rsq );
+        
+        Frand(:,:,k)  = tmp.Rsq;
+      end
+      S(mm).stat  = stat;
+      S(mm).p     = (p+1)./(nrand+1); % uncorrected p-value of the permutations
+      S(mm).ivar  = ivar{indx};
+      S(mm).ref   = permute(Frand,[3 2 1]);
+      %S(mm).perms = Frand;
+    end
+  end
+
+  if numel(S)>1
+    for mm = 2:numel(S)
+      S(1).p = cat(1,S(1).p,S(mm).p);
+      S(1).ref = cat(1,S(1).ref,S(mm).ref);
+      S(1).stat.Rsq = cat(1,S(1).stat.Rsq,S(mm).stat.Rsq);
+      %S(1).stat.B   = cat(2,S(1).stat.B,S(mm).stat.B);
+      %S(1).stat.B0  = cat(2,S(1).stat.B0,S(mm).stat.B0);
+      S(1).stat.lambda = cat(1,S(1).stat.lambda,S(mm).stat.lambda);
+    end
+  end
+  
+  if numel(scenario)==1
+    filename = fullfile(loaddir, sprintf('hyperalignment_sce%d_parcel%03d%s_model3_%s',scenario,parcel_indx,suffix,ivar{indx}));
+  else
+    str = '';
+    for mm = 1:numel(scenario)
+      str = [str num2str(scenario(mm))];
+    end
+    filename = fullfile(loaddir, sprintf('hyperalignment_sce%s_parcel%03d%s_model3_%s',str,parcel_indx,suffix,ivar{indx}));
+  end
+  save(filename, 'S');
 end
 
 
@@ -593,18 +751,31 @@ if combinemodels
   
   if numel(d)~=378
     % some parcels failed to compute because too few vertices per parcel
-    error('expected number is less than 378 parcels');
+    warning('number of files is less than the expected number of 378 parcels');
+    for k = 1:numel(d)
+      nx(k)=str2num(d(k).name(27:29));
+    end
+    indx = 1:382;
+    indx([190 191 381 382]) = [];
+    skipvec = true(378,1);
+    skipvec(find(ismember(indx,nx))) = false;
+  else
+    skipvec = false(378,1);
   end
   
   for k = 1:numel(d)
-    fprintf('processing file %s\n', d(k).name);
-    if exist('fn', 'var') && numel(fn)==1
-      dat = load(fullfile(d(k).folder,d(k).name),fn{1});
+    if ~skipvec(k)
+      fprintf('processing file %s\n', d(k).name);
+      if exist('fn', 'var') && numel(fn)==1
+        dat = load(fullfile(d(k).folder,d(k).name),fn{1});
+      else
+        dat = load(fullfile(d(k).folder,d(k).name));
+        fn = fieldnames(dat);
+        fn = fn(1); % keep RAM use within bounds, repeat for the other variables
+        fprintf('using variable %s\n',fn{1});
+      end
     else
-      dat = load(fullfile(d(k).folder,d(k).name));
-      fn = fieldnames(dat);
-      fn = fn(1); % keep RAM use within bounds, repeat for the other variables
-      fprintf('using variable %s\n',fn{1});
+      continue;
     end
     
     if k==1
@@ -627,10 +798,12 @@ if combinemodels
           tmp2.p(:,:,378)   = 0;
           %tmp2.lambda(:,:,378) = 0;
         
-          fnprev = fieldnames(tmp2.prevalence.results);
-          for kk = 1:numel(fnprev)
-            if ~strcmp(fnprev{kk},'refDistr')
-              tmp2.prevalence.results.(fnprev{kk})(:,378) = 0;
+          if isfield(tmp2, 'prevalence')
+            fnprev = fieldnames(tmp2.prevalence.results);
+            for kk = 1:numel(fnprev)
+              if ~strcmp(fnprev{kk},'refDistr')
+                tmp2.prevalence.results.(fnprev{kk})(:,378) = 0;
+              end
             end
           end
           
@@ -645,11 +818,13 @@ if combinemodels
           data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
           %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
           %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
-          for kk = 1:numel(fnprev)
-            if ~strcmp(fnprev{kk},'refDistr')
-              data.(fn{m})(p).prevalence.results.(fnprev{kk})(:,k) = tmp2.prevalence.results.(fnprev{kk});
-            else
-              data.(fn{m})(p).prevalence.results.(fnprev{kk}) = max(data.(fn{m})(p).prevalence.results.(fnprev{kk}), tmp2.prevalence.results.(fnprev{kk}));
+          if isfield(tmp2, 'prevalence')
+            for kk = 1:numel(fnprev)
+              if ~strcmp(fnprev{kk},'refDistr')
+                data.(fn{m})(p).prevalence.results.(fnprev{kk})(:,k) = tmp2.prevalence.results.(fnprev{kk});
+              else
+                data.(fn{m})(p).prevalence.results.(fnprev{kk}) = max(data.(fn{m})(p).prevalence.results.(fnprev{kk}), tmp2.prevalence.results.(fnprev{kk}));
+              end
             end
           end
         end
@@ -701,10 +876,10 @@ if dostats
   cfg.tail             = 1;
   cfg.clustertail      = 1;
   cfg.clusterthreshold = 'nonparametric_individual';
-  cfg.clusteralpha     = 0.05;
+  cfg.clusteralpha     = 0.01;
   cfg.feedback         = 'text';
   cfg.clusterstatistic = 'maxsum';
-  cfg.statistic        = 'ft_statfun_wilcoxon';
+  cfg.statistic        = 'depsamplesT';%'ft_statfun_wilcoxon';
   cfg.numrandomization = 1000;
   cfg.method = 'montecarlo';
   cfg.ivar   = 1;
@@ -712,7 +887,10 @@ if dostats
   cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
   cfg.parameter = 'pow';
   cfg.correctm = 'cluster';
-  cfg.neighbours = []; % to get past ft_checkconfig
+  for k = 1:numel(s.label)
+    cfg.neighbours(k).label = s.label{k}; % to get past ft_checkconfig
+    cfg.neighbours(k).neighblabel = {};
+  end
   
   stat = ft_timelockstatistics(cfg, s);
   filename = fullfile(datadir, sprintf('hyperalignment_sce%d_%s_%s_stat', scenario, modeltype, ivar));

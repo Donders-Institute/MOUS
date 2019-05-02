@@ -15,6 +15,7 @@ constant            = ft_getopt(varargin, 'constant', false);
 normalise           = ft_getopt(varargin, 'normalise', false);
 balancefolds        = ft_getopt(varargin, 'balancefolds', false);
 nrepeat             = ft_getopt(varargin, 'nrepeat', 1);
+generalize          = ft_getopt(varargin, 'generalize', false);
 
 if nrepeat>1
   sel = find(strcmp(varargin, 'nrepeat'));
@@ -23,11 +24,19 @@ if nrepeat>1
     tmp(k) = mous_multisetcca_regress(tlck, design, varargin{:});
   end
   stats = tmp(1);
-  stats.Rsq = mean(cat(3,tmp.Rsq),3);
+  if ~generalize
+    stats.Rsq = mean(cat(3,tmp.Rsq),3);
+  else
+    stats.Rsq = mean(cat(4,tmp.Rsq),4);
+  end
   if isfield(stats, 'lambda')
     stats.lambda = mean(cat(3,tmp.lambda),3);
   end
   return;
+end
+
+if generalize
+  assert(isempty(outerfolds)||(numel(outerfolds)==1&&outerfolds==1));
 end
 
 ivarnames = design.Properties.VariableNames;
@@ -106,7 +115,7 @@ if ~iscell(outerfolds) && ~isempty(outerfolds)
   outerfolds = mous_makefolds(size(tlck.trial,1), outerfolds, balancefolds, design);
 elseif isempty(outerfolds)
   outerfolds = {1:size(tlck.trial,1)};
-else
+elseif ~iscell(outerfolds)
   error('unsupported specification of outerfolds');
 end
 
@@ -116,8 +125,13 @@ if numel(lambda)>1 && ~iscell(innerfolds) && ~isempty(innerfolds)
   tmpfolds = cell(1,numel(outerfolds));
   for m = 1:numel(outerfolds)
     ix = outerfolds{m};
-    iy = setdiff(1:size(tlck.trial,1),ix);
-    tmpfolds{m} = mous_makefolds(size(tlck.trial,1)-numel(outerfolds{m}), innerfolds, balancefolds, design(iy,:));
+    if numel(ix)==size(tlck.trial,1)
+      % no outer folding
+      tmpfolds{m} = mous_makefolds(size(tlck.trial,1), innerfolds, balancefolds, design);
+    else
+      iy = setdiff(1:size(tlck.trial,1),ix);
+      tmpfolds{m} = mous_makefolds(size(tlck.trial,1)-numel(outerfolds{m}), innerfolds, balancefolds, design(iy,:));
+    end
   end
   innerfolds = tmpfolds;
 elseif iscell(outerfolds) && numel(lambda)==1
@@ -135,9 +149,15 @@ dat = reshape(tlck.trial,[siz(1) siz(2)*siz(3)]);
 
 % do a nested for-loop for the computation of the model coefficients for
 % the training data and the model fits for the inner loop test data
-Rin   = zeros(siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
-R0in  = zeros(siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
-nin   = zeros(numel(innerfolds{1}),1);
+if ~generalize
+  Rin   = zeros(siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
+  R0in  = zeros(siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
+  nin   = zeros(numel(innerfolds{1}),1);
+else
+  Rin   = zeros(siz(2).^2.*siz(3),1,numel(innerfolds{1}),numel(lambda));
+  R0in  = zeros(siz(2).^2.*siz(3),1,numel(innerfolds{1}),numel(lambda));
+  nin   = zeros(numel(innerfolds{1}),1);
+end
 
 N  = size(design,2);
 N0 = numel(reduceto);
@@ -197,25 +217,46 @@ for i_out = 1:numel(outerfolds)
       %B   = B*dat_train_in;
       %B0  = B0*dat_train_in;
       
-      % compute the model fit for the test data
-      Rin(: , i_out, i_in, i_lambda) = sum((dat_test_in - design_test_in     * Ball(N0+(1:N),:) ).^2);
-      R0in(:, i_out, i_in, i_lambda) = sum((dat_test_in - design_test_reduced* Ball(1:N0,:)     ).^2);
+      if ~generalize
+        % compute the model fit for the test data
+        Rin(: , i_out, i_in, i_lambda) = sum((dat_test_in - design_test_in     * Ball(N0+(1:N),:) ).^2);
+        R0in(:, i_out, i_in, i_lambda) = sum((dat_test_in - design_test_reduced* Ball(1:N0,:)     ).^2);
+      else
+        siz(1) = size(dat_test_in,1);
+        tmp1 = reshape(design_test_in      * Ball(N0+(1:N),:),[siz(1:2) 1 siz(3)]);
+        tmp0 = reshape(design_test_reduced * Ball(1:N0,:),    [siz(1:2) 1 siz(3)]);
+        datx = reshape(dat_test_in,                           [siz(1) 1 siz(2:3)]);
+        
+        Rin(:, 1, i_in, i_lambda)  = reshape(sum((datx(:,ones(1,siz(2)),:,:)-tmp1(:,:,ones(1,siz(2)),:)).^2),[],1);
+        R0in(:, 1, i_in, i_lambda) = reshape(sum((datx(:,ones(1,siz(2)),:,:)-tmp0(:,:,ones(1,siz(2)),:)).^2),[],1);
+        
+      end
+      
     end
   end
 end
 Rsq_this = squeeze(mean(mean(1-Rin./R0in,3),2));
 
 if numel(lambda)>1
-  Rout  = zeros(siz(2)*siz(3),numel(outerfolds));
-  R0out = zeros(siz(2)*siz(3),numel(outerfolds));
-
+  if ~generalize
+    Rout  = zeros(siz(2)*siz(3),numel(outerfolds));
+    R0out = zeros(siz(2)*siz(3),numel(outerfolds));
+  else
+    Rout  = zeros(siz(2).^2.*siz(3),numel(outerfolds));
+    R0out = zeros(siz(2).^2.*siz(3),numel(outerfolds));  
+  end
   % for each sample in this fold take the lambda value that optimizes
   % Rsq: this requires recomputation of the model
-  [~, idx] = max(Rsq_this, [], 2);
-  
+  if ~generalize
+    [~, idx] = max(Rsq_this, [], 2);
+  else
+    [~, idx] = max(max(reshape(Rsq_this, [siz(2) siz(2) siz(3), size(Rsq_this,2)]),[], 2),[], 4);
+    idx = squeeze(idx);
+  end
+    
   L     = nan+zeros(siz(2)*siz(3),1);
-  B(:)  = nan;
-  B0(:) = nan;
+  B(:)  = nan; B = B(:,1:numel(idx));
+  B0(:) = nan; B0 = B0(:,1:numel(idx));
   for i_out = 1:numel(outerfolds)
     for i_lambda = 1:numel(lambda)
       design_cov_reg = design_train'*design_train + lambda(i_lambda).*eye(N);
@@ -226,9 +267,20 @@ if numel(lambda)>1
       L(idx==i_lambda) = lambda(i_lambda);
     end
     
-    % compute the model fit for the test data
-    Rout(:,  i_out) = sum((dat_test - design_test            * B ).^2);
-    R0out(:, i_out) = sum((dat_test - design_test(:,reduceto)* B0).^2);
+    if ~generalize
+      % compute the model fit for the test data
+      Rout(:,  i_out) = sum((dat_test - design_test            * B ).^2);
+      R0out(:, i_out) = sum((dat_test - design_test(:,reduceto)* B0).^2);
+    else
+      siz(1) = size(design_test, 1);
+      tmp1 = reshape(design_test             * B,  [siz(1:2) 1 siz(3)]);
+      tmp0 = reshape(design_test(:,reduceto) * B0, [siz(1:2) 1 siz(3)]);
+      datx = reshape(dat_test,                     [siz(1) 1 siz(2:3)]);
+      
+      Rout(:,  i_out) = reshape(sum((datx(:,ones(1,siz(2)),:,:)-tmp1(:,:,ones(1,siz(2)),:)).^2),[],1);
+      R0out(:, i_out) = reshape(sum((datx(:,ones(1,siz(2)),:,:)-tmp0(:,:,ones(1,siz(2)),:)).^2),[],1);
+      
+    end
   end
 else
   Rout  = squeeze(mean(Rin, 3));
@@ -237,10 +289,15 @@ end
 Rsq = mean(1 - Rout./R0out,2);
 
 stats       = keepfields(tlck, {'time', 'label'});
-stats.Rsq   = reshape(Rsq, [siz(2) siz(3)]);
+if ~generalize
+  stats.Rsq   = reshape(Rsq, [siz(2) siz(3)]);
+  stats.dimord = 'chan_time';
+else
+  stats.Rsq   = reshape(Rsq, [siz(2) siz(2) siz(3)]);
+  stats.dimord = 'chan_chan_time';
+end
 stats.ivar  = ivarnames;
 stats.ivar0 = ivarnames0;
-stats.dimord = 'chan_time';
 if exist('L','var')
   stats.lambda = reshape(L, [siz(2) siz(3)]);
 end

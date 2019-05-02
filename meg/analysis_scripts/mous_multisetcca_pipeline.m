@@ -1413,12 +1413,26 @@ if dotrc_pairwise
     tmpc2 = tmpx2*tmpx2';
     c(:,:,k) = tmpc./sqrt(diag(tmpc1)*diag(tmpc2)');
     
+    c1(:,:,k) = tmpc1./sqrt(diag(tmpc1)*diag(tmpc1)');
+    c2(:,:,k) = tmpc2./sqrt(diag(tmpc2)*diag(tmpc2)');
+    
+    
   end
   C(:,1,1) = squeeze(mean(mean(c(selvis,selvis,:))));
   C(:,2,2) = squeeze(mean(mean(c(selaudio,selaudio,:))));
   C(:,1,2) = squeeze(mean(mean(c(selvis,selaudio,:))));
   C(:,2,1) = squeeze(mean(mean(c(selaudio,selvis,:))));
   
+  C1(:,1,1) = squeeze(mean(mean(c1(selvis,selvis,:))));
+  C1(:,2,2) = squeeze(mean(mean(c1(selaudio,selaudio,:))));
+  C1(:,1,2) = squeeze(mean(mean(c1(selvis,selaudio,:))));
+  C1(:,2,1) = squeeze(mean(mean(c1(selaudio,selvis,:))));
+
+  C2(:,1,1) = squeeze(mean(mean(c2(selvis,selvis,:))));
+  C2(:,2,2) = squeeze(mean(mean(c2(selaudio,selaudio,:))));
+  C2(:,1,2) = squeeze(mean(mean(c2(selvis,selaudio,:))));
+  C2(:,2,1) = squeeze(mean(mean(c2(selaudio,selvis,:))));
+
   nrand = 1000;
   Cx = zeros(size(C,1),nrand,2,2);
   
