@@ -214,8 +214,8 @@ for i_out = 1:numel(outerfolds)
       B0  = (design_cov_reg_reduced\design_train_reduced);
       
       Ball = [B0;B]*dat_train_in; % just a single multiplication goes faster
-      %B   = B*dat_train_in;
-      %B0  = B0*dat_train_in;
+      B   = B*dat_train_in;
+      B0  = B0*dat_train_in;
       
       if ~generalize
         % compute the model fit for the test data

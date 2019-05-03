@@ -555,7 +555,7 @@ if makemodels2
     tmp = tmp - nanmean(tmp);
     newdesign = cat(2, design(:, [const main indx]), array2table(tmp, 'VariableNames', {sprintf('mainX%s',test_ivars{m})}));
     
-    stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
+    stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5);%, 'nrepeat', 5);
       
 
     rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
@@ -577,7 +577,7 @@ if makemodels2
         %end
       end
       
-      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
+      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5);%, 'nrepeat', 5);
       p   = p  + double(tmp.Rsq  > stat.Rsq );
       
       Frand(:,:,k)  = tmp.Rsq;
@@ -591,18 +591,7 @@ if makemodels2
   
   obs   = S.stat.Rsq;
   perms = S.perms;
-  
-  a = cat(3,obs',permute(perms,[2 1 3]));
-  rng('default');
-  [results, params] = prevalenceCore(a);
-  
-  S = rmfield(S(1), 'perms');
-  
-  
-  S.prevalence.results = results;
-  S.prevalence.params  = params;
-  
-
+ 
   filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
   save(filename, 'S');
   
@@ -716,7 +705,7 @@ if dostats
   load atlas_conte69_8196reg_LR_brodmann_subparc.mat
   
   label = atlas.parcellationlabel;
-  label([1 2 194 195 190 191 381 382]) = [];
+  label([1 2 194 195 192 193 385 386]) = [];
   [a,b] = match_str(atlas.parcellationlabel, label);
   s.pow = zeros(n*2,386,73); % hard coded, can be different for different scenario pairs
   s.pow(1:n,a,:) = permute(S.Rsq,[1 3 2]);
