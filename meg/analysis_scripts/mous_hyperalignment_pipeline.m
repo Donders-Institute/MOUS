@@ -759,8 +759,11 @@ if combinemodels
     indx([190 191 381 382]) = [];
     skipvec = true(378,1);
     skipvec(find(ismember(indx,nx))) = false;
+    indx = indx(~skipvec);
   else
     skipvec = false(378,1);
+    indx = 1:382;
+    indx([190 191 381 382]) = [];
   end
   
   for k = 1:numel(d)
@@ -813,15 +816,15 @@ if combinemodels
           
           data.(fn{m})(p) = tmp2;
         else
-          data.(fn{m})(p).p(:,:,k)   = tmp2.p;
-          data.(fn{m})(p).Rsq(:,:,k) = tmp2.Rsq;
-          data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
+          data.(fn{m})(p).p(:,:,indx(k))   = tmp2.p;
+          data.(fn{m})(p).Rsq(:,:,indx(k)) = tmp2.Rsq;
+          data.(fn{m})(p).ref(:,:,indx(k)) = tmp2.ref;
           %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
           %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
           if isfield(tmp2, 'prevalence')
             for kk = 1:numel(fnprev)
               if ~strcmp(fnprev{kk},'refDistr')
-                data.(fn{m})(p).prevalence.results.(fnprev{kk})(:,k) = tmp2.prevalence.results.(fnprev{kk});
+                data.(fn{m})(p).prevalence.results.(fnprev{kk})(:,indx(k)) = tmp2.prevalence.results.(fnprev{kk});
               else
                 data.(fn{m})(p).prevalence.results.(fnprev{kk}) = max(data.(fn{m})(p).prevalence.results.(fnprev{kk}), tmp2.prevalence.results.(fnprev{kk}));
               end
