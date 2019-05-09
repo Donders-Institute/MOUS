@@ -529,15 +529,8 @@ if makemodels2
   
   ivar = tlck.trialinfo.Properties.VariableNames;
   sel_ivars = match_str(ivar, use_ivars);
-  
-  % here the design contains all independent variables of interest,
-  % demean apart from the constant
+   
   design = tlck.trialinfo(:,sel_ivars);
-  for m = sel_ivars(:)'
-    if ~strcmp(ivar{m},'constant')
-      design.(ivar{m}) = design.(ivar{m}) - nanmean(design.(ivar{m}));
-    end
-  end
   
   ivar        = ivar(sel_ivars);
   categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index' 'main'});
@@ -549,13 +542,18 @@ if makemodels2
     main  = find(ismember(ivar, 'main'));
     
     fprintf('modelling the data with a constant regressor, the main effect, %s, and its interaction term\n',ivar{indx});
-     
+    
+    
     % add the interaction term
+    % demean apart from the constant
     tmp = design.('main').*design.(test_ivars{m});
     tmp = tmp - nanmean(tmp);
-    newdesign = cat(2, design(:, [const main indx]), array2table(tmp, 'VariableNames', {sprintf('mainX%s',test_ivars{m})}));
-    
-    stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5);%, 'nrepeat', 5);
+    tmpiv = design.(test_ivars{m}) - nanmean(design.(test_ivars{m}));    
+    tmpmain = design.main - nanmean(design.main);
+    tmpdesign = [tmpmain,tmpiv,tmp];
+    newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {'main',test_ivars{m}, sprintf('mainX%s',test_ivars{m})}));
+   
+    stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
       
 
     rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
@@ -577,7 +575,7 @@ if makemodels2
         %end
       end
       
-      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5);%, 'nrepeat', 5);
+      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
       p   = p  + double(tmp.Rsq  > stat.Rsq );
       
       Frand(:,:,k)  = tmp.Rsq;
@@ -612,7 +610,7 @@ if combinemodels
   d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
   %d = dir(fullfile(datadir,sprintf('*sce%d*models2.mat',scenario)));
   
-  if numel(d)~=378
+  if numel(d)~=374
     % some parcels failed to compute because too few vertices per parcel
     error('expected number is less than 378 parcels');
   end
@@ -642,19 +640,12 @@ if combinemodels
         tmp2     = rmfield(tmp2, 'stat');
         
         if k==1   
-          tmp2.Rsq(:,:,378) = 0;
+          tmp2.Rsq(:,:,374) = 0;
           %tmp2.B(:,:,:,378) = 0;
-          tmp2.ref(:,:,378) = 0;
-          tmp2.p(:,:,378)   = 0;
+          tmp2.ref(:,:,374) = 0;
+          tmp2.p(:,:,374)   = 0;
           %tmp2.lambda(:,:,378) = 0;
-        
-          fnprev = fieldnames(tmp2.prevalence.results);
-          for kk = 1:numel(fnprev)
-            if ~strcmp(fnprev{kk},'refDistr')
-              tmp2.prevalence.results.(fnprev{kk})(:,378) = 0;
-            end
-          end
-          
+                
           if isfield(tmp.stat, 'time')
             tmp2.time = tmp.stat.time;
           end
@@ -666,13 +657,6 @@ if combinemodels
           data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
           %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
           %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
-          for kk = 1:numel(fnprev)
-            if ~strcmp(fnprev{kk},'refDistr')
-              data.(fn{m})(p).prevalence.results.(fnprev{kk})(:,k) = tmp2.prevalence.results.(fnprev{kk});
-            else
-              data.(fn{m})(p).prevalence.results.(fnprev{kk}) = max(data.(fn{m})(p).prevalence.results.(fnprev{kk}), tmp2.prevalence.results.(fnprev{kk}));
-            end
-          end
         end
       end
     end
@@ -705,7 +689,7 @@ if dostats
   load atlas_conte69_8196reg_LR_brodmann_subparc.mat
   
   label = atlas.parcellationlabel;
-  label([1 2 194 195 192 193 385 386]) = [];
+  label([1 2 190 191 192 193 194 195 383 384 385 386]) = []; %Parcels 383:386 fail to compute so remove equivalent left hemisphere parcels (190:193)
   [a,b] = match_str(atlas.parcellationlabel, label);
   s.pow = zeros(n*2,386,73); % hard coded, can be different for different scenario pairs
   s.pow(1:n,a,:) = permute(S.Rsq,[1 3 2]);
@@ -731,8 +715,11 @@ if dostats
   cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
   cfg.parameter = 'pow';
   cfg.correctm = 'cluster';
-  cfg.neighbours = []; % to get past ft_checkconfig
-  
+  for k = 1:numel(s.label)
+    cfg.neighbours(k).label = s.label{k}; % to get past ft_checkconfig
+    cfg.neighbours(k).neighblabel = {};
+  end
+    
   stat = ft_timelockstatistics(cfg, s);
   filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_stat', scenario(1),scenario(2), modeltype, ivar));
   save(filename, 'stat');
