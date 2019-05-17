@@ -5,12 +5,19 @@
 if ~exist('rootdir',                      'var'), rootdir                   = '/project/3011020.09';       end
 if ~exist('domscca_searchlight_cross',    'var'), domscca_searchlight_cross = false;      end
 if ~exist('makemodels2',                  'var'), makemodels2               = false;      end
+if ~exist('makemodels3',                  'var'), makemodels3               = false;      end
 if ~exist('dostats',                      'var'), dostats                   = false;      end
 if ~exist('combinemodels',                'var'), combinemodels             = false;      end
 
-if makemodels2 == 1
+if makemodels2 == 1 || domscca_searchlight_cross == 1
     if ~exist('savdir', 'var') 
         error('define savdir');      
+    end
+end
+
+if makemodels2 == 1  ||  makemodels3 == 1
+    if ~exist('loaddir', 'var') 
+        error('define loaddir');      
     end
 end
 
@@ -274,7 +281,8 @@ if domscca_searchlight_cross
     tlck1 = ft_struct2single(tlck1); % contains the set of words corresponding to 'sentences' in the first scenario
     tlck2 = ft_struct2single(tlck2); % contains the set of words corresponding to 'sentences' in the second sceanario
     
-    savedir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d', scenario(1), scenario(2));
+    %savedir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d', scenario(1), scenario(2));
+    savedir = sprintf([savdir 'scenario%d_%d'], scenario(1), scenario(2));
     system(sprintf('mkdir -p %s', savedir));
     
     filename = fullfile(savedir, sprintf('mscca_sce%d-%d_parcel%03d',scenario(1),scenario(2),parcel_indx));
@@ -436,7 +444,7 @@ if domscca_searchlight_cross
         trcshuf = ft_struct2single(trcshuf);
         save(filename,'Rshuf','Cshuf', 'foi', 'Cshufstim','trcshuf', 'nrand');
       end
-  end
+   end
 end
 %--------------------------------------------------------------------------
 
@@ -447,9 +455,6 @@ if makemodels2
   end
   if ~exist('parcel_indx', 'var')
     error('please supply parcel_indx');
-  end
-  if ~exist('stimuli', 'var')
-    load mous_stimuli;
   end
   if ~exist('lambda', 'var')
     lambda=1;
@@ -469,8 +474,6 @@ if makemodels2
   end
   
   suffix = ''; % for now
-  loaddir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1),scenario(2));
-  
   filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d%s',scenario(1),scenario(2),parcel_indx,suffix));
   load(filename, 'tlck1', 'tlck2');
   
@@ -505,20 +508,19 @@ if makemodels2
   
   % before appending, ensure that the discrete regressors are discrete
   % (i.e. remove the mean removal)
-  
-  adjust_ivars = {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index'};
-  for k = 1:numel(adjust_ivars)
-    try
-      tmp = tlck1.trialinfo.(adjust_ivars{k});
-      tmp = round(tmp-min(tmp));
-      tlck1.trialinfo.(adjust_ivars{k}) = tmp;
-    end
-    try
-      tmp = tlck2.trialinfo.(adjust_ivars{k});
-      tmp = round(tmp-min(tmp));
-      tlck2.trialinfo.(adjust_ivars{k}) = tmp;
-    end  
-  end
+%   adjust_ivars = {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index'};
+%   for k = 1:numel(adjust_ivars)
+%     try
+%       tmp = tlck1.trialinfo.(adjust_ivars{k});
+%       tmp = round(tmp-min(tmp));
+%       tlck1.trialinfo.(adjust_ivars{k}) = tmp;
+%     end
+%     try
+%       tmp = tlck2.trialinfo.(adjust_ivars{k});
+%       tmp = round(tmp-min(tmp));
+%       tlck2.trialinfo.(adjust_ivars{k}) = tmp;
+%     end  
+%   end
   
       
   cfg = [];
@@ -534,7 +536,8 @@ if makemodels2
   
   ivar        = ivar(sel_ivars);
   categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index' 'main'});
-    
+
+      
   for m = 1:numel(test_ivars)
     indx = find(ismember(ivar, test_ivars{m}));
     
@@ -592,8 +595,154 @@ if makemodels2
  
   filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
   save(filename, 'S');
+  end 
+
+%--------------------------------------------------------------------------
+
+if makemodels3
+      
+  if ~exist('nrand', 'var')
+    nrand = 500;
+  end
+  if ~exist('parcel_indx', 'var')
+    error('please supply parcel_indx');
+  end
+  if ~exist('lambda', 'var')
+    lambda=1;
+  end
   
+  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+                  'leftbranch' 'dleftbranch' 'main'};
+  if ~exist('test_ivars', 'var')
+    % test a bunch at once: this does not allow for ivar specific lambdas
+    %test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+    %              'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'w2v'};
+    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+                  'leftbranch' 'dleftbranch'};
+  end
+  if ~iscell(test_ivars)
+    test_ivars = {test_ivars};
+  end
+  
+  suffix = ''; % for now
+  filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d%s',scenario(1),scenario(2),parcel_indx,suffix));
+  load(filename, 'tlck1', 'tlck2');
+  
+  % select only content words
+  sel =       double(strncmp([tlck1.trialinfo.POS], 'N',   1))*1;
+  sel = sel + double(strncmp([tlck1.trialinfo.POS], 'WW',  2))*2;
+  sel = sel + double(strncmp([tlck1.trialinfo.POS], 'ADJ', 3))*3;
+  
+  % select these from the data
+  tmpcfg = [];
+  tmpcfg.trials = find(sel>0);
+  tmpcfg.channel = tlck1.label(4:end);
+  tmpcfg.latency = [-inf 0.6];
+  tlck1  = ft_selectdata(tmpcfg, tlck1);
+  
+  sel =       double(strncmp([tlck2.trialinfo.POS], 'N',   1))*1;
+  sel = sel + double(strncmp([tlck2.trialinfo.POS], 'WW',  2))*2;
+  sel = sel + double(strncmp([tlck2.trialinfo.POS], 'ADJ', 3))*3;
+  
+  % select these from the data
+  tmpcfg = [];
+  tmpcfg.trials = find(sel>0);
+  tmpcfg.channel = tlck2.label(4:end);
+  tmpcfg.latency = [-0 0.6];
+  tlck2  = ft_selectdata(tmpcfg, tlck2);
+  n1 = size(tlck1.trial,1);
+  n2 = size(tlck2.trial,1);
+  
+  % add constant regressor to the design, and 'main effect of sent/list'
+  tlck1.trialinfo = cat(2, array2table(ones(n1,1),'VariableNames', {'constant'}), tlck1.trialinfo, array2table( ones(n1,1), 'VariableNames', {'main'}));
+  tlck2.trialinfo = cat(2, array2table(ones(n2,1),'VariableNames', {'constant'}), tlck2.trialinfo, array2table(-ones(n2,1), 'VariableNames', {'main'}));
+        
+  cfg = [];
+  cfg.appenddim = 'rpt';
+  cfg.parameter = 'trial';
+  tlck = ft_appendtimelock(cfg, tlck1, tlck2);
+  clear tlck1 tlck2;
+  
+  ivar = tlck.trialinfo.Properties.VariableNames;
+  sel_ivars = match_str(ivar, use_ivars);
+   
+  design = tlck.trialinfo(:,sel_ivars);
+          % reorganise the data, concatenate across subjects, and repmat the
+    % design, create folding indices
+    nrpt  = size(tlck.trial,1);
+    nsubj = size(tlck.trial,2);
+    ntim  = size(tlck.trial,3);
+    tlck.trial = reshape(tlck.trial,[nrpt*nsubj 1 ntim]);
+    tlck.trialinfo = repmat(tlck.trialinfo, [nsubj 1]);
+    tlck.label = {'concatenatedsubjects'};
+    design = repmat(design, [nsubj 1]);
+    for m = 1:nsubj
+      outerfolds{m} = (m-1)*nrpt + (1:nrpt);
+    end
+    
+    ivar        = ivar(sel_ivars);
+    categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index'});
+    
+    for m = 1:numel(test_ivars)
+      indx = find(ismember(ivar, test_ivars{m}));
+      const = find(ismember(ivar, 'constant'));
+      main  = find(ismember(ivar, 'main'));
+    
+      fprintf('modelling the data with a constant regressor, the main effect, %s, and its interaction term\n',ivar{indx});
+    
+        
+      tmp = design.('main').*design.(test_ivars{m});
+      tmp = tmp - nanmean(tmp);
+      tmpiv = design.(test_ivars{m}) - nanmean(design.(test_ivars{m}));    
+      tmpmain = design.main - nanmean(design.main);
+      tmpdesign = [tmpmain,tmpiv,tmp];
+      newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {'main',test_ivars{m}, sprintf('mainX%s',test_ivars{m})}));
+   
+      stat   = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', outerfolds, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 1);
+        
+      rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
+      p = zeros(size(stat.Rsq));
+      Frand  = zeros([size(stat.Rsq) nrand]);
+        for k = 1:nrand
+            if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
+            tmpdesign = newdesign;
+      
+      %randvec = randperm(size(newdesign,1));
+      randvec = reshape(repmat(randperm(nrpt)',[1 nsubj]) + nrpt.*repmat((1:nsubj)-1, [nrpt 1]),[],1);
+
+      vars    = newdesign.Properties.VariableNames;
+      for j = 1:numel(vars)
+        %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
+        %whole design to be randomised, not commenting this out causes
+        %only the ivar of interest to be randomized
+        tmpX = tmpdesign.(vars{j});
+        tmpX = tmpX(randvec,:);
+        tmpdesign.(vars{j}) = tmpX;
+        %end
+      end
+      
+             
+        tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', outerfolds, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 1);
+        p   = p  + double(tmp.Rsq  > stat.Rsq );
+        
+        Frand(:,:,k)  = tmp.Rsq;
+        end
+      
+      S.stat  = stat;
+      S.p     = (p+1)./(nrand+1); % uncorrected p-value of the permutations
+      S.ivar  = ivar{indx};
+      S.ref   = permute(Frand,[3 2 1]);
+      %S(mm).perms = Frand;
+    end
+  
+
+ 
+  filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model3_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
+  save(filename, 'S');
 end
+
+
+%--------------------------------------------------------------------------
 
 if combinemodels
   if ~exist('modeltype', 'var')
