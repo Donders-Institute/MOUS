@@ -70,25 +70,28 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
     end
     if numel(lambda)>1
       keyboard
+
       % FIXME THIS PART IS STILL UNFINISHED
       for j = 1:nfold
         % create sample indices for the inner folding, to be consistent
         % across the different values of the hyperparameter to be tested
         innerfold{j} = makefolds(numel(X{1}.trial)-numel(testfold{k}), nfold);
+      
+        Xinner = X{1};
+        indx   = setdiff(1:numel(Xinner.trial), testfold{k});
+        Xinner.trial = Xinner.trial(indx);
+        Xinner.time  = Xinner.time(indx);
+        Xinner.trialinfo = Xinner.trialinfo(indx,:);
+        [~, ~, rho_inner(:,:,:,j,k)] = mous_multisetcca({Xinner},innerfold{k}{j},K,lambda,shufflag);
       end
       
       for m = 1:numel(lambda)
-        [W(:,:,:,k,m), A(:,:,:,k,m), rho(:,:,k,m), Rtest(:,:,k,m), Xtest(k,:,m)] = mous_multisetcca(X,testfold{k},K,lambda(m),shufflag);
+        [W(:,:,:,k,m), A(:,:,:,k,m), rho(:,:,k,m), Rtest(:,:,k,m), Xtest(k,:,m)] = mous_multisetcca(X,testfold{k},K,lambda,shufflag);
         
         % also loop over the inner folds, use the same number of folds for
         % the inner folding, to evaluate the effect of the hyperparameter
         for j = 1:nfold
-          Xinner = X{1};
-          indx   = setdiff(1:numel(Xinner.trial), testfold{k});
-          Xinner.trial = Xinner.trial(indx);
-          Xinner.time  = Xinner.time(indx);
-          Xinner.trialinfo = Xinner.trialinfo(indx,:);
-          [~, ~, rho_inner(:,:,j,m,k)] = mous_multisetcca({Xinner},innerfold{k}{j},K,lambda(m),shufflag);
+          
         end
       end
         
@@ -363,51 +366,52 @@ end
 % subfunctions
 function [W,A] = getAW(R,S,K,n,lambda)
 
+nset = numel(n);
 if isempty(lambda)
   lambda = 0;
 end
 
-R = R + eye(size(R,1)).*lambda;
-S = S + eye(size(S,1)).*lambda;
+W = nan+zeros(K,max(n),nset,numel(lambda));
+A = nan+zeros(max(n),K,nset,numel(lambda));
+R_in = R;
+S_in = S;
+for m = 1:numel(lambda)
+  R = R_in + eye(size(R,1)).*lambda(m);
+  S = S_in + eye(size(S,1)).*lambda(m);
   
-nset = numel(n);
-%assert(all(n==n(1)));
-
-% this eigenvalue decomposition gives the unmixing in the columns, so to make
-% it a proper unmixing matrix, to-be-applied to each subject, it should be transposed 
-
-%[tempW,~] = eigs(R,S,K);
-[tempW,~] = eigs((R+R')./2,(S+S')./2,K);
-
-tempW     = normc(tempW);
-tempA     = R*tempW/(tempW'*R*tempW);
-
-W = nan+zeros(K,max(n),nset);
-A = nan+zeros(max(n),K,nset);
-sumn = cumsum([0 n(:)']);
-for k = 1:nset
-  nchan    = n(k);
-  indx     = sumn(k) + (1:nchan);
-  W(:,1:nchan,k) = (tempW(indx,:))'; %unmixing
-  A(1:nchan,:,k) = (tempA(indx,:));  %mixing
+  % this eigenvalue decomposition gives the unmixing in the columns, so to make
+  % it a proper unmixing matrix, to-be-applied to each subject, it should be transposed
+  [tempW,~] = eigs((R+R')./2,(S+S')./2,K);
+  
+  tempW     = normc(tempW);
+  tempA     = R*tempW/(tempW'*R*tempW);
+  
+  sumn = cumsum([0 n(:)']);
+  for k = 1:nset
+    nchan    = n(k);
+    indx     = sumn(k) + (1:nchan);
+    W(:,1:nchan,k,m) = (tempW(indx,:))'; %unmixing
+    A(1:nchan,:,k,m) = (tempA(indx,:));  %mixing
+  end
 end
 
 function rho = getrho(R,W,K,n)
 
-nset = numel(n);
-%assert(all(n==n(1)));
-
-R(~isfinite(R)) = 0;
-
-tmp = zeros(K*nset,size(R,1));
-sumn = cumsum([0 n(:)']);
-for k = 1:nset
-  nchan = n(k);
-  for m = 1:K
-    tmp((m-1)*nset+k, sumn(k)+(1:nchan)) = W(m,1:nchan,k);
+for j = 1:size(W,4)
+  nset = numel(n);
+  
+  R(~isfinite(R)) = 0;
+  
+  tmp = zeros(K*nset,size(R,1));
+  sumn = cumsum([0 n(:)']);
+  for k = 1:nset
+    nchan = n(k);
+    for m = 1:K
+      tmp((m-1)*nset+k, sumn(k)+(1:nchan)) = W(m,1:nchan,k,j);
+    end
   end
+  rho(:,:,j) = tmp*R*tmp';
 end
-rho = tmp*R*tmp';
 %rho = rho./sqrt(diag(rho)*diag(rho)');
 
 function testfold = makefolds(nobs, nfold)

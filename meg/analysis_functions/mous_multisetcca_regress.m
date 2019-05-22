@@ -166,7 +166,7 @@ N0 = numel(reduceto);
 for i_out = 1:numel(outerfolds)
   out_test     = outerfolds{i_out};
   dat_test     = dat(out_test,:);
-  design_test  = design(out_test,:);
+  design_test  = demeanc(design(out_test,:));
   
   if numel(out_test)==size(dat,1)
     out_train = out_test; % test and train are the same, ordinary GLM
@@ -174,7 +174,7 @@ for i_out = 1:numel(outerfolds)
     out_train    = setdiff(1:siz(1),out_test);
   end
   dat_train    = dat(out_train,:);
-  design_train = design(out_train,:);
+  design_train = demeanc(design(out_train,:));
   
   % inner fold loop
   for i_in = 1:numel(innerfolds{i_out})
@@ -190,11 +190,11 @@ for i_out = 1:numel(outerfolds)
     else
       in_test         = innerfolds{i_out}{i_in};
       dat_test_in     = dat_train(in_test,:);
-      design_test_in  = design_train(in_test,:);
+      design_test_in  = demeanc(design_train(in_test,:));
       
       in_train        = setdiff(1:size(dat_train,1),in_test);
       dat_train_in    = dat_train(in_train,:);
-      design_train_in = design_train(in_train,:);
+      design_train_in = demeanc(design_train(in_train,:));
       
       nin(i_in,1) = numel(innerfolds{i_out}{i_in});
     end
@@ -258,6 +258,14 @@ if numel(lambda)>1
   B(:)  = nan; B = B(:,1:numel(idx));
   B0(:) = nan; B0 = B0(:,1:numel(idx));
   for i_out = 1:numel(outerfolds)
+    out_test     = outerfolds{i_out};
+    dat_test     = dat(out_test,:);
+    design_test  = demeanc(design(out_test,:));
+    
+    out_train    = setdiff(1:siz(1),out_test);
+    dat_train    = dat(out_train,:);
+    design_train = demeanc(design(out_train,:));
+    
     for i_lambda = 1:numel(lambda)
       design_cov_reg = design_train'*design_train + lambda(i_lambda).*eye(N);
       
@@ -302,3 +310,10 @@ if exist('L','var')
   stats.lambda = reshape(L, [siz(2) siz(3)]);
 end
 
+% subfunction
+function out = demeanc(in)
+
+% check for columns with constants
+sel = nansum(in==in(1,:),1)~=size(in,1);
+out = in;
+out(:,sel) = in(:,sel) - ones(size(in,1),1)*nanmean(in(:,sel));
