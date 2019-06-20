@@ -760,6 +760,7 @@ if combinemodels
     skipvec = true(378,1);
     skipvec(find(ismember(indx,nx))) = false;
     indx = indx(~skipvec);
+    %d    = d(~skipvec);
   else
     skipvec = false(378,1);
     indx = 1:382;
@@ -767,7 +768,7 @@ if combinemodels
   end
   
   for k = 1:numel(d)
-    if ~skipvec(k)
+    %if ~skipvec(k)
       fprintf('processing file %s\n', d(k).name);
       if exist('fn', 'var') && numel(fn)==1
         dat = load(fullfile(d(k).folder,d(k).name),fn{1});
@@ -777,9 +778,9 @@ if combinemodels
         fn = fn(1); % keep RAM use within bounds, repeat for the other variables
         fprintf('using variable %s\n',fn{1});
       end
-    else
-      continue;
-    end
+    %else
+    %  continue;
+    %end
     
     if k==1
       fprintf('using variable %s\n',fn{1});
@@ -790,25 +791,12 @@ if combinemodels
       for p = 1:numel(tmp)
         tmp2 = tmp(p);
         tmp2.Rsq = tmp2.stat.Rsq;
-        %tmp2.B   = nanmean(tmp2.stat.B,4);
-        %tmp2.lambda = tmp2.stat.lambda;
         tmp2     = rmfield(tmp2, 'stat');
         
         if k==1   
-          tmp2.Rsq(:,:,378) = 0;
-          %tmp2.B(:,:,:,378) = 0;
-          tmp2.ref(:,:,378) = 0;
-          tmp2.p(:,:,378)   = 0;
-          %tmp2.lambda(:,:,378) = 0;
-        
-          if isfield(tmp2, 'prevalence')
-            fnprev = fieldnames(tmp2.prevalence.results);
-            for kk = 1:numel(fnprev)
-              if ~strcmp(fnprev{kk},'refDistr')
-                tmp2.prevalence.results.(fnprev{kk})(:,378) = 0;
-              end
-            end
-          end
+          tmp2.Rsq(:,:,382) = 0;
+          tmp2.ref(:,:,382) = 0;
+          tmp2.p(:,:,382)   = 0;
           
           if isfield(tmp.stat, 'time')
             tmp2.time = tmp.stat.time;
@@ -819,17 +807,7 @@ if combinemodels
           data.(fn{m})(p).p(:,:,indx(k))   = tmp2.p;
           data.(fn{m})(p).Rsq(:,:,indx(k)) = tmp2.Rsq;
           data.(fn{m})(p).ref(:,:,indx(k)) = tmp2.ref;
-          %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
-          %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
-          if isfield(tmp2, 'prevalence')
-            for kk = 1:numel(fnprev)
-              if ~strcmp(fnprev{kk},'refDistr')
-                data.(fn{m})(p).prevalence.results.(fnprev{kk})(:,indx(k)) = tmp2.prevalence.results.(fnprev{kk});
-              else
-                data.(fn{m})(p).prevalence.results.(fnprev{kk}) = max(data.(fn{m})(p).prevalence.results.(fnprev{kk}), tmp2.prevalence.results.(fnprev{kk}));
-              end
-            end
-          end
+          
         end
       end
     end
@@ -864,7 +842,7 @@ if dostats
   load atlas_conte69_8196reg_LR_brodmann_subparc.mat
   
   label = atlas.parcellationlabel;
-  label([1 2 194 195 190 191 381 382]) = [];
+  label([1 2 194 195]) = [];% 192 193 385 386]) = [];
   [a,b] = match_str(atlas.parcellationlabel, label);
   s.pow = zeros(n*2,386,size(S.Rsq,2)); % hard coded, can be different for different scenario pairs
   s.pow(1:n,a,:) = permute(double(S.Rsq),[1 3 2]);
@@ -879,7 +857,7 @@ if dostats
   cfg.tail             = 1;
   cfg.clustertail      = 1;
   cfg.clusterthreshold = 'nonparametric_individual';
-  cfg.clusteralpha     = 0.01;
+  cfg.clusteralpha     = 0.05;
   cfg.feedback         = 'text';
   cfg.clusterstatistic = 'maxsum';
   cfg.statistic        = 'depsamplesT';%'ft_statfun_wilcoxon';
