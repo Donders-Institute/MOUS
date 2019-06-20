@@ -182,7 +182,7 @@ Yall(~isfinite(Yall)) = 0;
 X               = [nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:))];
 X(:,[3 5])      = log10(X(:,[3 5]));
 X(~isfinite(X)) = 0;
-X      = X - nanmean(X);
+%X      = X - nanmean(X);
 
 tlck = [];
 tlck.time         = tim;
