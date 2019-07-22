@@ -55,6 +55,20 @@ if domscca_searchlight_cross
   if ~(all(isequal(scenario,[1 4]))||all(isequal(scenario,[2 5]))||all(isequal(scenario,[3 6])))
     error('wrong combination of scenarii');
   end
+  
+  [a b] = match_str('V1006',subj);
+   if a 
+     subj{b}='';
+   end
+  [a b] = match_str('V1090',subj);
+   if a 
+     subj{b}='';
+   end
+  [a b] = match_str('V1017',subj);
+   if a 
+     subj{b}='';
+   end
+   
   sce  = sce(contains(subj,'V'));
   subj = subj(contains(subj,'V'));
   
@@ -72,6 +86,7 @@ if domscca_searchlight_cross
   subjecttiming = cell(1,numel(subj));
   for k = 1:numel(subj)
     
+      
     % load in the data
     mous_db_getdata(subj{k}, sprintf('meg_multisetcca_lcmv_parc_combined'));
     source_parc.filterlabel = filterlabel; % for checking channel order
@@ -180,9 +195,6 @@ if domscca_searchlight_cross
   
   for k = 1:numel(subj)
     
-    
-    
-    
 %     %FIXME: THERE'S A STRANGE MISMATCH IN THE LENGTH OF THE TIME AXES AND
 %     %THE LENGTH OF THE TRIALS, WHICH I DON'T UNDERSTAND, YET. FOR NOW,
 %     %ADJUST MANUALLY, BECAUSE I HAVE NO REASON TO SUSPECT THE TIME AXIS TO
@@ -281,7 +293,6 @@ if domscca_searchlight_cross
     tlck1 = ft_struct2single(tlck1); % contains the set of words corresponding to 'sentences' in the first scenario
     tlck2 = ft_struct2single(tlck2); % contains the set of words corresponding to 'sentences' in the second sceanario
     
-    %savedir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d', scenario(1), scenario(2));
     savedir = sprintf([savdir 'scenario%d_%d'], scenario(1), scenario(2));
     system(sprintf('mkdir -p %s', savedir));
     
@@ -425,7 +436,6 @@ if domscca_searchlight_cross
       
       
       foi   = cohshuf(1).freq;
-      savedir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d',scenario);
       for i = 1:length(suffix)
         trcshuf = trcshuf(i);
         filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03dshuf2%s%s',scenario,parcel_indx,suffix2,suffix{i}));
@@ -557,7 +567,7 @@ if makemodels2
     newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {'main',test_ivars{m}, sprintf('mainX%s',test_ivars{m})}));
    
     stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
-      
+   
 
     rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
     p = zeros(size(stat.Rsq));
@@ -656,7 +666,22 @@ if makemodels3
   % add constant regressor to the design, and 'main effect of sent/list'
   tlck1.trialinfo = cat(2, array2table(ones(n1,1),'VariableNames', {'constant'}), tlck1.trialinfo, array2table( ones(n1,1), 'VariableNames', {'main'}));
   tlck2.trialinfo = cat(2, array2table(ones(n2,1),'VariableNames', {'constant'}), tlck2.trialinfo, array2table(-ones(n2,1), 'VariableNames', {'main'}));
-        
+
+  cond=[];
+  for i = 1:length(tlck1.label)
+      cond_tmp1=[];
+      cond_tmp1=[];
+    if contains(tlck1.label{i},'mscca001_V')
+        cond_tmp1(1:height(tlck1.trialinfo),1) = 1;
+        cond_tmp2(1:height(tlck2.trialinfo),1) = -1;
+        cond = [cond;cond_tmp1;cond_tmp2];
+    elseif contains(tlck1.label{i},'mscca001_A')
+        cond_tmp1(1:height(tlck1.trialinfo),1) = -1;
+        cond_tmp2(1:height(tlck2.trialinfo),1) = 1;
+        cond = [cond;cond_tmp1;cond_tmp2];
+    end
+  end
+  
   cfg = [];
   cfg.appenddim = 'rpt';
   cfg.parameter = 'trial';
@@ -667,7 +692,7 @@ if makemodels3
   sel_ivars = match_str(ivar, use_ivars);
    
   design = tlck.trialinfo(:,sel_ivars);
-          % reorganise the data, concatenate across subjects, and repmat the
+    % reorganise the data, concatenate across subjects, and repmat the
     % design, create folding indices
     nrpt  = size(tlck.trial,1);
     nsubj = size(tlck.trial,2);
@@ -676,6 +701,7 @@ if makemodels3
     tlck.trialinfo = repmat(tlck.trialinfo, [nsubj 1]);
     tlck.label = {'concatenatedsubjects'};
     design = repmat(design, [nsubj 1]);
+    design.main = cond;
     for m = 1:nsubj
       outerfolds{m} = (m-1)*nrpt + (1:nrpt);
     end
@@ -723,7 +749,7 @@ if makemodels3
       
              
         tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', outerfolds, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 1);
-        p   = p  + double(tmp.Rsq  > stat.Rsq );
+        p   = p  + double(tmp.Rsq  > stat.Rsq);
         
         Frand(:,:,k)  = tmp.Rsq;
         end
@@ -746,7 +772,7 @@ end
 
 if combinemodels
   if ~exist('modeltype', 'var')
-    modeltype = 'model2';
+    error('modeltype needs to be defined');
   end
   if ~exist('ivar', 'var')
     error('ivar needs to be defined');
@@ -754,14 +780,11 @@ if combinemodels
   
   % collapse the parcel specific data into a (hopefully smaller) variable,
   % so that the original '*models.mat' files can be discarded
-%   datadir = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1), scenario(2)); %HARDCODED
-   
   d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
-  %d = dir(fullfile(datadir,sprintf('*sce%d*models2.mat',scenario)));
   
   if numel(d)~=374
     % some parcels failed to compute because too few vertices per parcel
-    error('expected number is less than 378 parcels');
+    error('expected number is less than 374 parcels');
   end
   
   for k = 1:numel(d)
@@ -815,7 +838,6 @@ if combinemodels
   
   data = ft_struct2single(data);
   filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar, fn{1}));
-  %filename = fullfile(datadir, sprintf('hyperalignment_models2_sce%d_%s', scenario, fn{1}));
   save(filename,'-struct', 'data');
 end
 
@@ -829,7 +851,6 @@ if dostats
   
   % collapse the parcel specific data into a (hopefully smaller) variable,
   % so that the original '*models.mat' files can be discarded
-%   datadir  = sprintf('/project/3011020.09/jansch/mscca_2sce/scenario%d_%d',scenario(1), scenario(2)); %HARDCODED
   filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S', scenario(1),scenario(2), modeltype, ivar));
   load(filename);
   
