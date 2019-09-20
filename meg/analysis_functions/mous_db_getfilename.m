@@ -415,7 +415,7 @@ switch type{1}
     st = true;
     info = [];
     return;  
-  case 'meg'
+  case {'meg' 'mridti'}
     if isempty(rootdir)
       rootdir = '/project/3011020.09';
     end
@@ -519,9 +519,15 @@ switch type{2}
       %d(1).name = [subject 'coregMNI'];
       d(1).name = ['cstr-' subject '-001.nii'];
     end
+  case 'freesurfer'
+    D = fullfile(rootdir,'processed',subject,'mri_dti','tracula'); %-> this is the Freesurfer output from BIG
+    d = dir(fullfile(D, 'mri', 'T1.mgz'));
   case 'anatomy'
     D = fullfile(rootdir,'processed',subject,'meg','anatomy');
     switch type{3}
+      case 'freesurfer'
+        % load the freesurfer T1 image from the meg/anatomy folder
+        d = dir(fullfile(D, subject, 'mri', 'T1.mgz'));
       case 'coregCTF'
         d = dir(fullfile(D, [subject 'coregCTF.nii']));
         if isempty(d)
