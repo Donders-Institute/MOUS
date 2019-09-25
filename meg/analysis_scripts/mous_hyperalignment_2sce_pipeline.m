@@ -552,7 +552,7 @@ if makemodels2
     indx = find(ismember(ivar, test_ivars{m}));
     
     const = find(ismember(ivar, 'constant'));
-    main  = find(ismember(ivar, 'main'));
+%     main  = find(ismember(ivar, 'main'));
     
     fprintf('modelling the data with a constant regressor, the main effect, %s, and its interaction term\n',ivar{indx});
     
@@ -588,7 +588,7 @@ if makemodels2
         %end
       end
       
-      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
+      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
       p   = p  + double(tmp.Rsq  > stat.Rsq );
       
       Frand(:,:,k)  = tmp.Rsq;
@@ -600,8 +600,8 @@ if makemodels2
     S.perms = Frand;
   end
   
-  obs   = S.stat.Rsq;
-  perms = S.perms;
+%   obs   = S.stat.Rsq;
+%   perms = S.perms;
  
   filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
   save(filename, 'S');
@@ -627,7 +627,7 @@ if makemodels3
     % test a bunch at once: this does not allow for ivar specific lambdas
     %test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
     %              'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'w2v'};
-    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
+    test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
                   'leftbranch' 'dleftbranch'};
   end
   if ~iscell(test_ivars)
@@ -712,8 +712,8 @@ if makemodels3
     for m = 1:numel(test_ivars)
       indx = find(ismember(ivar, test_ivars{m}));
       const = find(ismember(ivar, 'constant'));
-      main  = find(ismember(ivar, 'main'));
-    
+%       main  = find(ismember(ivar, 'main'));
+      
       fprintf('modelling the data with a constant regressor, the main effect, %s, and its interaction term\n',ivar{indx});
     
         
@@ -724,8 +724,10 @@ if makemodels3
       tmpdesign = [tmpmain,tmpiv,tmp];
       newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {'main',test_ivars{m}, sprintf('mainX%s',test_ivars{m})}));
    
-      stat   = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', outerfolds, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 1);
-        
+%        stat   = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', outerfolds, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 1);
+%        stat   = mous_multisetcca_regress(tlck, newdesign(:,[1 3]),'lambda',lambda, 'outerfolds', outerfolds, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant'}, 'innerfolds', 5, 'nrepeat', 1);
+      stat   = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'nrepeat', 1);
+
       rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
       p = zeros(size(stat.Rsq));
       Frand  = zeros([size(stat.Rsq) nrand]);
@@ -748,7 +750,10 @@ if makemodels3
       end
       
              
-        tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', outerfolds, 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 1);
+%         tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', outerfolds, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 1);
+%         tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 3]),'lambda',lambda, 'outerfolds', outerfolds, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant'}, 'innerfolds', 5, 'nrepeat', 1);
+        tmp   = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'nrepeat', 1);
+
         p   = p  + double(tmp.Rsq  > stat.Rsq);
         
         Frand(:,:,k)  = tmp.Rsq;
@@ -770,6 +775,44 @@ end
 
 %--------------------------------------------------------------------------
 
+if combinesces
+   
+    if ~exist('savdir', 'var'),         error('define savdir');       end
+    if ~exist('loaddir', 'var'),        error('define loaddir');      end
+    if ~exist('modeldir', 'var'),       error('define modeldir');     end
+    if ~exist('parcel_indx', 'var'),    error('define parcel_indx');  end
+    if ~exist('ivar', 'var'),           error('define ivar');         end
+
+    
+    filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_2sce1-4_parcel%03d_model2_%s',parcel_indx,ivar));
+    load(filename);
+    S14 = S;
+    filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_2sce2-5_parcel%03d_model2_%s',parcel_indx,ivar));
+    load(filename);
+    S25 = S;
+    filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_2sce3-6_parcel%03d_model2_%s',parcel_indx,ivar));
+    load(filename);
+    S36 = S;
+
+    S.perms = cat(1,S14.perms,S25.perms,S36.perms);
+    S.ref   = cat(1,S14.ref,S25.ref,S36.ref);
+    S.p     = cat(1,S14.p,S25.p,S36.p);
+
+    S.stat.label  = cat(1,S14.stat.label,S25.stat.label,S36.stat.label);
+    S.stat.Rsq    = cat(1,S14.stat.Rsq,S25.stat.Rsq,S36.stat.Rsq);
+    S.stat.lambda = cat(1,S14.stat.lambda,S25.stat.lambda,S36.stat.lambda);
+
+    S.diff = S.stat.Rsq - S.perms;
+    S.meandiff = mean(S.diff,1);
+    S.newp = sum(S.meandiff<0,3)/length(S.perms)
+    
+
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_parcel%03d_model2_%s',parcel_indx,ivar));
+    save(filename, 'S');
+   
+end
+%--------------------------------------------------------------------------
+
 if combinemodels
   if ~exist('modeltype', 'var')
     error('modeltype needs to be defined');
@@ -782,9 +825,9 @@ if combinemodels
   % so that the original '*models.mat' files can be discarded
   d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
   
-  if numel(d)~=374
+  if numel(d)~=382
     % some parcels failed to compute because too few vertices per parcel
-    error('expected number is less than 374 parcels');
+    error('expected number is less than 382 parcels');
   end
   
   for k = 1:numel(d)
@@ -812,10 +855,10 @@ if combinemodels
         tmp2     = rmfield(tmp2, 'stat');
         
         if k==1   
-          tmp2.Rsq(:,:,374) = 0;
+          tmp2.Rsq(:,:,382) = 0;
           %tmp2.B(:,:,:,378) = 0;
-          tmp2.ref(:,:,374) = 0;
-          tmp2.p(:,:,374)   = 0;
+          tmp2.ref(:,:,382) = 0;
+          tmp2.p(:,:,382)   = 0;
           %tmp2.lambda(:,:,378) = 0;
                 
           if isfield(tmp.stat, 'time')
