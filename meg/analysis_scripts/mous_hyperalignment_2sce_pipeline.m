@@ -10,21 +10,21 @@ if ~exist('dostats',                      'var'), dostats                   = fa
 if ~exist('combinemodels',                'var'), combinemodels             = false;      end
 
 if makemodels2 == 1 || domscca_searchlight_cross == 1
-    if ~exist('savdir', 'var') 
-        error('define savdir');      
-    end
+  if ~exist('savdir', 'var')
+    error('define savdir');
+  end
 end
 
 if makemodels2 == 1  ||  makemodels3 == 1
-    if ~exist('loaddir', 'var') 
-        error('define loaddir');      
-    end
+  if ~exist('loaddir', 'var')
+    error('define loaddir');
+  end
 end
 
 if combinemodels == 1 || dostats == 1
-    if ~exist('datadir',  'var') 
-        error('define datadir');      
-    end
+  if ~exist('datadir',  'var')
+    error('define datadir');
+  end
 end
 
 if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
@@ -81,6 +81,17 @@ if domscca_searchlight_cross
   if ~exist('nrand', 'var'),          nrand          = 100;     end
   if numel(nrand)==1,                 nrand          = 1:nrand; end % nrand is expected to be a vector of indices that point to a indexed file that contains the precomputed shuffle (to ensure same shuffling across parcels)
   
+  % the time shifting occurred so far (up until 20190813) after the
+  % alignment across subjects. This is strictly suboptimal, because with
+  % the 2 scenarios involved, the word order is updated in the alignment
+  % process, leading to temporal discontinuities at the word boundaries,
+  % therefore as of now (20190813) the timeshifting can be specified to be
+  % done either before (non-default, but probably preferred) or after the
+  % alginment. It needs to be evaluated how much 'before' and 'after' are
+  % going to differ.
+  if ~exist('timeshift', 'var'),      timeshift      = 'after'; end
+  assert(strcmp(timeshift, 'before')||strcmp(timeshift, 'after'));
+   
   groupdata     = cell(1,numel(subj));
   subjectdata   = cell(1,numel(subj));
   subjecttiming = cell(1,numel(subj));
@@ -178,19 +189,38 @@ if domscca_searchlight_cross
   for k = 1:numel(subj)
     % align the subject-specific parcel data to match all others subjects
     % in terms of timing and trial-order
-    groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo{k});%,true);
+    if strcmp(timeshift, 'after')
+      groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo{k});%,true);
     
-    lags = -6:6;
-    groupdata{k}.trial = cellshift(groupdata{k}.trial, lags, 2, [], 'overlap');
-    groupdata{k}.time  = cellshift(groupdata{k}.time, 0, 2, [abs(min(lags)) abs(max(lags))], 'overlap');
-    norig = numel(groupdata{k}.label);
-    groupdata{k}.label = repmat(groupdata{k}.label,numel(lags),1);
-    
-    for kk = 1:numel(lags)
-      for m = 1:norig
-        groupdata{k}.label{(kk-1)*norig+m} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*norig+m}, kk);
+      lags = -6:6;
+      groupdata{k}.trial = cellshift(groupdata{k}.trial, lags, 2, [], 'overlap');
+      groupdata{k}.time  = cellshift(groupdata{k}.time, 0, 2, [abs(min(lags)) abs(max(lags))], 'overlap');
+      norig = numel(groupdata{k}.label);
+      groupdata{k}.label = repmat(groupdata{k}.label,numel(lags),1);
+      
+      for kk = 1:numel(lags)
+        for m = 1:norig
+          groupdata{k}.label{(kk-1)*norig+m} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*norig+m}, kk);
+        end
       end
-    end
+    elseif strcmp(timeshift, 'before')
+      tmp = subjectdata{k}; % create a temporary copy
+      
+      % perform the time shifting before the reordering of the words
+      lags = -6:6;
+      tmp.trial = cellshift(tmp.trial, lags, 2, [], 'overlap');
+      tmp.time  = cellshift(tmp.time, 0, 2, [abs(min(lags)) abs(max(lags))], 'overlap');
+      norig = numel(tmp.label);
+      tmp.label = repmat(tmp.label,numel(lags),1);
+      
+      for kk = 1:numel(lags)
+        for m = 1:norig
+          tmp.label{(kk-1)*norig+m} = sprintf('%s_shift%03d',tmp.label{(kk-1)*norig+m}, kk);
+        end
+      end
+    end  
+    groupdata{k} = mous_multisetcca_getparceldata(subj{k}, tmp, subjecttiming{k}, groupinfo{k});%,true);
+    
   end
   
   for k = 1:numel(subj)
@@ -457,6 +487,7 @@ if domscca_searchlight_cross
    end
 end
 %--------------------------------------------------------------------------
+
 
 if makemodels2
   
