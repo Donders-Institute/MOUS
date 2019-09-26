@@ -928,12 +928,12 @@ if dostats
   filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S', scenario(1),scenario(2), modeltype, ivar));
   load(filename);
   
-  n = 33;
+  n = size(S.Rsq,1);
   
   load atlas_conte69_8196reg_LR_brodmann_subparc.mat
   
   label = atlas.parcellationlabel;
-  label([1 2 190 191 192 193 194 195 383 384 385 386]) = []; %Parcels 383:386 fail to compute so remove equivalent left hemisphere parcels (190:193)
+  label([1 2 194 195]) = []; 
   [a,b] = match_str(atlas.parcellationlabel, label);
   s.pow = zeros(n*2,386,73); % hard coded, can be different for different scenario pairs
   s.pow(1:n,a,:) = permute(S.Rsq,[1 3 2]);
