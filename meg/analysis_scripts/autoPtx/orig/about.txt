@@ -1,0 +1,6 @@
+AutoPtx is a set of simple scripts and mask images to run probabilistic tractography in subject-native space using pre-defined protocols.  
+
+Please find usage information on the FSL plugins page: http://fsl.fmrib.ox.ac.uk/fsl/fslwiki/Plugins
+
+version 0.1: initial release
+version 0.1.1: fixes incorrect move and subsequent fslmaths command in tracSubjectStruct that causes tracts specifying invert in the protocol to not merge both forward and inverted runs
