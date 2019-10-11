@@ -21,13 +21,16 @@ if ~exist('domscca_searchlight_cross',    'var'), domscca_searchlight_cross    =
 if ~exist('create_shuffle_indx',     'var'), create_shuffle_indx      = false; end % create set of files that have pre-cooked randomization sequences
 if ~exist('create_shuffle_indx_seq', 'var'), create_shuffle_indx_seq  = false; end
 if ~exist('makemodels',              'var'), makemodels               = false; end
+
 if ~exist('dotrc',                   'var'), dotrc                    = false; end
 if ~exist('dotrc_pairwise',          'var'), dotrc_pairwise  = false; end
 if ~exist('dotrc_combined',          'var'), dotrc_combined  = false; end
 if ~exist('dotrc_combined_cf',       'var'), dotrc_combined_cf  = false; end
-if ~exist('dotrc_rcmix',             'var'), dotrc_rcmix = false; end
-if ~exist('dotrc_rcmix2',            'var'), dotrc_rcmix2 = false; end
-if ~exist('dotrc_rcmix3',            'var'), dotrc_rcmix3 = false; end
+if ~exist('dotrc_rcmix',             'var'), dotrc_rcmix     = false; end
+if ~exist('dotrc_rcmix2',            'var'), dotrc_rcmix2    = false; end
+if ~exist('dotrc_rcmix3',            'var'), dotrc_rcmix3    = false; end
+if ~exist('dotrc_timextime',         'var'), dotrc_timextime = false; end
+
 if ~exist('compare2simple',          'var'), compare2simple  = false; end
 if ~exist('do_clusterstats',         'var'), do_clusterstats = false; end
 if ~exist('do_plotting',             'var'), do_plotting     = false; end
@@ -1746,4 +1749,50 @@ if do_plotting
   % set(gca,'xticklabel',(1:6).*(0.015./6));
   % cd /project/3011020.09/jansch/mscca_group/figures;
   % export_fig('colorbar_crossmod','-eps');
+end
+
+
+if dotrc_timextime
+  % do time resolved correlation
+  
+  %% set default flags if necessary
+  if ~exist('parcel_indx', 'var'),      error('please supply parcel_indx');             end
+  if ~exist('stimuli', 'var'),          load mous_stimuli;                              end
+  if ~exist('select_sent', 'var'),      select_sent = true;                             end
+  if ~exist('select_seq', 'var'),       select_seq = false;                             end
+  if ~exist('contentwords_only', 'var'),contentwords_only = false;                      end
+  if ~exist('longwords_only', 'var'),   longwords_only = false;                         end
+  if ~exist('stratify_ivar', 'var'),    stratify_ivar = false;                          end
+  %%
+  
+  nrand = 1000;
+  suffix = '';
+  
+  loaddir = sprintf('/project/3011020.09/jansch/mscca_group/scenario%d',scenario);
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s',scenario,parcel_indx,suffix));
+  load(filename, 'comp');
+  
+  for k = 1:numel(comp)
+    tlck(k) = mous_multisetcca_extractwords(comp(k), stimuli);
+  end
+ 
+  for k = 1:numel(tlck)
+    [trc(k), tlck(k)] = mous_multisetcca_trc(tlck(k), stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only, 'longwords_only', longwords_only, 'output2', 'time_x_time');
+    
+    i1 = find(contains(trc(k).label,'-1'));
+    i2 = find(contains(trc(k).label,'-2'));
+    for kk = 1:numel(trc(k).label)
+      trc(k).rho(kk,kk,:,:) = nan;
+    end
+    tmp(1,1,:,:) = nanmean(nanmean(trc(k).rho(i1,i1,:,:),2),1);
+    tmp(1,2,:,:) = nanmean(nanmean(trc(k).rho(i1,i2,:,:),2),1);
+    tmp(2,1,:,:) = nanmean(nanmean(trc(k).rho(i2,i1,:,:),2),1);
+    tmp(2,2,:,:) = nanmean(nanmean(trc(k).rho(i2,i2,:,:),2),1);
+    trc(k).rho = tmp;
+    trc(k).label = {'visual';'audio'};
+  end
+  
+  filename = fullfile(loaddir, sprintf('mscca_sce%d_parcel%03d%s_trc_timextime',scenario,parcel_indx,suffix));
+  save(filename, 'trc');
+  
 end

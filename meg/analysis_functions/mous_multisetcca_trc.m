@@ -241,33 +241,35 @@ if outputflag>0
 end
 dat(~isfinite(dat)) = 0;
 
-c = nan+zeros(size(dat,1),size(dat,1),size(dat,3));
-for k = 1:numel(tlck.time)
-  if partialize_avg
-    for m = 1:numel(tlck.time)
-      dat1 = dat(:,:,k);
-      dat2 = dat(:,:,m);
-      if m==1
-        datc = [dat1;dat2]*[dat1;dat2]';
-      else
-        datc = datc+[dat1;dat2]*[dat1;dat2]';
+if ~strcmp(output2, 'time_x_time')
+  c = nan+zeros(size(dat,1),size(dat,1),size(dat,3));
+  for k = 1:numel(tlck.time)
+    if partialize_avg
+      for m = 1:numel(tlck.time)
+        dat1 = dat(:,:,k);
+        dat2 = dat(:,:,m);
+        if m==1
+          datc = [dat1;dat2]*[dat1;dat2]';
+        else
+          datc = datc+[dat1;dat2]*[dat1;dat2]';
+        end
       end
+      datc = datc./numel(tlck.time);
+      
+      ix1 = 1:size(dat,1);
+      ix2 = ix1+size(dat,1);
+      datc = datc(ix1,ix1)-datc(ix1,ix2)*inv(datc(ix2,ix2))*datc(ix2,ix1);
+    else
+      datx=dat(:,:,k);
+      datc=datx*datx';
     end
-    datc = datc./numel(tlck.time);
-    
-    ix1 = 1:size(dat,1);
-    ix2 = ix1+size(dat,1);
-    datc = datc(ix1,ix1)-datc(ix1,ix2)*inv(datc(ix2,ix2))*datc(ix2,ix1);
-  else
-    datx=dat(:,:,k);
-    datc=datx*datx';
-  end
-  c(:,:,k) = datc./sqrt(diag(datc)*diag(datc)');
-  if outputflag>0
-    % Fisher Z transform with standardization
-    n = min(dof(:,k),dof(:,k)');
-    c(:,:,k) = atanh(c(:,:,k))./sqrt(1./(n-3));
-    c(~isfinite(c)) = 1; % replace the fisher z transformed infinity values with 1
+    c(:,:,k) = datc./sqrt(diag(datc)*diag(datc)');
+    if outputflag>0
+      % Fisher Z transform with standardization
+      n = min(dof(:,k),dof(:,k)');
+      c(:,:,k) = atanh(c(:,:,k))./sqrt(1./(n-3));
+      c(~isfinite(c)) = 1; % replace the fisher z transformed infinity values with 1
+    end
   end
 end
 
@@ -335,9 +337,26 @@ switch output2
       end
     end
     trc.label = label(:);
+  case 'time_x_time'
+    ntim = size(dat,3);
     
+    % this requires computation of the correlations still
+    C = zeros([size(dat,1).*[1 1] ntim.*[1 1]]);
+    for k = 1:size(dat,1)
+      for m = k:size(dat,1)
+        tmp = corr([squeeze(dat(k,:,:)) squeeze(dat(m,:,:))]);
+        C(k,m,:,:) = tmp(1:ntim,ntim+(1:ntim));
+        C(m,k,:,:) = tmp(ntim+(1:ntim),1:ntim);
+      end
+    end
+    trc.rho = C;
+    trc.label = tlck.label(start_idx:end);
 end
 
 if exist('up', 'var'), trc.parcellabel = up(:); end
-trc.dimord   = 'chan_time';
+if strcmp(output2, 'time_x_time')
+  trc.dimord = 'chan_chan_time_time';
+else
+  trc.dimord   = 'chan_time';
+end
 trc.time     = tlck.time;

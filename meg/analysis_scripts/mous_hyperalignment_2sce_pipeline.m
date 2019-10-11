@@ -590,10 +590,11 @@ if makemodels2
     
     % add the interaction term
     % demean apart from the constant
-    tmp = design.('main').*design.(test_ivars{m});
-    tmp = tmp - nanmean(tmp);
     tmpiv = design.(test_ivars{m}) - nanmean(design.(test_ivars{m}));    
     tmpmain = design.main - nanmean(design.main);
+    tmp = tmpmain.*tmpiv;
+    tmp = tmp - nanmean(tmp);
+    
     tmpdesign = [tmpmain,tmpiv,tmp];
     newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {'main',test_ivars{m}, sprintf('mainX%s',test_ivars{m})}));
    
@@ -621,6 +622,7 @@ if makemodels2
       
       tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
       p   = p  + double(tmp.Rsq  > stat.Rsq );
+      statrand(k) = tmp;
       
       Frand(:,:,k)  = tmp.Rsq;
     end
