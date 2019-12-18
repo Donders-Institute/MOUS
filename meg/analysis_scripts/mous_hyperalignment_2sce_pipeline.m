@@ -8,26 +8,16 @@ if ~exist('makemodels2',                  'var'), makemodels2               = fa
 if ~exist('makemodels3',                  'var'), makemodels3               = false;      end
 if ~exist('dostats',                      'var'), dostats                   = false;      end
 if ~exist('combinemodels',                'var'), combinemodels             = false;      end
+if ~exist('combinesces',                  'var'), combinesces               = false;      end
+if ~exist('combineconds',                 'var'), combineconds              = false;      end
 
-if makemodels2 == 1 || domscca_searchlight_cross == 1
+if makemodels2 || domscca_searchlight_cross
   if ~exist('savdir', 'var')
     error('define savdir');
   end
 end
 
-if makemodels2 == 1  ||  makemodels3 == 1
-  if ~exist('loaddir', 'var')
-    error('define loaddir');
-  end
-end
-
-if combinemodels == 1 || dostats == 1
-  if ~exist('datadir',  'var')
-    error('define datadir');
-  end
-end
-
-if ~exist('subjectname', 'var') && ~exist('scenario', 'var')
+if ~exist('subjectname', 'var') && ~exist('scenario', 'var') && ~allsce
   error('at least a subjectname or a scenario number needs to be defined');
 end
 
@@ -72,7 +62,7 @@ if domscca_searchlight_cross
   sce  = sce(contains(subj,'V'));
   subj = subj(contains(subj,'V'));
   
-  load mous_stimuli;
+  load '/project/3011020.09/misc/stimuli/mous_stimuli.mat';
   
   if ~exist('nfold', 'var'),          nfold          = 5;       end
   if ~exist('shuftype', 'var'),       shuftype       = 'none';  end
@@ -190,7 +180,7 @@ if domscca_searchlight_cross
     % align the subject-specific parcel data to match all others subjects
     % in terms of timing and trial-order
     if strcmp(timeshift, 'after')
-      groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo{k});%,true);
+      groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo{k});
     
       lags = -6:6;
       groupdata{k}.trial = cellshift(groupdata{k}.trial, lags, 2, [], 'overlap');
@@ -218,9 +208,12 @@ if domscca_searchlight_cross
           tmp.label{(kk-1)*norig+m} = sprintf('%s_shift%03d',tmp.label{(kk-1)*norig+m}, kk);
         end
       end
-    end  
-    groupdata{k} = mous_multisetcca_getparceldata(subj{k}, tmp, subjecttiming{k}, groupinfo{k});%,true);
-    
+      
+      groupdata{k} = mous_multisetcca_getparceldata(subj{k}, tmp, subjecttiming{k}, groupinfo{k});
+      
+    elseif strcmp(timeshift, 'none')
+      groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo{k});
+    end
   end
   
   for k = 1:numel(subj)
@@ -499,7 +492,11 @@ if makemodels2
   end
   if ~exist('lambda', 'var')
     lambda=1;
+  end 
+  if ~exist('loaddir', 'var')
+    error('define loaddir');
   end
+  
   
   use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
                   'leftbranch' 'dleftbranch' 'main'};
@@ -547,98 +544,110 @@ if makemodels2
   tlck1.trialinfo = cat(2, array2table(ones(n1,1),'VariableNames', {'constant'}), tlck1.trialinfo, array2table( ones(n1,1), 'VariableNames', {'main'}));
   tlck2.trialinfo = cat(2, array2table(ones(n2,1),'VariableNames', {'constant'}), tlck2.trialinfo, array2table(-ones(n2,1), 'VariableNames', {'main'}));
   
-  % before appending, ensure that the discrete regressors are discrete
-  % (i.e. remove the mean removal)
-%   adjust_ivars = {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index'};
-%   for k = 1:numel(adjust_ivars)
-%     try
-%       tmp = tlck1.trialinfo.(adjust_ivars{k});
-%       tmp = round(tmp-min(tmp));
-%       tlck1.trialinfo.(adjust_ivars{k}) = tmp;
-%     end
-%     try
-%       tmp = tlck2.trialinfo.(adjust_ivars{k});
-%       tmp = round(tmp-min(tmp));
-%       tlck2.trialinfo.(adjust_ivars{k}) = tmp;
-%     end  
-%   end
-  
-      
   cfg = [];
   cfg.appenddim = 'rpt';
   cfg.parameter = 'trial';
   tlck = ft_appendtimelock(cfg, tlck1, tlck2);
-  clear tlck1 tlck2;
+%   clear tlck1 tlck2;
+   
+  group1 = find(contains(tlck.label,'mscca001_V')); %scenario(1) 
+  group2 = find(contains(tlck.label,'mscca001_A')); %scenario(2)
+  condnames = {'group1cond1' 'group1cond2' 'group2cond2' 'group2cond1'};
+  tlckorig = tlck;
   
-  ivar = tlck.trialinfo.Properties.VariableNames;
-  sel_ivars = match_str(ivar, use_ivars);
-   
-  design = tlck.trialinfo(:,sel_ivars);
-  
-  ivar        = ivar(sel_ivars);
-  categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index' 'main'});
-
+  for i = 1:4
+      tlck = tlckorig;
       
-  for m = 1:numel(test_ivars)
-    indx = find(ismember(ivar, test_ivars{m}));
-    
-    const = find(ismember(ivar, 'constant'));
-%     main  = find(ismember(ivar, 'main'));
-    
-    fprintf('modelling the data with a constant regressor, the main effect, %s, and its interaction term\n',ivar{indx});
-    
-    
-    % add the interaction term
-    % demean apart from the constant
-    tmpiv = design.(test_ivars{m}) - nanmean(design.(test_ivars{m}));    
-    tmpmain = design.main - nanmean(design.main);
-    tmp = tmpmain.*tmpiv;
-    tmp = tmp - nanmean(tmp);
-    
-    tmpdesign = [tmpmain,tmpiv,tmp];
-    newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {'main',test_ivars{m}, sprintf('mainX%s',test_ivars{m})}));
-   
-    stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
-   
-
-    rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
-    p = zeros(size(stat.Rsq));
-    Frand  = zeros([size(stat.Rsq) nrand]);
-    for k = 1:nrand
-      if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
-      tmpdesign = newdesign;
-      
-      randvec = randperm(size(newdesign,1));
-      vars    = newdesign.Properties.VariableNames;
-      for j = 1:numel(vars)
-        %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
-        %whole design to be randomised, not commenting this out causes
-        %only the ivar of interest to be randomized
-        tmpX = tmpdesign.(vars{j});
-        tmpX = tmpX(randvec,:);
-        tmpdesign.(vars{j}) = tmpX;
-        %end
+      if i < 3
+          tlck.trial = tlck.trial(:,group1,:);
+          tlck.label = tlck.label(group1);
+      else
+          tlck.trial = tlck.trial(:,group2,:);
+          tlck.label = tlck.label(group2);
       end
       
-      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'main' test_ivars{m}}, 'innerfolds', 5, 'nrepeat', 5);
-      p   = p  + double(tmp.Rsq  > stat.Rsq );
-      statrand(k) = tmp;
+      if i == 1 || i == 3
+          cond = find(tlck.trialinfo.main==1);
+      else
+          cond = find(tlck.trialinfo.main==-1);
+      end
       
-      Frand(:,:,k)  = tmp.Rsq;
-    end
-    S.stat  = stat;
-    S.p     = (p)./nrand; % uncorrected p-value of the permutations
-    S.ivar  = ivar{indx};
-    S.ref   = nanmean(Frand,3);
-    S.perms = Frand;
+      tlck.trial = tlck.trial(cond,:,:);
+      tlck.trialinfo = tlck.trialinfo(cond,1:18);
+      
+      ivar = tlck.trialinfo.Properties.VariableNames;
+      sel_ivars = match_str(ivar, use_ivars);
+      
+      design = tlck.trialinfo(:,sel_ivars);
+      
+      ivar        = ivar(sel_ivars);
+      categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index' 'main'});
+      
+      indx = find(ismember(ivar, test_ivars{1}));
+      indx2 = find(ismember(ivar, test_ivars{2}));
+      const = find(ismember(ivar, 'constant'));
+      
+      fprintf('modelling the data with a constant regressor, %s, %s, and its interaction term\n',ivar{indx},ivar{indx2});
+      
+      % demean apart from the constant and add the interaction term
+      if ~contains(test_ivars{1},'main') % if we don't want to remove mean for categorical then we can change this to ~contains(categorical, test_ivars{1})
+          tmpiv1 = design.(test_ivars{1}) - nanmean(design.(test_ivars{1}));
+      else
+          tmpiv1 = design.main;
+      end
+      if ~contains(test_ivars{2},'main')
+          tmpiv2 = design.(test_ivars{2}) - nanmean(design.(test_ivars{2}));
+      else
+          tmpiv2 = design.main;
+      end
+      
+      tmp = tmpiv1.*tmpiv2;
+      tmpdesign = [tmpiv1,tmpiv2,tmp];
+      newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
+      
+      stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+      
+      
+      rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
+      p = zeros(size(stat.Rsq));
+      Frand  = zeros([size(stat.Rsq) nrand]);
+      for k = 1:nrand
+          if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
+          tmpdesign = newdesign;
+          
+          randvec = randperm(size(newdesign,1));
+          vars    = newdesign.Properties.VariableNames;
+          for j = 1:numel(vars)
+              %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
+              %whole design to be randomised, not commenting this out causes
+              %only the ivar of interest to be randomized
+              tmpX = tmpdesign.(vars{j});
+              tmpX = tmpX(randvec,:);
+              tmpdesign.(vars{j}) = tmpX;
+              %end
+          end
+          
+          tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+          p   = p  + double(tmp.Rsq  > stat.Rsq );
+          statrand(k) = tmp;
+          
+          Frand(:,:,k)  = tmp.Rsq;
+      end
+      
+      S.stat  = stat;
+      S.p     = (p)./nrand; % uncorrected p-value of the permutations
+      S.ivar  = ivar{indx};
+      S.ref   = nanmean(Frand,3);
+      S.perms = Frand;
+      %  end
+      
+      filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s_%s',scenario(1),scenario(2),parcel_indx,ivar{indx},condnames{i}));
+      save(filename, 'S');
   end
   
-%   obs   = S.stat.Rsq;
-%   perms = S.perms;
- 
-  filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s',scenario(1),scenario(2),parcel_indx,ivar{indx}));
-  save(filename, 'S');
-  end 
+  
+  
+end
 
 %--------------------------------------------------------------------------
 
@@ -652,6 +661,9 @@ if makemodels3
   end
   if ~exist('lambda', 'var')
     lambda=1;
+  end
+  if ~exist('loaddir', 'var')
+    error('define loaddir');
   end
   
   use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
@@ -807,143 +819,242 @@ end
 
 
 %--------------------------------------------------------------------------
+  % collapse the parcel specific data into a (hopefully smaller) variable,
+  % so that the original '*models.mat' files can be discarded
+if combinemodels
+  if ~exist('modeltype', 'var'),    error('modeltype needs to be defined');  end
+  if ~exist('ivar', 'var'),         error('ivar needs to be defined');       end
+  if ~exist('datadir',  'var'),     error('define datadir');                 end
+
+  numfiles = 1;
+  if allsce
+      d = dir(fullfile(datadir,sprintf('*2sce_combined_parcel*_%s_%s.mat',modeltype,ivar)));
+  else
+      if threewayint
+          condnames = {'group1cond1' 'group1cond2' 'group2cond2' 'group2cond1'};
+          numfiles = 4;
+      else
+          d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
+      end
+  end
+  
+  for j = 1:numfiles
+      
+      if ~exist('d',  'var')
+          d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar{1},condnames{j})));
+      end
+      
+      if numel(d)~=382
+          % some parcels failed to compute because too few vertices per parcel
+          error('expected number is less than 382 parcels');
+      end
+      
+      for k = 1:numel(d)
+          fprintf('processing file %s\n', d(k).name);
+          if exist('fn', 'var') && numel(fn)==1
+              dat = load(fullfile(d(k).folder,d(k).name),fn{1});
+          else
+              dat = load(fullfile(d(k).folder,d(k).name));
+              fn = fieldnames(dat);
+              fn = fn(1); % keep RAM use within bounds, repeat for the other variables
+              fprintf('using variable %s\n',fn{1});
+          end
+          
+          if k==1
+              fprintf('using variable %s\n',fn{1});
+          end
+          
+          for m = 1:numel(fn)
+              tmp = dat.(fn{m});
+              for p = 1:numel(tmp)
+                  tmp2 = tmp(p);
+                  tmp2.Rsq = tmp2.stat.Rsq;
+                  %tmp2.B   = nanmean(tmp2.stat.B,4);
+                  %tmp2.lambda = tmp2.stat.lambda;
+                  tmp2     = rmfield(tmp2, 'stat');
+                  
+                  if k==1
+                      tmp2.Rsq(:,:,382) = 0;
+                      %tmp2.B(:,:,:,378) = 0;
+                      tmp2.ref(:,:,382) = 0;
+                      tmp2.p(:,:,382)   = 0;
+                      %tmp2.lambda(:,:,378) = 0;
+                      
+                      if isfield(tmp.stat, 'time')
+                          tmp2.time = tmp.stat.time;
+                      end
+                      
+                      data.(fn{m})(p) = tmp2;
+                  else
+                      data.(fn{m})(p).p(:,:,k)   = tmp2.p;
+                      data.(fn{m})(p).Rsq(:,:,k) = tmp2.Rsq;
+                      data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
+                      %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
+                      %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
+                  end
+              end
+          end
+          clear dat;
+      end
+      
+      clear d
+      data = ft_struct2single(data);
+      
+      if allsce
+          filename = fullfile(datadir,sprintf('hyperalignment_allsce_%s_%s_%s', modeltype, ivar, fn{1}));
+      else
+          if ~threewayint
+              filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar, fn{1}));
+          else
+              filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar{1}, fn{1},condnames{j}));
+          end
+      end
+      save(filename,'-struct', 'data');
+  end
+end
+% ---------------------------------------------------------------------------
+
+if combineconds
+   condnames = {'group1cond1' 'group1cond2' 'group2cond2' 'group2cond1'};
+   
+   for j = 1:4
+       filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S_%s', scenario(1),scenario(2), modeltype, ivar{1}, condnames{j}))
+       data{j} = load(filename);
+   end
+   
+   cond1 = data{1}.S;
+   cond1.p      = [cond1.p;    data{4}.S.p];
+   cond1.ref    = [cond1.ref;  data{4}.S.ref];
+   cond1.perms  = [cond1.perms;data{4}.S.perms];
+   cond1.Rsq    = [cond1.Rsq;  data{4}.S.Rsq];
+   
+   cond2 = data{2}.S;
+   cond2.p      = [cond2.p;    data{3}.S.p];
+   cond2.ref    = [cond2.ref;  data{3}.S.ref];
+   cond2.perms  = [cond2.perms;data{3}.S.perms];
+   cond2.Rsq    = [cond2.Rsq;  data{3}.S.Rsq];
+   
+   filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S_cond1', scenario(1),scenario(2), modeltype, ivar{1}));
+   save(filename,'cond1');
+   filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S_cond2', scenario(1),scenario(2), modeltype, ivar{1}));
+   save(filename,'cond2');
+end
+
+%--------------------------------------------------------------------------
 
 if combinesces
    
     if ~exist('savdir', 'var'),         error('define savdir');       end
     if ~exist('loaddir', 'var'),        error('define loaddir');      end
     if ~exist('modeldir', 'var'),       error('define modeldir');     end
-    if ~exist('parcel_indx', 'var'),    error('define parcel_indx');  end
     if ~exist('ivar', 'var'),           error('define ivar');         end
-
+    if ~exist('threewayint', 'var'),    error('define threewayint');  end
     
-    filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_2sce1-4_parcel%03d_model2_%s',parcel_indx,ivar));
-    load(filename);
-    S14 = S;
-    filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_2sce2-5_parcel%03d_model2_%s',parcel_indx,ivar));
-    load(filename);
-    S25 = S;
-    filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_2sce3-6_parcel%03d_model2_%s',parcel_indx,ivar));
-    load(filename);
-    S36 = S;
+    if ~threewayint
+        
+        filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_2sce1-4_model2_%s_S',ivar));
+        load(filename);
+        S14 = S;
+        filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_2sce2-5_model2_%s_S',ivar));
+        load(filename);
+        S25 = S;
+        filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_2sce3-6_model2_%s_S',ivar));
+        load(filename);
+        S36 = S;
+        
+        S.perms = cat(1,S14.perms,S25.perms,S36.perms);
+        S.ref   = cat(1,S14.ref,S25.ref,S36.ref);
+        S.p     = cat(1,S14.p,S25.p,S36.p);
+        S.Rsq   = cat(1,S14.Rsq,S25.Rsq,S36.Rsq);
+        S.time  = S14.time;
+              
+        filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s',ivar));
+        save(filename, 'S');
+        
+    else
+        
+        filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_sce1-4_model2_%s_S_cond1',ivar{1}));
+        load(filename);
+        S14_cond1 = cond1;
+        filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_sce1-4_model2_%s_S_cond2',ivar{1}));
+        load(filename);
+        S14_cond2 = cond2;
+        filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_sce2-5_model2_%s_S_cond1',ivar{1}));
+        load(filename);
+        S25_cond1 = cond1;
+        filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_sce2-5_model2_%s_S_cond2',ivar{1}));
+        load(filename);
+        S25_cond2 = cond2;
+        filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_sce3-6_model2_%s_S_cond1',ivar{1}));
+        load(filename);
+        S36_cond1 = cond1;
+        filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_sce3-6_model2_%s_S_cond2',ivar{1}));
+        load(filename);
+        S36_cond2 = cond2;
+        
+        S = [];
+        S.time = cond1.time;
+        S.ivar = [ivar{1} '_' ivar{2}];
+        
+%         S.perms       = cat(1,S14_cond1.perms,S25_cond1.perms,S36_cond1.perms);
+        S.ref         = cat(1,S14_cond1.ref,S25_cond1.ref,S36_cond1.ref);
+        S.p           = cat(1,S14_cond1.p,S25_cond1.p,S36_cond1.p);
+        S.Rsq         = cat(1,S14_cond1.Rsq,S25_cond1.Rsq,S36_cond1.Rsq);
 
-    S.perms = cat(1,S14.perms,S25.perms,S36.perms);
-    S.ref   = cat(1,S14.ref,S25.ref,S36.ref);
-    S.p     = cat(1,S14.p,S25.p,S36.p);
-
-    S.stat.label  = cat(1,S14.stat.label,S25.stat.label,S36.stat.label);
-    S.stat.Rsq    = cat(1,S14.stat.Rsq,S25.stat.Rsq,S36.stat.Rsq);
-    S.stat.lambda = cat(1,S14.stat.lambda,S25.stat.lambda,S36.stat.lambda);
-
-    S.diff = S.stat.Rsq - S.perms;
-    S.meandiff = mean(S.diff,1);
-    S.newp = sum(S.meandiff<0,3)/length(S.perms)
-    
-
-    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_parcel%03d_model2_%s',parcel_indx,ivar));
-    save(filename, 'S');
+        filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_cond1',[ivar{1} '_' ivar{2}]));
+        save(filename, 'S');
+        
+%         S.perms       = cat(1,S14_cond2.perms,S25_cond2.perms,S36_cond2.perms);
+        S.ref         = cat(1,S14_cond2.ref,S25_cond2.ref,S36_cond2.ref);
+        S.p           = cat(1,S14_cond2.p,S25_cond2.p,S36_cond2.p);
+        S.Rsq         = cat(1,S14_cond2.Rsq,S25_cond2.Rsq,S36_cond2.Rsq);
+        
+       
+        filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_cond2',[ivar{1} '_' ivar{2}]));
+        save(filename, 'S');
+        
+    end
    
 end
-%--------------------------------------------------------------------------
-
-if combinemodels
-  if ~exist('modeltype', 'var')
-    error('modeltype needs to be defined');
-  end
-  if ~exist('ivar', 'var')
-    error('ivar needs to be defined');
-  end
-  
-  % collapse the parcel specific data into a (hopefully smaller) variable,
-  % so that the original '*models.mat' files can be discarded
-  d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
-  
-  if numel(d)~=382
-    % some parcels failed to compute because too few vertices per parcel
-    error('expected number is less than 382 parcels');
-  end
-  
-  for k = 1:numel(d)
-    fprintf('processing file %s\n', d(k).name);
-    if exist('fn', 'var') && numel(fn)==1
-      dat = load(fullfile(d(k).folder,d(k).name),fn{1});
-    else
-      dat = load(fullfile(d(k).folder,d(k).name));
-      fn = fieldnames(dat);
-      fn = fn(1); % keep RAM use within bounds, repeat for the other variables
-      fprintf('using variable %s\n',fn{1});
-    end
-    
-    if k==1
-      fprintf('using variable %s\n',fn{1});
-    end
-    
-    for m = 1:numel(fn)
-      tmp = dat.(fn{m});
-      for p = 1:numel(tmp)
-        tmp2 = tmp(p);
-        tmp2.Rsq = tmp2.stat.Rsq;
-        %tmp2.B   = nanmean(tmp2.stat.B,4);
-        %tmp2.lambda = tmp2.stat.lambda;
-        tmp2     = rmfield(tmp2, 'stat');
-        
-        if k==1   
-          tmp2.Rsq(:,:,382) = 0;
-          %tmp2.B(:,:,:,378) = 0;
-          tmp2.ref(:,:,382) = 0;
-          tmp2.p(:,:,382)   = 0;
-          %tmp2.lambda(:,:,378) = 0;
-                
-          if isfield(tmp.stat, 'time')
-            tmp2.time = tmp.stat.time;
-          end
-          
-          data.(fn{m})(p) = tmp2;
-        else
-          data.(fn{m})(p).p(:,:,k)   = tmp2.p;
-          data.(fn{m})(p).Rsq(:,:,k) = tmp2.Rsq;
-          data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
-          %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
-          %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
-        end
-      end
-    end
-    clear dat;
-  end
-  
-  
-  data = ft_struct2single(data);
-  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar, fn{1}));
-  save(filename,'-struct', 'data');
-end
-
+% ---------------------------------------------------------------------------
 if dostats
-  if ~exist('modeltype', 'var')
-    modeltype = 'model2';
-  end
-  if ~exist('ivar', 'var')
-    error('ivar needs to be defined');
-  end
-  
+  if ~exist('modeltype', 'var'),    modeltype = 'model2';               end
+  if ~exist('ivar',      'var'),    error('ivar needs to be defined');  end  
+  if ~exist('datadir',   'var'),    error('define datadir');            end
+  if ~exist('allsces',   'var'),    error('define allsces');            end
+
   % collapse the parcel specific data into a (hopefully smaller) variable,
   % so that the original '*models.mat' files can be discarded
-  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S', scenario(1),scenario(2), modeltype, ivar));
-  load(filename);
-  
-  n = size(S.Rsq,1);
-  
+  if ~allsces
+      filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S', scenario(1),scenario(2), modeltype, ivar));
+      load(filename);
+  else
+      filename = fullfile(datadir, sprintf('hyperalignment_2sce_combined_%s_%s_cond1', modeltype, [ivar{1} '_' ivar{2}]));
+      load(filename);
+      cond1 = S;
+      filename = fullfile(datadir, sprintf('hyperalignment_2sce_combined_%s_%s_cond2', modeltype, [ivar{1} '_' ivar{2}]));
+      load(filename);
+      cond2 = S;
+  end
+   
   load atlas_conte69_8196reg_LR_brodmann_subparc.mat
-  
   label = atlas.parcellationlabel;
   label([1 2 194 195]) = []; 
   [a,b] = match_str(atlas.parcellationlabel, label);
-  s.pow = zeros(n*2,386,73); % hard coded, can be different for different scenario pairs
-  s.pow(1:n,a,:) = permute(S.Rsq,[1 3 2]);
-  s.pow(n+(1:n),a,:) = permute(S.ref, [1 3 2]);
   s.dimord = 'rpt_chan_time';
   s.time   = S.time;
   s.label  = atlas.parcellationlabel;
   s.brainordinate = atlas;
+  n = size(S.Rsq,1);
+  s.pow = zeros(n*2,386,73); % hard coded, can be different for different scenario pairs
+
+  if ~allsces
+      s.pow(1:n,a,:)     = permute(S.Rsq,[1 3 2]);
+      s.pow(n+(1:n),a,:) = permute(S.ref, [1 3 2]);
+  else
+      s.pow(1:n,a,:)     = permute(cond1.Rsq,[1 3 2]);
+      s.pow(n+(1:n),a,:) = permute(cond2.Rsq,[1 3 2]);
+  end
   
   cfg                  = [];
   cfg.connectivity     = parcellation2connmat(atlas);
@@ -954,7 +1065,7 @@ if dostats
   cfg.feedback         = 'text';
   cfg.clusterstatistic = 'maxsum';
   cfg.statistic        = 'ft_statfun_wilcoxon';
-  cfg.numrandomization = 1000;
+  cfg.numrandomization = 2000;
   cfg.method = 'montecarlo';
   cfg.ivar   = 1;
   cfg.uvar   = 2;
@@ -967,7 +1078,11 @@ if dostats
   end
     
   stat = ft_timelockstatistics(cfg, s);
-  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_stat', scenario(1),scenario(2), modeltype, ivar));
+  if ~allsces
+      filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_stat', scenario(1),scenario(2), modeltype, ivar));
+  else
+      filename = fullfile(datadir, sprintf('hyperalignment_allsces_%s_%s_stat', modeltype, [ivar{1} '_' ivar{2}]));
+  end
   save(filename, 'stat');
   
 end
