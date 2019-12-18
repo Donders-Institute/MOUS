@@ -80,7 +80,7 @@ if domscca_searchlight_cross
   % alginment. It needs to be evaluated how much 'before' and 'after' are
   % going to differ.
   if ~exist('timeshift', 'var'),      timeshift      = 'after'; end
-  assert(strcmp(timeshift, 'before')||strcmp(timeshift, 'after'));
+  assert(strcmp(timeshift, 'before')||strcmp(timeshift, 'after')||strcmp(timeshift, 'none'));
    
   groupdata     = cell(1,numel(subj));
   subjectdata   = cell(1,numel(subj));
