@@ -190,18 +190,23 @@ if dohyperalignment || dohyperalignment_seq
     lags = -6:6;
     groupdata{k}.trial = cellshift(groupdata{k}.trial, lags, 2, [], 'overlap');
     groupdata{k}.time  = cellshift(groupdata{k}.time, 0, 2, [abs(min(lags)) abs(max(lags))], 'overlap');
-    groupdata{k}.label = repmat(groupdata{k}.label(1:5),numel(lags),1);
+    nlab = numel(groupdata{k}.label);
+    groupdata{k}.label = repmat(groupdata{k}.label(1:min(nlab,5)),numel(lags),1);
     
     groupdata2{k}.trial = cellshift(cellrowselect(groupdata2{k}.trial,1), lags, 2, [], 'overlap');
     groupdata2{k}.time  = cellshift(groupdata2{k}.time, 0, 2, [abs(min(lags)) abs(max(lags))], 'overlap');
     groupdata2{k}.label = repmat(groupdata2{k}.label(1),numel(lags),1);
     
-    for kk = 1:numel(groupdata{k}.label)/5
-      groupdata{k}.label{(kk-1)*5+1} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+1}, kk);
-      groupdata{k}.label{(kk-1)*5+2} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+2}, kk);
-      groupdata{k}.label{(kk-1)*5+3} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+3}, kk);
-      groupdata{k}.label{(kk-1)*5+4} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+4}, kk);
-      groupdata{k}.label{(kk-1)*5+5} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+5}, kk);
+    div = min(nlab,5);
+    for kk = 1:numel(groupdata{k}.label)/div
+      for mm = 1:div
+        groupdata{k}.label{(kk-1)*div+mm} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*div+mm}, kk);
+      end
+      %groupdata{k}.label{(kk-1)*5+1} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+1}, kk);
+      %groupdata{k}.label{(kk-1)*5+2} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+2}, kk);
+      %groupdata{k}.label{(kk-1)*5+3} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+3}, kk);
+      %groupdata{k}.label{(kk-1)*5+4} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+4}, kk);
+      %groupdata{k}.label{(kk-1)*5+5} = sprintf('%s_shift%03d',groupdata{k}.label{(kk-1)*5+5}, kk);
     end
     for kk = 1:numel(groupdata2{k}.label)
       groupdata2{k}.label{kk} = sprintf('%s_shift%03d',groupdata2{k}.label{kk}, kk);
@@ -539,19 +544,6 @@ if makemodels2
       %S(mm).perms = Frand;
     end
   end
-%   for mm = 1:numel(S)
-%     if mm==1
-%       obs = S(mm).stat.Rsq;
-%       perms = S(mm).perms;
-%     else
-%       obs = cat(1,obs,S(mm).stat.Rsq);
-%       perms = cat(1,perms,S(mm).perms);
-%     end
-%   end
-%   
-%   a = cat(3,obs',permute(perms,[2 1 3]));
-%   rng('default');
-%   [results, params] = prevalenceCore(a);
   
   if numel(S)>1
     for mm = 2:numel(S)
@@ -749,7 +741,7 @@ if combinemodels
   d = dir(fullfile(datadir,sprintf('*sce%d*%s_%s.mat',scenario,modeltype,ivar)));
   %d = dir(fullfile(datadir,sprintf('*sce%d*models2.mat',scenario)));
   
-  if numel(d)~=378
+  if numel(d)<378
     % some parcels failed to compute because too few vertices per parcel
     warning('number of files is less than the expected number of 378 parcels');
     for k = 1:numel(d)
@@ -761,10 +753,13 @@ if combinemodels
     skipvec(find(ismember(indx,nx))) = false;
     indx = indx(~skipvec);
     %d    = d(~skipvec);
-  else
+  elseif numel(d)==378
     skipvec = false(378,1);
     indx = 1:382;
     indx([190 191 381 382]) = [];
+  elseif numel(d)==382
+    skipvec = false(382,1);
+    indx = 1:382;
   end
   
   for k = 1:numel(d)
@@ -833,8 +828,21 @@ if dostats
   % collapse the parcel specific data into a (hopefully smaller) variable,
   % so that the original '*models.mat' files can be discarded
   datadir  = '/project/3011020.09/jansch/hyperalignment';%HARDCODED
-  filename = fullfile(datadir, sprintf('hyperalignment_sce%d_%s_%s_S', scenario, modeltype, ivar));
-  load(filename);
+  for k = 1:numel(scenario)
+    filename = fullfile(datadir, sprintf('hyperalignment_sce%d_%s_%s_S', scenario(k), modeltype, ivar));
+    load(filename);
+    allS{k} = S;
+  end
+  
+  fn = {'p' 'ref' 'Rsq'};
+  S  = allS{1};
+  for k = 2:numel(allS)
+    for m = 1:numel(fn)
+      S.(fn{m}) = cat(1, S.(fn{m}), allS{k}.(fn{m}));
+    end
+  end
+  clear allS;
+  
   
   n = size(S.Rsq,1);
   
@@ -874,7 +882,14 @@ if dostats
   end
   
   stat = ft_timelockstatistics(cfg, s);
-  filename = fullfile(datadir, sprintf('hyperalignment_sce%d_%s_%s_stat', scenario, modeltype, ivar));
+  scestr = sprintf('sce%d',scenario(1));
+  if numel(scenario)>1
+    for k = 2:numel(scenario)
+      scestr = sprintf('%s%d',scestr,scenario(k));
+    end
+  end
+  
+  filename = fullfile(datadir, sprintf('hyperalignment_%s_%s_%s_stat', scestr, modeltype, ivar));
   save(filename, 'stat');
   
 end
