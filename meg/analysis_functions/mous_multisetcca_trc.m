@@ -222,7 +222,9 @@ end
 dat = permute(tlck.trial(:,start_idx:end,:),[2 1 3]); 
 
 % subtract the mean across trials
+dat(dat==0) = nan;
 dat = dat-nanmean(dat,2);
+dat(~isfinite(dat)) = 0;
 
 if ~isempty(shift) && numel(shift)==size(dat,1)
   maxshift = max(shift);

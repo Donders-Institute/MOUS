@@ -306,6 +306,36 @@ if domscca_searchlight || domscca_searchlight_seq || domscca_searchlight_combine
         tmp = tmp - nanmean(tmp,2)*ones(1,size(tmp,2));
         subjectdata{i,k}.trial{kk} = tmp;
       end
+      
+      if ~exist('regress_audioenv', 'var')
+        regress_audioenv = false;
+      end
+      if regress_audioenv
+        audiodata = mous_multisetcca_audioenv(subj{k}, 0);
+        
+        cfg         = [];
+        cfg.channel = {'audio_100-205';'audio_avg'};
+        audiodata   = ft_selectdata(cfg, audiodata);
+        
+        cfg            = [];
+        cfg.refchannel = {'audio_100-205'; 'audio_avg'};
+        cfg.reflags    = (0:36)./120;
+        cfg.demeanrefdata = true;
+        cfg.standardiserefdata = true;
+        cfg.perchannel = 'yes';
+        cfg.output = 'residual';
+        cfg.threshold = [.05 0];
+        cfg.method = 'mlrridge';
+        tmp  = ft_denoise_tsr(cfg, subjectdata{i,k}, audiodata);
+
+        cfg = [];
+        cfg.time = subjectdata{i,k}.time;
+        cfg.method = 'linear';
+        tmp = ft_resampledata(cfg, tmp);
+        
+        subjectdata{i,k} = tmp;
+      end
+        
       % align the subject-specific parcel data to match all others subjects
       % in terms of timing and trial-order
       groupdata{i,k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{i,k}, subjecttiming{i,k}, groupinfo{i}, shift(k), stretch(k));%,true);
@@ -1014,7 +1044,7 @@ if dotrc || dotrc_combined || dotrc_combined_cf
       for mm = 1:size(tmptlck(mmm).trial,1)
         tmptlck(mmm).trial(mm,:,:)=circshift(squeeze(tlck(mmm).trial(mm,:,:)),randperm(109,1),2);
       end
-      trcshuf3(m,mmm) = mous_multisetcca_trc(tmptlck(mmm), stimuli);
+      trcshuf3(m,mmm) = mous_multisetcca_trc(tmptlck(mmm), stimuli, 'output2', 'single_cross');
     end
   end
   

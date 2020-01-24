@@ -1,4 +1,8 @@
-function [tlck, Trl_idx] = mous_multisetcca_extractwords(comp, stimuli)
+function [tlck, Trl_idx] = mous_multisetcca_extractwords(comp, stimuli, latency)
+
+if nargin<3
+  latency = [-0.1 0.8];
+end
 
 isaudio = false(numel(comp.label),1);
 for k = 1:numel(comp.label)
@@ -114,12 +118,17 @@ words.duration = [allwords(:).duration]';
 dlb = lb - [zeros(size(lb,1),1) lb(:,1:end-1)];
 drb = rb - [zeros(size(rb,1),1) rb(:,1:end-1)];
 
-begtim = -0.1;
-endtim = 0.8;
-begs = nearest(tmptlck(2).time,begtim);
-ends = nearest(tmptlck(2).time,endtim);
-N    = ends-begs+1;
-tim  = tmptlck(2).time(begs:ends);
+% begtim = latency(1);
+% endtim = latency(2);
+% begs = nearest(tmptlck(2).time,begtim);
+% ends = nearest(tmptlck(2).time,endtim);
+% N    = ends-begs+1;
+% tim  = tmptlck(2).time(begs:ends);
+
+begtim  = latency(1);
+endtim  = latency(2);
+tim     = linspace(begtim,endtim,diff(latency).*120+1);
+N       = numel(tim);
 
 Yav = zeros(0,N); % hard coded
 Ya  = zeros(0,N);
@@ -134,35 +143,34 @@ for k = 1:numel(tmptlck)
   
   begs = nearest(tmptlck(k).time,begtim);
   ends = nearest(tmptlck(k).time,endtim);
-  nsmp = ends-begs+1;
+  begx = nearest(tim, tmptlck(k).time(begs));
+  endx = nearest(tim, tmptlck(k).time(ends));
   
   if any(iv)
-  tmp  = reshape(nanmean(tmptlck(k).trial(:,iv,:),2), [], numel(tmptlck(k).time));
-  tmpY = tmp(:,begs:ends);
-  
-  tmpY(:,end+1:N) = nan;
-  Yv   = cat(1,Yv,tmpY);
+    tmp  = reshape(nanmean(tmptlck(k).trial(:,iv,:),2), [], numel(tmptlck(k).time));
+    tmpY = nan(size(tmp,1),N);
+    tmpY(:,begx:endx) = tmp(:,begs:ends);
+    Yv   = cat(1,Yv,tmpY);
   end
   
   if any(ia)
-  tmp  = reshape(nanmean(tmptlck(k).trial(:,ia,:),2), [], numel(tmptlck(k).time));
-  tmpY = tmp(:,begs:ends);
+    tmp  = reshape(nanmean(tmptlck(k).trial(:,ia,:),2), [], numel(tmptlck(k).time));
+    tmpY = nan(size(tmp,1),N);
+    tmpY(:,begx:endx) = tmp(:,begs:ends);
+    Ya   = cat(1,Ya,tmpY);
   end
-  
-  tmpY(:,end+1:N) = nan;
-  Ya   = cat(1,Ya,tmpY);
-  
+    
   tmp  = reshape(nanmean(tmptlck(k).trial(:,:,:),2), [], numel(tmptlck(k).time));
-  tmpY = tmp(:,begs:ends);
+  tmpY = nan(size(tmp,1),N);
+  tmpY(:,begx:endx) = tmp(:,begs:ends);
+  Yav  = cat(1,Yav,tmpY);
   
-  tmpY(:,end+1:N) = nan;
-  Yav   = cat(1,Yav,tmpY);
-  
-  tmp   = tmptlck(k).trial(:,:,begs:ends);
-  tmp(:,:,end+1:N) = nan;
-  siz   = size(tmp);
-  tmp   = reshape(permute(tmp,[1 3 2]),[siz(1) siz(2)*siz(3)]);
-  Yall  = cat(1,Yall,tmp);
+  tmp  = tmptlck(k).trial(:,:,begs:ends);
+  tmpY = nan(size(tmp,1),size(tmp,2),N);
+  tmpY(:,:,begx:endx) = tmp;
+  siz   = size(tmpY);
+  tmpY  = reshape(permute(tmpY,[1 3 2]),[siz(1) siz(2)*siz(3)]);
+  Yall  = cat(1,Yall,tmpY);
 end
 
 Yav(~isfinite(Yav)) = 0;
