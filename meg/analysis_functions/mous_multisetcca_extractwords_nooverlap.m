@@ -1,7 +1,11 @@
-function [tlck, Trl_idx, model_visual, model_audio] = mous_multisetcca_extractwords_nooverlap(comp, stimuli, audiodata, latency)
+function [tlck, Trl_idx, model_visual, model_audio] = mous_multisetcca_extractwords_nooverlap(comp, stimuli, audiodata, latency, model)
 
 if nargin<4
   latency = [-0.1 0.8];
+end
+
+if nargin<5
+  model = 'onset';
 end
 
 isaudio = false(numel(comp.label),1);
@@ -117,9 +121,23 @@ for k = 1:numel(trial)
   dum  = zeros(2,size(trial{k},2));
   for m = 1:numel(yy{k})-1
     if cw(m)
-      dum(1,nearest(time{k},yy{k}(m))) = 1;
+      if strcmp(model, 'onset')
+        dum(1,nearest(time{k},yy{k}(m))) = 1;
+      elseif strcmp(model, 'loglexfreq')
+        lf = stim.words(m).lexfreq;
+        if lf>0
+        dum(1,nearest(time{k},yy{k}(m))) = log10(stim.words(m).lexfreq);
+        end
+      end
     else
-      dum(2,nearest(time{k},yy{k}(m))) = 1;
+      if strcmp(model, 'onset')
+        dum(2,nearest(time{k},yy{k}(m))) = 1;
+      elseif strcmp(model, 'loglexfreq')
+        lf = stim.words(m).lexfreq;
+        if lf>0
+        dum(2,nearest(time{k},yy{k}(m))) = log10(stim.words(m).lexfreq);
+        end
+      end
     end  
   end
   %dum(3,:) = dat;
@@ -129,9 +147,23 @@ for k = 1:numel(trial)
   dum2 = zeros(2,size(compvisual.trial{k},2));
   for m = 1:numel(xx{k})
     if cw(m)
-      dum2(1,nearest(compvisual.time{k},xx{k}(m))) = 1;
+      if strcmp(model, 'onset')
+        dum2(1,nearest(compvisual.time{k},xx{k}(m))) = 1;
+      elseif strcmp(model, 'loglexfreq')
+        lf = stim.words(m).lexfreq;
+        if lf>0
+        dum2(1,nearest(compvisual.time{k},xx{k}(m))) = log10(stim.words(m).lexfreq);
+        end
+      end
     else
-      dum2(2,nearest(compvisual.time{k},xx{k}(m))) = 1;
+      if strcmp(model, 'onset')
+        dum2(2,nearest(compvisual.time{k},xx{k}(m))) = 1;
+      elseif strcmp(model, 'loglexfreq')
+        lf = stim.words(m).lexfreq;
+        if lf>0
+        dum2(2,nearest(compvisual.time{k},xx{k}(m))) = log10(stim.words(m).lexfreq);
+        end
+      end
     end  
   end
   
@@ -156,7 +188,7 @@ end
 cfg.reflags    = (round(max(latency(1),-0.1).*120):round(latency(2).*120))./120;
 cfg.demeanrefdata = true;
 cfg.standardiserefdata = true;
-%cfg.demeandata = true;
+cfg.demeandata = true;
 cfg.perchannel = 'yes';
 cfg.output = 'residual';
 %cfg.threshold = [.05 0];

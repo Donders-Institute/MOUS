@@ -11,6 +11,7 @@ untilnextword     = ft_getopt(varargin, 'untilnextword', false);
 untilnextword_visual = ft_getopt(varargin, 'untilnextword_visual', false);
 output2           = ft_getopt(varargin, 'output2', 'average_mod');
 subselection      = ft_getopt(varargin, 'subselection', '');
+demeanflag        = ft_getopt(varargin, 'demeanflag', true);
 
 switch output
   case 'rho'
@@ -61,7 +62,7 @@ if ft_datatype(data, 'raw')
   end
   tlck = mous_multisetcca_extractwords(data, stimuli);
 else
-    tlck = data;
+  tlck = data;
   if ~exist('selaudio', 'var')
     selaudio{1} = find(contains(tlck.label, 'A'));
     selvis{1}   = find(contains(tlck.label, 'V'));
@@ -76,74 +77,74 @@ else
 end
 
 if ~isempty(subselection)
-    %For each sentence, how many words can be selected per (parital) clause
-    stimuli_rc = stimuli(1:204);
-    idsall = vertcat(stimuli_rc.id);
-    MCcont = vertcat(stimuli_rc.MCcontinuationword);
-    MCcont(isnan(MCcont)) = vertcat(stimuli_rc(idsall(isnan(MCcont))).numwords)+1;
+  %For each sentence, how many words can be selected per (parital) clause
+  stimuli_rc = stimuli(1:204);
+  idsall = vertcat(stimuli_rc.id);
+  MCcont = vertcat(stimuli_rc.MCcontinuationword);
+  MCcont(isnan(MCcont)) = vertcat(stimuli_rc(idsall(isnan(MCcont))).numwords)+1;
+  
+  pre = vertcat(stimuli_rc.RConsetword)-1;
+  in  = MCcont-vertcat(stimuli_rc.RConsetword);
+  post= vertcat(stimuli_rc.numwords)-(MCcont-1);
+  post(post==0) = NaN;
+  nsel = min([pre in post],[],2);
+  ids = unique(tlck.trialinfo.id);
+  
+  if strcmp(subselection,'pre')  %select words before relative clause onset
+    onsets = vertcat(stimuli(ids).RConsetword);
     
-    pre = vertcat(stimuli_rc.RConsetword)-1;
-    in  = MCcont-vertcat(stimuli_rc.RConsetword);
-    post= vertcat(stimuli_rc.numwords)-(MCcont-1);
-    post(post==0) = NaN;
-    nsel = min([pre in post],[],2);
-    ids = unique(tlck.trialinfo.id);
-    
-    if strcmp(subselection,'pre')  %select words before relative clause onset
-        onsets = vertcat(stimuli(ids).RConsetword);
-        
-        sel = [];
-        for i = 1:length(ids)
-            id = ids(i);
-            ord = onsets(i)-nsel(idsall==id):onsets(i)-1;
-            sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
-        end         
-    elseif strcmp(subselection,'rc') % select words within relative clause
-        offsets = MCcont(ismember(idsall,ids));
-        
-        sel = [];
-        for i = 1:length(ids)
-            id = ids(i);
-            ord = offsets(i)-nsel(idsall==id):offsets(i)-1;
-            sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];         
-        end 
-    elseif strcmp(subselection,'post') % select words after relative clause offset
-        offsets = MCcont(ismember(idsall,ids));
-        
-        sel = [];
-        for i = 1:length(ids)
-            id = ids(i);
-            if ~isnan(post(idsall==id))%only do for center-embedded clauses)
-                ord = offsets(i):offsets(i) + nsel(idsall==id)-1;
-                sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
-            end  
-        end 
-    elseif strcmp(subselection,'rconly') % select all words after relative clause onset (pronoun) til end of sentence
-        sel = [];
-        for i = 1:length(ids)
-            id = ids(i);
-            ord = (stimuli(id).RConsetword+1):stimuli(id).numwords;
-            sel = [sel; find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
-        end
-    else % assumes tlck.trialinfo as input. Match sentences length with provided sentence id 
-        % & selects same ordinal word position.        
-        lenrc = vertcat(stimuli(unique(subselection.id)).numwords);
-        lentlck = vertcat(stimuli(unique(tlck.trialinfo.id)).numwords) ;
-        [~, isortrc] = sort(lenrc); 
-        [~, isorttlck] = sort(lentlck);
-        
-        idrc = unique(subselection.id);
-        sel = [];
-        for l = 1:length(idrc)
-           id = idrc(l);
-           idmatch = ids(isorttlck(isortrc==l));
-           ord = subselection.ordinal(subselection.id==id);
-           while max(ord) > stimuli(idmatch).numwords; ord = ord-1; end
-           sel = [sel; find(tlck.trialinfo.id==idmatch & ismember(tlck.trialinfo.ordinal,ord))];
-        end
-        % add here to select according ordinal position per id, for mix
-        % condition.
+    sel = [];
+    for i = 1:length(ids)
+      id = ids(i);
+      ord = onsets(i)-nsel(idsall==id):onsets(i)-1;
+      sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
     end
+  elseif strcmp(subselection,'rc') % select words within relative clause
+    offsets = MCcont(ismember(idsall,ids));
+    
+    sel = [];
+    for i = 1:length(ids)
+      id = ids(i);
+      ord = offsets(i)-nsel(idsall==id):offsets(i)-1;
+      sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
+    end
+  elseif strcmp(subselection,'post') % select words after relative clause offset
+    offsets = MCcont(ismember(idsall,ids));
+    
+    sel = [];
+    for i = 1:length(ids)
+      id = ids(i);
+      if ~isnan(post(idsall==id))%only do for center-embedded clauses)
+        ord = offsets(i):offsets(i) + nsel(idsall==id)-1;
+        sel = [sel;find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
+      end
+    end
+  elseif strcmp(subselection,'rconly') % select all words after relative clause onset (pronoun) til end of sentence
+    sel = [];
+    for i = 1:length(ids)
+      id = ids(i);
+      ord = (stimuli(id).RConsetword+1):stimuli(id).numwords;
+      sel = [sel; find(ismember(tlck.trialinfo.ordinal,ord)&tlck.trialinfo.id==id)];
+    end
+  else % assumes tlck.trialinfo as input. Match sentences length with provided sentence id
+    % & selects same ordinal word position.
+    lenrc = vertcat(stimuli(unique(subselection.id)).numwords);
+    lentlck = vertcat(stimuli(unique(tlck.trialinfo.id)).numwords) ;
+    [~, isortrc] = sort(lenrc);
+    [~, isorttlck] = sort(lentlck);
+    
+    idrc = unique(subselection.id);
+    sel = [];
+    for l = 1:length(idrc)
+      id = idrc(l);
+      idmatch = ids(isorttlck(isortrc==l));
+      ord = subselection.ordinal(subselection.id==id);
+      while max(ord) > stimuli(idmatch).numwords; ord = ord-1; end
+      sel = [sel; find(tlck.trialinfo.id==idmatch & ismember(tlck.trialinfo.ordinal,ord))];
+    end
+    % add here to select according ordinal position per id, for mix
+    % condition.
+  end
   cfg         = [];
   cfg.trials  = sel;
   tlck        = ft_selectdata(cfg, tlck);
@@ -207,7 +208,7 @@ if untilnextword_visual
   for m = 1:size(tlck.trial,1)
     ix1 = nearest(tlck.time,tlck.trialinfo.duration2(m,1));
     ix2 = 1;
-    try ix2 = nearest(tlck.time,tlck.trialinfo.duration2(m,2)); end
+    try, ix2 = nearest(tlck.time,tlck.trialinfo.duration2(m,2)); end
     tlck.trial(m,sela,ix2:end) = nan;
     tlck.trial(m,selv,ix2:end) = nan;
   end
@@ -216,14 +217,16 @@ end
 % permute and reshape the data into a nchan x nobs x ntime
 if isequal(tlck.label(1:3),{'visual';'audio';'both'})
   start_idx = 4; % channel 1-3 contain averages
-else 
+else
   start_idx = 1;
 end
-dat = permute(tlck.trial(:,start_idx:end,:),[2 1 3]); 
+dat = permute(tlck.trial(:,start_idx:end,:),[2 1 3]);
 
 % subtract the mean across trials
 dat(dat==0) = nan;
-dat = dat-nanmean(dat,2);
+if demeanflag
+  dat = dat-nanmean(dat,2);
+end
 dat(~isfinite(dat)) = 0;
 
 if ~isempty(shift) && numel(shift)==size(dat,1)
