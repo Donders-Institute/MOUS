@@ -19,7 +19,7 @@ end
 [p,n,ext] = fileparts(filename{1});
 s = [];
 switch lower(ext)
-  case {'.ima' '.mgz' '.nii' '.img'}
+  case {'.ima' '.mgz' '.nii' '.img' '.gz'}
     data = ft_read_mri(filename{1});
   case {'.pos'}
     data = ft_read_headshape(filename{1});

@@ -657,9 +657,10 @@ if makemodels2_nointeraction
   % does not require the data to be concatenated across scenarios, because
   % in that case we can focus on the 'sentence subjects' only, including also
   % the independent variables that make sense only in the sentence condition.
+  load mous_stimuli;
   
   if ~exist('nrand', 'var') 
-    nrand = 500;
+    nrand = 100;
   end
   if ~exist('parcel_indx', 'var')
     error('please supply parcel_indx');
@@ -671,8 +672,7 @@ if makemodels2_nointeraction
     error('define loaddir');
   end
     
-  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
-    'leftbranch' 'dleftbranch'};
+  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy'}; % use only quantities that make sense in both sent and seq
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
     %test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
@@ -684,7 +684,7 @@ if makemodels2_nointeraction
     test_ivars = {test_ivars};
   end
   
-  suffix = ''; % for now
+  suffix   = ''; % for now
   filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d%s',scenario(1),scenario(2),parcel_indx,suffix));
   load(filename, 'tlck1', 'tlck2');
   
@@ -700,6 +700,15 @@ if makemodels2_nointeraction
   tmpcfg.latency = [-inf 0.6];
   tlck1  = ft_selectdata(tmpcfg, tlck1);
   
+  % get the sent/seq consistent trialinfos
+  trialinfo1sent = tlck1.trialinfo;
+  trialinfo1seq  = mous_multisetcca_trialinfo_sent2seq(trialinfo1sent, stimuli);
+  sel            = isfinite(trialinfo1seq.id);
+  tlck1.trial    = tlck1.trial(sel,:,:);
+  tlck1.trialinfo = tlck1.trialinfo(sel,:);
+  trialinfo1sent  = tlck1.trialinfo;
+  trialinfo1seq   = trialinfo1seq(sel,:);
+
   sel =       double(strncmp([tlck2.trialinfo.POS], 'N',   1))*1;
   sel = sel + double(strncmp([tlck2.trialinfo.POS], 'WW',  2))*2;
   sel = sel + double(strncmp([tlck2.trialinfo.POS], 'ADJ', 3))*3;
@@ -710,6 +719,16 @@ if makemodels2_nointeraction
   tmpcfg.channel = tlck2.label(4:end);
   tmpcfg.latency = [-inf 0.6];
   tlck2  = ft_selectdata(tmpcfg, tlck2);
+  
+  % get the sent/seq consistent trialinfos
+  trialinfo2sent = tlck2.trialinfo;
+  trialinfo2seq  = mous_multisetcca_trialinfo_sent2seq(trialinfo2sent, stimuli);
+  sel            = isfinite(trialinfo2seq.id);
+  tlck2.trial    = tlck2.trial(sel,:,:);
+  tlck2.trialinfo = tlck2.trialinfo(sel,:);
+  trialinfo2sent  = tlck2.trialinfo;
+  trialinfo2seq   = trialinfo2seq(sel,:);
+
   n1 = size(tlck1.trial,1);
   n2 = size(tlck2.trial,1);
   
@@ -717,20 +736,47 @@ if makemodels2_nointeraction
   tlck1.trialinfo = cat(2, array2table(ones(n1,1),'VariableNames', {'constant'}), tlck1.trialinfo, array2table( ones(n1,1), 'VariableNames', {'main'}));
   tlck2.trialinfo = cat(2, array2table(ones(n2,1),'VariableNames', {'constant'}), tlck2.trialinfo, array2table(-ones(n2,1), 'VariableNames', {'main'}));
   
-  for i = 1:2
-    if i==1
+  for i = 1:4
+    
+    % the following is splitting the subjects/conditions in 2x2, I am not
+    % sure whether this is the same order as done above, but here it is
+    % done as such: 
+    % 1 = sentences for the first scenario subjects
+    % 2 = sequences for the first scenario subjects
+    % 3 = sentences for the second scenario subjects
+    % 4 = sequences for the second scenario subjects
+    if i==1 || i==4
       tlck = tlck1;
-    elseif i==2
+    elseif i==2 || i==3
       tlck = tlck2;
     end
-        
-    ivar      = tlck.trialinfo.Properties.VariableNames;
-    sel_ivars = match_str(ivar, use_ivars);
     
     % here the design contains all independent variables of interest,
     % demean apart from the constant
-    design = tlck.trialinfo(:,sel_ivars);
-    for m = sel_ivars(:)'
+    if i==1
+      design = trialinfo1sent; 
+      idstr  = 'V';
+    elseif i==2
+      design = trialinfo2seq;
+      idstr  = 'V';
+    elseif i==3
+      design = trialinfo2sent;
+      idstr  = 'A';
+    elseif i==4
+      design = trialinfo1seq;
+      idstr  = 'A';
+    end
+    sel  = contains(tlck.label, idstr);
+    tlck.trial = tlck.trial(:,sel,:);
+    tlck.label = tlck.label(sel);
+     
+    ivar      = design.Properties.VariableNames;
+    sel_ivars = match_str(ivar, use_ivars);
+    categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index' 'main'});
+    
+    design = design(:, sel_ivars);
+    ivar   = ivar(sel_ivars);
+    for m = 1:numel(ivar)
       if ~strcmp(ivar{m},'constant')
         design.(ivar{m}) = design.(ivar{m}) - nanmean(design.(ivar{m}));
       end
@@ -740,13 +786,9 @@ if makemodels2_nointeraction
       error('only a single independent variable is allowed');
     end
     
-    ivar        = ivar(sel_ivars);
-    categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index' 'main'});
-     
     indx = find(ismember(ivar, test_ivars{1}));
     stat = mous_multisetcca_regress(tlck, design(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5);
       
-    
     rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
     p = zeros(size(stat.Rsq));
     Frand  = zeros([size(stat.Rsq) nrand]);

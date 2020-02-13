@@ -522,6 +522,9 @@ switch type{2}
   case 'freesurfer'
     D = fullfile(rootdir,'processed',subject,'mri_dti','tracula'); %-> this is the Freesurfer output from BIG
     d = dir(fullfile(D, 'mri', 'T1.mgz'));
+  case 'tractsegmni'
+    D = fullfile(rootdir,'processed',subject,'mri_dti','tracula','tractseg');
+    d = dir(fullfile(D, 'FA_MNI.nii.gz'));
   case 'anatomy'
     D = fullfile(rootdir,'processed',subject,'meg','anatomy');
     switch type{3}
