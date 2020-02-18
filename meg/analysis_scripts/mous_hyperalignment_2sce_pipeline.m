@@ -700,15 +700,7 @@ if makemodels2_nointeraction
   tmpcfg.latency = [-inf 0.6];
   tlck1  = ft_selectdata(tmpcfg, tlck1);
   
-  % get the sent/seq consistent trialinfos
-  trialinfo1sent = tlck1.trialinfo;
-  trialinfo1seq  = mous_multisetcca_trialinfo_sent2seq(trialinfo1sent, stimuli);
-  sel            = isfinite(trialinfo1seq.id);
-  tlck1.trial    = tlck1.trial(sel,:,:);
-  tlck1.trialinfo = tlck1.trialinfo(sel,:);
-  trialinfo1sent  = tlck1.trialinfo;
-  trialinfo1seq   = trialinfo1seq(sel,:);
-
+  
   sel =       double(strncmp([tlck2.trialinfo.POS], 'N',   1))*1;
   sel = sel + double(strncmp([tlck2.trialinfo.POS], 'WW',  2))*2;
   sel = sel + double(strncmp([tlck2.trialinfo.POS], 'ADJ', 3))*3;
@@ -719,6 +711,23 @@ if makemodels2_nointeraction
   tmpcfg.channel = tlck2.label(4:end);
   tmpcfg.latency = [-inf 0.6];
   tlck2  = ft_selectdata(tmpcfg, tlck2);
+
+  n1 = size(tlck1.trial,1);
+  n2 = size(tlck2.trial,1);
+  
+  % add constant regressor to the design, and 'main effect of sent/list'
+  tlck1.trialinfo = cat(2, array2table(ones(n1,1),'VariableNames', {'constant'}), tlck1.trialinfo, array2table( ones(n1,1), 'VariableNames', {'main'}));
+  tlck2.trialinfo = cat(2, array2table(ones(n2,1),'VariableNames', {'constant'}), tlck2.trialinfo, array2table(-ones(n2,1), 'VariableNames', {'main'}));
+
+  % get the sent/seq consistent trialinfos
+  trialinfo1sent = tlck1.trialinfo;
+  trialinfo1seq  = mous_multisetcca_trialinfo_sent2seq(trialinfo1sent, stimuli);
+  sel            = isfinite(trialinfo1seq.id);
+  tlck1.trial    = tlck1.trial(sel,:,:);
+  tlck1.trialinfo = tlck1.trialinfo(sel,:);
+  trialinfo1sent  = tlck1.trialinfo;
+  trialinfo1seq   = trialinfo1seq(sel,:);
+
   
   % get the sent/seq consistent trialinfos
   trialinfo2sent = tlck2.trialinfo;
@@ -729,12 +738,7 @@ if makemodels2_nointeraction
   trialinfo2sent  = tlck2.trialinfo;
   trialinfo2seq   = trialinfo2seq(sel,:);
 
-  n1 = size(tlck1.trial,1);
-  n2 = size(tlck2.trial,1);
   
-  % add constant regressor to the design, and 'main effect of sent/list'
-  tlck1.trialinfo = cat(2, array2table(ones(n1,1),'VariableNames', {'constant'}), tlck1.trialinfo, array2table( ones(n1,1), 'VariableNames', {'main'}));
-  tlck2.trialinfo = cat(2, array2table(ones(n2,1),'VariableNames', {'constant'}), tlck2.trialinfo, array2table(-ones(n2,1), 'VariableNames', {'main'}));
   
   for i = 1:4
     
@@ -776,6 +780,7 @@ if makemodels2_nointeraction
     
     design = design(:, sel_ivars);
     ivar   = ivar(sel_ivars);
+    categorical = categorical(sel_ivars);
     for m = 1:numel(ivar)
       if ~strcmp(ivar{m},'constant')
         design.(ivar{m}) = design.(ivar{m}) - nanmean(design.(ivar{m}));
