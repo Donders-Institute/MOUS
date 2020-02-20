@@ -149,18 +149,19 @@ dat = reshape(tlck.trial,[siz(1) siz(2)*siz(3)]);
 
 % do a nested for-loop for the computation of the model coefficients for
 % the training data and the model fits for the inner loop test data
+N  = size(design,2);
+N0 = numel(reduceto);
+
 if ~generalize
   Rin   = zeros(siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
   R0in  = zeros(siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
   nin   = zeros(numel(innerfolds{1}),1);
+  Bin   = zeros(N,siz(2)*siz(3),numel(outerfolds),numel(innerfolds{1}),numel(lambda));
 else
   Rin   = zeros(siz(2).^2.*siz(3),1,numel(innerfolds{1}),numel(lambda));
   R0in  = zeros(siz(2).^2.*siz(3),1,numel(innerfolds{1}),numel(lambda));
   nin   = zeros(numel(innerfolds{1}),1);
 end
-
-N  = size(design,2);
-N0 = numel(reduceto);
 
 % outer fold loop
 for i_out = 1:numel(outerfolds)
@@ -221,6 +222,7 @@ for i_out = 1:numel(outerfolds)
         % compute the model fit for the test data
         Rin(: , i_out, i_in, i_lambda) = sum((dat_test_in - design_test_in     * Ball(N0+(1:N),:) ).^2);
         R0in(:, i_out, i_in, i_lambda) = sum((dat_test_in - design_test_reduced* Ball(1:N0,:)     ).^2);
+        Bin(:, :, i_out, i_in, i_lambda) = B; 
       else
         siz(1) = size(dat_test_in,1);
         tmp1 = reshape(design_test_in      * Ball(N0+(1:N),:),[siz(1:2) 1 siz(3)]);
@@ -241,6 +243,7 @@ if numel(lambda)>1
   if ~generalize
     Rout  = zeros(siz(2)*siz(3),numel(outerfolds));
     R0out = zeros(siz(2)*siz(3),numel(outerfolds));
+    Bout  = zeros(N,siz(2)*siz(3),numel(outerfolds));
   else
     Rout  = zeros(siz(2).^2.*siz(3),numel(outerfolds));
     R0out = zeros(siz(2).^2.*siz(3),numel(outerfolds));  
@@ -279,6 +282,7 @@ if numel(lambda)>1
       % compute the model fit for the test data
       Rout(:,  i_out) = sum((dat_test - design_test            * B ).^2);
       R0out(:, i_out) = sum((dat_test - design_test(:,reduceto)* B0).^2);
+      Bout(:, :, i_out) = B;
     else
       siz(1) = size(design_test, 1);
       tmp1 = reshape(design_test             * B,  [siz(1:2) 1 siz(3)]);
@@ -293,12 +297,15 @@ if numel(lambda)>1
 else
   Rout  = squeeze(mean(Rin, 3));
   R0out = squeeze(mean(R0in, 3));
+  Bout  = squeeze(mean(Bin, 4)); 
 end
 Rsq = mean(1 - Rout./R0out,2);
+Boutput = mean(Bout,3);
 
 stats       = keepfields(tlck, {'time', 'label'});
 if ~generalize
   stats.Rsq   = reshape(Rsq, [siz(2) siz(3)]);
+  stats.B     = reshape(Boutput,[N siz(2) siz(3)]);
   stats.dimord = 'chan_time';
 else
   stats.Rsq   = reshape(Rsq, [siz(2) siz(2) siz(3)]);
