@@ -671,8 +671,7 @@ if makemodels2_nointeraction
   if ~exist('loaddir', 'var')
     error('define loaddir');
   end
-    
-  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy'}; % use only quantities that make sense in both sent and seq
+  
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
     %test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
@@ -684,6 +683,15 @@ if makemodels2_nointeraction
     test_ivars = {test_ivars};
   end
   
+  if ~exist('use_single_regressor', 'var')
+    use_single_regressor = false;
+  end
+  if ~use_single_regressor
+    use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy'}; % use only quantities that make sense in both sent and seq
+  else
+    use_ivars = cat(2, {'constant'}, test_ivars);
+  end
+ 
   suffix   = ''; % for now
   filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d%s',scenario(1),scenario(2),parcel_indx,suffix));
   load(filename, 'tlck1', 'tlck2');
