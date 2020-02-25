@@ -503,15 +503,12 @@ if makemodels2
   end
   
   
-  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
-    'leftbranch' 'dleftbranch' 'main'};
+  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'main'};
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
-    %test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
-    %              'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'w2v'};
-    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
-      'leftbranch' 'dleftbranch'};
+    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy'};
   end
+  
   if ~iscell(test_ivars)
     test_ivars = {test_ivars};
   end
@@ -520,6 +517,8 @@ if makemodels2
   filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d%s',scenario(1),scenario(2),parcel_indx,suffix));
   load(filename, 'tlck1', 'tlck2');
   
+  load '/project/3011020.09/misc/stimuli/mous_stimuli.mat';
+
   % select only content words
   sel =       double(strncmp([tlck1.trialinfo.POS], 'N',   1))*1;
   sel = sel + double(strncmp([tlck1.trialinfo.POS], 'WW',  2))*2;
@@ -540,7 +539,7 @@ if makemodels2
   tmpcfg = [];
   tmpcfg.trials = find(sel>0);
   tmpcfg.channel = tlck2.label(4:end);
-  tmpcfg.latency = [-0 0.6];
+  tmpcfg.latency = [-inf 0.6];
   tlck2  = ft_selectdata(tmpcfg, tlck2);
   n1 = size(tlck1.trial,1);
   n2 = size(tlck2.trial,1);
@@ -548,108 +547,128 @@ if makemodels2
   % add constant regressor to the design, and 'main effect of sent/list'
   tlck1.trialinfo = cat(2, array2table(ones(n1,1),'VariableNames', {'constant'}), tlck1.trialinfo, array2table( ones(n1,1), 'VariableNames', {'main'}));
   tlck2.trialinfo = cat(2, array2table(ones(n2,1),'VariableNames', {'constant'}), tlck2.trialinfo, array2table(-ones(n2,1), 'VariableNames', {'main'}));
-  
-  cfg = [];
-  cfg.appenddim = 'rpt';
-  cfg.parameter = 'trial';
-  tlck = ft_appendtimelock(cfg, tlck1, tlck2);
-  %   clear tlck1 tlck2;
-  
-  group1 = find(contains(tlck.label,'mscca001_V')); %scenario(1)
-  group2 = find(contains(tlck.label,'mscca001_A')); %scenario(2)
-  condnames = {'group1cond1' 'group1cond2' 'group2cond2' 'group2cond1'};
-  tlckorig = tlck;
-  
+    
+  % get the sent/seq consistent trialinfos
+  trialinfo1sent = tlck1.trialinfo;
+  trialinfo1seq  = mous_multisetcca_trialinfo_sent2seq(trialinfo1sent, stimuli);
+  sel            = isfinite(trialinfo1seq.id); % because there are nans
+  tlck1.trial    = tlck1.trial(sel,:,:);
+  tlck1.trialinfo = tlck1.trialinfo(sel,:);
+  trialinfo1sent  = tlck1.trialinfo;
+  trialinfo1seq   = trialinfo1seq(sel,:);
+
+  % get the sent/seq consistent trialinfos
+  trialinfo2sent = tlck2.trialinfo;
+  trialinfo2seq  = mous_multisetcca_trialinfo_sent2seq(trialinfo2sent, stimuli);
+  sel            = isfinite(trialinfo2seq.id);
+  tlck2.trial    = tlck2.trial(sel,:,:);
+  tlck2.trialinfo = tlck2.trialinfo(sel,:);
+  trialinfo2sent  = tlck2.trialinfo;
+  trialinfo2seq   = trialinfo2seq(sel,:);
+ 
+  condnames = {'group1cond1' 'group1cond2' 'group2cond1' 'group2cond2'};
   for i = 1:4
-    tlck = tlckorig;
-    
-    if i < 3
-      tlck.trial = tlck.trial(:,group1,:);
-      tlck.label = tlck.label(group1);
-    else
-      tlck.trial = tlck.trial(:,group2,:);
-      tlck.label = tlck.label(group2);
-    end
-    
-    if i == 1 || i == 3
-      cond = find(tlck.trialinfo.main==1);
-    else
-      cond = find(tlck.trialinfo.main==-1);
-    end
-    
-    tlck.trial = tlck.trial(cond,:,:);
-    tlck.trialinfo = tlck.trialinfo(cond,1:18);
-    
-    ivar = tlck.trialinfo.Properties.VariableNames;
-    sel_ivars = match_str(ivar, use_ivars);
-    
-    design = tlck.trialinfo(:,sel_ivars);
-    
-    ivar        = ivar(sel_ivars);
-    categorical = ismember(ivar, {'nchar' 'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'index' 'main'});
-    
-    indx = find(ismember(ivar, test_ivars{1}));
-    indx2 = find(ismember(ivar, test_ivars{2}));
-    const = find(ismember(ivar, 'constant'));
-    
-    fprintf('modelling the data with a constant regressor, %s, %s, and its interaction term\n',ivar{indx},ivar{indx2});
-    
-    % demean apart from the constant and add the interaction term
-    if ~contains(test_ivars{1},'main') % if we don't want to remove mean for categorical then we can change this to ~contains(categorical, test_ivars{1})
-      tmpiv1 = design.(test_ivars{1}) - nanmean(design.(test_ivars{1}));
-    else
-      tmpiv1 = design.main;
-    end
-    if ~contains(test_ivars{2},'main')
-      tmpiv2 = design.(test_ivars{2}) - nanmean(design.(test_ivars{2}));
-    else
-      tmpiv2 = design.main;
-    end
-    
-    tmp = tmpiv1.*tmpiv2;
-    tmpdesign = [tmpiv1,tmpiv2,tmp];
-    newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
-    
-    stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
-    
-    
-    rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
-    p = zeros(size(stat.Rsq));
-    Frand  = zeros([size(stat.Rsq) nrand]);
-    for k = 1:nrand
-      if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
-      tmpdesign = newdesign;
-      
-      randvec = randperm(size(newdesign,1));
-      vars    = newdesign.Properties.VariableNames;
-      for j = 1:numel(vars)
-        %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
-        %whole design to be randomised, not commenting this out causes
-        %only the ivar of interest to be randomized
-        tmpX = tmpdesign.(vars{j});
-        tmpX = tmpX(randvec,:);
-        tmpdesign.(vars{j}) = tmpX;
-        %end
+      % the following is splitting the subjects/conditions in 2x2.
+      % 1 = sentences for the first scenario subjects
+      % 2 = sequences for the first scenario subjects
+      % 3 = sentences for the second scenario subjects
+      % 4 = sequences for the second scenario subjects
+      if i==1 || i==4
+          tlck = tlck1;
+      elseif i==2 || i==3
+          tlck = tlck2;
       end
       
-      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
-      p   = p  + double(tmp.Rsq  > stat.Rsq );
-      statrand(k) = tmp;
+      % here the design contains all independent variables of interest,
+      if i==1
+          design = trialinfo1sent;
+          idstr  = 'V';
+      elseif i==2
+          design = trialinfo2seq;
+          idstr  = 'V';
+      elseif i==3
+          design = trialinfo2sent;
+          idstr  = 'A';
+      elseif i==4
+          design = trialinfo1seq;
+          idstr  = 'A';
+      end
+      sel  = contains(tlck.label, idstr);
+      tlck.trial = tlck.trial(:,sel,:);
+      tlck.label = tlck.label(sel);
+      ivar = tlck.trialinfo.Properties.VariableNames;
+      sel_ivars = match_str(ivar, use_ivars);
       
-      Frand(:,:,k)  = tmp.Rsq;
-    end
-    
-    S.stat  = stat;
-    S.p     = (p)./nrand; % uncorrected p-value of the permutations
-    S.ivar  = ivar{indx};
-    S.ref   = nanmean(Frand,3);
-    S.perms = Frand;
-    %  end
-    
-    filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s_%s',scenario(1),scenario(2),parcel_indx,ivar{indx},condnames{i}));
-    save(filename, 'S');
+      categorical = ismember(ivar, {'nchar' 'index' 'main'});
+      
+      design = design(:, sel_ivars);
+      ivar   = ivar(sel_ivars);
+      categorical = categorical(sel_ivars);
+      
+      indx = find(ismember(ivar, test_ivars{1}));
+      indx2 = find(ismember(ivar, test_ivars{2}));
+      const = find(ismember(ivar, 'constant'));
+      
+      fprintf('modelling the data with a constant regressor, %s, %s, and its interaction term\n',ivar{indx},ivar{indx2});
+      
+      % demean apart from the constant and add the interaction term
+      if ~contains(test_ivars{1},'main') % if we don't want to remove mean for categorical then we can change this to ~contains(categorical, test_ivars{1})
+          tmpiv1 = design.(test_ivars{1}) - nanmean(design.(test_ivars{1}));
+      else
+          tmpiv1 = design.main;
+      end
+      if ~contains(test_ivars{2},'main')
+          tmpiv2 = design.(test_ivars{2}) - nanmean(design.(test_ivars{2}));
+      else
+          tmpiv2 = design.main;
+      end
+      
+      tmp = tmpiv1.*tmpiv2;
+      tmpdesign = [tmpiv1,tmpiv2,tmp];
+      newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
+      
+      stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+      
+      
+      rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
+      p = zeros(size(stat.Rsq));
+      Frand  = zeros([size(stat.Rsq) nrand]);
+      for k = 1:nrand
+          if mod(k,10)==0, fprintf('performing randomization %d/%d\n',k,nrand); end
+          tmpdesign = newdesign;
+          
+          randvec = randperm(size(newdesign,1));
+          vars    = newdesign.Properties.VariableNames;
+          for j = 1:numel(vars)
+              %if strcmp(vars{j},ivar{indx}) % commenting this out causes the
+              %whole design to be randomised, not commenting this out causes
+              %only the ivar of interest to be randomized
+              tmpX = tmpdesign.(vars{j});
+              tmpX = tmpX(randvec,:);
+              tmpdesign.(vars{j}) = tmpX;
+              %end
+          end
+          
+          tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+          p   = p  + double(tmp.Rsq  > stat.Rsq );
+          statrand(k) = tmp;
+          
+          Frand(:,:,k)  = tmp.Rsq;
+      end
+      
+      S.stat  = stat;
+      S.p     = (p)./nrand; % uncorrected p-value of the permutations
+      S.ivar  = ivar{indx};
+      S.ref   = nanmean(Frand,3);
+      S.perms = Frand;
+      %  end
+      
+      filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s_%s',scenario(1),scenario(2),parcel_indx,ivar{indx},condnames{i}));
+      save(filename, 'S');
   end
 end
+
+%--------------------------------------------------------------------------
 
 if makemodels2_nointeraction
   % JM note: this is the section used to compute the less fancy models that
