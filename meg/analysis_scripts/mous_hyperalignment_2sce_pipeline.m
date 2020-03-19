@@ -502,8 +502,8 @@ if makemodels2
     error('define loaddir');
   end
   
-  
   use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'main'};
+  
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
     test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy'};
@@ -593,9 +593,11 @@ if makemodels2
           design = trialinfo1seq;
           idstr  = 'A';
       end
+      
       sel  = contains(tlck.label, idstr);
       tlck.trial = tlck.trial(:,sel,:);
       tlck.label = tlck.label(sel);
+      
       ivar = tlck.trialinfo.Properties.VariableNames;
       sel_ivars = match_str(ivar, use_ivars);
       
@@ -623,7 +625,7 @@ if makemodels2
           tmpiv2 = design.main;
       end
       
-      tmp = tmpiv1.*tmpiv2;
+      tmp = tmpiv1.*tmpiv2; % Centre then compute interaction term. See Afshartous & Preston (2011)
       tmpdesign = [tmpiv1,tmpiv2,tmp];
       newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
       
@@ -1036,14 +1038,14 @@ if combinemodels
   
   numfiles = 1;
   if allsce
-    d = dir(fullfile(datadir,sprintf('*2sce_combined_parcel*_%s_%s.mat',modeltype,ivar)));
+      d = dir(fullfile(datadir,sprintf('*2sce_combined_parcel*_%s_%s.mat',modeltype,ivar)));
   else
-    if threewayint
-      condnames = {'group1cond1' 'group1cond2' 'group2cond2' 'group2cond1'};
-      numfiles = 4;
-    else
-      d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
-    end
+      if threewayint
+          condnames = {'group1cond1' 'group1cond2' 'group2cond1' 'group2cond2'};
+          numfiles = 4;
+      else
+          d = dir(fullfile(datadir,sprintf('*2sce%d-%d*_%s_%s.mat',scenario(1),scenario(2),modeltype,ivar)));
+      end
   end
   
   for j = 1:numfiles
@@ -1077,13 +1079,13 @@ if combinemodels
         for p = 1:numel(tmp)
           tmp2 = tmp(p);
           tmp2.Rsq = tmp2.stat.Rsq;
-          %tmp2.B   = nanmean(tmp2.stat.B,4);
+          tmp2.B   = tmp2.stat.B;
           %tmp2.lambda = tmp2.stat.lambda;
           tmp2     = rmfield(tmp2, 'stat');
           
           if k==1
             tmp2.Rsq(:,:,382) = 0;
-            %tmp2.B(:,:,:,378) = 0;
+            tmp2.B(:,:,:,382) = 0;
             tmp2.ref(:,:,382) = 0;
             tmp2.p(:,:,382)   = 0;
             %tmp2.lambda(:,:,378) = 0;
@@ -1097,7 +1099,7 @@ if combinemodels
             data.(fn{m})(p).p(:,:,k)   = tmp2.p;
             data.(fn{m})(p).Rsq(:,:,k) = tmp2.Rsq;
             data.(fn{m})(p).ref(:,:,k) = tmp2.ref;
-            %data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
+            data.(fn{m})(p).B(:,:,:,k) = tmp2.B;
             %data.(fn{m})(p).lambda(:,:,k) = tmp2.lambda;
           end
         end
@@ -1109,13 +1111,13 @@ if combinemodels
     data = ft_struct2single(data);
     
     if allsce
-      filename = fullfile(datadir,sprintf('hyperalignment_allsce_%s_%s_%s', modeltype, ivar, fn{1}));
+        filename = fullfile(datadir,sprintf('hyperalignment_allsce_%s_%s_%s', modeltype, ivar, fn{1}));
     else
-      if ~threewayint
-        filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar, fn{1}));
-      else
-        filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar{1}, fn{1},condnames{j}));
-      end
+        if ~threewayint
+            filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar, fn{1}));
+        else
+            filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_%s_%s', scenario(1),scenario(2), modeltype, ivar{1}, fn{1},condnames{j}));
+        end
     end
     save(filename,'-struct', 'data');
   end
@@ -1123,7 +1125,7 @@ end
 % ---------------------------------------------------------------------------
 
 if combineconds
-  condnames = {'group1cond1' 'group1cond2' 'group2cond2' 'group2cond1'};
+   condnames = {'group1cond1' 'group1cond2' 'group2cond1' 'group2cond2'};
   
   for j = 1:4
     filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S_%s', scenario(1),scenario(2), modeltype, ivar{1}, condnames{j}))
@@ -1131,20 +1133,22 @@ if combineconds
   end
   
   cond1 = data{1}.S;
-  cond1.p      = [cond1.p;    data{4}.S.p];
-  cond1.ref    = [cond1.ref;  data{4}.S.ref];
-  cond1.perms  = [cond1.perms;data{4}.S.perms];
-  cond1.Rsq    = [cond1.Rsq;  data{4}.S.Rsq];
-  
+  cond1.p      = [cond1.p;    data{3}.S.p];
+  cond1.ref    = [cond1.ref;  data{3}.S.ref];
+  cond1.perms  = [cond1.perms;data{3}.S.perms];
+  cond1.Rsq    = [cond1.Rsq;  data{3}.S.Rsq];
+  cond1.B    = cat(2,cond1.B, data{3}.S.B);
+
   cond2 = data{2}.S;
-  cond2.p      = [cond2.p;    data{3}.S.p];
-  cond2.ref    = [cond2.ref;  data{3}.S.ref];
-  cond2.perms  = [cond2.perms;data{3}.S.perms];
-  cond2.Rsq    = [cond2.Rsq;  data{3}.S.Rsq];
+  cond2.p      = [cond2.p;    data{4}.S.p];
+  cond2.ref    = [cond2.ref;  data{4}.S.ref];
+  cond2.perms  = [cond2.perms;data{4}.S.perms];
+  cond2.Rsq    = [cond2.Rsq;  data{4}.S.Rsq];
+  cond2.B    = cat(2,cond2.B, data{4}.S.B);
   
-  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S_cond1', scenario(1),scenario(2), modeltype, ivar{1}));
+  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S_sent', scenario(1),scenario(2), modeltype, ivar{1}));
   save(filename,'cond1');
-  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S_cond2', scenario(1),scenario(2), modeltype, ivar{1}));
+  filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S_seq', scenario(1),scenario(2), modeltype, ivar{1}));
   save(filename,'cond2');
 end
 
@@ -1181,22 +1185,22 @@ if combinesces
     
   else
     
-    filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_sce1-4_model2_%s_S_cond1',ivar{1}));
+    filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_sce1-4_model2_%s_S_sent',ivar{1}));
     load(filename);
     S14_cond1 = cond1;
-    filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_sce1-4_model2_%s_S_cond2',ivar{1}));
+    filename = fullfile(loaddir, '/scenario1_4/', modeldir, sprintf('/hyperalignment_sce1-4_model2_%s_S_seq',ivar{1}));
     load(filename);
     S14_cond2 = cond2;
-    filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_sce2-5_model2_%s_S_cond1',ivar{1}));
+    filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_sce2-5_model2_%s_S_sent',ivar{1}));
     load(filename);
     S25_cond1 = cond1;
-    filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_sce2-5_model2_%s_S_cond2',ivar{1}));
+    filename = fullfile(loaddir, '/scenario2_5/', modeldir, sprintf('/hyperalignment_sce2-5_model2_%s_S_seq',ivar{1}));
     load(filename);
     S25_cond2 = cond2;
-    filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_sce3-6_model2_%s_S_cond1',ivar{1}));
+    filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_sce3-6_model2_%s_S_sent',ivar{1}));
     load(filename);
     S36_cond1 = cond1;
-    filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_sce3-6_model2_%s_S_cond2',ivar{1}));
+    filename = fullfile(loaddir, '/scenario3_6/', modeldir, sprintf('/hyperalignment_sce3-6_model2_%s_S_seq',ivar{1}));
     load(filename);
     S36_cond2 = cond2;
     
@@ -1209,7 +1213,7 @@ if combinesces
     S.p           = cat(1,S14_cond1.p,S25_cond1.p,S36_cond1.p);
     S.Rsq         = cat(1,S14_cond1.Rsq,S25_cond1.Rsq,S36_cond1.Rsq);
     
-    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_cond1',[ivar{1} '_' ivar{2}]));
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_sent',[ivar{1} '_' ivar{2}]));
     save(filename, 'S');
     
     %         S.perms       = cat(1,S14_cond2.perms,S25_cond2.perms,S36_cond2.perms);
@@ -1218,7 +1222,7 @@ if combinesces
     S.Rsq         = cat(1,S14_cond2.Rsq,S25_cond2.Rsq,S36_cond2.Rsq);
     
     
-    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_cond2',[ivar{1} '_' ivar{2}]));
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_seq',[ivar{1} '_' ivar{2}]));
     save(filename, 'S');
     
   end
@@ -1237,10 +1241,10 @@ if dostats
     filename = fullfile(datadir, sprintf('hyperalignment_sce%d-%d_%s_%s_S', scenario(1),scenario(2), modeltype, ivar));
     load(filename);
   else
-    filename = fullfile(datadir, sprintf('hyperalignment_2sce_combined_%s_%s_cond1', modeltype, [ivar{1} '_' ivar{2}]));
+    filename = fullfile(datadir, sprintf('hyperalignment_2sce_combined_%s_%s_sent', modeltype, [ivar{1} '_' ivar{2}]));
     load(filename);
     cond1 = S;
-    filename = fullfile(datadir, sprintf('hyperalignment_2sce_combined_%s_%s_cond2', modeltype, [ivar{1} '_' ivar{2}]));
+    filename = fullfile(datadir, sprintf('hyperalignment_2sce_combined_%s_%s_seq', modeltype, [ivar{1} '_' ivar{2}]));
     load(filename);
     cond2 = S;
   end
@@ -1254,7 +1258,7 @@ if dostats
   s.label  = atlas.parcellationlabel;
   s.brainordinate = atlas;
   n = size(S.Rsq,1);
-  s.pow = zeros(n*2,386,73); % hard coded, can be different for different scenario pairs
+  s.pow = zeros(n*2,386,length(S.time)); 
   
   if ~allsces
     s.pow(1:n,a,:)     = permute(S.Rsq,[1 3 2]);
@@ -1265,14 +1269,15 @@ if dostats
   end
   
   cfg                  = [];
+  cfg.latency          = [0 0.6];
   cfg.connectivity     = parcellation2connmat(atlas);
   cfg.tail             = 1;
   cfg.clustertail      = 1;
   cfg.clusterthreshold = 'nonparametric_individual';
-  cfg.clusteralpha     = 0.01;
+  cfg.clusteralpha     = 0.05;
   cfg.feedback         = 'text';
   cfg.clusterstatistic = 'maxsum';
-  cfg.statistic        = 'ft_statfun_wilcoxon';
+  cfg.statistic        = 'depsamplesT'; %'ft_statfun_wilcoxon';
   cfg.numrandomization = 2000;
   cfg.method = 'montecarlo';
   cfg.ivar   = 1;
