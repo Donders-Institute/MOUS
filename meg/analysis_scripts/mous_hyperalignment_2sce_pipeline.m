@@ -1299,3 +1299,71 @@ if dostats
   save(filename, 'stat');
   
 end
+
+%% statistics across all subjects at once. Selected parcels (from 'labelsel' output of mous_edgesofinterest_2sce)
+if domaxstats
+  if ~exist('ivar','var'); error('error: provide ivars'); end 
+  
+  savdir  = '/project/3011020.09/elecal/scenarios_3wayInteraction';
+    
+  filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s_%s.mat',ivar{1}, ivar{2}, 'cond1'));
+  sent = load(filename);
+  filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s_%s.mat',ivar{1}, ivar{2}, 'cond2'));
+  seq = load(filename);
+
+  load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+  label = atlas.parcellationlabel;
+  label([1 2 194 195]) = [];
+  [a,b] = match_str(atlas.parcellationlabel, label);
+  
+  s.dimord = 'rpt_chan_time';
+  s.time   = sent.S.time;
+  s.label  = atlas.parcellationlabel;
+  s.brainordinate = atlas;
+  n = size(sent.S.Rsq,1);
+  s.pow = zeros(n,386,length(s.time)); 
+  
+  s1 = s;
+  s1.pow(:,a,:) = permute(sent.S.Rsq,[1 3 2]);
+  s2 = s;
+  s2.pow(:,a,:) = permute(seq.S.Rsq,[1 3 2]);
+  s3 = s;
+  s3.pow(:,a,:) = permute(sent.S.ref,[1 3 2]);
+  s4 = s;
+  s4.pow(:,a,:) = permute(seq.S.ref,[1 3 2]);
+
+  load /project/3011020.09/elecal/mous_2sce_parcelsforstats.mat
+  cfg                  = [];
+  cfg.latency          = [0 0.6];
+  cfg.channel          = labelsel(:,1); 
+  %cfg.connectivity     = eye(numel(atlas.parcellationlabel))>0;%parcellation2connmat(atlas);
+  %cfg.tail             = 1;
+  %cfg.clustertail      = 1;
+  %cfg.clusterthreshold = 'nonparametric_individual';
+  %cfg.clusteralpha     = 0.05;
+  cfg.feedback         = 'text';
+  %cfg.clusterstatistic = 'maxsum';
+  cfg.statistic        = 'depsamplesT';%'ft_statfun_wilcoxon';
+  cfg.numrandomization = 5000;
+  cfg.correctm = 'max';
+  cfg.method = 'montecarlo';
+  cfg.ivar   = 1;
+  cfg.uvar   = 2;
+  cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
+  cfg.parameter = 'pow';
+  %cfg.correctm = 'cluster';
+%   for k = 1:numel(s1.label)
+%     cfg.neighbours(k).label = s1.label{k}; % to get past ft_checkconfig
+%     cfg.neighbours(k).neighblabel = {};
+%   end
+  
+  %cfg.clustertail = 1;
+  cfg.tail     = 1;
+  stat_sent    = ft_timelockstatistics(cfg, s1, s3);
+  stat_seq     = ft_timelockstatistics(cfg, s2, s4);
+  stat_sentseq = ft_timelockstatistics(cfg, s1, s2);
+  
+  filename = fullfile(savdir, sprintf('hyperalignment_2sce_allsces_model2_%s_%s_%s.mat', ivar{1},ivar{2}, 'masked184_stat'));
+  save(filename, 'stat_sentseq', 'stat_sent', 'stat_seq');
+end
+
