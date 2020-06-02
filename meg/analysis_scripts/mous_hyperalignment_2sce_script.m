@@ -1,5 +1,5 @@
 
-docomputations = true;
+docomputations = 0;
 if docomputations
   
   load atlas_conte69_8196reg_LR_brodmann_subparc
@@ -55,9 +55,9 @@ if docomputations
   end
 end
 
-makeplots = false;
+makeplots = 1;
 if makeplots
-  nlag = 0;
+  nlag = 13;
   nmax = 5;
   
   
@@ -80,7 +80,7 @@ if makeplots
   
   mx = median(dat)';
   sx = prctile(dat,[25 75],1)'; % std
-  figure;ciplot(trc1.time, mx, sx(:,1), sx(:,2), 'colormap', [0 0 0]);
+  ciplot(trc1.time, mx, sx(:,1), sx(:,2), 'colormap', [0 0 0]);
   xlabel('time');
   ylabel('intersubject correlation (Z-transformed)');
   
