@@ -25,6 +25,10 @@
 % /project/3011020.09/sopara/supramodal_JoN/clusterstats
 % /project/3011020.09/sopara/supramodal_JoN/prevalence
 
+if ~exist('contentwords_only', 'var'),contentwords_only = false;                      end
+if contentwords_only, suffix_out = [suffix_out '_content']; end
+    
+
 rootdir          = '/project/3011020.09';
 derivativedir    = '/project/3011020.09/processed/%s/meg/multisetcca/';
 resultsdir       = '/project/3011020.09/sopara/supramodal_JoN/';
@@ -221,7 +225,7 @@ if domscca_searchlight
     rng('default'); % reset the number generator, in order to be able to compare across parcels
     tmpdata              = mous_multisetcca_groupdata2singlestruct(groupdata(:), subj); % first row only
     
-    [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 4, [],false);
+    [W, A, rho, C, comp] = mous_multisetcca(tmpdata, nfold, 4, []);
     
     [comp, rho]          = mous_multisetcca_postprocess(comp, rho, source_parc.label{parcel_indx});
     
@@ -235,13 +239,10 @@ if domscca_searchlight
     filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
     save(filename, 'rho', 'W', 'A', 'comp', 'trc');
     
-    %compute the shuffled version
+    %%compute the shuffled version:
     
     % unfold the audio data to maintain word onsets across modalities,
     % but after swapping sentences
-    if ~exist('contentwords_only', 'var'),contentwords_only = false;                      end
-    if contentwords_only, suffix_out = [suffix_out '_content']; end
-    
     selaudio = find(strncmp(subj, 'A', 1) | contains(subj, 'sub-2'));
     selvis   = find(strncmp(subj, 'V', 1) | contains(subj, 'sub-1'));
     groupdatashuf = groupdata;
@@ -250,11 +251,10 @@ if domscca_searchlight
     for m = nrand(:)'
         fprintf('performing permutation %d/%d\n',find(m==nrand),numel(nrand));
         cnt = cnt + 1;
-        paramdir = '/project/3011020.09/jansch/mscca_group/';
         
-        load(fullfile(paramdir,'params',sprintf('shuff_sce%d_indx%04d',scenario,m))); % use precomputed ordering for consistency across parcels
+        load(fullfile(resultsdir,'params',sprintf('shuff_sce%d_indx%04d',scenario,m))); % use precomputed ordering for consistency across parcels
         
-        groupdatashuf(selaudio) = mous_multisetcca_reorderaudio(subj(selaudio), subjectdata(selaudio), subjecttiming(selaudio), groupinfo, reorder, stimid, shift, stretch);
+        groupdatashuf(selaudio) = mous_multisetcca_reorderaudio(subj(selaudio), subjectdata(selaudio), subjecttiming(selaudio), groupinfo, reorder, stimid);
         
         for k = 1:numel(groupdatashuf)
             for kk = 1:numel(groupdatashuf{k}.trial)
@@ -265,7 +265,7 @@ if domscca_searchlight
         end
         % perform the cca
         tmpdata                              = mous_multisetcca_groupdata2singlestruct(groupdatashuf, subj);
-        [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(tmpdata, nfold, 4, [], false);
+        [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(tmpdata, nfold, 4, []);
         [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
         
         cfg = [];
