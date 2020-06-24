@@ -97,7 +97,7 @@ source_parc.dimord = 'chan_time';
 
 for k = 1:numel(selparc)
   tmpF = F(atlas.parcellation==selparc(k),:);
-  tmp.trial = tmpF*data.trial;
+  tmp.trial{1} = tmpF*data.trial{1};
   tmp.label = data.label(1:size(tmpF,1));
   tmpcomp   = ft_componentanalysis(cfg, tmp);
 

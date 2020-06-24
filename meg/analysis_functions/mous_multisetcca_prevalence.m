@@ -3,7 +3,7 @@
 %prevalence statistic for each voxel across scenarios using implementation from
 %Allefeld 2016
 
-function [stats,combimask,confirmmask,T,Tshuf] = mous_multisetcca_prevalence(numsce,varargin)
+function [stats,combimask,confirmmask,T,Tshuf] = mous_multisetcca_prevalence(numsce)
 
 %step 1: load in all per-scenario (first-level) statistics
 % end up with one vector containing mxtxn correlations (m is sscenarios, t
@@ -33,7 +33,7 @@ results.pcMN(nanind)    = nan;
 results.pcGN(nanind)    = nan;
 time = s.time;
 
-save(fullfile('/project/3011020.09/sopara/prevalence/',date), 'time', 'mT','results','params');
+save(fullfile('/project/3011020.09/sopara/JoN_results/prevalence/',date), 'time', 'mT','results','params');
 
 %plot
 %1. mask parcels where global null is rejected
