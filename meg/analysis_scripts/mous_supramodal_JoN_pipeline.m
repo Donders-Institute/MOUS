@@ -1,4 +1,9 @@
-% In addition to FieldTrip functions, this file calls the following custom code:
+% This script contains the full analysis pipeline corresponding to our
+% article "Sensory Modality-Independent Activation of the Brain Network
+% for Language" in Journal of Neuroscience
+% DOI: htpps://doi.org/10.1523/JNEUROSCI.2271-19.2020
+
+% In addition to FieldTrip functions, this script calls the following custom matlab files:
 % mous_multisetcca_lcmv
 % mous_multisetcca_adjusttiming_vis
 % mous_multisetcca_adjusttiming_aud
@@ -14,12 +19,11 @@
 % ft_struct2single
 % mous_multisetcca_reorderaudio
 
-% intermediate results saved in:
+% intermediate & final results are saved in:
 % /project/3011020.09/processed/XXXX/meg/multisetcca/XXX_multisetcca_XX.mat
 % /project/3011020.09/sopara/JoN_results/clusterstats
 % /project/3011020.09/sopara/JoN_results/prevalence
 
-%share mous_stimuli file?
 rootdir          = '/project/3011020.09';
 derivativedir    = '/project/3011020.09/processed/%s/meg/multisetcca/';
 resultsdir       = '/project/3011020.09/sopara/JoN_results/';
@@ -53,8 +57,6 @@ end
 
 %%%%% Beginning analysis script %%%%%
 
-
-%HELP: how to share this?
 %Retrieving all subject IDs belonging to specified scenario
 if exist('scenario', 'var')
     subj = mous_db_getfilename('allAV', 'subjectname');
@@ -67,7 +69,6 @@ if exist('scenario', 'var')
     sce  = sce(sel);
 end
 
-%HELP: how to share this?
 if computedata
     for k = 1:numel(subj)
         data = mous_erf_sentences(subj{k}, 1);
@@ -75,7 +76,6 @@ if computedata
     end
 end
 
-%Help was this actually done ever?
 if cleandata
     for k = 1:numel(subj)
         mous_db_getdata(subj{k}, 'meg_multisetcca_data');
@@ -88,7 +88,7 @@ if cleandata
     end
 end
 
-%HELP: how to share this? Requries sourcemodel&headmodel file
+%Loads sourcemodel&headmodel file:
 %meg_anatomy_sourcemodel2D_surfreg
 %A2006vol.mat
 if dolcmv
@@ -99,10 +99,9 @@ if dolcmv
     end
 end
 
-%HELP: will we share the adjusttiming_X scripts as well?
-% file required:
+% Uses:
 % project_freenas/3011020.13/raw/V1103/meg/V1103_301102009_02.ds
-% trialfun_visual_word_new
+% trialfun_visual_word_new.m
 
 if computealignment
     % this chunk of code creates a file for each subject that has been
