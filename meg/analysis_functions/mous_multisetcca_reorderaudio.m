@@ -1,4 +1,4 @@
-function [groupdata, stim] = mous_multisetcca_reorderaudio(subj, subjectdata, subjecttiming, groupinfo, reorder, stimid, shift, stretch)
+function [groupdata, stim] = mous_multisetcca_reorderaudio(subj, subjectdata, subjecttiming, groupinfo, reorder, stimid)
 
 for k = 1:numel(subjectdata)
   data = subjectdata{k};
@@ -78,9 +78,9 @@ for k = 1:numel(subjectdata)
   clear newtrial newtime newtime2 newsmpin newsmpout;
   
   if nargout>1
-    [groupdata{1,k}, stim{1,k}] = mous_multisetcca_getparceldata(subj{k}, data, newtiminginfo, groupinfo, shift(k), stretch(k));
+    [groupdata{1,k}, stim{1,k}] = mous_multisetcca_getparceldata(subj{k}, data, newtiminginfo, groupinfo);
   else
-    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, data, newtiminginfo, groupinfo, shift(k), stretch(k));
+    groupdata{1,k} = mous_multisetcca_getparceldata(subj{k}, data, newtiminginfo, groupinfo);
   end
 end
 for k = 1:numel(groupdata)

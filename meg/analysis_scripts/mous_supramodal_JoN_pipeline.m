@@ -5,8 +5,6 @@
 
 % In addition to FieldTrip functions, this script calls the following custom matlab files:
 % mous_multisetcca_lcmv
-% mous_multisetcca_adjusttiming_vis
-% mous_multisetcca_adjusttiming_aud
 % mous_multisetcca_createshuffle
 % cellcolselect
 % mous_multisetcca_sensor2parcel
@@ -19,14 +17,19 @@
 % ft_struct2single
 % mous_multisetcca_reorderaudio
 
+% For source reconstruction:
+
+
 % intermediate & final results are saved in:
 % /project/3011020.09/processed/XXXX/meg/multisetcca/XXX_multisetcca_XX.mat
-% /project/3011020.09/sopara/JoN_results/clusterstats
-% /project/3011020.09/sopara/JoN_results/prevalence
+% /project/3011020.09/sopara/supramodal_JoN/clusterstats
+% /project/3011020.09/sopara/supramodal_JoN/prevalence
 
 rootdir          = '/project/3011020.09';
 derivativedir    = '/project/3011020.09/processed/%s/meg/multisetcca/';
-resultsdir       = '/project/3011020.09/sopara/JoN_results/';
+resultsdir       = '/project/3011020.09/sopara/supramodal_JoN/';
+
+load(fullfile(resultsdir,'sharing','mous_stimuli_share'))
 
 suffix = ''; %no suffix will load only data of the sentence condition rather than wordlist conditino (suffix = "_seq")
 
@@ -52,12 +55,15 @@ if ~exist('domscca_searchlight',  'var'), domscca_searchlight = true; end % vari
 if ~exist('dotrc',                'var'), dotrc               = true; end
 if ~exist('dotrc_prior',          'var'), dotrc_prior         = true; end
 if domscca_searchlight || dotrc || dotrc_prior
+    if ~exist('scenario',         'var'), error('a scenario index needs to be specified');   end
     if ~exist('parcel_indx', 'var'),    error('a parcel index needs to be specified');  end
 end
 
 %%%%% Beginning analysis script %%%%%
 
 %Retrieving all subject IDs belonging to specified scenario
+%FIXME: Either we share data in subfolders per scenario or we need to have
+%a file that lists the correspondance
 if exist('scenario', 'var')
     subj = mous_db_getfilename('allAV', 'subjectname');
     sce  = mous_db_getfilename(subj,    'scenario');
@@ -69,6 +75,10 @@ if exist('scenario', 'var')
     sce  = sce(sel);
 end
 
+%FIXME: computedata not necessary but mous_erf_sentences script will be
+%shared for information (but will not be functional because of missing
+%artifact definition files), mous_erf_sentences script needs to be checked
+%for commented out code.
 if computedata
     for k = 1:numel(subj)
         data = mous_erf_sentences(subj{k}, 1);
@@ -76,6 +86,8 @@ if computedata
     end
 end
 
+% This part should be included in the mous_erf_sentences script as it
+% concludes preprocessing
 if cleandata
     for k = 1:numel(subj)
         mous_db_getdata(subj{k}, 'meg_multisetcca_data');
@@ -91,6 +103,7 @@ end
 %Loads sourcemodel&headmodel file:
 %meg_anatomy_sourcemodel2D_surfreg
 %A2006vol.mat
+%Will we share mous_anatomy_pipeline with it or share the models directly?
 if dolcmv
     for k = 1:numel(subj)
         mous_db_getdata(subj{k}, 'meg_multisetcca_data');
@@ -100,86 +113,36 @@ if dolcmv
 end
 
 % Uses:
-% project_freenas/3011020.13/raw/V1103/meg/V1103_301102009_02.ds
-% trialfun_visual_word_new.m
+% s_multisetcca_timinginfo.mat, which contains information of how to adjust
+% the timing of individual words in order to correct for some variability
+% during presentation. The structure contains the following
+% info:
+% trials: trial index where a trial corresponds to a sentence
+% smpin: 
+% smpout:
+% time: time info for all samples of each sentence
+% trialinfo: sentence index (col1), sentence conditions (col2 + col3), pre-sentence samples ??
+% (col4), sentence ID ?? (col5)
 
-if computealignment
-    % this chunk of code creates a file for each subject that has been
-    % presented with the same paradigm, which contains information about how
-    % to align the trials such that the timing is optimised for multisetcca
-    
-    %subj = subj(contains(subj,'V'));
-    for k = 1:numel(subj)
-        mous_db_getdata(subj{k},'meg_multisetcca_data');
-        if strcmp(subj{k}(1),'V')%strcmp(sce{k}(2:end), 'Vis')
-            timinginfo = mous_multisetcca_adjusttiming_vis(subj{k}, data);
-        elseif strcmp(subj{k}(1),'A')%strcmp(sce{k}(2:end), 'Aud')
-            timinginfo = mous_multisetcca_adjusttiming_aud(subj{k}, data);
-        end
-        save(sprintf(fullfile(derivativedir,'%s_meg_multisetcca_timinginfo'),subj{k},subj{k}), 'timinginfo');
-    end
-    
-    % the following chunk of code is needed to get a specification of how to
-    % align the trials across subjects, and to accommodate the different time
-    % axes within modality (potentially due to block breaks etc), and to
-    % accommodate the time axes across modalities.
-    D = cell(1,numel(subj));
-    for k = 1:numel(subj)
-        mous_db_getdata(subj{k},'meg_multisetcca_timinginfo');
-        D{k} = timinginfo;
-    end
-    
-    trialid = (1:1000)';
-    sel     = false(1000,numel(D));
-    nsmp    =   nan(1000,numel(D));
-    begtim  =   nan(1000,numel(D));
-    
-    for k = 1:numel(D)
-        % identify the sentences that occur in any of the input datasets
-        tmp = D{k}.trialinfo(:,end);
-        seltmp = isfinite(tmp);
-        tmp = tmp(seltmp);
-        sel(tmp,k)    = true;
-        nsmp(tmp,k)   = cellfun('size',D{k}.time(seltmp),2);
-        begtim(tmp,k) = cell2mat(cellcolselect(D{k}.time(seltmp),1));
-    end
-    ix = ~all(sel==false,2);
-    
-    trialid = trialid(ix);
-    ntrl    = numel(trialid);
-    sel     = sel(ix,:);
-    nsmp    = nsmp(ix,:);
-    begtim  = begtim(ix,:);
-    endtim  = begtim+(nsmp-1)./120;
-    
-    maxnsmp = max(nsmp,[],2);
-    mintim  = min(begtim,[],2);
-    maxtim  = max(endtim,[],2);
-    
-    groupinfo.trialid = trialid;
-    groupinfo.ntrl    = ntrl;
-    groupinfo.sel     = sel;
-    groupinfo.nsmp    = nsmp;
-    groupinfo.begtim  = begtim;
-    groupinfo.endtim  = endtim;
-    groupinfo.maxnsmp = maxnsmp;
-    groupinfo.mintim  = mintim;
-    groupinfo.maxtim  = maxtim;
-    groupinfo.subj    = subj;
-    
-    % add some stimulus information to the structure
-    load mous_stimuli
-    stimuli = stimuli(trialid);
-    for k = 1:numel(trialid)
-        stiminfo(k) = keepfields(stimuli(k),{'words','string','id','timinginfo_visual','timinginfo'});
-        stiminfo(k).timinginfo_visual = stiminfo(k).timinginfo_visual(:,1:2);
-    end
-    groupinfo.stiminfo = stiminfo;
-    
-    for k = 1:numel(subj)
-        save(sprintf(fullfile(derivativedir,'%s_meg_multisetcca_groupinfo'),subj{k},subj{k}), 'groupinfo');
-    end
-end
+% s_multisetcca_groupinfo.mat
+% trialid: sentence index
+% ntrl: number of trials/sentences
+% sel: which trials are available (clean??) from which subjects 
+% nsmp: number of samples per sentence and subject
+% begtim: time at sample 0 per sentence and subject
+% endtim: time at final sample per sentence and subject
+% maxnsmp: maximum number of sample per sentence across subjects
+% mintim: earliest time point per sentence across subjects
+% maxtim: latest time point per sentence across subjects
+% subj: all subjects belonging to this scenario
+% stiminfo:
+%   id: sentence id
+%   string: sentence as string
+%   words: information on each word within sentence (FIXME: needs pruning before sharing!)
+%   timinginfo: word index (col1), onset time in s (col2) for auditory
+%   presentation
+%   timinginfo_visual: word index(col1), onset time in s (col2) for visual
+%   presentation
 
 if create_shuffle_indx
     mous_db_getdata(subj{1},'meg_multisetcca_groupinfo');
@@ -190,23 +153,17 @@ if create_shuffle_indx
     end
 end
 
+
 %--------------------------------------------------------------------------
 %The following chunk of code does a 'searchlight' based multisetcca, where
 %the searchlight is defined as the 5-component timecourse, describing a
 %parcel, indicated with parcel_indx. It uses the same initialization of the
 %random number generator, thus allowing identical folding across parcels,
 %that can therefore be meaningfully compared post-hoc. The shuffling
-%schemes implemented are either 'lenient', and 'conservative', where it has
-%been decided that 'conservative' is most meaningful, because it obeys the
-%approximate timing information of the word onsets across stimulation
-%modalities.
+%schemes implemented obeys the approximate timing information of the word 
+%onsets across stimulation modalities.
 
-parcel_indx = 1;
 if domscca_searchlight
-    
-    load mous_stimuli;
-    shift   = zeros(1,numel(subj));
-    stretch = ones(1,numel(subj));
     
     if ~exist('nfold', 'var'),          nfold          = 5;       end
     if ~exist('nrand', 'var'),          nrand          = 100;     end
@@ -217,11 +174,12 @@ if domscca_searchlight
     subjecttiming = cell(1,numel(subj));
     for k = 1:numel(subj)
         
-        % load in the data
+        % load in the data FIXME: change paths to load from shared
+        % structure
         mous_db_getdata(subj{k}, 'meg_multisetcca_data');
         mous_db_getdata(subj{k}, 'meg_multisetcca_timinginfo');
         mous_db_getdata(subj{k}, 'meg_multisetcca_lcmv_parc');
-        groupinfo = mous_db_getdata(subj{k}, 'meg_multisetcca_groupinfo');
+        mous_db_getdata(subj{k}, 'meg_multisetcca_groupinfo');
         
         source_parc.filterlabel = filterlabel; % for checking channel order
         
@@ -248,7 +206,7 @@ if domscca_searchlight
         end
         % align the subject-specific parcel data to match all others subjects
         % in terms of timing and trial-order
-        groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));
+        groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo);
         
         cfg            = [];
         cfg.method     = 'acrosschannel';
@@ -439,8 +397,6 @@ if dotrc_prior
         subj = subj(sel);
         sce  = sce(sel);
         
-        shift   = zeros(1,numel(subj));
-        stretch = ones(1,numel(subj));
         for k = 1:numel(subj)
             
             % load in the data
@@ -465,7 +421,7 @@ if dotrc_prior
                 tmp = tmp - nanmean(tmp,2)*ones(1,size(tmp,2));
                 subjectdata{k}.trial{kk} = tmp;
             end
-            groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo, shift(k), stretch(k));%,true);
+            groupdata{k} = mous_multisetcca_getparceldata(subj{k}, subjectdata{k}, subjecttiming{k}, groupinfo);
             
             cfg            = [];
             cfg.method     = 'acrosschannel';

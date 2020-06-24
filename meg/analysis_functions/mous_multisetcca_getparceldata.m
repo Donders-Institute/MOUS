@@ -1,19 +1,8 @@
-function [dataout, stim] = mous_multisetcca_getparceldata(subjectname, data, timinginfo, groupinfo, shift, stretch, weightrepeats)
+function [dataout, stim] = mous_multisetcca_getparceldata(subjectname, data, timinginfo, groupinfo)
 
 % this function reorganizes the parcel-based time seriessuch, that the trials align
 % across a set of subjects, according to the specified timinginfo and
 % groupinfo
-
-if nargin<7 || isempty(weightrepeats)
-  weightrepeats = false;
-end
-if nargin<6 || isempty(stretch)
-  stretch = [];
-end
-if nargin<5 || isempty(shift)
-  shift = 0;
-end
-
 hasstim = strncmp(data.label{end},'stim',4);
 
 % first select the trials according to the earlier determined selection
@@ -25,7 +14,7 @@ data.trialinfo = data.trialinfo(timinginfo.trials,:);
 % sanity check
 assert(isequal(data.trialinfo, timinginfo.trialinfo));
 
-% sort the stuff according to the trialid
+% sort according to the trialid
 [srt,srt_idx]  = sort(data.trialinfo(:,end));
 data.trial     = data.trial(srt_idx);
 data.trialinfo = data.trialinfo(srt_idx,:);
@@ -72,22 +61,7 @@ end
 for k = 1:numel(data.trial)
   smpin  = timinginfo.smpin{k};
   smpout = timinginfo.smpout{k}; 
-  if ~isempty(shift)
-    % assume this to be in samples, a positive value effectively means
-    % shifting this response to the 'right' in time, i.e. pretend that it
-    % occurred later than in reality
-    smpin(:,1) = smpin(:,1) - shift;
-    
-%     sel = sum(smpin-1<shift,2)>0;
-%     smpin(sel,:) = [];
-%     smpout(sel,:) = [];
-    sel = smpin(:,1) < 1;
-    if sum(sel)
-      val = smpin(sel,1);
-      smpin(sel,1) = smpin(sel,1)-val+1;
-      smpout(sel,1) = smpout(sel,1)-val+1;
-    end
-  end
+
   datin   = data.trial{k};
   countin = zeros(1,numel(data.time{k}));
   
@@ -116,19 +90,7 @@ for k = 1:numel(data.trial)
       smpin_idx  = smpin_idx(keep_idx);
       smpout_idx = smpout_idx(keep_idx);
       
-      if ~isempty(stretch) && stretch~=1
-        nsmp   = numel(smpout_idx);
-        tmpdat = datin(:,smpin_idx(1):end);
-        
-        % stretch the time axis
-        x_in = 0:(size(tmpdat,2)-1);
-        x_out = linspace(0,(nsmp-1)./stretch, nsmp);
-        
-        tmpdat = interp1(x_in(:),tmpdat',x_out(:),'linear')';
-        
-      else
-        tmpdat = datin(:,smpin_idx);
-      end
+      tmpdat = datin(:,smpin_idx);
       
       datout(:,smpout_idx) = tmpdat;%-repmat(nanmean(tmpdat,2),[1 numel(smpin_idx)]);
       countout(m,smpout_idx) = countin(smpin_idx);
@@ -160,11 +122,8 @@ for k = 1:numel(data.trial)
   end
   countout_bin = sum(countout_bin,1);  
   
-  if weightrepeats
-    data.trial{k} = datout./repmat(countout_bin,[size(datout,1),1]);
-  else
-    data.trial{k} = datout;
-  end
+  data.trial{k} = datout;
+
   data.time{k}  = timeout;
 end
 
@@ -197,19 +156,6 @@ for k = 1:numel(trial)
     trialinfo(k,end) = groupinfo.trialid(k);
   end
 end
-
-% % % % % % if shift is different from 0, shift the data with the specified number of
-% % % % % % samples: per definition if shift>0, the data shifts to the left, which
-% % % % % % means that time is delayed (equivalently)
-% % % % % if shift>0
-% % % % %   for k = 1:numel(trial)
-% % % % %     trial{k} = [trial{k}(:,(1+shift):end) nan(size(trial{k},1),shift)];
-% % % % %   end
-% % % % % elseif shift<0
-% % % % %   for k = 1:numel(trial)
-% % % % %     trial{k} = [nan(size(trial{k},1),abs(shift)) trial{k}(:,1:(end+shift))];
-% % % % %   end
-% % % % % end
 
 if hasstim
   stim = keepfields(data, {'label'});
