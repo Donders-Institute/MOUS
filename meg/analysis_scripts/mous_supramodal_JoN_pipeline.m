@@ -27,7 +27,7 @@
 
 if ~exist('contentwords_only', 'var'),contentwords_only = false;                      end
 if contentwords_only, suffix_out = [suffix_out '_content']; end
-    
+
 
 rootdir          = '/project/3011020.09';
 derivativedir    = '/project/3011020.09/processed/%s/meg/multisetcca/';
@@ -122,7 +122,7 @@ end
 % during presentation. The structure contains the following
 % info:
 % trials: trial index where a trial corresponds to a sentence
-% smpin: 
+% smpin:
 % smpout:
 % time: time info for all samples of each sentence
 % trialinfo: sentence index (col1), sentence conditions (col2 + col3), pre-sentence samples ??
@@ -131,7 +131,7 @@ end
 % s_multisetcca_groupinfo.mat
 % trialid: sentence index
 % ntrl: number of trials/sentences
-% sel: which trials are available (clean??) from which subjects 
+% sel: which trials are available (clean??) from which subjects
 % nsmp: number of samples per sentence and subject
 % begtim: time at sample 0 per sentence and subject
 % endtim: time at final sample per sentence and subject
@@ -164,7 +164,7 @@ end
 %parcel, indicated with parcel_indx. It uses the same initialization of the
 %random number generator, thus allowing identical folding across parcels,
 %that can therefore be meaningfully compared post-hoc. The shuffling
-%schemes implemented obeys the approximate timing information of the word 
+%schemes implemented obeys the approximate timing information of the word
 %onsets across stimulation modalities.
 
 if domscca_searchlight
@@ -268,10 +268,7 @@ if domscca_searchlight
         [Wshuf, Ashuf, rhoshuf, ~, compshuf] = mous_multisetcca(tmpdata, nfold, 4, []);
         [compshuf, rhoshuf]         = mous_multisetcca_postprocess(compshuf, rhoshuf, source_parc.label{parcel_indx});
         
-        cfg = [];
-        cfg.trials = compshuf.trialinfo(:,end)<=500;
-        compshufsel = ft_selectdata(cfg,compshuf);
-        trctmp = mous_multisetcca_trc(compshufsel, stimuli, 'contentwords_only', contentwords_only);
+        trctmp = mous_multisetcca_trc(compshuf, stimuli, 'contentwords_only', contentwords_only);
         if cnt==1
             trcshuf = trctmp;
         else
@@ -305,79 +302,57 @@ end
 if dotrc
     % do time resolved correlation on canonical components
     
-    %% set default flags if necessary
-    if ~exist('stimuli', 'var'),          load mous_stimuli;                              end
-    if ~exist('contentwords_only', 'var'),contentwords_only = true;                      end
-    %%
     suffix_out = '_sent';
-    
     nrand = 1000;
+    filename = sprintf(fullfile(resultsdir,'scenario%d', 'mscca_sce%d_parcel%03d'),scenario,scenario,parcel_indx);
     
-    filename = sprintf(fullfile(resultsdir,'scenario%d', 'mscca_sce%d_parcel%03d',scenario,scenario,parcel_indx));
+    %load data
     load(filename, 'comp');
     
-    cnt = 0;
+    tlck = mous_multisetcca_extractwords(comp, stimuli);
     
-    cnt = cnt+1;
-    cfg = [];
-    cfg.trials = find(comp.trialinfo(:,end)<= 500);
-    tmp(cnt) = ft_selectdata(cfg,comp);
+    %compute trc for observed data
+    [trc, tlck] = mous_multisetcca_trc(tlck, stimuli, 'dosmooth', 5, 'contentwords_only', 1, 'output2', 'single_cross');
     
-    comp = tmp;
-    for k = 1:numel(comp)
-        tlck(k) = mous_multisetcca_extractwords(comp(k), stimuli);
-    end
     
-    for k = 1:numel(tlck)
-        [trc(k), tlck] = mous_multisetcca_trc(tlck(k), stimuli, 'dosmooth', 5, 'contentwords_only', 1, 'longwords_only', 0, 'output2', 'single_cross');
-    end
+    %compute trc for shuffled data
+    bin = ones(size(tlck(m).trial,1),1);
+
     
-    selaudio = find(contains(tlck(1).label, 'A2') | contains(tlck(1).label, 'sub-2'));
-    selvis   = find(contains(tlck(1).label, 'V1') | contains(tlck(1).label, 'sub-1'));
-    
+    selaudio = find(contains(tlck.label, 'A2') | contains(tlck.label, 'sub-2'));
+    selvis   = find(contains(tlck.label, 'V1') | contains(tlck(1).label, 'sub-1'));
     %permute trials in both visual & auditory modality, for each subject
     %respectively
     rng('default'); % ensure same 'random' behaviour for each parcel
-    for m = 1:nrand
+    for m = 1:3
         if mod(m,50)==0,fprintf('running randomization %d/%d\n',m,nrand);end
         tmptlck = tlck;
-        for mmm = 1:numel(tlck)
-            for mmv = 1:numel(selvis)
-                r_idx = (1:numel(bin{mmm}))';
-                ubin  = unique(bin{mmm});
-                for mm = 1:numel(ubin)
-                    tmpB = r_idx(bin{mmm}==ubin(mm));
-                    r_idx(bin{mmm}==ubin(mm)) = tmpB(randperm(numel(tmpB)));
-                end
-                tmptlck(mmm).trial(:,selvis(mmv),:) = tmptlck(mmm).trial(r_idx,selvis(mmv),:);
+        for mmv = 1:numel(selvis)
+            r_idx = (1:numel(bin))';
+            ubin  = unique(bin);
+            for mm = 1:numel(ubin)
+                tmpB = r_idx(bin==ubin(mm));
+                r_idx(bin==ubin(mm)) = tmpB(randperm(numel(tmpB)));
             end
-            for mma = 1:numel(selaudio)
-                r_idx = (1:numel(bin{mmm}))';
-                ubin  = unique(bin{mmm});
-                for mm = 1:numel(ubin)
-                    tmpB = r_idx(bin{mmm}==ubin(mm));
-                    r_idx(bin{mmm}==ubin(mm)) = tmpB(randperm(numel(tmpB)));
-                end
-                tmptlck(mmm).trial(:,selaudio(mma),:) = tmptlck(mmm).trial(r_idx,selaudio(mma),:);
-            end
-            trcshuf2(m,mmm) = mous_multisetcca_trc(tmptlck(mmm), stimuli, 'output2', 'single_cross');
+            tmptlck.trial(:,selvis(mmv),:) = tmptlck.trial(r_idx,selvis(mmv),:);
         end
+        for mma = 1:numel(selaudio)
+            r_idx = (1:numel(bin))';
+            ubin  = unique(bin);
+            for mm = 1:numel(ubin)
+                tmpB = r_idx(bin==ubin(mm));
+                r_idx(bin==ubin(mm)) = tmpB(randperm(numel(tmpB)));
+            end
+            tmptlck.trial(:,selaudio(mma),:) = tmptlck.trial(r_idx,selaudio(mma),:);
+        end
+        trcshuf2(m) = mous_multisetcca_trc(tmptlck, stimuli, 'output2', 'single_cross');
     end
     
-    for m = 1:size(trcshuf,2)
-        trcshuf2(1,m).rho = cat(3,trcshuf2(:,m).rho);
-    end
-    trcshuf2 = trcshuf2(1,:);
-    
-    if ~exist('suffix2', 'var')
-        suffix_out = '';
-    end
     if contentwords_only
         suffix_out = [suffix_out '_contentwords'];
     end
     filename = fullfile(sprintf(resultsdir,'scenario%d','mscca_sce%d_parcel%03d_trc%s',scenario,scenario,parcel_indx,suffix_out));
-    save(filename, 'trcshuf2','trc');
-    
+    save(filename, 'trcshuf2','trc');    
 end
 
 if dotrc_prior
