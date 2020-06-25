@@ -37,8 +37,8 @@ set(gca,'YTick',[32.5 64.5])
 set(gca,'YTickLabel',[0.5 1])
 set(gca,'Color','None')
 box off
-save('/project/3011020.09/sopara/JoN_results/figures/final/colorbar_sensory','map2D')
-export_fig('/project/3011020.09/sopara/JoN_results/figures/final/fig0/colorbar_sensory','-eps');
+save('/project/3011020.09/sopara/supramodal_JoN/figures/final/colorbar_sensory','map2D')
+export_fig('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig0/colorbar_sensory','-eps');
 
 % create the 'upsampling matrix', to map parcels onto the vertices of the
 % cortical sheet
@@ -50,7 +50,7 @@ for k = 1:numel(atlas.parcellationlabel)
     y = cat(1,y(:),ones(sum(sel),1)*k);
 end
 P = sparse(x,y,ones(numel(x),1),size(atlas.pos,1),numel(atlas.parcellationlabel));
-save('/project/3011020.09/sopara/JoN_results/figures/final/parcel2vertices','P')
+save('/project/3011020.09/sopara/supramodal_JoN/figures/final/parcel2vertices','P')
 
 %%get colorbar
 cmap = brewermap(63,'Reds');
@@ -59,7 +59,7 @@ figure;image(rgb);
 set(gca,'tickdir','out');
 set(gca,'XTick',[6 12 18 24 30])
 set(gca,'xticklabel',(1:5).*(0.025./5));
-export_fig('/project/3011020.09/sopara/JoN_results/figures/final/fig1/colorbar_crossmod','-png');
+export_fig('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig1/colorbar_crossmod','-png');
 
 %colorbar
 cmap = brewermap(63,'Blues');
@@ -70,7 +70,7 @@ colormap(cmap)
 ax = gca;
 ax.CLim = [0.4 0.56];
 colorbar('Ticks',[0.4 0.46 0.5 0.56])
-export_fig('/project/3011020.09/sopara/JoN_results/figures/final/fig3/colorbar_gamma','-eps');
+export_fig('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig3/colorbar_gamma','-eps');
 
 %colorbar
 cmap = brewermap(63,'Reds');
@@ -81,22 +81,22 @@ colormap(cmap)
 ax = gca;
 ax.CLim = [-0.006 0.015];
 colorbar('Ticks',[0 0.005 0.010 0.015])
-export_fig('/project/3011020.09/sopara/JoN_results/figures/final/fig4/colorbar','-eps');
+export_fig('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig4/colorbar','-eps');
 
 %% Figure 0A: Sensory maps
 clearvars -except atlas posAll posright posleft posmedial;clc
-load('/project/3011020.09/sopara/JoN_results/figures/final/colorbar_sensory','map2D')
-load('/project/3011020.09/sopara/JoN_results/figures/final/parcel2vertices','P')
+load('/project/3011020.09/sopara/supramodal_JoN/figures/final/colorbar_sensory','map2D')
+load('/project/3011020.09/sopara/supramodal_JoN/figures/final/parcel2vertices','P')
 twin  = [0.15 0.2]; % time window to average over
 %load data
 scenario = 1;
-trcname = '';
-datadir = sprintf('/project/3011020.09/sopara/JoN_results/scenario%d',scenario);
+trcname = '_trc';
+datadir = sprintf('/project/3011020.09/sopara/supramodal_JoN/scenario%d',scenario);
 %Compute correlations (this will also do cluster permutation test, which
 %provides the pvalue as reported in manuscript under s.posclusters(1).prob )
-[s, T, Tshuf] = mous_multisetcca_stats(datadir,scenario,'trcname', trcname,'shufflefname', '_trc','shuffle','trcshuf2','modality','visual');
+[s, T, Tshuf] = mous_multisetcca_stats(datadir,scenario,'trcname', trcname,'shufflefname', trcname,'shuffle','trcshuf2','modality','visual');
 Tvis = T;
-[s, T, Tshuf] = mous_multisetcca_stats(datadir,scenario,'trcname', trcname,'shufflefname', '_trc','shuffle','trcshuf2','modality','auditory');
+[s, T, Tshuf] = mous_multisetcca_stats(datadir,scenario,'trcname', trcname,'shufflefname', trcname,'shuffle','trcshuf2','modality','auditory');
 Taud = T;
 
 i1 = nearest(s.time,twin(1));
@@ -138,7 +138,7 @@ view([90 0]);
 h=light('position',[10 0 0]);
 set(gcf,'color','w')
 title(sprintf('time = %d-%d',round(1000.*s.time(i1)),round(1000.*s.time(i2))),'position',[33 -104 100]);
-fname = strcat('/project/3011020.09/sopara/JoN_results/figures/final/fig0/',sprintf('sensory_time%d2',i1));
+fname = strcat('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig0/',sprintf('sensory_time%d2',i1));
 export_fig(fname,'-png','-transparent','-m5');
 %medial view
 atlas.pos = posmedial;
@@ -155,15 +155,14 @@ export_fig(fname,'-png','-transparent','-m5');
 
 %% Figure 0B: Time course for parcel
 clearvars -except atlas posAll posright posleft posleftm;clc
-load('/project/3011020.09/sopara/JoN_results/figures/final/colorbar_sensory','map2D')
+load('/project/3011020.09/sopara/supramodal_JoN/figures/final/colorbar_sensory','map2D')
 
 scenario = 1;
 
-dir_in = sprintf('/project/3011020.09/sopara/JoN_results/scenario%d',scenario);
-dir_out = '/project/3011020.09/sopara/JoN_results/figures/final/fig0';
+dir_in = sprintf('/project/3011020.09/sopara/supramodal_JoN/scenario%d',scenario);
+dir_out = '/project/3011020.09/sopara/supramodal_JoN/figures/final/fig0';
 
 parcel_indx = 126; % run this part for each parcel (175 BA17 visual, 95 BA43 subcentral, 126 B42 primary auditory)
-load(sprintf('%s/mscca_sce%d_parcel%03d_trc.mat',dir_in,scenario,parcel_indx),'trc','trcshuf2')
 load(sprintf('%s/trcdata_parcel%03d.mat',dir_out,parcel_indx));
 
 %Plot
@@ -189,7 +188,7 @@ set(ax ,'Layer', 'Top')
 yticks([-0.02 0.02 0.04 0.06])
 xticks([0.15 0.3 0.6])
 set(gca,'xticklabel',[])
-export_fig(sprintf('/project/3011020.09/sopara/JoN_results/figures/final/fig0/parcel%03d_timecourse',parcel_indx),'-eps','-transparent');
+export_fig(sprintf('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig0/parcel%03d_timecourse',parcel_indx),'-eps','-transparent');
 
 %% Figure 1: Cluster-corrected permutation results for scenario 1
 clearvars -except atlas posAll posright posleft posleftm;clc
@@ -199,8 +198,8 @@ scenario = 1;
 cluster = 1;
 
 %load data
-datadir = sprintf('/project/3011020.09/sopara/JoN_results/scenario%d',scenario);
-outdir = sprintf('/project/3011020.09/sopara/JoN_results/figures/final');
+datadir = sprintf('/project/3011020.09/sopara/supramodal_JoN/scenario%d',scenario);
+outdir = sprintf('/project/3011020.09/sopara/supramodal_JoN/figures/final');
 load(fullfile(datadir, sprintf('scenario%d_results_sent_contentwords',scenario)))
 %for control analysis : load(fullfile(datadir, sprintf('scenario%d_results_sent_shuf2',scenario)))
 %create source structure for plotting
@@ -259,8 +258,8 @@ end
 clearvars -except atlas posAll posright posleft posmedial;clc
 cmap = brewermap(63,'Reds');
 %load data
-load(fullfile('/project/3011020.09/sopara/JoN_results/prevalence/contentwordsonly_11-Jul-2019'), 'time', 'mT','results','params');
-datadir = sprintf('/project/3011020.09/sopara/JoN_results/scenario%d',1);
+load(fullfile('/project/3011020.09/sopara/supramodal_JoN/prevalence/contentwordsonly_11-Jul-2019'), 'time', 'mT','results','params');
+datadir = sprintf('/project/3011020.09/sopara/supramodal_JoN/scenario%d',1);
 %get cluster-based stats for masking prevalence stats
 load(fullfile(datadir, sprintf('scenario%d_results_sent_contentwords',1)))
 mask = double(s.posclusterslabelmat==1);
@@ -302,7 +301,7 @@ for k = firstcol:1:lastcol
     h=light('position',[10 0 0]);
     title(sprintf('time = %d',round(1000.*time(k))),'position',[33 -204 100]);
     set(gcf,'color','w');
-    fname = strcat('/project/3011020.09/sopara/JoN_results/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_1mask_content',k));
+    fname = strcat('/project/3011020.09/sopara/supramodal_JoN/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_1mask_content',k));
     export_fig(fname,'-png','-transparent','-m5');
     clf;
 end
@@ -322,7 +321,7 @@ for k = firstcol:1:lastcol
     lighting gouraud;material dull;view([-90 -20]);h=light('position',[-10 0 0]);
     set(gcf,'color','w');
     title(sprintf('time = %d',round(1000.*time(k))),'position',[33 -204 100]);
-    fname = strcat('/project/3011020.09/sopara/JoN_results/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_medial_1mask_content',k));
+    fname = strcat('/project/3011020.09/sopara/supramodal_JoN/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_medial_1mask_content',k));
     export_fig(fname,'-png','-transparent','-m5');
     clf;
 end
@@ -345,7 +344,7 @@ for k = firstcol:1:lastcol
     h=light('position',[10 0 0]);
     title(sprintf('time = %d',round(1000.*time(k))),'position',[133 -104 100]);
     set(gcf,'color','w');
-    fname = strcat('/project/3011020.09/sopara/JoN_results/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_R_content',k));
+    fname = strcat('/project/3011020.09/sopara/supramodal_JoN/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_R_content',k));
     export_fig(fname,'-png','-transparent','-m5');
     clf;
 end
@@ -362,12 +361,12 @@ for k = firstcol:1:lastcol
     lighting gouraud;material dull;view([-90 -20]);h=light('position',[-10 0 0]);
     set(gcf,'color','w');
     title(sprintf('time = %d',round(1000.*time(k))),'position',[33 -104 100]);
-    fname = strcat('/project/3011020.09/sopara/JoN_results/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_medial_R_content',k));
+    fname = strcat('/project/3011020.09/sopara/supramodal_JoN/prevalence/',sprintf('/crossmod_timestamp%03d_mean_pcMN_medial_R_content',k));
     export_fig(fname,'-png','-transparent','-m5');
     clf;
 end
 %% Figure 2B parcel time courses
-load(fullfile('/project/3011020.09/sopara/JoN_results/prevalence/contentwordsonly_11-Jul-2019'), 'time', 'mT','results','params','allT');
+load(fullfile('/project/3011020.09/sopara/supramodal_JoN/prevalence/contentwordsonly_11-Jul-2019'), 'time', 'mT','results','params','allT');
 c{1} = brewermap(10,'Greens');
 c{2} = brewermap(10, 'Blues');
 c{3} = brewermap(10, 'YlGn');
@@ -418,7 +417,7 @@ for roi = 1:length(sROI)
         h{roi}(i).Color(4) = 0.6;
     end
     title(sROI{roi})
-    export_fig(sprintf('/project/3011020.09/sopara/JoN_results/figures/final/parcel_timecourse_allsce_%s_content',sROI{roi}),'-eps');
+    export_fig(sprintf('/project/3011020.09/sopara/supramodal_JoN/figures/final/parcel_timecourse_allsce_%s_content',sROI{roi}),'-eps');
 end
 
 %map of parcels 
@@ -447,7 +446,7 @@ material dull;
 view([90 0]);
 h=light('position',[10 0 0]);
 set(gcf,'color','w');
-export_fig('/project/3011020.09/sopara/JoN_results/figures/final/atlasl','-png','-transparent','-m5');
+export_fig('/project/3011020.09/sopara/supramodal_JoN/figures/final/atlasl','-png','-transparent','-m5');
 
 %% Fig 3.
 
@@ -482,7 +481,7 @@ for k = firstcol:1:lastcol
     h=light('position',[10 0 0]);
     title(sprintf('time = %d',round(1000.*time(k))),'position',[33 -204 100]);
     set(gcf,'color','w');
-    fname = strcat('/project/3011020.09/sopara/JoN_results/prevalence/',sprintf('/crossmod_timestamp%03d_gamma0_content',k));
+    fname = strcat('/project/3011020.09/sopara/supramodal_JoN/prevalence/',sprintf('/crossmod_timestamp%03d_gamma0_content',k));
     export_fig(fname,'-png','-transparent','-m3');
     clf;
 end
@@ -500,7 +499,7 @@ for k = firstcol:1:lastcol
     lighting gouraud;material dull;view([-90 -20]);h=light('position',[-10 0 0]);
     set(gcf,'color','w');
     title(sprintf('time = %d',round(1000.*time(k))),'position',[33 -204 100]);
-    fname = strcat('/project/3011020.09/sopara/JoN_results/prevalence/',sprintf('/crossmod_timestamp%03d_gamma0_content_medialview',k));
+    fname = strcat('/project/3011020.09/sopara/supramodal_JoN/prevalence/',sprintf('/crossmod_timestamp%03d_gamma0_content_medialview',k));
     export_fig(fname,'-png','-transparent','-m3');
     clf;
 end
@@ -525,7 +524,7 @@ view([90 0]);
 h=light('position',[10 0 0]);
 title('average over time');
 set(gcf,'color','w');
-fname = strcat('/project/3011020.09/sopara/JoN_results/figures/final/fig3/',sprintf('crossmod_avg_gamma0_avg_content'));
+fname = strcat('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig3/',sprintf('crossmod_avg_gamma0_avg_content'));
 export_fig(fname,'-png','-transparent','-m3');
 
 % Plot medial view
@@ -538,7 +537,7 @@ ft_plot_mesh(xs,'vertexcolor',xs.pow, ...
 lighting gouraud;material dull;view([-90 -20]);h=light('position',[-10 0 0]);
 set(gcf,'color','w');
 title('average over time');
-fname = strcat('/project/3011020.09/sopara/JoN_results/figures/final/fig3/',sprintf('crossmod_avg_gamma0_avg_content_medialview'));
+fname = strcat('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig3/',sprintf('crossmod_avg_gamma0_avg_content_medialview'));
 export_fig(fname,'-png','-transparent','-m3');
 % Plot medial right
 source.brainordinate.pos = posright;
@@ -553,5 +552,5 @@ ft_plot_mesh(xs,'vertexcolor',xs.pow, ...
 lighting gouraud;material dull;view([-90 -20]);h=light('position',[-10 0 0]);
 set(gcf,'color','w');
 title('average over time');
-fname = strcat('/project/3011020.09/sopara/JoN_results/figures/final/fig3/',sprintf('crossmod_avg_gamma0_avg_content_Rmedialview'));
+fname = strcat('/project/3011020.09/sopara/supramodal_JoN/figures/final/fig3/',sprintf('crossmod_avg_gamma0_avg_content_Rmedialview'));
 export_fig(fname,'-png','-transparent','-m3');
