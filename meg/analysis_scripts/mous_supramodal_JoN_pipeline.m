@@ -40,8 +40,7 @@
 % /project/3011020.09/sopara/supramodal_JoN/..
 
 % Set all paths
-derivativedir    = '/project/3011020.09/processed/%s/meg/multisetcca/';
-resultsdir       = '/project/3011020.09/sopara/supramodal_JoN/';
+datadir       = '/project/3011020.09/sopara/supramodal_JoN/';
 
 % Set flags for which parts of the script should be executed
 if ~exist('contentwords_only', 'var'),contentwords_only = true;                      end
@@ -68,12 +67,12 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Retrieve which subjects belong to specified scenario
-load(fullfile(resultsdir,'subj_sce_info.mat'))
+load(fullfile(datadir,'subj_sce_info.mat'))
 sel = strncmp(sce, num2str(scenario), 1);
 subj = subj(sel);
 clear sce
 % Load stimulus info file
-load(fullfile(resultsdir,'sharing','mous_stimuli_share'))
+load(fullfile(datadir,'mous_stimuli_share'))
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -81,9 +80,9 @@ load(fullfile(resultsdir,'sharing','mous_stimuli_share'))
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if dolcmv
     for k = 1:numel(subj)
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_data.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
         [source_parc, filterlabel] = mous_multisetcca_lcmv(subj{k}, data);
-        save(sprintf(fullfile(derivativedir,'%s_meg_multisetcca_lcmv_parc'),subj{k},subj{k}), 'source_parc', 'filterlabel');
+        save(sprintf(fullfile(datadir,'%s','%s_meg_multisetcca_lcmv_parc'),subj{k},subj{k}), 'source_parc', 'filterlabel');
     end
 end
 
@@ -93,10 +92,10 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if create_shuffle_indx
-    load(sprintf(fullfile(derivativedir,'%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
+    load(sprintf(fullfile(datadir,'%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
 for m = 1:500
         [reorder, stimid]       = mous_multisetcca_createshuffle(groupinfo);
-        save(fullfile(resultsdir,'params',sprintf('shuff_sce%d_indx%04d',scenario,m)),'reorder','stimid'); % use precomputed ordering for consistency across parcels
+        save(fullfile(datadir,'shuffles',sprintf('shuff_sce%d_indx%04d',scenario,m)),'reorder','stimid'); % use precomputed ordering for consistency across parcels
         clear reorder stimid;
     end
 end
@@ -125,12 +124,11 @@ if domscca_searchlight
     subjecttiming = cell(1,numel(subj));
     for k = 1:numel(subj)
         
-        % load in the data FIXME: change paths to load from shared
         % structure
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_data.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_lcmv_parc.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_lcmv_parc.mat'),subj{k},subj{k}))
         
         source_parc.filterlabel = filterlabel; % for checking channel order
         
@@ -180,7 +178,7 @@ if domscca_searchlight
     
     comp                 = ft_struct2single(comp);
     
-    savedir = sprintf(fullfile(resultsdir,'scenario%d'), scenario);
+    savedir = sprintf(fullfile('scenario%d'), scenario);
     system(sprintf('mkdir -p %s', savedir));
     
     filename = fullfile(savedir, sprintf('mscca_sce%d_parcel%03d',scenario,parcel_indx));
@@ -201,7 +199,7 @@ if domscca_searchlight
         fprintf('performing permutation %d/%d\n',find(m==nrand),numel(nrand));
         cnt = cnt + 1;
         
-        load(fullfile(resultsdir,'params',sprintf('shuff_sce%d_indx%04d',scenario,m))); % use precomputed ordering for consistency across parcels
+        load(fullfile(datadir,'shuffles',sprintf('shuff_sce%d_indx%04d',scenario,m))); % use precomputed ordering for consistency across parcels
         
         groupdatashuf(selaudio) = mous_multisetcca_reorderaudio(subj(selaudio), subjectdata(selaudio), subjecttiming(selaudio), groupinfo, reorder, stimid);
         
@@ -232,7 +230,7 @@ if domscca_searchlight
     
     trcshuf = ft_struct2single(trcshuf);
     
-    filename = fullfile(resultsdir,sprintf('scenario%d',scenario), sprintf('mscca_sce%d_parcel%03dshuf2',scenario,parcel_indx));
+    filename = fullfile(sprintf('scenario%d',scenario), sprintf('mscca_sce%d_parcel%03dshuf2',scenario,parcel_indx));
     save(filename,'Rshuf','trcshuf', 'nrand');
 end
 %%
@@ -243,7 +241,7 @@ end
 if dotrc
     % do time resolved correlation on canonical components
     nrand = 1000;
-    filename = sprintf(fullfile(resultsdir,'scenario%d', 'mscca_sce%d_parcel%03d'),scenario,scenario,parcel_indx);
+    filename = sprintf(fullfile(datadir,'scenario%d', 'mscca_sce%d_parcel%03d'),scenario,scenario,parcel_indx);
     
     %load data
     load(filename, 'comp');
@@ -287,7 +285,7 @@ if dotrc
     if contentwords_only
         suffix_out = '_sent_contentwords';
     end
-    filename = sprintf(fullfile(resultsdir,'scenario%d','mscca_sce%d_parcel%03d_trc%s'),scenario,scenario,parcel_indx,suffix_out);
+    filename = sprintf(fullfile('scenario%d','mscca_sce%d_parcel%03d_trc%s'),scenario,scenario,parcel_indx,suffix_out);
     save(filename, 'trcshuf2','trc');
 end
 %%
@@ -306,10 +304,10 @@ if dotrc_prior
     for k = 1:numel(subj)
         
         % load in the data
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_data.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(derivativedir,'%s_multisetcca_lcmv_parc.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_lcmv_parc.mat'),subj{k},subj{k}))
         
         source_parc.filterlabel = filterlabel; % for checking channel order
         subjectdata{k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
@@ -349,8 +347,8 @@ if dotrc_prior
     
     %combine with post-mscca results and save together. Note that results
     %will be overwritten when computing this for different scenarios.
-    load(sprintf(fullfile(resultsdir,'scenario%d','mscca_sce%d_parcel%03d_trc.mat'),scenario,scenario,parcel_indx),'trc','trcshuf2')
-    save(sprintf(fullfile(resultsdir,'trc_data','trcdata_parcel%03d',parcel_indx)), 'trc_pre', 'trc', 'trcshuf2');
+    load(sprintf(fullfile(datadir,'scenario%d','mscca_sce%d_parcel%03d_trc.mat'),scenario,scenario,parcel_indx),'trc','trcshuf2')
+    save(sprintf(fullfile(datadir,'trc_data','trcdata_parcel%03d',parcel_indx)), 'trc_pre', 'trc', 'trcshuf2');
 end
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -364,17 +362,17 @@ if do_clusterstats
     % mous_multisetcca_prevalence
     
     trcname = '_sent_contentwords';
-    [s, T, Tshuf] = mous_multisetcca_stats(sprintf(fullfile(resultsdir,'scenario%d'),scenario),scenario,'trcname', trcname,'shufflefname',trcname);
+    [s, T, Tshuf] = mous_multisetcca_stats(sprintf(fullfile('scenario%d'),scenario),scenario,'trcname', trcname,'shufflefname',trcname);
     
-    filename = sprintf(fullfile(resultsdir, 'scenario%d','scenario%d_results_sent_contentwords'),scenario,scenario);
+    filename = sprintf(fullfile(datadir,'scenario%d','scenario%d_results_sent_contentwords'),scenario,scenario);
     save(filename, 's', 'T', 'Tshuf');
 
     % 2) based on shuffling of sentences pre-MCCA (control analysis only computed for scenario 1)
     if scenario == 1
         trcname = '';
-        [s, T, Tshuf] = mous_multisetcca_stats(sprintf(fullfile(resultsdir,'scenario%d'),scenario),scenario,'trcname', trcname,'shufflefname','shuf2');
+        [s, T, Tshuf] = mous_multisetcca_stats(sprintf(fullfile('scenario%d'),scenario),scenario,'trcname', trcname,'shufflefname','shuf2');
         
-        filename = sprintf(fullfile(resultsdir, 'scenario%d','scenario%d_results_sent_shuf2',scenario,scenario));
+        filename = sprintf(fullfile(datadir,'scenario%d','scenario%d_results_sent_shuf2',scenario,scenario));
         save(filename, 's', 'T', 'Tshuf');
     end
 end
@@ -382,10 +380,10 @@ end
 %% 
 
 if do_prevalence
-    % For results of the confirmatory analysis, we combined the correlatinos across groups and used prevalence
+    % For results of the confirmatory analysis, we combined the correlations across groups and used prevalence
     % statistics to evaluate the robustness of the supramodal effect.
     % Averaging and stats are computed within mous_multisetcca_prevalence
     % and saved to disk
-    mous_multisetcca_prevalence(resultsdir,resultsdir,6) % combine over all 6 scenarios
+    mous_multisetcca_prevalence(datadir,6) % combine over all 6 scenarios
 end
 
