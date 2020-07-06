@@ -3,6 +3,13 @@
 % for Language" in Journal of Neuroscience
 % DOI: htpps://doi.org/10.1523/JNEUROSCI.2271-19.2020
 
+% The preprocessed & cleaned data that provides the starting point for the
+% analysis in this script are shared alongside at
+% FIXME: add sharing URL
+% The preprocessing partly relied on manually annotation of artifacts and
+% noisy trials through RAs. For completeness the preprocessing script is
+% shared as mous_erf_sentences.m
+
 % In addition to FieldTrip functions, this script calls the following custom matlab files:
 % mous_multisetcca
 % mous_multisetcca_createshuffle
@@ -17,9 +24,16 @@
 % mous_multisetcca_stats
 % mous_multisetcca_trc
 
-% For computing sourcemodel & headmodel
-% FIXME: add script names here
+% Preprocessed data & info files are saved as:
+%'/project/3011020.09/processed/%s/meg/multisetcca/%s_multisetcca_data.mat';
+%'/project/3011020.09/processed/%s/meg/multisetcca/%s_multisetcca_groupinfo.mat';
+%'/project/3011020.09/processed/%s/meg/multisetcca/%s_multisetcca_timinginfo.mat';
 
+% Headmodels are saved as:
+
+% Sourcemeodels are saved as:
+% /project/3011020.09/processed/%s/meg/anatomy/%ssourcemodel2Dsurfreg.mat'
+% /project/3011020.09/processed/%s/meg/anatomy/%svol.mat'
 
 % Results are saved in:
 % /project/3011020.09/processed/XXXX/meg/multisetcca/XXX_multisetcca_XX.mat
@@ -61,38 +75,13 @@ clear sce
 % Load stimulus info file
 load(fullfile(resultsdir,'sharing','mous_stimuli_share'))
 
-%FIXME: computedata not necessary but mous_erf_sentences script will be
-%shared for information (but will not be functional because of missing
-%artifact definition files), mous_erf_sentences script needs to be checked
-%for commented out code.
-if computedata
-    for k = 1:numel(subj)
-        data = mous_erf_sentences(subj{k}, 1);
-        save(sprintf(fullfile(derivativedir,'%s_meg_multisetcca_data'),subj{k},subj{k}), 'data');
-    end
-end
-
-% FIXME: This part should be included in the mous_erf_sentences script as it
-% concludes preprocessing
-if cleandata
-    for k = 1:numel(subj)
-        mous_db_getdata(subj{k}, 'meg_multisetcca_data');
-        cfg = [];
-        cfg.method = 'summary';
-        cfg.keeptrial = 'nan';
-        cfg.channel = 'MEG';
-        data = ft_rejectvisual(cfg, data);
-        save(sprintf(fullfile(derivativedir,'%s_meg_multisetcca_data'),subj{k},subj{k}), 'data');
-    end
-end
-
-%Loads sourcemodel&headmodel file:
-%meg_anatomy_sourcemodel2D_surfreg
-%A2006vol.mat
-%FIXME: Will we share mous_anatomy_pipeline with it or share the models directly?
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%% Compute parcelwise source time-course (principal component) %%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if dolcmv
     for k = 1:numel(subj)
-        mous_db_getdata(subj{k}, 'meg_multisetcca_data');
+        load(sprintf(fullfile(derivativedir,'%s_multisetcca_data.mat'),subj{k},subj{k}))
         [source_parc, filterlabel] = mous_multisetcca_lcmv(subj{k}, data);
         save(sprintf(fullfile(derivativedir,'%s_meg_multisetcca_lcmv_parc'),subj{k},subj{k}), 'source_parc', 'filterlabel');
     end
@@ -104,8 +93,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if create_shuffle_indx
-    mous_db_getdata(subj{1},'meg_multisetcca_groupinfo');
-    for m = 1:500
+    load(sprintf(fullfile(derivativedir,'%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
+for m = 1:500
         [reorder, stimid]       = mous_multisetcca_createshuffle(groupinfo);
         save(fullfile(resultsdir,'params',sprintf('shuff_sce%d_indx%04d',scenario,m)),'reorder','stimid'); % use precomputed ordering for consistency across parcels
         clear reorder stimid;
