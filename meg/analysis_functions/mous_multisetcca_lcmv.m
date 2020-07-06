@@ -35,7 +35,8 @@ tlck.cov = tmp.cov; clear tmp;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % load the 2D sourcemodel and deal with the midline
-mous_db_getdata(subjectname,'meg_anatomy_sourcemodel2D_surfreg');
+load(sprintf('%s/%ssourcemodel2Dsurfreg.mat',subj{k},subj{k}))
+
 if exist('bnd', 'var')
   sourcemodel = bnd;
   clear bnd;
@@ -53,7 +54,7 @@ sourcemodel.inside  = find(~ismember(atlas.parcellation,[1 2 194 195]));
 sourcemodel.outside = find( ismember(atlas.parcellation,[1 2 194 195]));
 
 % load the volume conduction model of the head
-mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
+load(sprintf('%s/%svol.mat',subj{k},subj{k}))
 if exist('vol', 'var')
   headmodel = vol;
   clear vol;
