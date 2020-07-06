@@ -4,14 +4,14 @@
 %Allefeld et al.(2016)
 %https://github.com/allefeld/prevalence-permutation
 
-function mous_multisetcca_prevalence(rootdir,savedir,numsce)
+function mous_multisetcca_prevalence(dir,numsce)
 
 %step 1: load in all per-scenario (first-level) statistics
 % end up with one vector containing mxtxn correlations (m is sscenarios, t
 %is time and n is voxels) and one vector containing mxnxr correlations
 %(where r is permutation)
 for sce = 1:numsce
-    datadir = sprintf(fullfile(rootdir,'scenario%d'),sce);
+    datadir = sprintf(fullfile(dir,'scenario%d'),sce);
     load(fullfile(datadir, sprintf('scenario%d_results_sent_contentwords',sce)),'T','Tshuf');
     
     allT(sce,:,:,1)     = T;
@@ -35,4 +35,4 @@ results.pcMN(nanind)    = nan;
 results.pcGN(nanind)    = nan;
 time = s.time;
 
-save(fullfile(savedir,'prevalence',date), 'time', 'mT','results','params');
+save(fullfile(dir,'prevalence',date), 'time', 'mT','results','params');
