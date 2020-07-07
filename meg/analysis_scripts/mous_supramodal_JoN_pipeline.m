@@ -23,6 +23,8 @@
 % mous_multisetcca_sensor2parcel
 % mous_multisetcca_stats
 % mous_multisetcca_trc
+% cellrowselect
+% nancov_shuf
 
 % Preprocessed data & info files are saved as:
 %'/project/3011020.09/processed/%s/meg/multisetcca/%s_multisetcca_data.mat';
@@ -81,7 +83,9 @@ load(fullfile(datadir,'mous_stimuli_share'))
 if dolcmv
     for k = 1:numel(subj)
         load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
-        [source_parc, filterlabel] = mous_multisetcca_lcmv(subj{k}, data);
+        load(sprintf(fulffile(datadir,'%s/%ssourcemodel2Dsurfreg.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s/%svol.mat'),subj{k},subj{k}))
+        [source_parc, filterlabel] = mous_multisetcca_lcmv(bnd,vol, data);
         save(sprintf(fullfile(datadir,'%s','%s_meg_multisetcca_lcmv_parc'),subj{k},subj{k}), 'source_parc', 'filterlabel');
     end
 end
@@ -125,10 +129,10 @@ if domscca_searchlight
     for k = 1:numel(subj)
         
         % structure
-        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_lcmv_parc.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile('/project/3011020.09/processed','%s','meg/multisetcca','%s_multisetcca_data.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile('/project/3011020.09/processed','%s','meg/multisetcca','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'sharing','%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'scenario%i','mscca_sce%i_parcel%03i.mat'),scenario,scenario,parcel_indx))
         
         source_parc.filterlabel = filterlabel; % for checking channel order
         
@@ -304,11 +308,11 @@ if dotrc_prior
     for k = 1:numel(subj)
         
         % load in the data
-        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_lcmv_parc.mat'),subj{k},subj{k}))
-        
+        load(sprintf(fullfile('/project/3011020.09/processed','%s','meg/multisetcca','%s_multisetcca_data.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile('/project/3011020.09/processed','%s','meg/multisetcca','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'sharing','%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'scenario%i','mscca_sce%i_parcel%03i.mat'),scenario,scenario,parcel_indx))
+       
         source_parc.filterlabel = filterlabel; % for checking channel order
         subjectdata{k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
         subjecttiming{k} = timinginfo; % subject specific information about timing
@@ -362,7 +366,7 @@ if do_clusterstats
     % mous_multisetcca_prevalence
     
     trcname = '_sent_contentwords';
-    [s, T, Tshuf] = mous_multisetcca_stats(sprintf(fullfile('scenario%d'),scenario),scenario,'trcname', trcname,'shufflefname',trcname);
+    [s, T, Tshuf] = mous_multisetcca_stats(sprintf(fullfile(datadir,'scenario%d'),scenario),scenario,'trcname', trcname,'shufflefname',trcname);
     
     filename = sprintf(fullfile(datadir,'scenario%d','scenario%d_results_sent_contentwords'),scenario,scenario);
     save(filename, 's', 'T', 'Tshuf');
