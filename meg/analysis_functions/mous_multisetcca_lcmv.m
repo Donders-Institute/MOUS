@@ -1,4 +1,4 @@
-function [source_parc, filterlabel, source] = mous_multisetcca_lcmv(subjectname, data)
+function [source_parc, filterlabel, source] = mous_multisetcca_lcmv(sourcemodel,vol,data)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % computation of the covariance matrix
@@ -34,13 +34,7 @@ tlck.cov = tmp.cov; clear tmp;
 % preparation of the anatomical data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% load the 2D sourcemodel and deal with the midline
-load(sprintf('%s/%ssourcemodel2Dsurfreg.mat',subj{k},subj{k}))
-
-if exist('bnd', 'var')
-  sourcemodel = bnd;
-  clear bnd;
-end
+% deal with the midline in 2D sourcemodel
 if ~isfield(sourcemodel, 'pos') && isfield(sourcemodel, 'pnt')
   sourcmodel.pos = sourcemodel.pnt;
   sourcemodel    = rmfield(sourcemodel, 'pnt');
@@ -54,7 +48,6 @@ sourcemodel.inside  = find(~ismember(atlas.parcellation,[1 2 194 195]));
 sourcemodel.outside = find( ismember(atlas.parcellation,[1 2 194 195]));
 
 % load the volume conduction model of the head
-load(sprintf('%s/%svol.mat',subj{k},subj{k}))
 if exist('vol', 'var')
   headmodel = vol;
   clear vol;
