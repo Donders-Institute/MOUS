@@ -25,6 +25,8 @@
 % mous_multisetcca_trc
 % cellrowselect
 % nancov_shuf
+% clusterstat
+% prevalence toolbox: github.com/allefeld/prevalence-permutation
 
 % Preprocessed data & info files are saved as:
 %'/project/3011020.09/processed/%s/meg/multisetcca/%s_multisetcca_data.mat';
