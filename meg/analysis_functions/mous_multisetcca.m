@@ -1,26 +1,7 @@
-function [W, A, rho, Rtest, Xtest, testfold] = mous_multisetcca(X,nfold,K,lambda,shufflag,stratified)
+function [W, A, rho, Rtest, Xtest, testfold] = mous_multisetcca(X,nfold,K,lambda)
 
 if nargin<4 || isempty(lambda)
   lambda = 0;
-end
-
-if nargin<5 || isempty(shufflag) 
-  shufflag = 0; % can otherwise be 1 or a cell-array
-end
-
-if nargin<6 || isempty(stratified) 
-  stratified = 0;
-end
-
-if iscell(shufflag)
-  blocks   = shufflag;
-  shufflag = 3;
-  
-  % do the shuffling per block of subjects, where each cell represents the
-  % indices for a given block
-end
-if shufflag==2
-  error('shufflag of ''2'' is not supported anymore');
 end
 
 % check the input data
@@ -41,25 +22,9 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
     testfold = nfold;
     nfold    = numel(testfold);
   else
-    if stratified
-      % create the folds
-      class1   = find(X{1}.trialinfo(:,end)<= 500);
-      nobs1    = length(class1);
-      class2   = find(X{1}.trialinfo(:,end)> 500);
-      nobs2    = length(class2);
-      obs_shuf1 = class1(randperm(nobs1))';
-      obs_shuf2 = class2(randperm(nobs2))';
-      ix1       = round(linspace(0,nobs1,nfold+1)); % indices of observations that go into the test sample
-      ix2       = round(linspace(0,nobs2,nfold+1));
-      testfold = cell(nfold,1);
-      for k = 1:nfold
-        testfold{k,1} = [obs_shuf1((ix1(k)+1):ix1(k+1)) obs_shuf2((ix2(k)+1):ix2(k+1))];
-      end
-    else
-      % create the folds
-      nobs     = numel(X{1}.trial);
-      testfold = makefolds(nobs, nfold);
-    end
+    % create the folds
+    nobs     = numel(X{1}.trial);
+    testfold = makefolds(nobs, nfold);
   end
   
   % loop over the outer folds
@@ -86,7 +51,7 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
       end
       
       for m = 1:numel(lambda)
-        [W(:,:,:,k,m), A(:,:,:,k,m), rho(:,:,k,m), Rtest(:,:,k,m), Xtest(k,:,m)] = mous_multisetcca(X,testfold{k},K,lambda,shufflag);
+        [W(:,:,:,k,m), A(:,:,:,k,m), rho(:,:,k,m), Rtest(:,:,k,m), Xtest(k,:,m)] = mous_multisetcca(X,testfold{k},K,lambda);
         
         % also loop over the inner folds, use the same number of folds for
         % the inner folding, to evaluate the effect of the hyperparameter
@@ -97,7 +62,7 @@ if (numel(nfold)==1 && nfold>1) || iscell(nfold)
         
       keyboard
     else
-      [W(:,:,:,k), A(:,:,:,k), rho(:,:,k), Rtest(:,:,k), Xtest(k,:)] = mous_multisetcca(X,testfold{k},K,lambda,shufflag);
+      [W(:,:,:,k), A(:,:,:,k), rho(:,:,k), Rtest(:,:,k), Xtest(k,:)] = mous_multisetcca(X,testfold{k},K,lambda);
     end
   end
   
@@ -169,32 +134,6 @@ end
 
 
 % preprocess the data: get the covariance matrix and the masked block-diagonal matrix
-
-shufvec = shufflag;
-switch shufflag
-  case 0
-    % nothing to be done
-    allshufvec = [];
-  case 1
-    % shuffle trials and subjects and then do a covariance computation,
-    % ensure the same trialorder across sets, otherwise we get
-    % complex-valued results
-    for m = 1:nset
-      allshufvec(m,:) = randperm(numel(X{1}.trial));
-    end
-  case 3
-    % shuffle trials and subjects, but maintain the shuffling across
-    % blocks of subjects
-    for m = 1:numel(blocks)
-      allshufvec(blocks{m},:) = repmat(randperm(numel(X{1}.trial)), numel(blocks{m}), 1);
-    end
-end
-
-% shuffle the trials
-if ~isempty(allshufvec)
-  fprintf('shuffling trials\n');
-  X = shuffletrials(X, allshufvec);
-end
 
 % check whether the test and training data should be separated
 computeRtest = false;

@@ -69,12 +69,6 @@ if ~isempty(strfind(dataset, 'sub-2')) || ~isempty(strfind(dataset, 'A2'))
   cfg.trialdef.prestim  = 'audioonset';
   cfg.trialdef.poststim = 0.05;
 else
-%   cfg2 = cfg;
-%   cfg2.trialfun = 'trialfun_visual_word';
-%   cfg2.trialdef.prestim = 0;
-%   cfg2.trialdef.poststim = 0.1;
-%   cfg2 = ft_definetrial(cfg2);
-%   
   cfg.trialfun          = 'trialfun_visual_sentence';
   cfg.trialdef.prestim  = 0;  
 end
@@ -90,26 +84,17 @@ cfg.trl(:,3) = cfg.trl(:,3)-600;
 cfg.continuous = 'yes';
 cfg.demean     = 'yes';
 cfg.channel    = 'MEG';
-%cfg.bsfilter   = 'yes';  % temporary replacement for job of dftfilter
-%cfg.bsfreq     = [49 51];
-%cfg.bsfilttype = 'firws'; % windowed sinc FIR filter
 cfg.bpfilter = 'yes';
 cfg.bpfreq   = [0.5 20];
 cfg.bpfilttype = 'firws';
 cfg.padding    = 15;
 cfg.usefftfilt = 'yes';
-%cfg.hilbert    = 'abs';
 data           = ft_preprocessing(cfg);
-
-%tmpcfg = [];
-%tmpcfg.boxcar = 0.250;
-%data = ft_preprocessing(tmpcfg, data);
 
 cfg.channel    = 'UADC003';
 cfg.bpfilter   = 'no';
 cfg.hpfilter   = 'yes';
 cfg.hpfreq     = 12;     % remove slow drifts/fluctations. envelope is determined by high frequency activity
-%cfg.rectify    = 'yes';  % XOR: hilbert transform or rectify (in data make -ve values +ve using abs())
 speech         = ft_preprocessing(cfg);
 
 if ~isempty(strfind(dataset, 's-2'))
@@ -160,12 +145,16 @@ end
 cfg = [];
 cfg.detrend     = 'no';
 cfg.demean      = 'no';  
-%cfg.resamplefs  = 120;
 cfg.time        = time;
 speech          = ft_resampledata(cfg,speech);
-%cfg.resamplemethod = 'downsample'; % assumes lpfilter to already be applied 
 cfg.demean      = 'no';
 cfg.method      = 'nearest'; % using interp1 when supplying a time axis requires this
 data            = ft_resampledata(cfg,data);
 
+%% Do some additional manual cleaning of noisy trials
+cfg = [];
+cfg.method = 'summary';
+cfg.keeptrial = 'nan';
+cfg.channel = 'MEG';
+data = ft_rejectvisual(cfg, data);
 

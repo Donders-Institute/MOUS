@@ -16,7 +16,9 @@ end
 % in the spatial filter, and compute the parcel specific time courses
 [a,b]      = match_str(source.filterlabel, data.label);
 indx       = 1:min(5,size(source.F{parcel_indx},1));
-data.trial = source.F{parcel_indx}(indx,a)*cellrowselect(data.trial,b);
+for t = 1:numel(data.trial)
+    data.trial{t} = source.F{parcel_indx}(indx,a)*data.trial{t}(b,:);
+end
 data.label = data.label(indx);
 
 if hasstim

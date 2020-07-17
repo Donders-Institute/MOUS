@@ -1,3 +1,0 @@
-the canonicalmesh is obtained from the FS_spm_CanonicalBrain. The low-resolution mesh was generated with 
-MNE-suite. FIXME: by trial and error I determined the affine transformation from FS-surface coordinate
-system to MNI space with the talairach.xfm in the transforms directory of the canonical brain.
