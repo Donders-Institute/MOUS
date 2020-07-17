@@ -3,64 +3,35 @@
 % for Language" in Journal of Neuroscience
 % DOI: htpps://doi.org/10.1523/JNEUROSCI.2271-19.2020
 
-% The preprocessed & cleaned data that provides the starting point for the
-% analysis in this script are shared alongside at
-% FIXME: add sharing URL
+% This script operates on preprocessed data that is shared along with it. 
 % The preprocessing partly relied on manually annotation of artifacts and
 % noisy trials through RAs. For completeness the preprocessing script is
 % shared as mous_erf_sentences.m
 
-% In addition to FieldTrip functions, this script calls the following custom matlab files:
-% mous_multisetcca
-% mous_multisetcca_createshuffle
-% mous_multisetcca_extractwords
-% mous_multisetcca_getparceldata
-% mous_multisetcca_groupdata2singlestruct
-% mous_multisetcca_lcmv
-% mous_multisetcca_postprocess
-% mous_multisetcca_prevalence
-% mous_multisetcca_reorderaudio
-% mous_multisetcca_sensor2parcel
-% mous_multisetcca_stats
-% mous_multisetcca_trc
-% cellrowselect
-% nancov_shuf
-% clusterstat
-% prevalence toolbox: github.com/allefeld/prevalence-permutation
-
-% Preprocessed data & info files are saved as:
-%'/project/3011020.09/processed/%s/meg/multisetcca/%s_multisetcca_data.mat';
-%'/project/3011020.09/processed/%s/meg/multisetcca/%s_multisetcca_groupinfo.mat';
-%'/project/3011020.09/processed/%s/meg/multisetcca/%s_multisetcca_timinginfo.mat';
-
-% Headmodels are saved as:
-
-% Sourcemeodels are saved as:
-% /project/3011020.09/processed/%s/meg/anatomy/%ssourcemodel2Dsurfreg.mat'
-% /project/3011020.09/processed/%s/meg/anatomy/%svol.mat'
-
-% Results are saved in:
-% /project/3011020.09/processed/XXXX/meg/multisetcca/XXX_multisetcca_XX.mat
-% /project/3011020.09/sopara/supramodal_JoN/..
+% This script requires 
+% - several subfunctions: mous_multisetcca*
+% - recent FieldTrip version
+% - cellfunctions available in the private folder of the FieldTrip distribution
+% - prevalence toolbox: github.com/allefeld/prevalence-permutation
 
 % Set all paths
-datadir       = '/project/3011020.09/sopara/supramodal_JoN/';
+datadir       = 'YOUR/PATH';
 
 % Set flags for which parts of the script should be executed
 if ~exist('contentwords_only', 'var'),contentwords_only = true;                      end
 %This script is divided in different analysis steps some of which will be
 %computed per subject, others per parcel, others per scenario.
 % They can be called individually as well by setting the following flags:
-if ~exist('create_shuffle_indx',  'var'), create_shuffle_indx = false;end % create set of files that have pre-cooked randomization sequences
-if ~exist('do_prevalence',      'var'), do_clusterstats     = false; end
-if ~exist('do_clusterstats',      'var'), do_clusterstats     = false; end
+if ~exist('create_shuffle_indx',  'var'), create_shuffle_indx = true;end % create set of files that have pre-cooked randomization sequences
+if ~exist('do_prevalence',      'var'), do_prevalence     = true; end
+if ~exist('do_clusterstats',      'var'), do_clusterstats     = true; end
 if ~exist('scenario',         'var'), error('a scenario index needs to be specified');   end
 % analysis done per scenario
-if ~exist('dolcmv',           'var'), dolcmv           = false;                       end % compute spatial filters
+if ~exist('dolcmv',           'var'), dolcmv           = true;                       end % compute spatial filters
 %analysis done per scenario and per parcel_indx
-if ~exist('domscca_searchlight',  'var'), domscca_searchlight = false; end % various mscca flavours
-if ~exist('dotrc',                'var'), dotrc               = false; end
-if ~exist('dotrc_prior',          'var'), dotrc_prior         = false; end
+if ~exist('domscca_searchlight',  'var'), domscca_searchlight = true; end % various mscca flavours
+if ~exist('dotrc',                'var'), dotrc               = true; end
+if ~exist('dotrc_prior',          'var'), dotrc_prior         = true; end
 if domscca_searchlight || dotrc || dotrc_prior
     if ~exist('parcel_indx', 'var'),    error('a parcel index needs to be specified');  end
 end
@@ -83,10 +54,10 @@ load(fullfile(datadir,'mous_stimuli_share'))
 %%%%%%% Compute parcelwise source time-course (principal component) %%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if dolcmv
-    for k = 1:numel(subj)
+    for k = 1:numel(subj)        
         load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
-        load(sprintf(fulffile(datadir,'%s/%ssourcemodel2Dsurfreg.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'%s/%svol.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%ssourcemodel2Dsurfreg.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%svol.mat'),subj{k},subj{k}))
         [source_parc, filterlabel] = mous_multisetcca_lcmv(bnd,vol, data);
         save(sprintf(fullfile(datadir,'%s','%s_meg_multisetcca_lcmv_parc'),subj{k},subj{k}), 'source_parc', 'filterlabel');
     end
@@ -131,10 +102,10 @@ if domscca_searchlight
     for k = 1:numel(subj)
         
         % structure
-        load(sprintf(fullfile('/project/3011020.09/processed','%s','meg/multisetcca','%s_multisetcca_data.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile('/project/3011020.09/processed','%s','meg/multisetcca','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'sharing','%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'scenario%i','mscca_sce%i_parcel%03i.mat'),scenario,scenario,parcel_indx))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_meg_multisetcca_lcmv_parc'),subj{k},subj{k}))
         
         source_parc.filterlabel = filterlabel; % for checking channel order
         
@@ -245,6 +216,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if dotrc
+    suffix_out = '';
+    output_format = 'single_cross'; % use 'average_mod' for sensory-specific results, single_cross will only output cross-modal pairing
     % do time resolved correlation on canonical components
     nrand = 1000;
     filename = sprintf(fullfile(datadir,'scenario%d', 'mscca_sce%d_parcel%03d'),scenario,scenario,parcel_indx);
@@ -253,7 +226,7 @@ if dotrc
     load(filename, 'comp');
         
     %compute trc for observed data
-    [trc, tlck] = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', 1, 'output2', 'single_cross');
+    [trc, tlck] = mous_multisetcca_trc(comp, stimuli, 'dosmooth', 5, 'contentwords_only', contentwords_only,'output2', output_format);
     
     %compute trc for shuffled data
     bin = ones(size(tlck.trial,1),1);
@@ -289,7 +262,7 @@ if dotrc
     trcshuf2 = trcshuf2(1);
     
     if contentwords_only
-        suffix_out = '_sent_contentwords';
+        suffix_out = '_contentwords';
     end
     filename = sprintf(fullfile('scenario%d','mscca_sce%d_parcel%03d_trc%s'),scenario,scenario,parcel_indx,suffix_out);
     save(filename, 'trcshuf2','trc');
@@ -310,11 +283,12 @@ if dotrc_prior
     for k = 1:numel(subj)
         
         % load in the data
-        load(sprintf(fullfile('/project/3011020.09/processed','%s','meg/multisetcca','%s_multisetcca_data.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile('/project/3011020.09/processed','%s','meg/multisetcca','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
-        load(sprintf(fullfile(datadir,'sharing','%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_data.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_timinginfo.mat'),subj{k},subj{k}))
+        load(sprintf(fullfile(datadir,'%s','%s_multisetcca_groupinfo.mat'),subj{k},subj{k}))
         load(sprintf(fullfile(datadir,'scenario%i','mscca_sce%i_parcel%03i.mat'),scenario,scenario,parcel_indx))
-       
+        load(sprintf(fullfile(datadir,'%s','%s_meg_multisetcca_lcmv_parc'),subj{k},subj{k}))
+
         source_parc.filterlabel = filterlabel; % for checking channel order
         subjectdata{k} = mous_multisetcca_sensor2parcel(data, source_parc, parcel_indx);
         subjecttiming{k} = timinginfo; % subject specific information about timing
@@ -354,7 +328,7 @@ if dotrc_prior
     %combine with post-mscca results and save together. Note that results
     %will be overwritten when computing this for different scenarios.
     load(sprintf(fullfile(datadir,'scenario%d','mscca_sce%d_parcel%03d_trc.mat'),scenario,scenario,parcel_indx),'trc','trcshuf2')
-    save(sprintf(fullfile(datadir,'trc_data','trcdata_parcel%03d',parcel_indx)), 'trc_pre', 'trc', 'trcshuf2');
+    save(sprintf(fullfile(datadir,'trc_data','trcdata_parcel%03i.mat'),parcel_indx), 'trc_pre', 'trc', 'trcshuf2');
 end
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -367,10 +341,10 @@ if do_clusterstats
     % computed for all scenarios and output will be used by next step
     % mous_multisetcca_prevalence
     
-    trcname = '_sent_contentwords';
+    trcname = '_contentwords';
     [s, T, Tshuf] = mous_multisetcca_stats(sprintf(fullfile(datadir,'scenario%d'),scenario),scenario,'trcname', trcname,'shufflefname',trcname);
     
-    filename = sprintf(fullfile(datadir,'scenario%d','scenario%d_results_sent_contentwords'),scenario,scenario);
+    filename = sprintf(fullfile(datadir,'scenario%d','scenario%d_results_contentwords'),scenario,scenario);
     save(filename, 's', 'T', 'Tshuf');
 
     % 2) based on shuffling of sentences pre-MCCA (control analysis only computed for scenario 1)
