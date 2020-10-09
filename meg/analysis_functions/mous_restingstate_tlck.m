@@ -19,8 +19,8 @@ if isfield(options, 'comp') && isfield(options, 'avgcomp')
   comp.trial = cellrowselect(data.trial,1:numel(comp.label));
   
   % NOTE: this avoids a crash later on, but not sure which grad structure is
-  % used in ft_rejectcomponent.
-  comp = rmfield(comp, 'grad');
+  % used in ft_rejectcomponent. Not sure whether it is anymore needed.
+  %comp = rmfield(comp, 'grad');
   
   cfg           = [];
   cfg.component = find(v>0.1);
@@ -39,7 +39,7 @@ end
 
 hpfreq = 1;
 for k = 1:numel(data.trial)
-  data.trial{k} = ft_preproc_highpassfilter(data.trial{k}, data.fsample, hpfreq);
+  data.trial{k} = ft_preproc_highpassfilter(data.trial{k}, data.fsample, hpfreq, [], 'firws');
 end
 
 data.time(1:end) = data.time(1);
@@ -52,7 +52,7 @@ data       = ft_redefinetrial(cfg, data);
 
 % remove line noise
 Fline = 50:50:400;
-Fline(Fline>data.fsample/2) = [];
+Fline(Fline>data.fsample/1.9) = [];
 for k = 1:numel(data.trial)
   data.trial{k} = ft_preproc_dftfilter(data.trial{k}, data.fsample, Fline); 
 end

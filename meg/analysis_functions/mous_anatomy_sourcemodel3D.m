@@ -15,10 +15,10 @@ load(fname);
 
 % create the grid
 cfg = [];
-cfg.grid.warpmni    = 'yes';
+cfg.warpmni    = 'yes';
 %cfg.grid.resolution = resolution;
-cfg.grid.template   = sourcemodel;
-cfg.grid.nonlinear  = 'yes';
+cfg.template   = sourcemodel;
+cfg.nonlinear  = 'yes';
 cfg.mri = mri;
 sourcemodel = ft_prepare_sourcemodel(cfg);
 

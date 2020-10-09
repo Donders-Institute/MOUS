@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export FREESURFER_HOME=/opt/freesurfer-v5.1
+#export FREESURFER_HOME=/opt/freesurfer-v5.1
 export SUBJECTS_DIR=$1
 
 source $FREESURFER_HOME/SetUpFreeSurfer.sh

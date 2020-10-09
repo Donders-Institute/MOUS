@@ -139,19 +139,12 @@ if dogranger1
   options.overlap    = 0.5;
   options.avgcomp    = avgcomp;
   options.comp       = comp;
-  options.foilim     = [0 100];
   options.pad        = 4;
   [tlck, data_cut]   = mous_restingstate_tlck(data, options);
+  options.foilim     = [0 100];
   options.tapsmofrq  = 2;
-  %[freq, freq_ems]   = mous_restingstate_freq(data, options);
   [~, freq]   = mous_restingstate_freq(data, options); % use the ensemble mean subtracted version
   
-  % compute the leadfields
-%   mous_db_getdata(subjectname, 'meg_anatomy_sourcemodel2D_surfreg');
-%   mous_db_getdata(subjectname, 'meg_anatomy_headmodel');
-%   sourcemodel = ft_convert_units(bnd,         'm');
-%   sourcemodel.inside = 1:8196;
-%   sourcemodel.outside = [];
 
   sourcemodel = mous_anatomy_sourcemodelparcellate_combined(subjectname, 4);
   sourcemodel = ft_convert_units(sourcemodel, 'm');
@@ -161,39 +154,78 @@ if dogranger1
   headmodel   = ft_convert_units(vol,         'm');
   tlck.grad   = ft_convert_units(tlck.grad,   'm');
   
-  cfg      = [];
-  cfg.vol  = headmodel;
-  cfg.grad = tlck.grad;
-  cfg.grid = sourcemodelorig;
-  cfg.channel = 'MEG';
+  % reject cardiac components
+  v = var(avgcomp,[],2);
+  v = v./v(1);
+  kappa = numel(tlck.label) - sum(v>0.1);
+  
+  % compute the leadfields
+  cfg             = [];
+  cfg.headmodel   = headmodel;
+  cfg.grad        = tlck.grad;
+  cfg.sourcemodel = sourcemodelorig;
+  cfg.channel     = 'MEG';
+  cfg.backproject = 'no'; % stick to the plane-projected leadfields
+  cfg.singleshell.batchsize = 2000;
   sourcemodel = ft_prepare_leadfield(cfg);
-  %sourcemodel = mous_parcellate_leadfield(sourcemodel, sourcemodelorig);
-  
-  
+   
   % compute the lcmv spatial filters
   cfg                 = [];
   cfg.method          = 'lcmv';
   cfg.lcmv.keepfilter = 'yes';
-  cfg.lcmv.fixedori   = 'yes';%'no';
-  cfg.lcmv.lambda     = '100%';
+  cfg.lcmv.fixedori   = 'no';
+  cfg.lcmv.kappa      = kappa;
   cfg.lcmv.projectnoise = 'yes';
-  cfg.grid            = sourcemodel;
-  cfg.vol             = headmodel;
+  cfg.sourcemodel     = sourcemodel;
+  cfg.headmodel       = headmodel;
   source              = ft_sourceanalysis(cfg, tlck);
   
-  %% do a parcellation based on the correlation structure in the data +
-  %% spatial distance
-  %addpath ~/matlab/toolboxes/Ncut_9
-  %[sourceparc, parcellation] = mous_lcmv_parcellate(source, tlck);
- 
-  %%load atlas_conte69_8196reg_LR
-  %%[sourceparc, parcellation]=mous_lcmv_parcellate(source,tlck,'method','parcellation','parcellation',atlas,'parcellationparam','parcellation4')
-  %[sourceparc, parcellation]=mous_lcmv_parcellate(source,tlck,'method','parcellation','parcellation',sourcemodelorig,'parcellationparam','tissue')
-  %
-  %% create sensor cross-spectral density and project the cross-spectral density into parcel space
-  %sel = find(~cellfun(@isempty, parcellation.filter));
-  %F   = cat(1, parcellation.filter{sel});
+ [s,p] = mous_lcmv_parcellate(source, data_cut, 'parcellationparam', 'tissue', ...
+          'parcellation', sourcemodelorig, ...
+          'parcel_indx',  {'Cerebellum Left VIIb' 'Cerebellum Right VIIb' 'Thalamus Left Primary_motor' 'Thalamus Right Primary_motor' 'L_4_B05_01' 'L_4_B05_02' 'R_4_B05_01' 'R_4_B05_02'}, ...
+          'method',       'parcellation_dss');
   
+ [s_pca,p_pca] = mous_lcmv_parcellate(source, data_cut, 'parcellationparam', 'tissue', ...
+          'parcellation', sourcemodelorig, ...
+          'parcel_indx',  {'Cerebellum Left VIIb' 'Cerebellum Right VIIb' 'Thalamus Left Primary_motor' 'Thalamus Right Primary_motor' 'L_4_B05_01' 'L_4_B05_02' 'R_4_B05_01' 'R_4_B05_02'}, ...
+          'method',       'parcellation');       
+  %%
+  % does the spatially filtered time domain data yield the same spectral
+  % representation as the directly spatially filtered spectral data?
+  cfg = removefields(freq.cfg, {'channel' 'previous'});
+  
+  data_p = mous_restingstate_data2parcel(data_cut, p, 1:8, 2);
+  freq_p = ft_freqanalysis(cfg, data_p);
+  data_pca = mous_restingstate_data2parcel(data_cut, p_pca, 1:8, 2);
+  freq_pca = ft_freqanalysis(cfg, data_pca);
+  
+  ixf = 1:(nearest(freq_p.freq, 98)-1);
+  foi = freq_p.freq(ixf);
+  
+  for i = 1:20
+    selvec = 0:(2*numel(p.freq)):(numel(freq_p.label)-1);
+    selvec = reshape([selvec; selvec+1],[],1);
+    offset = 4*i; % in steps of 1 Hz
+    
+    this = freq_p;
+    this.fourierspctrm = freq_p.fourierspctrm(:, selvec+offset, :);
+    this.label         = freq_p.label(selvec+offset);
+    
+    csd_p = ft_checkdata(this, 'cmbrepresentation', 'fullfast');
+    [g_p{i}] = do_granger4x4(csd_p.crsspctrm(:,:,ixf), foi, [], csd_p.label, 'struct');
+    [g_prev{i}] = do_granger4x4(conj(csd_p.crsspctrm(:,:,ixf)), foi, [], csd_p.label, 'struct');
+  end
+  
+  csd_pca = ft_checkdata(freq_pca, 'cmbrepresentation', 'fullfast');
+  [g_pca] = do_granger4x4(csd_pca.crsspctrm(:,:,ixf), foi, [], csd_pca.label, 'struct');
+  
+  % this one is slightly different, probably due to some leakage of the DC
+  % component through the projection -> thus work with the computationally
+  % slightly less efficient steps above
+  %freq_p2 = mous_restingstate_data2parcel(freq, p, 1);
+  
+  
+ 
   F = zeros(numel(sourcemodelorig.tissuelabel),273);
   for k = 1:size(F,1)
     tmp     = source.avg.filter{k};
@@ -498,11 +530,10 @@ if dodss_osc
     cfg.dss.denf.params.filter_filtfilt.A = A;
     cfg.dss.denf.params.filter_filtfilt.B = B;
     cfg.dss.denf.params.filter_filtfilt.function = 'fir_filterdcpadded';
-    %[b,a]   = mous_iirpeak_coeffs(2.*freqs(k)./data.fsample, freqs(k)./(data.fsample.*2.5));
-    %cfg.dss.denf.params.filter_filtfilt.A = a;
-    %cfg.dss.denf.params.filter_filtfilt.B = b;
+    
     cfgpp.hpfreq = freqs(k)./1.5;
     comp = ft_componentanalysis(cfg, ft_preprocessing(cfgpp, data));
+    T(:,:,k) = comp.topo;
     freq = ft_freqanalysis(cfgf, comp);
     
     if k==1

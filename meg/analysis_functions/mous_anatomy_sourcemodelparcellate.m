@@ -8,14 +8,24 @@ function [sourcemodelout] = mous_anatomy_sourcemodelparcellate(subjectname, sour
 filename_mri   = ft_getopt(varargin, 'filename_mri',   fullfile('/project/3011020.09/MEG/',subjectname,'anatomy',subjectname,'mri','orig.mgz'));
 filename_atlas = ft_getopt(varargin, 'filename_atlas', fullfile('/project/3011020.09/MEG/',subjectname,'anatomy',subjectname,'mri','aparc+aseg.mgz'));
 parcelparam    = ft_getopt(varargin, 'parcelparam',    'aparc');
-segmentationstyle = ft_getopt(varargin, 'segmentationstyle', 'indexed');
+segmentationstyle = ft_getopt(varargin, 'segmentationstyle', []);
 atlas          = ft_getopt(varargin, 'atlas');
+map            = ft_getopt(varargin, 'map');
 
 if isempty(atlas)
   % read in the atlas
-  atlas = ft_read_atlas(filename_atlas);
+  atlas = ft_read_atlas(filename_atlas, 'map', map);
 else
   % do nothing
+end
+
+% this is a bit clunky but will do the trick
+if isempty(segmentationstyle)
+  if isequal(map, 'prob')
+    segmentationstyle = 'probabilistic';
+  else
+    segmentationstyle = 'indexed';
+  end
 end
 
 % ensure mm units
@@ -43,7 +53,11 @@ vox2vox = T\mrimni1.transform; %transforms from vox in 1 to vox in 2
 voxpos  = ft_warp_apply(vox2vox, voxpos1);
 
 % rename the labels if segmentationstyle = probabilistic
-if strcmp(segmentationstyle, 'probabilistic')
+if strcmp(segmentationstyle, 'indexed_typeb')
+  % JM: I cannot find back the purpose of this section, i.e. to which atlas
+  % it refers. Either way, before the corresponding segmentationstyle was
+  % denoted as 'probabilistic', which is inconsistent with what follows
+  % (since there is a parcelparam, and the parcellation seems indexed)
   
   for k = 1:numel(atlas.([parcelparam,'label']))
     % replace dashes by underscores
@@ -88,6 +102,27 @@ if strcmp(segmentationstyle, 'probabilistic')
     end
   end
   
+elseif strcmp(segmentationstyle, 'probabilistic')
+  tmp     = sourcemodelin;
+  tmp.pos = ft_warp_apply(sourcemodelin.params,ft_warp_apply(sourcemodelin.initial,sourcemodelin.pos),'individual2sn');
+  
+  fn = fieldnames(atlas);
+  ok = false(numel(fn),1);
+  for k = 1:numel(fn)
+    if isequal(size(atlas.(fn{k})),atlas.dim(1:3))
+      ok(k) = true;
+    end
+  end
+  parcelparam = fn(ok);
+  
+  cfg = [];
+  cfg.interpmethod = 'nearest';
+  cfg.parameter    = parcelparam;
+  tmp              = ft_sourceinterpolate(cfg, atlas, tmp);
+  
+  sourcemodelout     = sourcemodelin;
+  sourcemodelout     = copyfields(tmp, sourcemodelout, parcelparam(:)');
+
 elseif strcmp(segmentationstyle, 'indexed')
   
   tmp     = sourcemodelin;

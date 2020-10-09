@@ -1,10 +1,11 @@
 function [source, parcellation] = mous_lcmv_parcellate(sourcein, tlck, varargin)
 
-method = ft_getopt(varargin, 'method', 'graphcut');
+method = ft_getopt(varargin, 'method', 'parcellation_dss');
 
 switch method
   case 'graphcut'
-    
+    % this has never really worked I guess, kept here for historical
+    % reasons
     Nclus = ft_getopt(varargin, 'Nclus', 400)./2;
     
     % create a spatial filter matrix based on the svd of the projected
@@ -101,32 +102,227 @@ switch method
     parcellation.filter = filter;
     
   case 'parcellation'
-    % use an existing parcellation, but still do an svd on the projected
-    % power
+    
+    if ~isfield(tlck, 'cov')
+      tlck = ft_checkdata(tlck, 'datatype', 'raw');
+      cfg  = [];
+      cfg.covariance = true;
+      tlck = ft_timelockanalysis(cfg, tlck);
+    end
+    
+    % use an existing parcellation, and do an svd on the projected
+    % variance
     parcellation = ft_getopt(varargin, 'parcellation');
     parcelparam  = ft_getopt(varargin, 'parcellationparam', 'parcellation');
+    parcel_indx  = ft_getopt(varargin, 'parcel_indx', 'all');
     
-    Nparcel = numel(parcellation.([parcelparam,'label']));
+    if isequal(parcel_indx,'all')
+      parcel_indx = 1:numel(parcellation.([parcelparam,'label']));
+    elseif iscell(parcel_indx)
+      parcel_indx = match_str(parcellation.([parcelparam,'label']), parcel_indx);
+    elseif ischar(parcel_indx)
+      parcel_indx = match_str(parcellation.([parcelparam,'label']), parcel_indx);
+    end
+    
+    Nparcel = numel(parcel_indx);
     filter  = cell(Nparcel,1);
     for k = 1:Nparcel
-      sel = find(parcellation.(parcelparam)==k);
+      sel = parcellation.(parcelparam)==parcel_indx(k);
       F   = cat(1,sourcein.avg.filter{sel});
       [u,s,v] = svd(F*tlck.cov*F');
       filter{k} = u'*F;
       S{k}      = diag(s);
       U{k}      = u;
     end
-    
+    label  = sourcein.avg.label;
     source = rmfield(sourcein, 'avg');
     source.parcellation = parcellation.(parcelparam);
     source.parcellationlabel = parcellation.([parcelparam,'label']);
     
     clear parcellation;
     
-    parcellation.label  = source.parcellationlabel;
+    parcellation.label  = source.parcellationlabel(parcel_indx);
     parcellation.filter = filter;
     parcellation.s      = S;
     parcellation.u      = U;
+    parcellation.chanlabel = label;
+  case 'parcellation_dss'
+    % use an existing parcellation, but do a frequency band optimized dss
+    % decomposition, sweeping through a range of frequencies
+    ft_hastoolbox('dss', 1);
+    tlck = ft_checkdata(tlck, 'datatype', 'raw');
+        
+    cfg               = [];
+    cfg.cellmode      = 'yes';
+    cfg.method        = 'dss';
+    cfg.demean        = 'no';
+    cfg.doscale       = 'yes';
+    cfg.dss.algorithm = 'pca';
+    cfg.dss.denf.function = 'denoise_filter2';
+    cfg.dss.denf.params.filter_filtfilt.A = [];
+    cfg.dss.denf.params.filter_filtfilt.B = [];
     
+    % use an existing parcellation, but still do an svd on the projected
+    % power
+    parcellation = ft_getopt(varargin, 'parcellation');
+    parcelparam  = ft_getopt(varargin, 'parcellationparam', 'parcellation');
+    parcel_indx  = ft_getopt(varargin, 'parcel_indx', 'all');
+    freqs        = ft_getopt(varargin, 'freq', [1:30 35:5:80]);
+    
+    if isequal(parcel_indx,'all')
+      parcel_indx = 1:numel(parcellation.([parcelparam,'label']));
+    elseif iscell(parcel_indx)
+      parcel_indx = match_str(parcellation.([parcelparam,'label']), parcel_indx);
+    elseif ischar(parcel_indx)
+      parcel_indx = match_str(parcellation.([parcelparam,'label']), parcel_indx);
+    end
+    
+    Nparcel = numel(parcel_indx);
+    filter  = cell(Nparcel,1);
+    for m = 1:Nparcel
+      data = removefields(tlck, {'label' 'grad' 'elec'});
+      
+      sel = parcellation.(parcelparam)==parcel_indx(m);
+      F   = cat(1,sourcein.avg.filter{sel});
+      
+      data.trial = F*tlck.trial;
+      for k = 1:size(F,1)
+        data.label{k,1} = sprintf('chan%03d',k);
+      end
+      
+      for k = 1:numel(data.trial)
+        data.trial{k} = ft_preproc_baselinecorrect(data.trial{k});
+      end
+      
+      for k = 1:numel(freqs)
+        fprintf('processing frequency %d Hz\n',freqs(k));
+        [dum, B, A] = ft_preproc_bandpassfilter(data.trial{1},data.fsample,freqs(k)+[-1 1].*freqs(k)./8,[],'firws');
+        cfg.dss.denf.params.filter_filtfilt.A = A;
+        cfg.dss.denf.params.filter_filtfilt.B = B;
+        cfg.dss.denf.params.filter_filtfilt.function = 'fir_filterdcpadded';
+        if k==1
+          cfg.dss = removefields(cfg.dss, {'V' 'dV'});
+          cfg.doscale = 'yes';
+        elseif k==2
+          cfg.dss.V         = comp.cfg.dss.V;
+          cfg.dss.dV        = comp.cfg.dss.dV;
+          cfg.doscale       = 'no';
+        end
+        
+        comp = ft_componentanalysis(cfg, data);
+        filter{m}(:,:,k) = comp.unmixing*F;
+      end
+      
+    end
+    label  = sourcein.avg.label;
+    source = rmfield(sourcein, 'avg');
+    source.parcellation = parcellation.(parcelparam);
+    source.parcellationlabel = parcellation.([parcelparam,'label']);
+    
+    clear parcellation;
+    
+    parcellation.label  = source.parcellationlabel(parcel_indx);
+    parcellation.filter = filter;
+    parcellation.chanlabel = label;
+    parcellation.freq   = freqs;
+  
+  case 'parcellation_dss_mim'
+    % use an existing parcellation, but do a frequency band optimized dss
+    % decomposition, sweeping through a range of frequencies
+    ft_hastoolbox('dss', 1);
+    tlck = ft_checkdata(tlck, 'datatype', 'raw');
+        
+    cfg               = [];
+    cfg.cellmode      = 'yes';
+    cfg.method        = 'dss';
+    cfg.demean        = 'no';
+    cfg.doscale       = 'yes';
+    cfg.dss.algorithm = 'mim';
+    cfg.dss.denf.function = 'denoise_hilbert';
+    cfg.dss.denf.params.filter_filtfilt.A = [];
+    cfg.dss.denf.params.filter_filtfilt.B = [];
+    cfg.dss.preprocf.function = 'pre_sphere_blocked';
+    
+    % use an existing parcellation, but still do an svd on the projected
+    % power
+    parcellation = ft_getopt(varargin, 'parcellation');
+    parcelparam  = ft_getopt(varargin, 'parcellationparam', 'parcellation');
+    parcel_cmb   = ft_getopt(varargin, 'parcel_cmb', {'all' 'all'});
+    freqs        = ft_getopt(varargin, 'freq', [1:30 35:5:80]);
+    
+    label      = parcellation.([parcelparam,'label']);
+    parcel_cmb = ft_channelcombination(parcel_cmb, label);
+    parcel_indx(:,1) = match_str(label, parcel_cmb(:,1));
+    parcel_indx(:,2) = match_str(label, parcel_cmb(:,2));
+    
+    Nparcelcmb = size(parcel_indx,1);
+    filter  = cell(Nparcelcmb,1);
+    for m = 1:Nparcelcmb
+      data = removefields(tlck, {'label' 'grad' 'elec'});
+      
+      sel = parcellation.(parcelparam)==parcel_indx(m,1);
+      F1  = cat(1,sourcein.avg.filter{sel});
+      sel = parcellation.(parcelparam)==parcel_indx(m,2);
+      F2  = cat(1,sourcein.avg.filter{sel});
+      
+      cfg.dss.indx = [ones(1,size(F1,1)) ones(1,size(F2,1))*2];
+      cfg.dss.preprocf.params.indx = cfg.dss.indx;
+    
+      data.trial = [F1;F2]*tlck.trial;
+      for k = 1:size(F1,1)
+        data.label{k,1} = sprintf('chan1_%03d',k);
+      end
+      for k = 1:size(F2,1)
+        data.label{size(F1,1)+k} = sprintf('chan2_%03d',k);
+      end
+      
+      for k = 1:numel(data.trial)
+        data.trial{k} = ft_preproc_baselinecorrect(data.trial{k});
+      end
+      
+      for k = 1:numel(freqs)
+        fprintf('processing frequency %d Hz\n',freqs(k));
+        [dum, B, A] = ft_preproc_bandpassfilter(data.trial{1},data.fsample,freqs(k)+[-1 1].*freqs(k)./8,[],'firws');
+        cfg.dss.denf.params.filter_filtfilt.A = A;
+        cfg.dss.denf.params.filter_filtfilt.B = B;
+        cfg.dss.denf.params.filter_filtfilt.function = 'fir_filterdcpadded';
+        if k==1
+          cfg.dss = removefields(cfg.dss, {'V' 'dV'});
+          cfg.doscale = 'yes';
+        elseif k==2
+          cfg.dss.V         = comp.cfg.dss.V;
+          cfg.dss.dV        = comp.cfg.dss.dV;
+          cfg.doscale       = 'no';
+        end
+        
+        comp = ft_componentanalysis(cfg, data);
+        filter{m}(:,:,k) = comp.unmixing*[F1;F2];
+        D{m}(:,k) = comp.cfg.dss.D;
+      end
+      
+      N = size(comp.unmixing,1)/2;
+      datlab = cell(2*N,1);
+      for k = 1:N
+        datlab{k  , 1} = sprintf('%s_%02d',parcel_cmb{m,1}, k);
+        datlab{k+N, 1} = sprintf('%s_%02d',parcel_cmb{m,2}, k);
+      end
+      datlabel{m} = datlab;
+      
+    end
+    
+    
+    label  = sourcein.avg.label;
+    source = rmfield(sourcein, 'avg');
+    source.parcellation = parcellation.(parcelparam);
+    source.parcellationlabel = parcellation.([parcelparam,'label']);
+    
+    clear parcellation;
+    
+    parcellation.label  = reshape(source.parcellationlabel(parcel_indx), size(parcel_indx));
+    parcellation.filter = filter;
+    parcellation.chanlabel = label;
+    parcellation.freq   = freqs;
+    parcellation.datlabel = datlabel;
+    parcellation.D = D;
   otherwise
 end

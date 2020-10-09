@@ -1,8 +1,15 @@
-function [g, g_toti] = do_granger4x4(csd,freq,cmbindx)
+function [g, g_toti, labelcmb] = do_granger4x4(csd,freq,cmbindx,label,outputtype)
 
-if nargin==2,
+if nargin<3 || isempty(cmbindx)
   cmbindx = make_cmbindx(size(csd,1));
 end
+if nargin<4
+  label = {};
+end
+if nargin<5
+  outputtype = 'old'; % can also be struct, in which case an ft_structure is outputted
+end
+
 [h,z,s] = sfactorization_wilson4x4(csd,freq,35,1e-18,cmbindx,'none','chol',false);
 
 H = reshape(h,[4 4 size(h,1)/16 size(h,2)]);
@@ -48,6 +55,39 @@ for k = 1:ncmb
     g_toti(k,m) = log( (abs(det(Sj([1 2],[1 2]))).*abs(det(Sj([3 4],[3 4]))))./abs(det(Sj)) );
   end
 end
+
+if ~isempty(label)
+  labelcmb = label(cmbindx(:,[1 3])')';
+else
+  labelcmb = cell(0,2);
+end
+
+switch outputtype
+  case 'struct'
+    if isempty(labelcmb)
+      error('the input needs a label list for an FT structure to be constructed');
+    end
+    
+    output.freq     = freq;
+    output.labelcmb = [labelcmb;labelcmb(:,[2 1])];
+    output.grangerspctrm = cat(1, shiftdim(g(1,2,:,:), 1), shiftdim(g(2,1,:,:), 1));
+    output.totispctrm    = cat(1, g_toti, g_toti);
+    output.dimord   = 'chancmb_freq';
+    
+    ix = reshape(1:size(output.grangerspctrm,1),[],2);
+    ix = reshape(ix',[],1);
+    
+    output.labelcmb = output.labelcmb(ix,:);
+    output.grangerspctrm = output.grangerspctrm(ix,:);
+    output.totispctrm    = output.totispctrm(ix,:);
+    
+    g = output;
+    g_toti = [];
+    labelcmb = [];
+    
+  otherwise
+end
+
 
 % Below is the original implemention: it has been verified to give the same
 % result as the above (but then for a single block of 4 channels

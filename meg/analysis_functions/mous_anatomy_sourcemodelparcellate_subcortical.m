@@ -5,6 +5,10 @@ mri.coordsys = 'ctf';
 sourcemodel  = mous_anatomy_sourcemodel3D(mri, resolution);
 sourcemodelin = sourcemodel;
 
+fname = ['standard_sourcemodel3d',num2str(resolution),'mm.mat'];
+dummy = load(fname);
+template = dummy.sourcemodel;
+
 atlasdir = '/opt/fsl/5.0.4/data/atlases/';
 stdrddir = '/opt/fsl/5.0.4/data/standard/';
 
@@ -21,9 +25,10 @@ sourcemodel = tmp;
 
 % Thalamus
 f_a = fullfile(atlasdir,'Thalamus.xml');
-tmp = mous_anatomy_sourcemodelparcellate(subjectname,sourcemodelin,'filename_mri',f_m,'filename_atlas',f_a,'parcelparam','tissue');
-tmp = reindex_parcellation(tmp);
-tmp = reindex_hemisphere(tmp);
+tmp = mous_anatomy_sourcemodelparcellate(subjectname,sourcemodelin,'filename_mri',f_m,'filename_atlas',f_a,'parcelparam','tissue','map','prob');
+tmp = prob2indexed(tmp, {'Primary_motor' 'Sensory' 'Occipital' 'Pre_motor' 'Posterior_parietal' 'Temporal' 'Pre_frontal'}, [0.4 0.4 0.3 0.5 0.5 0.5 0.5], 1);
+tmp = reindex_parcellation(tmp); tmp.tissue = tmp.tissue(:);
+tmp = reindex_hemisphere(tmp, template.pos);
 tmp = reindex_parcellation(tmp);
 for k = 1:numel(tmp.tissuelabel)
   tmp.tissuelabel{k} = ['Thalamus ',tmp.tissuelabel{k}];
@@ -39,7 +44,7 @@ sourcemodel.tissuelabel = [sourcemodel.tissuelabel;tmp.tissuelabel];
 f_a = fullfile(atlasdir,'Striatum-Connectivity-7sub.xml');
 tmp = mous_anatomy_sourcemodelparcellate(subjectname,sourcemodelin,'filename_mri',f_m,'filename_atlas',f_a,'parcelparam','tissue');
 tmp = reindex_parcellation(tmp);
-tmp = reindex_hemisphere(tmp);
+tmp = reindex_hemisphere(tmp, template.pos);
 tmp = reindex_parcellation(tmp); % just to be safe
 for k = 1:numel(tmp.tissuelabel)
   tmp.tissuelabel{k} = ['Striatum ',tmp.tissuelabel{k}];
@@ -73,11 +78,11 @@ sourcemodel.tissuelabel = [sourcemodel.tissuelabel;tmp.tissuelabel];
 sourcemodel.inside  = find(sourcemodel.tissue > 0);
 sourcemodel.outside = find(sourcemodel.tissue == 0);
 
-function output = reindex_hemisphere(input)
+function output = reindex_hemisphere(input, pos)
 
-left      = input.pos(:,2)>0;
-right     = input.pos(:,2)<0;
-undecided = input.pos(:,2)==0;
+left      = pos(:,1)<0; %assuming RAS
+right     = pos(:,1)>0;
+undecided = pos(:,1)==0;
 
 val       = unique(input.tissue(:));
 tissue    = zeros(size(input.tissue));
@@ -114,3 +119,29 @@ end
 output             = input;
 output.tissue      = tissue;
 output.tissuelabel = input.tissuelabel(val(2:end));
+
+function output = prob2indexed(input, fn, thr, symflag)
+
+if numel(thr)==1
+  thr = repmat(thr, 1, numel(fn));
+end
+
+output = removefields(input, fn);
+output.tissue = zeros(input.dim);
+output.tissuelabel = fn(:);
+
+if nargin<4
+  symflag = false;
+end
+
+% loop through the fields, from left to right. Whenever dipole position is
+% assigned a label, it is not considered anymore (i.e. fn more to the left
+% has precedence)
+for k = 1:numel(fn)
+  dum = input.(fn{k});
+  if symflag
+    dum = (dum+flip(dum,1))./2; % assume 1 to be the left/right axis
+  end
+  output.tissue(dum>thr(k) & output.tissue==0) = k;
+end
+

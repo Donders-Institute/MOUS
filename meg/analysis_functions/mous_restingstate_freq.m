@@ -22,8 +22,8 @@ if isfield(options, 'comp') && isfield(options, 'avgcomp')
   comp.trial = cellrowselect(data.trial, 1:numel(comp.label)) ;
   
   % NOTE: this avoids a crash later on, but not sure which grad structure is
-  % used in ft_rejectcomponent.
-  comp = rmfield(comp, 'grad');
+  % used in ft_rejectcomponent. Not sure whether it is anymore needed
+  %comp = rmfield(comp, 'grad');
   
   cfg           = [];
   cfg.component = find(v>0.1);
