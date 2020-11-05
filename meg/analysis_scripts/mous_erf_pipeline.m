@@ -845,8 +845,12 @@ if doerf_speech_tlck
 end
 
 if doerf_speech_trf
-  [tlck, tlck_sent, tlck_seq] = mous_neuralspeech_trf_sensor(subjectname);
+  [tlck, tlck_sent, tlck_seq] = mous_neuralspeech_trf_sensor(subjectname, {'audio_avg'});
   mous_db_putdata(subjectname, 'meg_erf_speech_trf', 'tlck', 'tlck_sent', 'tlck_seq', outrootdir);
+
+  [tlck, tlck_sent, tlck_seq] = mous_neuralspeech_trf_sensor(subjectname, {'audio_avg' 'stimon'});
+  mous_db_putdata(subjectname, 'meg_erf_speech_trf_env_wordonset', 'tlck', 'tlck_sent', 'tlck_seq', outrootdir);
+
 end
 
 if doerf_speech_tlck_surrogate
@@ -903,7 +907,9 @@ if doerf_earlylate
   
 end
 
-
+if ~exist('doerf_main_correctonly','var')
+  doerf_main_correctonly = false;
+end
 %--------------------------------------------------------------------------
 %2018 revision NI
 if doerf_main_correctonly
