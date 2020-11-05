@@ -1,5 +1,8 @@
-function [tlck, tlck_sent, tlck_seq, trf_all, trf_sent, trf_seq, data, speech] = mous_neuralspeech_trf_sensor(subjectname)
+function [tlck, tlck_sent, tlck_seq, trf_all, trf_sent, trf_seq, data, speech] = mous_neuralspeech_trf_sensor(subjectname, refchan)
 
+if nargin<2 || isempty(refchan)
+  refchan = {'audio_avg'};
+end
 
 %% load raw data
 dataset   = mous_db_getfilename(subjectname, 'meg_raw_task');
@@ -43,26 +46,32 @@ elseif numel(dataset) > 1
   speech.grad = ft_average_sens(tmpsens2, 'weights', weights2);   
 end
 
+if any(contains(refchan, 'stimon'))
+  out    = addstimchan(speech, 'aud');
+  speech = ft_appenddata([], speech, out);
+  speech.label{end} = 'stimon';
+end
+
 cfg             = [];
 cfg.method      = 'mlrridge';
-cfg.refchannel  = 'audio_avg';
-cfg.reflags     = (0:150)./300; 
-cfg.threshold   = [0.05 0];
+cfg.refchannel  = refchan;
+cfg.reflags     = (-6:150)./300; 
+cfg.threshold   = [10 0];
 cfg.feedback    = 'text';
 cfg.standardiserefdata = true;
 cfg.standardisedata    = true;
 cfg.demeanrefdata      = true;
 cfg.demeandata         = true;
 trf_all         = ft_denoise_tsr(cfg, data, speech);
-weights_all     = diag(trf_all.weights.rho)*trf_all.weights.beta;
+weights_all     = trf_all.weights.beta; % diag(trf_all.weights.rho)*trf_all.weights.beta;
 
 cfg.trials      = find(ismember(data.trialinfo(:,2),[1 5]));
 trf_sent        = ft_denoise_tsr(cfg, data, speech);
-weights_sent    = diag(trf_sent.weights.rho)*trf_sent.weights.beta;
+weights_sent    = trf_sent.weights.beta; % diag(trf_sent.weights.rho)*trf_sent.weights.beta;
 
 cfg.trials      = find(ismember(data.trialinfo(:,2),[3 7]));
-trf_seq       = ft_denoise_tsr(cfg, data, speech);
-weights_seq     = diag(trf_seq.weights.rho)*trf_seq.weights.beta;
+trf_seq         = ft_denoise_tsr(cfg, data, speech);
+weights_seq     = trf_seq.weights.beta; % diag(trf_seq.weights.rho)*trf_seq.weights.beta;
 
 tlck       = [];
 tlck.time  = trf_all.weights.time;
