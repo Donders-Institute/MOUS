@@ -692,7 +692,9 @@ if makemodels2_nointeraction
   if ~exist('loaddir', 'var')
     error('define loaddir');
   end
-  
+  if ~exist('quadratic', 'var')
+    quadratic=0;
+  end
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
     %test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
@@ -820,9 +822,17 @@ if makemodels2_nointeraction
       error('only a single independent variable is allowed');
     end
     
-    indx = find(ismember(ivar, test_ivars{1}));
-    stat = mous_multisetcca_regress(tlck, design(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5);
-      
+
+    if ~quadratic
+        indx = find(ismember(ivar, test_ivars{1}));
+        stat = mous_multisetcca_regress(tlck, design(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5);     
+    else
+        design.quad = design.(test_ivars{1}).*design.(test_ivars{1}); 
+        indx = find(ismember(ivar, test_ivars{1}));
+        indxq = find(strcmp(design.Properties.VariableNames, 'quad'), 1);
+        stat = mous_multisetcca_regress(tlck, design(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),[indx indxq])), 'innerfolds', 5);     
+    end
+    
     rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
     p = zeros(size(stat.Rsq));
     Frand  = zeros([size(stat.Rsq) nrand]);
@@ -841,8 +851,17 @@ if makemodels2_nointeraction
         tmpdesign.(vars{j}) = tmpX;
         end
       end
+           
+      if ~quadratic
+          tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5);
+      else
+          tmpQ = tmpdesign.quad
+          tmpQ = tmpQ(randvec,:);
+          tmpdesign.quad = tmpQ;
+          tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),[indx indxq])), 'innerfolds', 5);
+      end
       
-      tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[setdiff(1:size(design,2),indx) indx]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', ivar(setdiff(1:size(design,2),indx)), 'innerfolds', 5);
+      
       p   = p  + double(tmp.Rsq  > stat.Rsq );
       
       Frand(:,:,k)  = tmp.Rsq;
