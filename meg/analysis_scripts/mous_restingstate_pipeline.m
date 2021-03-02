@@ -19,6 +19,7 @@ collectresults = false;
 docardiacconfound = 0;
 
 if dopreproc
+  if ~exist('options', 'var'), options = []; end
   [data, ecg] = mous_restingstate_preprocessing(subjectname, rootdir, options);
   if exist('savedir','var')
     % Get artifact data from /project/3011020.09./MEG, save data to diff directory
@@ -139,7 +140,7 @@ if dogranger1
   options.overlap    = 0.5;
   options.avgcomp    = avgcomp;
   options.comp       = comp;
-  options.pad        = 4;
+  options.pad        = 2; % this needs to be larger, if the freq is to be used for GC 
   [tlck, data_cut]   = mous_restingstate_tlck(data, options);
   options.foilim     = [0 100];
   options.tapsmofrq  = 2;
@@ -179,106 +180,127 @@ if dogranger1
   cfg.sourcemodel     = sourcemodel;
   cfg.headmodel       = headmodel;
   source              = ft_sourceanalysis(cfg, tlck);
-  
+ 
+ tic;
  [s,p] = mous_lcmv_parcellate(source, data_cut, 'parcellationparam', 'tissue', ...
           'parcellation', sourcemodelorig, ...
-          'parcel_indx',  {'Cerebellum Left VIIb' 'Cerebellum Right VIIb' 'Thalamus Left Primary_motor' 'Thalamus Right Primary_motor' 'L_4_B05_01' 'L_4_B05_02' 'R_4_B05_01' 'R_4_B05_02'}, ...
-          'method',       'parcellation_dss');
-  
+          'parcel_indx',  'all', ...
+          'method',       'parcellation_dss', ...
+          'freq',         10, 'ncomp', 5);%[2:10 12:2:30 35 40 50 60 70 80], 'ncomp', 5);%24, 'bwidth', 20, 'ncomp', 5);%[2:10 12:2:30 35 40 50 60 70 80]
+ toc;
+        
  [s_pca,p_pca] = mous_lcmv_parcellate(source, data_cut, 'parcellationparam', 'tissue', ...
           'parcellation', sourcemodelorig, ...
-          'parcel_indx',  {'Cerebellum Left VIIb' 'Cerebellum Right VIIb' 'Thalamus Left Primary_motor' 'Thalamus Right Primary_motor' 'L_4_B05_01' 'L_4_B05_02' 'R_4_B05_01' 'R_4_B05_02'}, ...
+          'parcel_indx',  'all', ...
           'method',       'parcellation');       
   %%
   % does the spatially filtered time domain data yield the same spectral
   % representation as the directly spatially filtered spectral data?
   cfg = removefields(freq.cfg, {'channel' 'previous'});
+   
+  tic;
+  for k = 1:numel(p.filter)
+    fprintf('computing parcel power spectra for %s\n', p.label{k});
+    freq_p = mous_restingstate_data2parcel(freq, p, k, 1:min(size(p.filter{k},1),5));
+    fdp(k) = removefields(ft_freqdescriptives([],freq_p), 'cfg');
+  end
+  toc;
   
-  data_p = mous_restingstate_data2parcel(data_cut, p, 1:8, 2);
-  freq_p = ft_freqanalysis(cfg, data_p);
-  data_pca = mous_restingstate_data2parcel(data_cut, p_pca, 1:8, 2);
-  freq_pca = ft_freqanalysis(cfg, data_pca);
-  
-  ixf = 1:(nearest(freq_p.freq, 98)-1);
-  foi = freq_p.freq(ixf);
-  
-  for i = 1:20
-    selvec = 0:(2*numel(p.freq)):(numel(freq_p.label)-1);
-    selvec = reshape([selvec; selvec+1],[],1);
-    offset = 4*i; % in steps of 1 Hz
-    
-    this = freq_p;
-    this.fourierspctrm = freq_p.fourierspctrm(:, selvec+offset, :);
-    this.label         = freq_p.label(selvec+offset);
-    
-    csd_p = ft_checkdata(this, 'cmbrepresentation', 'fullfast');
-    [g_p{i}] = do_granger4x4(csd_p.crsspctrm(:,:,ixf), foi, [], csd_p.label, 'struct');
-    [g_prev{i}] = do_granger4x4(conj(csd_p.crsspctrm(:,:,ixf)), foi, [], csd_p.label, 'struct');
+  for k = 1:numel(p_pca.filter)
+    fprintf('computing parcel power spectra for %s\n', p_pca.label{k});
+    freq_p = mous_restingstate_data2parcel(freq, p_pca, k, 1:min(size(p_pca.filter{k},1),5));
+    fdp_pca(k) = removefields(ft_freqdescriptives([],freq_p), 'cfg');
   end
   
-  csd_pca = ft_checkdata(freq_pca, 'cmbrepresentation', 'fullfast');
-  [g_pca] = do_granger4x4(csd_pca.crsspctrm(:,:,ixf), foi, [], csd_pca.label, 'struct');
-  
-  % this one is slightly different, probably due to some leakage of the DC
-  % component through the projection -> thus work with the computationally
-  % slightly less efficient steps above
-  %freq_p2 = mous_restingstate_data2parcel(freq, p, 1);
-  
-  
- 
-  F = zeros(numel(sourcemodelorig.tissuelabel),273);
-  for k = 1:size(F,1)
-    tmp     = source.avg.filter{k};
-  %  [u,s,v] = svd(tmp*tlck.cov*tmp');
-  %  F(k,:)  = u(:,1)'*tmp;
-    F(k,:) = tmp;
-  end
-  %noise = abs(diag(F*F'));
-  
-  freq      = ft_checkdata(freq, 'cmbrepresentation', 'fullfast');
-  crsspctrm = zeros(size(F,1),size(F,1),256);%512); % anecdotally this speeds up the fft
-  pow       = zeros(size(F,1),256);%,512);
-  noise     = pow;
-  for k = 1:size(crsspctrm,3)
-%     for m = 1:size(F,1)
-%       tmp     = source.avg.filter{m};
-%       [u,s,v] = svd(real(tmp*freq.crsspctrm(:,:,k)*tmp'));
-%       F(m,:)  = u(:,1)'*tmp;
-%     end
-%     k
-    crsspctrm(:,:,k) = F*freq.crsspctrm(:,:,k)*F';
-    pow(:,k)         = abs(diag(crsspctrm(:,:,k)));
-    noise(:,k)       = abs(diag(F*F'));
-  end
-%   allori = cell(size(source.avg.filter));
-%   for m = 1:size(source.avg.filter,1)
-%     f = source.avg.filter{m};
-%     ori = zeros(size(f,1), size(crsspctrm,3));
-%     for k = 1:size(crsspctrm,3)
-%       [u,s,v]  = svd(real(f*freq.crsspctrm(:,:,k)*f'));
-%       ori(:,k) = u(:,1);
-%     end
-%     tmp = ori(:,1)'*ori;
-%     sel = tmp<0;
-%     ori(:,sel) = -ori(:,sel);
-%     allori{m}  = ori;
+  mous_db_putdata(subjectname, 'meg_restingstate_pow', 'fdp', 'fdp_pca', 'sourcemodelorig', '/project/3011020.09/jansch');
+
+%   
+%   
+   data_p = mous_restingstate_data2parcel(data_cut, p, 1:8, 2);
+   freq_p = ft_freqanalysis(cfg, data_p);
+%   data_pca = mous_restingstate_data2parcel(data_cut, p_pca, 1:8, 2);
+%   freq_pca = ft_freqanalysis(cfg, data_pca);
+%   
+%   ixf = 1:(nearest(freq_p.freq, 98)-1);
+%   foi = freq_p.freq(ixf);
+%   
+%   for i = 1:20
+%     selvec = 0:(2*numel(p.freq)):(numel(freq_p.label)-1);
+%     selvec = reshape([selvec; selvec+1],[],1);
+%     offset = 4*i; % in steps of 1 Hz
+%     
+%     this = freq_p;
+%     this.fourierspctrm = freq_p.fourierspctrm(:, selvec+offset, :);
+%     this.label         = freq_p.label(selvec+offset);
+%     
+%     csd_p = ft_checkdata(this, 'cmbrepresentation', 'fullfast');
+%     [g_p{i}] = do_granger4x4(csd_p.crsspctrm(:,:,ixf), foi, [], csd_p.label, 'struct');
+%     [g_prev{i}] = do_granger4x4(conj(csd_p.crsspctrm(:,:,ixf)), foi, [], csd_p.label, 'struct');
 %   end
-  
+%   
+%   csd_pca = ft_checkdata(freq_pca, 'cmbrepresentation', 'fullfast');
+%   [g_pca] = do_granger4x4(csd_pca.crsspctrm(:,:,ixf), foi, [], csd_pca.label, 'struct');
+%   
+%   % this one is slightly different, probably due to some leakage of the DC
+%   % component through the projection -> thus work with the computationally
+%   % slightly less efficient steps above
+%   %freq_p2 = mous_restingstate_data2parcel(freq, p, 1);
+%   
+%   
+%  
+%   F = zeros(numel(sourcemodelorig.tissuelabel),273);
+%   for k = 1:size(F,1)
+%     tmp     = source.avg.filter{k};
+%   %  [u,s,v] = svd(tmp*tlck.cov*tmp');
+%   %  F(k,:)  = u(:,1)'*tmp;
+%     F(k,:) = tmp;
+%   end
+%   %noise = abs(diag(F*F'));
+%   
+%   freq      = ft_checkdata(freq, 'cmbrepresentation', 'fullfast');
+%   crsspctrm = zeros(size(F,1),size(F,1),256);%512); % anecdotally this speeds up the fft
+%   pow       = zeros(size(F,1),256);%,512);
+%   noise     = pow;
 %   for k = 1:size(crsspctrm,3)
-%     F = zeros(size(source.avg.filter,1), size(source.avg.filter{1},2));
-%     for m = 1:size(source.avg.filter,1)
-%       F(m,:) = allori{m}(:,k)'*source.avg.filter{m};
-%     end
+% %     for m = 1:size(F,1)
+% %       tmp     = source.avg.filter{m};
+% %       [u,s,v] = svd(real(tmp*freq.crsspctrm(:,:,k)*tmp'));
+% %       F(m,:)  = u(:,1)'*tmp;
+% %     end
+% %     k
 %     crsspctrm(:,:,k) = F*freq.crsspctrm(:,:,k)*F';
 %     pow(:,k)         = abs(diag(crsspctrm(:,:,k)));
 %     noise(:,k)       = abs(diag(F*F'));
 %   end
-  freq.crsspctrm = crsspctrm;
-  freq.label     = sourcemodel.label;
-  freq.freq      = freq.freq(1:256);%512);
-  %freq.label     = parcellation.label(sel);
-  %mous_db_putdata(subjectname, 'meg_restingstate_csd_etc', 'tlck', 'freq', 'pow', 'noise', 'sourceparc', 'parcellation', '/project/3011020.09/jansch');
-  mous_db_putdata(subjectname, 'meg_restingstate_csd_etc', 'tlck', 'freq', 'pow', 'noise', 'sourcemodelorig', 'source', '/project/3011020.09/jansch');
+% %   allori = cell(size(source.avg.filter));
+% %   for m = 1:size(source.avg.filter,1)
+% %     f = source.avg.filter{m};
+% %     ori = zeros(size(f,1), size(crsspctrm,3));
+% %     for k = 1:size(crsspctrm,3)
+% %       [u,s,v]  = svd(real(f*freq.crsspctrm(:,:,k)*f'));
+% %       ori(:,k) = u(:,1);
+% %     end
+% %     tmp = ori(:,1)'*ori;
+% %     sel = tmp<0;
+% %     ori(:,sel) = -ori(:,sel);
+% %     allori{m}  = ori;
+% %   end
+%   
+% %   for k = 1:size(crsspctrm,3)
+% %     F = zeros(size(source.avg.filter,1), size(source.avg.filter{1},2));
+% %     for m = 1:size(source.avg.filter,1)
+% %       F(m,:) = allori{m}(:,k)'*source.avg.filter{m};
+% %     end
+% %     crsspctrm(:,:,k) = F*freq.crsspctrm(:,:,k)*F';
+% %     pow(:,k)         = abs(diag(crsspctrm(:,:,k)));
+% %     noise(:,k)       = abs(diag(F*F'));
+% %   end
+%   freq.crsspctrm = crsspctrm;
+%   freq.label     = sourcemodel.label;
+%   freq.freq      = freq.freq(1:256);%512);
+%   %freq.label     = parcellation.label(sel);
+%   %mous_db_putdata(subjectname, 'meg_restingstate_csd_etc', 'tlck', 'freq', 'pow', 'noise', 'sourceparc', 'parcellation', '/project/3011020.09/jansch');
+%   mous_db_putdata(subjectname, 'meg_restingstate_csd_etc', 'tlck', 'freq', 'pow', 'noise', 'sourcemodelorig', 'source', '/project/3011020.09/jansch');
 end
 if dogranger2
   mous_db_getdata(subjectname, 'meg_restingstate_csd_etc', '/project/3011020.09/jansch');

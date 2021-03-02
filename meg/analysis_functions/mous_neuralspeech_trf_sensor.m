@@ -1,7 +1,11 @@
-function [tlck, tlck_sent, tlck_seq, trf_all, trf_sent, trf_seq, data, speech] = mous_neuralspeech_trf_sensor(subjectname, refchan)
+function [tlck, tlck_sent, tlck_seq, trf_all, trf_sent, trf_seq, data, speech] = mous_neuralspeech_trf_sensor(subjectname, refchan, lambda)
 
 if nargin<2 || isempty(refchan)
   refchan = {'audio_avg'};
+end
+
+if nargin<3 || isempty(lambda)
+  lambda = 10;
 end
 
 %% load raw data
@@ -52,26 +56,68 @@ if any(contains(refchan, 'stimon'))
   speech.label{end} = 'stimon';
 end
 
+nfold = 5;
+ix    = round(linspace(0,numel(data.trial),nfold+1));
+N     = randperm(numel(data.trial));
+for k = 1:numel(ix)-1
+  testtrials{1,k} = sort(N((ix(k)+1):ix(k+1)));
+end
+
+reflags = (-6:180)./300; % consider making this configureable
+
+if numel(lambda)>1 && numel(refchan)==numel(lambda)
+  % this suggests a reference channel specific lambda, unfold this for all
+  % lags, so that the threshold cfg argument is nrefchan x nlag + 1 (the
+  % first element coincides with the dependent variable, and should be 0.
+  % the lambda values are assumed to coincide with the order of the
+  % refchans
+  lambda = [0 repmat(lambda(:)', 1, numel(reflags))];
+else 
+  lambda = [lambda 0];
+end
+
 cfg             = [];
 cfg.method      = 'mlrridge';
 cfg.refchannel  = refchan;
-cfg.reflags     = (-6:150)./300; 
-cfg.threshold   = [10 0];
+cfg.reflags     = reflags; 
+cfg.threshold   = lambda;
 cfg.feedback    = 'text';
 cfg.standardiserefdata = true;
 cfg.standardisedata    = true;
 cfg.demeanrefdata      = true;
 cfg.demeandata         = true;
+cfg.testtrials         = testtrials;
 trf_all         = ft_denoise_tsr(cfg, data, speech);
-weights_all     = trf_all.weights.beta; % diag(trf_all.weights.rho)*trf_all.weights.beta;
+weights_all     = cat(4, trf_all.weights.beta); % diag(trf_all.weights.rho)*trf_all.weights.beta;
 
-cfg.trials      = find(ismember(data.trialinfo(:,2),[1 5]));
-trf_sent        = ft_denoise_tsr(cfg, data, speech);
-weights_sent    = trf_sent.weights.beta; % diag(trf_sent.weights.rho)*trf_sent.weights.beta;
+cfgs        = [];
+cfgs.trials = find(ismember(data.trialinfo(:,2),[1 5]));
+data_       = ft_selectdata(cfgs, data);
+speech_     = ft_selectdata(cfgs, speech);
 
-cfg.trials      = find(ismember(data.trialinfo(:,2),[3 7]));
-trf_seq         = ft_denoise_tsr(cfg, data, speech);
-weights_seq     = trf_seq.weights.beta; % diag(trf_seq.weights.rho)*trf_seq.weights.beta;
+ix    = round(linspace(0,numel(data_.trial),nfold+1));
+N     = randperm(numel(data_.trial));
+for k = 1:numel(ix)-1
+  testtrials{1,k} = sort(N((ix(k)+1):ix(k+1)));
+end
+cfg.testtrials = testtrials;
+
+trf_sent        = ft_denoise_tsr(cfg, data_, speech_);
+weights_sent    = cat(4, trf_sent.weights.beta); % diag(trf_sent.weights.rho)*trf_sent.weights.beta;
+
+cfgs.trials = find(ismember(data.trialinfo(:,2),[3 7]));
+data_       = ft_selectdata(cfgs, data);
+speech_     = ft_selectdata(cfgs, speech);
+
+ix    = round(linspace(0,numel(data_.trial),nfold+1));
+N     = randperm(numel(data_.trial));
+for k = 1:numel(ix)-1
+  testtrials{1,k} = sort(N((ix(k)+1):ix(k+1)));
+end
+cfg.testtrials = testtrials;
+
+trf_seq         = ft_denoise_tsr(cfg, data_, speech_);
+weights_seq     = cat(4,trf_seq.weights.beta); % diag(trf_seq.weights.rho)*trf_seq.weights.beta;
 
 tlck       = [];
 tlck.time  = trf_all.weights.time;
@@ -79,6 +125,7 @@ tlck.grad  = data.grad;
 tlck.label = data.label;
 tlck.dimord = 'chan_time';
 tlck.avg   = weights_all;
+tlck.rho   = cat(2, trf_all.weights.rho);
 
 tlck_sent       = [];
 tlck_sent.time  = trf_seq.weights.time;
@@ -86,6 +133,7 @@ tlck_sent.grad  = data.grad;
 tlck_sent.label = data.label;
 tlck_sent.dimord = 'chan_time';
 tlck_sent.avg   = weights_sent;
+tlck_sent.rho   = cat(2, trf_sent.weights.rho);
 %weights    = weights_sent;
 %tlck_sent.avg   = (squeeze(weights.W{1}(end-1:-1:1,:,:))*diag(weights.rho)*diag(1./squeeze(weights.W{2}))*diag(weights.zscore.s))';
 
@@ -95,6 +143,7 @@ tlck_seq.grad  = data.grad;
 tlck_seq.label = data.label;
 tlck_seq.dimord = 'chan_time';
 tlck_seq.avg   = weights_seq;
+tlck_seq.rho   = cat(2, trf_seq.weights.rho);
 
 %%%%%%%%%%%%%%%%%%%%
 %%% SUBFUNCTION %%%%
@@ -122,7 +171,7 @@ cfg.channel    = 'MEG';
 %cfg.bsfreq     = [49 51];
 %cfg.bsfilttype = 'firws'; % windowed sinc FIR filter
 cfg.bpfilter = 'yes';
-cfg.bpfreq   = [2 30];
+cfg.bpfreq   = [.5 30];
 cfg.bpfilttype = 'firws';
 cfg.padding    = 15;
 cfg.usefftfilt = 'yes'; 

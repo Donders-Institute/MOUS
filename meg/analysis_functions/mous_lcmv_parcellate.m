@@ -161,6 +161,8 @@ switch method
     cfg.dss.denf.function = 'denoise_filter2';
     cfg.dss.denf.params.filter_filtfilt.A = [];
     cfg.dss.denf.params.filter_filtfilt.B = [];
+    %cfg.dss.preprocf.params.absthreshold = false;
+    %cfg.dss.preprocf.params.thresholdEig = .999;
     
     % use an existing parcellation, but still do an svd on the projected
     % power
@@ -168,6 +170,12 @@ switch method
     parcelparam  = ft_getopt(varargin, 'parcellationparam', 'parcellation');
     parcel_indx  = ft_getopt(varargin, 'parcel_indx', 'all');
     freqs        = ft_getopt(varargin, 'freq', [1:30 35:5:80]);
+    ncomp        = ft_getopt(varargin, 'ncomp', []);
+    bwidth       = ft_getopt(varargin, 'bwidth', []);
+    
+    if isempty(bwidth)
+      bwidth = freqs./4;
+    end
     
     if isequal(parcel_indx,'all')
       parcel_indx = 1:numel(parcellation.([parcelparam,'label']));
@@ -185,6 +193,10 @@ switch method
       sel = parcellation.(parcelparam)==parcel_indx(m);
       F   = cat(1,sourcein.avg.filter{sel});
       
+      if ~isempty(ncomp)
+        cfg.numcomponent = min(ncomp, round(2*size(F,1)/3));
+      end
+      
       data.trial = F*tlck.trial;
       for k = 1:size(F,1)
         data.label{k,1} = sprintf('chan%03d',k);
@@ -196,7 +208,7 @@ switch method
       
       for k = 1:numel(freqs)
         fprintf('processing frequency %d Hz\n',freqs(k));
-        [dum, B, A] = ft_preproc_bandpassfilter(data.trial{1},data.fsample,freqs(k)+[-1 1].*freqs(k)./8,[],'firws');
+        [dum, B, A] = ft_preproc_bandpassfilter(data.trial{1},data.fsample,freqs(k)+[-1 1].*bwidth(k)./2,[],'firws');
         cfg.dss.denf.params.filter_filtfilt.A = A;
         cfg.dss.denf.params.filter_filtfilt.B = B;
         cfg.dss.denf.params.filter_filtfilt.function = 'fir_filterdcpadded';
@@ -242,7 +254,8 @@ switch method
     cfg.dss.denf.params.filter_filtfilt.A = [];
     cfg.dss.denf.params.filter_filtfilt.B = [];
     cfg.dss.preprocf.function = 'pre_sphere_blocked';
-    
+    cfg.dss.preprocf.params.absthreshold = false;
+    cfg.dss.preprocf.params.thresholdEig = .99;
     % use an existing parcellation, but still do an svd on the projected
     % power
     parcellation = ft_getopt(varargin, 'parcellation');
@@ -252,8 +265,11 @@ switch method
     
     label      = parcellation.([parcelparam,'label']);
     parcel_cmb = ft_channelcombination(parcel_cmb, label);
-    parcel_indx(:,1) = match_str(label, parcel_cmb(:,1));
-    parcel_indx(:,2) = match_str(label, parcel_cmb(:,2));
+    parcel_indx = zeros(size(parcel_cmb));
+    for m = 1:size(parcel_cmb,1)
+      parcel_indx(m,1) = match_str(label, parcel_cmb(m,1));
+      parcel_indx(m,2) = match_str(label, parcel_cmb(m,2));
+    end
     
     Nparcelcmb = size(parcel_indx,1);
     filter  = cell(Nparcelcmb,1);
