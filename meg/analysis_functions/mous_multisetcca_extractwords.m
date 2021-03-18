@@ -62,6 +62,7 @@ w2v     = nan(numel(comp.trial), 320, nword);
 nchar   = nan(numel(comp.trial),nword);
 dur_v   = nan(numel(comp.trial),nword);
 indx    = nan(numel(comp.trial),nword);
+bigramfreq = nan(numel(comp.trial),nword);
 
 for k = 1:numel(comp.trial)
   id         = comp.trialinfo(k,end);
@@ -91,6 +92,9 @@ for k = 1:numel(comp.trial)
   tmp = [words.rightbranch];
   tmp(~isfinite(tmp))=1;
   rb(k,1:nword_here) = tmp;
+  tmp = [words.bigramfreq];
+  tmp(~isfinite(tmp)) = 1; % will be log10 transformed
+  bigramfreq(k,1:nword_here) = tmp;
   
   dur_v(k,1:nword_here-1) = diff(xx{k});
   dur_v(k,  nword_here)   = min(1,comp.time{k}(end)); % time axis is corrected for last word onset, but occasionally the sentences is way too long, truncate length at 1
@@ -187,8 +191,8 @@ end
 Yall(~isfinite(Yall)) = 0;
 
 % create design matrix
-X               = [nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:))];
-X(:,[3 5])      = log10(X(:,[3 5]));
+X               = [nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:)) bigramfreq(sel(:))];
+X(:,[3 5 11])   = log10(X(:,[3 5 11]));
 X(~isfinite(X)) = 0;
 %X      = X - nanmean(X);
 
@@ -212,6 +216,6 @@ V = V-mean(V);
 tlck.trialinfo = table(X(:,1), X(:,2), X(:,3), X(:,4),...
   X(:,5), X(:,6), X(:,7), X(:,8),...
   X(:,9), X(:,10),...
-  V, words.word, words.POS, cat(1,tmptlck.trialinfo), Trl_idx(:,1), Trl_idx(:,2),...
-  'variablenames', {'nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS','duration2','id','ordinal'});
+  V, words.word, words.POS, cat(1,tmptlck.trialinfo), Trl_idx(:,1), Trl_idx(:,2), X(:,11), ...
+  'variablenames', {'nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS','duration2','id','ordinal' 'logbigramfreq'});
 
