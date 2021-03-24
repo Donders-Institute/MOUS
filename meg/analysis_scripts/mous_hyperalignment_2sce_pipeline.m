@@ -8,6 +8,10 @@ if ~exist('makemodels2',                  'var'), makemodels2               = fa
 if ~exist('makemodels2_nointeraction',    'var'), makemodels2_nointeraction = false;      end
 if ~exist('makemodels3',                  'var'), makemodels3               = false;      end
 if ~exist('dostats',                      'var'), dostats                   = false;      end
+if ~exist('doclusstats',                  'var'), doclusstats               = false;      end
+if ~exist('domaxstats',                   'var'), domaxstats                = false;      end
+if ~exist('domaxstatsint',                 'var'), domaxstatsint            = false;      end
+if ~exist('donocorrectmstats',            'var'), donocorrectmstats         = false;      end
 if ~exist('combinemodels',                'var'), combinemodels             = false;      end
 if ~exist('combinesces',                  'var'), combinesces               = false;      end
 if ~exist('combineconds',                 'var'), combineconds              = false;      end
@@ -502,11 +506,11 @@ if makemodels2
     error('define loaddir');
   end
   
-  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'main'};
+  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'main' 'logbigramfreq'};
   
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
-    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy'};
+    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'logbigramfreq'};
   end
   
   if ~iscell(test_ivars)
@@ -517,7 +521,8 @@ if makemodels2
   filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d%s',scenario(1),scenario(2),parcel_indx,suffix));
   load(filename, 'tlck1', 'tlck2');
   
-  load '/project/3011020.09/misc/stimuli/mous_stimuli.mat';
+%   load '/project/3011020.09/misc/stimuli/mous_stimuli.mat';
+  load mous_stimuli.mat
 
   % select only content words
   sel =       double(strncmp([tlck1.trialinfo.POS], 'N',   1))*1;
@@ -607,14 +612,15 @@ if makemodels2
       ivar   = ivar(sel_ivars);
       categorical = categorical(sel_ivars);
       
-      indx = find(ismember(ivar, test_ivars{1}));
+      indx  = find(ismember(ivar, test_ivars{1}));
       indx2 = find(ismember(ivar, test_ivars{2}));
       const = find(ismember(ivar, 'constant'));
+      %char  = find(ismember(ivar, 'nchar'));
       
       fprintf('modelling the data with a constant regressor, %s, %s, and its interaction term\n',ivar{indx},ivar{indx2});
       
       % demean apart from the constant and add the interaction term
-      if ~contains(test_ivars{1},'main') % if we don't want to remove mean for categorical then we can change this to ~contains(categorical, test_ivars{1})
+      if ~contains(test_ivars{1},'main') 
           tmpiv1 = design.(test_ivars{1}) - nanmean(design.(test_ivars{1}));
       else
           tmpiv1 = design.main;
@@ -625,13 +631,16 @@ if makemodels2
           tmpiv2 = design.main;
       end
       
+      tmpnchar = design.nchar - nanmean(design.nchar); % We remove the mean for categorical variables too
+      tmpbigram = design.logbigramfreq - nanmean(design.logbigramfreq); 
+
       tmp = tmpiv1.*tmpiv2; % Centre then compute interaction term. See Afshartous & Preston (2011)
-      tmpdesign = [tmpiv1,tmpiv2,tmp];
-      newdesign = cat(2, design(:, [const]), array2table(tmpdesign, 'VariableNames', {test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
+      tmpdesign = [tmpbigram, tmpnchar, tmpiv1, tmpiv2, tmp];
+      newdesign = cat(2, design(:, const), array2table(tmpdesign, 'VariableNames', {'logbigramfreq' 'nchar', test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
       
-      stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
-      
-      
+      %Take note of the order of the variables if balancefolds is True
+      stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 3 4 5 6]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'logbigramfreq' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+            
       rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
       p = zeros(size(stat.Rsq));
       Frand  = zeros([size(stat.Rsq) nrand]);
@@ -651,7 +660,7 @@ if makemodels2
               %end
           end
           
-          tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 4 3]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+          tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 3 4 5 6]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'logbigramfreq' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
           p   = p  + double(tmp.Rsq  > stat.Rsq );
           statrand(k) = tmp;
           
@@ -665,7 +674,7 @@ if makemodels2
       S.perms = Frand;
       %  end
       
-      filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%s_%s',scenario(1),scenario(2),parcel_indx,ivar{indx},condnames{i}));
+      filename = fullfile(savdir, sprintf('hyperalignment_2sce%d-%d_parcel%03d_model2_%sX%s_%s',scenario(1),scenario(2),parcel_indx,ivar{indx},ivar{indx2},condnames{i}));
       save(filename, 'S');
   end
 end
@@ -1225,14 +1234,18 @@ if combinesces
     
     S = [];
     S.time = cond1.time;
-    S.ivar = [ivar{1} '_' ivar{2}];
+    if numel(ivar) == 2
+        S.ivar = [ivar{1} '_' ivar{2}]; %Because the ivars were kept separate when naming outputs before we computed the freq perplexity interaction.
+    else 
+        S.ivar = ivar{1}; 
+    end
     
     %         S.perms       = cat(1,S14_cond1.perms,S25_cond1.perms,S36_cond1.perms);
     S.ref         = cat(1,S14_cond1.ref,S25_cond1.ref,S36_cond1.ref);
     S.p           = cat(1,S14_cond1.p,S25_cond1.p,S36_cond1.p);
     S.Rsq         = cat(1,S14_cond1.Rsq,S25_cond1.Rsq,S36_cond1.Rsq);
     
-    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_sent',[ivar{1} '_' ivar{2}]));
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_sent',S.ivar));
     save(filename, 'S');
     
     %         S.perms       = cat(1,S14_cond2.perms,S25_cond2.perms,S36_cond2.perms);
@@ -1241,13 +1254,13 @@ if combinesces
     S.Rsq         = cat(1,S14_cond2.Rsq,S25_cond2.Rsq,S36_cond2.Rsq);
     
     
-    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_seq',[ivar{1} '_' ivar{2}]));
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_seq',S.ivar));
     save(filename, 'S');
     
   end
   
 end
-% ---------------------------------------------------------------------------
+%% ---------------------------------------------------------------------------
 if dostats
   if ~exist('modeltype', 'var'),    modeltype = 'model2';               end
   if ~exist('ivar',      'var'),    error('ivar needs to be defined');  end
@@ -1321,13 +1334,13 @@ end
 
 %% statistics across all subjects at once. Selected parcels (from 'labelsel' output of mous_edgesofinterest_2sce)
 if domaxstats
-  if ~exist('ivar','var'); error('error: provide ivars'); end 
-  
-  savdir  = '/project/3011020.09/elecal/scenarios_3wayInteraction';
     
-  filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s_%s.mat',ivar{1}, ivar{2}, 'cond1'));
+  if ~exist('savdir', 'var'),       error('define savdir');   end
+  if ~exist('ivar',      'var'),    error('define ivar');     end  
+      
+  filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s_%s.mat',ivar{1}, ivar{2}, 'sent'));
   sent = load(filename);
-  filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s_%s.mat',ivar{1}, ivar{2}, 'cond2'));
+  filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s_%s.mat',ivar{1}, ivar{2}, 'seq'));
   seq = load(filename);
 
   load atlas_conte69_8196reg_LR_brodmann_subparc.mat
@@ -1355,13 +1368,7 @@ if domaxstats
   cfg                  = [];
   cfg.latency          = [0 0.6];
   cfg.channel          = labelsel(:,1); 
-  %cfg.connectivity     = eye(numel(atlas.parcellationlabel))>0;%parcellation2connmat(atlas);
-  %cfg.tail             = 1;
-  %cfg.clustertail      = 1;
-  %cfg.clusterthreshold = 'nonparametric_individual';
-  %cfg.clusteralpha     = 0.05;
   cfg.feedback         = 'text';
-  %cfg.clusterstatistic = 'maxsum';
   cfg.statistic        = 'depsamplesT';%'ft_statfun_wilcoxon';
   cfg.numrandomization = 5000;
   cfg.correctm = 'max';
@@ -1370,13 +1377,7 @@ if domaxstats
   cfg.uvar   = 2;
   cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
   cfg.parameter = 'pow';
-  %cfg.correctm = 'cluster';
-%   for k = 1:numel(s1.label)
-%     cfg.neighbours(k).label = s1.label{k}; % to get past ft_checkconfig
-%     cfg.neighbours(k).neighblabel = {};
-%   end
-  
-  %cfg.clustertail = 1;
+
   cfg.tail     = 1;
   stat_sent    = ft_timelockstatistics(cfg, s1, s3);
   stat_seq     = ft_timelockstatistics(cfg, s2, s4);
@@ -1384,5 +1385,218 @@ if domaxstats
   
   filename = fullfile(savdir, sprintf('hyperalignment_2sce_allsces_model2_%s_%s_%s.mat', ivar{1},ivar{2}, 'masked184_stat'));
   save(filename, 'stat_sentseq', 'stat_sent', 'stat_seq');
+end
+
+%% statistics across all subjects at once. Selected parcels (mous_2sce_parcelsforstats_3wayInt.mat)
+if domaxstatsint
+    
+    if ~exist('savdir', 'var'),       error('define savdir');   end
+    if ~exist('ivar',      'var'),    error('define ivar');     end
+    
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s.mat',ivar{1}, 'sent'));
+    sent = load(filename);
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s.mat',ivar{1}, 'seq'));
+    seq = load(filename);
+    
+    load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+    label = atlas.parcellationlabel;
+    label([1 2 194 195]) = [];
+    [a,b] = match_str(atlas.parcellationlabel, label);
+    
+    s.dimord = 'rpt_chan_time';
+    s.time   = sent.S.time;
+    s.label  = atlas.parcellationlabel;
+    s.brainordinate = atlas;
+    n = size(sent.S.Rsq,1);
+    s.pow = zeros(n,386,length(s.time));
+    
+    s1 = s;
+    s1.pow(:,a,:) = permute(sent.S.Rsq,[1 3 2]);
+    s2 = s;
+    s2.pow(:,a,:) = permute(seq.S.Rsq,[1 3 2]);
+    s3 = s;
+    s3.pow(:,a,:) = permute(sent.S.ref,[1 3 2]);
+    s4 = s;
+    s4.pow(:,a,:) = permute(seq.S.ref,[1 3 2]);
+    
+%     if contains(ivar, 'loglexfreqXlogperplexity')
+%         load /project/3011020.09/elecal/mous_2sce_parcelsforstats_3wayInt_perplexity.mat
+%     elseif contains(ivar, 'loglexfreq_index')
+        load /project/3011020.09/elecal/mous_2sce_parcelsforstats_3wayInt.mat
+%     else
+%         error('check ivar name and correct mask for stats')
+%     end
+    
+    cfg                  = [];
+    cfg.latency          = [0 0.6];
+    cfg.channel          = labelsel(:,1);
+    cfg.feedback         = 'text';
+    cfg.statistic        = 'depsamplesT';%'ft_statfun_wilcoxon';
+    cfg.numrandomization = 5000;
+    cfg.correctm = 'max';
+    cfg.method = 'montecarlo';
+    cfg.ivar   = 1;
+    cfg.uvar   = 2;
+    cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
+    cfg.parameter = 'pow';
+    
+    cfg.tail     = 1;
+    cfg.alpha    = 0.05;
+    stat_sent    = ft_timelockstatistics(cfg, s1, s3);
+    stat_seq     = ft_timelockstatistics(cfg, s2, s4);
+    
+    cfg.tail          = 0;
+    cfg.alpha         = 0.025;
+    stat_sentseq = ft_timelockstatistics(cfg, s1, s2);
+    
+    %     filename = fullfile(savdir, sprintf('hyperalignment_2sce_allsces_model2_%s_%s_%s.mat', ivar{1}, ivar{2}, 'masked33_maxstat'));
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_allsces_model2_%s_masked%d_maxstat.mat', ivar{1}, length(labelsel)));
+    save(filename, 'stat_sentseq', 'stat_sent', 'stat_seq');
+end
+
+
+%% Cluster stats for 3way interaction - on 33 parcels
+  
+if doclusstats
+    
+    if ~exist('savdir', 'var'),       error('define savdir');             end
+    if ~exist('ivar',      'var'),    error('ivar needs to be defined');  end
+    
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s.mat',ivar{1}, 'sent'));
+    sent = load(filename);
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s.mat',ivar{1}, 'seq'));
+    seq = load(filename);
+    
+    load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+    label = atlas.parcellationlabel;
+    label([1 2 194 195]) = [];
+    [a,b] = match_str(atlas.parcellationlabel, label);
+    
+    s.dimord = 'rpt_chan_time';
+    s.time   = sent.S.time;
+    s.label  = atlas.parcellationlabel;
+    s.brainordinate = atlas;
+    n = size(sent.S.Rsq,1);
+    s.pow = zeros(n,386,length(s.time));
+    
+    s1 = s;
+    s1.pow(:,a,:) = permute(sent.S.Rsq,[1 3 2]);
+    s2 = s;
+    s2.pow(:,a,:) = permute(seq.S.Rsq,[1 3 2]);
+    s3 = s;
+    s3.pow(:,a,:) = permute(sent.S.ref,[1 3 2]);
+    s4 = s;
+    s4.pow(:,a,:) = permute(seq.S.ref,[1 3 2]);
+    
+%     if contains(ivar, 'loglexfreqXlogperplexity')
+%         load /project/3011020.09/elecal/mous_2sce_parcelsforstats_3wayInt_perplexity.mat
+%     elseif contains(ivar, 'loglexfreq_index')
+        load /project/3011020.09/elecal/mous_2sce_parcelsforstats_3wayInt.mat
+%     else
+%         error('check ivar name and correct mask for stats')
+%     end
+    
+    cfg                  = [];
+    cfg.latency          = [0 0.6];
+    cfg.channel          = labelsel(:,1);
+    %cfg.connectivity     = eye(numel(atlas.parcellationlabel))>0;%parcellation2connmat(atlas);
+    cfg.clusterthreshold = 'nonparametric_individual';
+    cfg.feedback         = 'text';
+    cfg.clusterstatistic = 'maxsum';
+    cfg.statistic        = 'depsamplesT';%'ft_statfun_wilcoxon';
+    cfg.numrandomization = 5000;
+    cfg.method = 'montecarlo';
+    cfg.ivar   = 1;
+    cfg.uvar   = 2;
+    cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
+    cfg.parameter = 'pow';
+    cfg.correctm = 'cluster';
+    for k = 1:numel(s1.label)
+        cfg.neighbours(k).label = s1.label{k}; % to get past ft_checkconfig
+        cfg.neighbours(k).neighblabel = {};
+    end
+    cfg.tail          = 1;
+    cfg.clustertail   = 1;
+    cfg.clusteralpha  = 0.05;
+    cfg.alpha         = 0.05;
+    stat_sent         = ft_timelockstatistics(cfg, s1, s3);
+    stat_seq          = ft_timelockstatistics(cfg, s2, s4);
+    
+    cfg.tail          = 0;
+    cfg.clustertail   = 0;
+    cfg.clusteralpha  = 0.025;
+    cfg.alpha         = 0.025;
+    stat_sentseq = ft_timelockstatistics(cfg, s1, s2);
+    
+    %     filename = fullfile(savdir, sprintf('hyperalignment_2sce_allsces_model2_%s_%s_%s.mat', ivar{1},ivar{2}, 'masked33_clusstat'));
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_allsces_model2_%s_masked%d_clusstat.mat', ivar{1}, length(labelsel)));
+    save(filename, 'stat_sentseq', 'stat_sent', 'stat_seq');
+end
+
+%% statistics across all subjects at once. Selected parcels (from 'labelsel' output of mous_edgesofinterest_2sce)
+if donocorrectmstats
+    
+    if ~exist('savdir', 'var'), error('define savdir');     end
+    if ~exist('ivar','var');    error('define ivars');      end
+    
+    
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s.mat', ivar{1}, 'sent'));
+    sent = load(filename);
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_combined_model2_%s_%s.mat', ivar{1}, 'seq'));
+    seq = load(filename);
+    
+    load atlas_conte69_8196reg_LR_brodmann_subparc.mat
+    label = atlas.parcellationlabel;
+    label([1 2 194 195]) = [];
+    [a,b] = match_str(atlas.parcellationlabel, label);
+    
+    s.dimord = 'rpt_chan_time';
+    s.time   = sent.S.time;
+    s.label  = atlas.parcellationlabel;
+    s.brainordinate = atlas;
+    n = size(sent.S.Rsq,1);
+    s.pow = zeros(n,386,length(s.time));
+    
+    s1 = s;
+    s1.pow(:,a,:) = permute(sent.S.Rsq,[1 3 2]);
+    s2 = s;
+    s2.pow(:,a,:) = permute(seq.S.Rsq,[1 3 2]);
+    s3 = s;
+    s3.pow(:,a,:) = permute(sent.S.ref,[1 3 2]);
+    s4 = s;
+    s4.pow(:,a,:) = permute(seq.S.ref,[1 3 2]);
+    
+%     if contains(ivar, 'loglexfreqXlogperplexity')
+%         load /project/3011020.09/elecal/mous_2sce_parcelsforstats_3wayInt_perplexity.mat
+%     elseif contains(ivar, 'loglexfreq_index')
+        load /project/3011020.09/elecal/mous_2sce_parcelsforstats_3wayInt.mat
+%     else
+%         error('check ivar name and correct mask for stats')
+%     end
+    
+    cfg                  = [];
+    cfg.latency          = [0 0.6];
+    cfg.channel          = labelsel(:,1);
+    cfg.feedback         = 'text';
+    cfg.statistic        = 'depsamplesT';%'ft_statfun_wilcoxon';
+    cfg.numrandomization = 5000;
+    cfg.correctm = 'no';
+    cfg.method = 'montecarlo';
+    cfg.ivar   = 1;
+    cfg.uvar   = 2;
+    cfg.design = [ones(1,n) ones(1,n)*2;1:n 1:n];
+    cfg.parameter = 'pow';
+    
+    cfg.tail     = 1;
+    stat_sent    = ft_timelockstatistics(cfg, s1, s3);
+    stat_seq     = ft_timelockstatistics(cfg, s2, s4);
+    
+    cfg.tail          = 0;
+    cfg.alpha         = 0.025;
+    stat_sentseq = ft_timelockstatistics(cfg, s1, s2);
+    
+    %     filename = fullfile(savdir, sprintf('hyperalignment_2sce_allsces_model2_%s_%s_%s.mat', ivar{1}, ivar{2}, 'masked33_nocorrectmstat'));
+    filename = fullfile(savdir, sprintf('hyperalignment_2sce_allsces_model2_%s_masked%d_nocorrectmstat.mat', ivar{1}, length(labelsel)));
+    save(filename, 'stat_sentseq', 'stat_sent', 'stat_seq');
 end
 
