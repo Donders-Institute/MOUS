@@ -1,4 +1,9 @@
-% 
+% In response to a reviewer comment, we computed bigram letter frequency
+% and lemma frequency and aded them to mous_stimuli to use as regressors.
+% This code extracts the log transform of these variables (logbigramfreq
+% and loglemmafreq), and adds this updated trialinfo to tlck1 and tlck2 of
+% the hyperaligned data. 
+% Important to Note: It overwrites the loaded file
 
 if ~exist('scenario', 'var');      error('please supply scenario');     end
 if ~exist('parcel_indx', 'var');   error('please supply parcel_indx');  end
