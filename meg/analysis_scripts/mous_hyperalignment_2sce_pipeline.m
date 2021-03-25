@@ -506,11 +506,11 @@ if makemodels2
     error('define loaddir');
   end
   
-  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'main' 'logbigramfreq'};
+  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'main' 'logbigramfreq' 'loglemmafreq'};
   
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
-    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'logbigramfreq'};
+    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'logbigramfreq' 'loglemmafreq'};
   end
   
   if ~iscell(test_ivars)
@@ -615,7 +615,6 @@ if makemodels2
       indx  = find(ismember(ivar, test_ivars{1}));
       indx2 = find(ismember(ivar, test_ivars{2}));
       const = find(ismember(ivar, 'constant'));
-      %char  = find(ismember(ivar, 'nchar'));
       
       fprintf('modelling the data with a constant regressor, %s, %s, and its interaction term\n',ivar{indx},ivar{indx2});
       
@@ -632,14 +631,14 @@ if makemodels2
       end
       
       tmpnchar = design.nchar - nanmean(design.nchar); % We remove the mean for categorical variables too
-      tmpbigram = design.logbigramfreq - nanmean(design.logbigramfreq); 
+%       tmpbigram = design.logbigramfreq - nanmean(design.logbigramfreq); 
 
       tmp = tmpiv1.*tmpiv2; % Centre then compute interaction term. See Afshartous & Preston (2011)
-      tmpdesign = [tmpbigram, tmpnchar, tmpiv1, tmpiv2, tmp];
-      newdesign = cat(2, design(:, const), array2table(tmpdesign, 'VariableNames', {'logbigramfreq' 'nchar', test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
+      tmpdesign = [tmpnchar, tmpiv1, tmpiv2, tmp];
+      newdesign = cat(2, design(:, const), array2table(tmpdesign, 'VariableNames', {'nchar', test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
       
       %Take note of the order of the variables if balancefolds is True
-      stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 3 4 5 6]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'logbigramfreq' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+      stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 3 4 5]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
             
       rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
       p = zeros(size(stat.Rsq));
@@ -660,7 +659,7 @@ if makemodels2
               %end
           end
           
-          tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 3 4 5 6]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'logbigramfreq' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+          tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 3 4 5]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
           p   = p  + double(tmp.Rsq  > stat.Rsq );
           statrand(k) = tmp;
           
