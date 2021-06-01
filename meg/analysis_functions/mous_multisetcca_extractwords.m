@@ -63,6 +63,7 @@ nchar   = nan(numel(comp.trial),nword);
 dur_v   = nan(numel(comp.trial),nword);
 indx    = nan(numel(comp.trial),nword);
 bigramfreq = nan(numel(comp.trial),nword);
+trigramfreq = nan(numel(comp.trial),nword);
 lemmafreq  = nan(numel(comp.trial),nword);
 
 for k = 1:numel(comp.trial)
@@ -96,6 +97,9 @@ for k = 1:numel(comp.trial)
   tmp = [words.bigramfreq];
   tmp(~isfinite(tmp)) = 1; % will be log10 transformed
   bigramfreq(k,1:nword_here) = tmp;
+  tmp = [words.trigramfreq];
+  tmp(~isfinite(tmp)) = 1; % will be log10 transformed
+  trigramfreq(k,1:nword_here) = tmp;
   tmp = [words.lemmafreq_nlcow];
   tmp(~isfinite(tmp)) = 1; % will be log10 transformed
   lemmafreq(k,1:nword_here) = tmp;
@@ -195,8 +199,8 @@ end
 Yall(~isfinite(Yall)) = 0;
 
 % create design matrix
-X               = [nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:)) bigramfreq(sel(:)) lemmafreq(sel(:))];
-X(:,[3 5 11 12])   = log10(X(:,[3 5 11 12]));
+X               = [nchar(sel(:)) dur_v(sel(:)) lexfreq(sel(:)) indx(sel(:)) perpl(sel(:)) entr(sel(:)) lb(sel(:)) rb(sel(:)) dlb(sel(:)) drb(sel(:)) bigramfreq(sel(:)) trigramfreq(sel(:)) lemmafreq(sel(:))];
+X(:,[3 5 11 12 13])   = log10(X(:,[3 5 11 12 13]));
 X(~isfinite(X)) = 0;
 %X      = X - nanmean(X);
 
@@ -220,6 +224,6 @@ V = V-mean(V);
 tlck.trialinfo = table(X(:,1), X(:,2), X(:,3), X(:,4),...
   X(:,5), X(:,6), X(:,7), X(:,8),...
   X(:,9), X(:,10),...
-  V, words.word, words.POS, cat(1,tmptlck.trialinfo), Trl_idx(:,1), Trl_idx(:,2), X(:,11), X(:,12), ...
-  'variablenames', {'nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS','duration2','id','ordinal' 'logbigramfreq' 'loglemmafreq'});
+  V, words.word, words.POS, cat(1,tmptlck.trialinfo), Trl_idx(:,1), Trl_idx(:,2), X(:,11), X(:,12), X(:,13), ...
+  'variablenames', {'nchar','duration','loglexfreq','index','logperplexity','entropy','leftbranch','rightbranch','dleftbranch','drightbranch','w2v','word','POS','duration2','id','ordinal' 'logbigramfreq' 'logtrigramfreq' 'loglemmafreq'});
 
