@@ -13,7 +13,7 @@ if ~exist('loaddir', 'var');       error('please supply loaddir');      end
 filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d',scenario(1),scenario(2),parcel_indx));
 load(filename);
 
-load mous_stimuli.mat
+load  /project/3011020.09/misc/stimuli/mous_stimuli.mat
 
 newtlck = mous_multisetcca_extractwords(comp, stimuli);
 
