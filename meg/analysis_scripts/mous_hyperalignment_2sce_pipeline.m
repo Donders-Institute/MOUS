@@ -506,11 +506,15 @@ if makemodels2
     error('define loaddir');
   end
   
-  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'main' 'logbigramfreq' 'loglemmafreq'};
+  if ~exist('function_words','var')
+      function_words = false
+  end
+  
+  use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'main' 'logbigramfreq' 'logtrigramfreq' 'loglemmafreq'};
   
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
-    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'logbigramfreq' 'loglemmafreq'};
+    test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' 'logbigramfreq' 'logtrigramfreq' 'loglemmafreq'};
   end
   
   if ~iscell(test_ivars)
@@ -521,14 +525,23 @@ if makemodels2
   filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d%s',scenario(1),scenario(2),parcel_indx,suffix));
   load(filename, 'tlck1', 'tlck2');
   
-%   load '/project/3011020.09/misc/stimuli/mous_stimuli.mat';
-  load mous_stimuli.mat
+  load  /project/3011020.09/misc/stimuli/mous_stimuli.mat
 
-  % select only content words
-  sel =       double(strncmp([tlck1.trialinfo.POS], 'N',   1))*1;
-  sel = sel + double(strncmp([tlck1.trialinfo.POS], 'WW',  2))*2;
-  sel = sel + double(strncmp([tlck1.trialinfo.POS], 'ADJ', 3))*3;
-  
+  if function_words
+      % select only function words
+      % Because some adverbs are considered closed class and some are considered open class,
+      % they have been left out of both analyses.
+      sel =       double(strncmp([tlck1.trialinfo.POS], 'VZ',  2))*1; % Preposition
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'VG',  2))*2; % Conjunction
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'VNW', 3))*3; % Pronoun
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'LID', 3))*4; % Determiner
+  else
+      % select only content words
+      sel =       double(strncmp([tlck1.trialinfo.POS], 'N',   1))*1;
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'WW',  2))*2;
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'ADJ', 3))*3;
+  end
+ 
   % select these from the data
   tmpcfg = [];
   tmpcfg.trials = find(sel>0);
@@ -536,9 +549,18 @@ if makemodels2
   tmpcfg.latency = [-inf 0.6];
   tlck1  = ft_selectdata(tmpcfg, tlck1);
   
-  sel =       double(strncmp([tlck2.trialinfo.POS], 'N',   1))*1;
-  sel = sel + double(strncmp([tlck2.trialinfo.POS], 'WW',  2))*2;
-  sel = sel + double(strncmp([tlck2.trialinfo.POS], 'ADJ', 3))*3;
+  if function_words
+      % select only function words
+      sel =       double(strncmp([tlck2.trialinfo.POS], 'VZ',  2))*1; % Preposition
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'VG',  2))*2; % Conjunction
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'VNW', 3))*3; % Pronoun
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'LID', 3))*4; % Determiner
+  else
+      % select only content words
+      sel =       double(strncmp([tlck2.trialinfo.POS], 'N',   1))*1;
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'WW',  2))*2;
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'ADJ', 3))*3;
+  end
   
   % select these from the data
   tmpcfg = [];
@@ -630,16 +652,21 @@ if makemodels2
           tmpiv2 = design.main;
       end
       
-      tmpnchar = design.nchar - nanmean(design.nchar); % We remove the mean for categorical variables too
-%       tmpbigram = design.logbigramfreq - nanmean(design.logbigramfreq); 
+      tmpnchar   = design.nchar - nanmean(design.nchar); % We remove the mean for categorical variables too
+%       tmpbigram  = design.logbigramfreq  - nanmean(design.logbigramfreq); 
+%       tmptrigram = design.logtrigramfreq - nanmean(design.logtrigramfreq); 
 
       tmp = tmpiv1.*tmpiv2; % Centre then compute interaction term. See Afshartous & Preston (2011)
+      
       tmpdesign = [tmpnchar, tmpiv1, tmpiv2, tmp];
-      newdesign = cat(2, design(:, const), array2table(tmpdesign, 'VariableNames', {'nchar', test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
+      newdesign = cat(2, design(:, const), array2table(tmpdesign, 'VariableNames', {'nchar', test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));    
+%       tmpdesign = [tmpbigram, tmptrigram, tmpnchar, tmpiv1, tmpiv2, tmp];
+%       newdesign = cat(2, design(:, const), array2table(tmpdesign, 'VariableNames', {'logbigramfreq' 'logtrigramfreq' 'nchar', test_ivars{1}, test_ivars{2}, sprintf('%sX%s',test_ivars{1},test_ivars{2})}));
       
       %Take note of the order of the variables if balancefolds is True
       stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 3 4 5]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
-            
+%       stat = mous_multisetcca_regress(tlck, newdesign(:,[1 2 3 4 5 6 7]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'logbigramfreq' 'logtrigramfreq' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);   
+      
       rng('default'); % resets random number generator to matlabs original pseudorandom order, to be able to compare across parcels
       p = zeros(size(stat.Rsq));
       Frand  = zeros([size(stat.Rsq) nrand]);
@@ -660,6 +687,7 @@ if makemodels2
           end
           
           tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 3 4 5]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
+%           tmp = mous_multisetcca_regress(tlck, tmpdesign(:,[1 2 3 4 5 6 7]),'lambda',lambda, 'outerfolds', 5, 'balancefolds', categorical(indx), 'normalise', true, 'modelcomparison', {'constant' 'logbigramfreq' 'logtrigramfreq' 'nchar' test_ivars{1} test_ivars{2}}, 'innerfolds', 5, 'nrepeat', 5);
           p   = p  + double(tmp.Rsq  > stat.Rsq );
           statrand(k) = tmp;
           
@@ -686,7 +714,7 @@ if makemodels2_nointeraction
   % does not require the data to be concatenated across scenarios, because
   % in that case we can focus on the 'sentence subjects' only, including also
   % the independent variables that make sense only in the sentence condition.
-  load mous_stimuli;
+  load /project/3011020.09/misc/stimuli/mous_stimuli.mat;
   
   if ~exist('nrand', 'var') 
     nrand = 100;
@@ -703,12 +731,15 @@ if makemodels2_nointeraction
   if ~exist('quadratic', 'var')
     quadratic=0;
   end
+  if ~exist('function_words', 'var')
+      function_words = false;
+  end 
   if ~exist('test_ivars', 'var')
     % test a bunch at once: this does not allow for ivar specific lambdas
     %test_ivars = {'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
     %              'leftbranch' 'rightbranch' 'dleftbranch' 'drightbranch' 'w2v'};
     test_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy' ...
-      'leftbranch' 'dleftbranch'};
+      'leftbranch' 'dleftbranch'};% 'logbigramfreq' 'logtrigramfreq'};
   end
   if ~iscell(test_ivars)
     test_ivars = {test_ivars};
@@ -718,7 +749,7 @@ if makemodels2_nointeraction
     use_single_regressor = false;
   end
   if ~use_single_regressor
-    use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy'}; % use only quantities that make sense in both sent and seq
+    use_ivars = {'constant' 'nchar' 'loglexfreq' 'index' 'logperplexity' 'entropy'};% 'logbigramfreq' 'logtrigramfreq'}; % use only quantities that make sense in both sent and seq
   else
     use_ivars = cat(2, {'constant'}, test_ivars);
   end
@@ -727,11 +758,21 @@ if makemodels2_nointeraction
   filename = fullfile(loaddir, sprintf('mscca_sce%d-%d_parcel%03d%s',scenario(1),scenario(2),parcel_indx,suffix));
   load(filename, 'tlck1', 'tlck2');
   
-  % select only content words
-  sel =       double(strncmp([tlck1.trialinfo.POS], 'N',   1))*1;
-  sel = sel + double(strncmp([tlck1.trialinfo.POS], 'WW',  2))*2;
-  sel = sel + double(strncmp([tlck1.trialinfo.POS], 'ADJ', 3))*3;
-  
+  if function_words
+      % select only function words
+      % Because some adverbs are considered closed class and some are considered open class,
+      % they have been left out of both analyses.
+      sel =       double(strncmp([tlck1.trialinfo.POS], 'VZ',  2))*1; % Preposition
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'VG',  2))*2; % Conjunction
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'VNW', 3))*3; % Pronoun
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'LID', 3))*4; % Determiner
+  else
+      % select only content words
+      sel =       double(strncmp([tlck1.trialinfo.POS], 'N',   1))*1;
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'WW',  2))*2;
+      sel = sel + double(strncmp([tlck1.trialinfo.POS], 'ADJ', 3))*3;
+  end
+           
   % select these from the data
   tmpcfg = [];
   tmpcfg.trials = find(sel>0);
@@ -739,11 +780,19 @@ if makemodels2_nointeraction
   tmpcfg.latency = [-inf 0.6];
   tlck1  = ft_selectdata(tmpcfg, tlck1);
   
-  
-  sel =       double(strncmp([tlck2.trialinfo.POS], 'N',   1))*1;
-  sel = sel + double(strncmp([tlck2.trialinfo.POS], 'WW',  2))*2;
-  sel = sel + double(strncmp([tlck2.trialinfo.POS], 'ADJ', 3))*3;
-  
+  if function_words
+      % select only function words
+      sel =       double(strncmp([tlck2.trialinfo.POS], 'VZ',  2))*1; % Preposition
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'VG',  2))*2; % Conjunction
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'VNW', 3))*3; % Pronoun
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'LID', 3))*4; % Determiner
+  else
+      % select only content words
+      sel =       double(strncmp([tlck2.trialinfo.POS], 'N',   1))*1;
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'WW',  2))*2;
+      sel = sel + double(strncmp([tlck2.trialinfo.POS], 'ADJ', 3))*3;
+  end
+    
   % select these from the data
   tmpcfg = [];
   tmpcfg.trials = find(sel>0);
